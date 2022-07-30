@@ -1,6 +1,6 @@
 ## stuff
-´shell
+`shell
 python -m venv venv
 .\venv\Scripts\activate
 deactivate
-´
+`
