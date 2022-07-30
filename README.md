@@ -1,5 +1,5 @@
 ## stuff
-```ps
+```shell
 python -m venv venv  
 .\venv\Scripts\activate  
 deactivate
