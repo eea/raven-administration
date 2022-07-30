@@ -6,6 +6,12 @@ import TopBar from './components/TopBar.vue';
 <template>
   <div class="h-full flex flex-col overflow-hidden">
     <TopBar />
+    <div class="flex overflow-hidden flex-1">
+      <Menu :show="showMenu && !isLogin" />
+      <div class="flex-1 overflow-auto">
+        <router-view></router-view>
+      </div>
+    </div>
   </div>
 </template>
 

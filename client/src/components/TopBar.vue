@@ -3,7 +3,7 @@ const msg = ref("HEY HO")
 </script>
 
 <template>
-  <div class="px-1 py-1 flex bg-polar-b text-snow-a justify-between select-none overflow-hidden">
+  <div class="p-1 flex bg-polar-b text-snow-a justify-between select-none overflow-hidden">
     <div>
       <div class="rounded-full h-7 w-7 flex justify-center hover:bg-polar-d hover:border-2 hover:border-aurora-d hover:cursor-pointer" @click="showMenu = !showMenu" v-if="!isLogin">
         <div i-fa6-solid-bars class="text-base self-center" />
