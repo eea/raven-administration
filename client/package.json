@@ -1,0 +1,25 @@
+{
+  "name": "raven-administration-client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.2.37"
+  },
+  "devDependencies": {
+    "@iconify/json": "^2.1.85",
+    "@unocss/reset": "^0.45.1",
+    "@unocss/transformer-directives": "^0.45.1",
+    "@vitejs/plugin-vue": "^3.0.0",
+    "unocss": "^0.44.7",
+    "unplugin-auto-import": "^0.10.2",
+    "unplugin-vue-components": "^0.21.2",
+    "vite": "^3.0.0",
+    "vite-plugin-fonts": "^0.6.0"
+  }
+}
