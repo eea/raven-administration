@@ -1,21 +1,27 @@
 <script setup>
-const msg = ref("HEY HO")
+import IconMenu from "~icons/fa-solid/bars";
+
+const props = defineProps({
+  "hide-menu-button": {
+    type: Boolean,
+    default: false,
+  },
+});
+const emit = defineEmits(["on-click"]);
 </script>
 
 <template>
-  <div class="p-1 flex bg-polar-b text-snow-a justify-between select-none overflow-hidden">
+  <div class="px-1 py-1 flex bg-nord1 text-nord4 justify-between select-none overflow-hidden">
     <div>
-      <div class="rounded-full h-7 w-7 flex justify-center hover:bg-polar-d hover:border-2 hover:border-aurora-d hover:cursor-pointer" @click="showMenu = !showMenu" v-if="!isLogin">
-        <div i-fa6-solid-bars class="text-base self-center" />
+      <div class="rounded-full h-7 w-7 flex justify-center hover:bg-nord3 hover:border-2 hover:border-nord14 hover:cursor-pointer" @click="$emit('on-click')" v-if="!hideMenuButton">
+        <icon-menu class="text-xs self-center" />
       </div>
     </div>
-    <div class="self-center text-lg flex gap-1 mr-1">
-      <LogoRaven class="h-8 fill-aurora-e self-center" />
+    <div class="self-center flex gap-1 mr-1 text-base">
       <div class="self-center">Raven3</div>
+      <div class="self-center text-nord15">Administration</div>
     </div>
   </div>
-
 </template>
 
-<style>
-</style>
+<style></style>

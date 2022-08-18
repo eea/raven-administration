@@ -1,4 +1,4 @@
 <script setup></script>
-<template>Home</template>
+<template></template>
 <style>
 </style>

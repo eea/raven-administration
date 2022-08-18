@@ -1,45 +1,43 @@
 <script setup>
-import { computed,ref,watch,onMounted } from 'vue'
 var p = defineProps({
-    modelValue: {
-        type: Boolean,
-        default: false
-    }
-})
+  modelValue: {
+    type: Boolean,
+    default: false,
+  },
+});
 
 const internalValue = ref(false);
 
-onMounted(()=>{
-    if(p.modelValue != internalValue.value) internalValue.value = p.modelValue;
+onMounted(() => {
+  if (p.modelValue != internalValue.value) internalValue.value = p.modelValue;
 });
 
-watch(() => p.modelValue, (nv) => {
-    if(p.modelValue != internalValue.value) internalValue.value = p.modelValue;
-});
+watch(
+  () => p.modelValue,
+  (nv) => {
+    if (p.modelValue != internalValue.value) internalValue.value = p.modelValue;
+  }
+);
 
 const emit = defineEmits(["update:modelValue"]);
 
-
 const onClick = (el) => {
-    internalValue.value = !internalValue.value;
-    emit("update:modelValue", internalValue.value);
-}
+  internalValue.value = !internalValue.value;
+  emit("update:modelValue", internalValue.value);
+};
 
 const cls = computed(() => {
-    if(internalValue.value) return "n-checkbox-checked"
-    else return "";
+  if (internalValue.value) return "n-checkbox-checked";
+  else return "";
 });
 </script>
 
-<script  >
+<script>
 export default {
-    inheritAttrs: false,
-}
+  inheritAttrs: false,
+};
 </script>
 
-<template> 
-    <div class="n-elements n-checkbox" v-bind="$attrs" @click="onClick($el)" :class="cls">
-    </div>
+<template>
+  <div class="n-checkbox" v-bind="$attrs" @click="onClick($el)" :class="cls"></div>
 </template>
-
- 

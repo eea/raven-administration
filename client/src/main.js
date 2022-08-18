@@ -1,11 +1,18 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import router from "./router"
-import "@unocss/reset/tailwind.css"
-import "uno.css"
+import "./assets/tailwind.css";
 import "./assets/n-elements.css";
 
-const app = createApp(App);
+// INTERCEPT
+import intercetor from "./helpers/interceptor";
+intercetor.request();
+intercetor.response();
+intercetor.default();
+
+const app = createApp(App); 
+
+// ROUTER
+import router from "./router"
 app.use(router);
 
 app.mount('#app')

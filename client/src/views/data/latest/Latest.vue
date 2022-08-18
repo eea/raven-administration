@@ -1,0 +1,108 @@
+<script setup>
+import IconValidate from "~icons/material-symbols/fact-check";
+import IconPlot from "~icons/material-symbols/bar-chart";
+
+import { useRouter } from "vue-router";
+
+import Service from "./service";
+import { tblToCsv, compare } from "../../../helpers/utils";
+
+const q = ref("");
+const data = ref([]);
+const ev = ref({});
+const showContextmenu = ref(false);
+const selected = ref({});
+
+const router = useRouter();
+
+onMounted(async () => {
+  await loadData();
+});
+
+const loadData = async () => {
+  data.value = await Service.get();
+};
+
+const cmp_data = computed(() => {
+  var t = data.value.filter((p) => {
+    return !q.value || p.network.toLowerCase().includes(q.value.toLowerCase()) || p.station.toLowerCase().includes(q.value.toLowerCase()) || p.pollutant.toLowerCase().includes(q.value.toLowerCase()) || p.timestep.toLowerCase().includes(q.value.toLowerCase());
+  });
+  return t;
+});
+
+const close = () => {
+  showContextmenu.value = false;
+  selected.value = {};
+};
+
+const cls_rowClass = (row) => {
+  var classes = "";
+  if (row.validation_flag < 1) classes = " bg-nord11/10";
+  if (compare(selected.value, row)) classes = classes + " selected";
+  // if (row.pollutant == "O3") return "bg-nord14/20"
+  // if (row.pollutant == "NO") return "bg-nord13/20"
+  return classes;
+};
+
+const onDownload = () => {
+  tblToCsv("latestId", "latest_data");
+};
+
+const onPlot = () => {
+  const { id, from_time, to_time } = selected.value;
+  router.push({ name: "Historical", query: { ids: id, from: from_time, to: to_time } });
+};
+
+const onContextMenu = (row, e) => {
+  selected.value = row;
+  ev.value = e;
+  showContextmenu.value = true;
+};
+</script>
+
+<template>
+  <common-layout>
+    <contextmenu :evt="ev" @click-outside="close" :show="showContextmenu">
+      <div class="px-2 font-bold">Menu:</div>
+      <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onPlot()">
+        <icon-plot class="text-nord15 self-center" />
+        <div class="self-center ml-1">Plot data</div>
+      </div>
+      <div class="pl-2 pr-4 py-2 flex hover:bg-gray-100 pointer-events-none" @click="onValidate()">
+        <icon-validate class="text-nord3/50 self-center" />
+        <div class="self-center ml-1 text-nord3/50">Validate data</div>
+      </div>
+    </contextmenu>
+
+    <tool-bar title="Latest data" filter-text="Type to filter data" :show-add="false" v-model="q" @download-click="onDownload" />
+
+    <div>
+      <table id="latestId" class="n-table">
+        <tr>
+          <th>Network</th>
+          <th>Station</th>
+          <th>Pollutant</th>
+          <th>Timestep</th>
+          <th>First date</th>
+          <th>Latest date</th>
+          <th>Value</th>
+          <th>Validation</th>
+          <th>Verification</th>
+          <th>Unit</th>
+        </tr>
+        <tr v-for="row in cmp_data" :class="cls_rowClass(row)" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}">
+          <td>{{ row.network }}</td>
+          <td>{{ row.station }}</td>
+          <td>{{ row.pollutant }}</td>
+          <td>{{ row.timestep }}</td>
+          <td>{{ row.from_time }}</td>
+          <td class="font-bold">{{ row.to_time }}</td>
+          <td>{{ row.value }}</td>
+          <td>{{ row.validation_flag }}</td>
+          <td>{{ row.verification_flag }}</td>
+          <td>{{ row.unit }}</td>
+        </tr>
+      </table>
+    </div>
+  </common-layout>
+</template>
