@@ -163,12 +163,11 @@ class Mean:
                         ELSE NULL 
                     END val
                 FROM
-                    observations o, sampling_points spo
-                WHERE 1=1
-                AND spo.id = o.sampling_point_id  
+                    observations o 
+                WHERE 1=1 
                 AND o.from_time >= %(fromTime)s
                 AND o.from_time < %(toTime)s
-                AND spo.id IN %(ids)s
+                AND o.sampling_point_id IN %(ids)s
             )
             SELECT 
                 to_char (DATETIME + interval '1' HOUR, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
@@ -211,12 +210,11 @@ class Mean:
                         ELSE NULL 
                     END val
                 FROM
-                    observations o, sampling_points spo
-                WHERE 1=1
-                AND spo.id = o.sampling_point_id  
+                    observations o 
+                WHERE 1=1 
                 AND o.from_time >= %(fromTime)s
                 AND o.from_time < %(toTime)s
-                AND spo.id IN %(ids)s
+                AND o.sampling_point_id IN %(ids)s
             )
             SELECT 
                 to_char (DateTime, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
@@ -259,12 +257,11 @@ class Mean:
                         ELSE NULL 
                     END val
                 FROM
-                    observations o, sampling_points spo
-                WHERE 1=1
-                AND spo.id = o.sampling_point_id  
+                    observations o 
+                WHERE 1=1  
                 AND o.from_time >= %(fromTime)s::timestamp - interval '7' hour
                 AND o.from_time < %(toTime)s
-                AND spo.id IN %(ids)s
+                AND o.sampling_point_id IN %(ids)s
             )
             SELECT             
                 to_char (C.DATETIME + interval '1' HOUR, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
@@ -305,12 +302,11 @@ class Mean:
                             ELSE NULL 
                         END val
                     FROM
-                        observations o, sampling_points spo
-                    WHERE 1=1
-                    AND spo.id = o.sampling_point_id  
+                        observations o 
+                    WHERE 1=1 
                     AND o.from_time >= %(fromTime)s
                     AND o.from_time < %(toTime)s
-                    AND spo.id IN %(ids)s
+                    AND o.sampling_point_id IN %(ids)s
             )
             SELECT 
                 to_char (DateTime, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
@@ -359,12 +355,11 @@ class Mean:
                         ELSE NULL 
                     END val
                 FROM
-                    observations o, sampling_points spo
-                WHERE 1=1
-                AND spo.id = o.sampling_point_id  
+                    observations o 
+                WHERE 1=1 
                 AND o.from_time >= %(fromTime)s::timestamp - interval '7' hour
                 AND o.from_time < %(toTime)s
-                AND spo.id IN %(ids)s
+                AND o.sampling_point_id  IN %(ids)s
             )
             SELECT            
                 to_char (DATE_TRUNC('day',B.DATETIME), 'YYYY-MM-DD HH24:MI:SS') as "datetime",
@@ -411,12 +406,11 @@ class Mean:
                         ELSE NULL 
                     END val
                 FROM
-                    observations o, sampling_points spo
-                WHERE 1=1
-                AND spo.id = o.sampling_point_id  
+                    observations o 
+                WHERE 1=1 
                 AND o.from_time >= %(fromTime)s::timestamp - interval '23' hour
                 AND o.from_time < %(toTime)s
-                AND spo.id IN %(ids)s
+                AND o.sampling_point_id IN %(ids)s
             )
             SELECT 
                 to_char (DateTime + interval '1' hour, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
@@ -457,12 +451,11 @@ class Mean:
                         ELSE NULL 
                     END val
                 FROM
-                    observations o, sampling_points spo
-                WHERE 1=1
-                AND spo.id = o.sampling_point_id  
+                    observations o 
+                WHERE 1=1 
                 AND o.from_time >= %(fromTime)s
                 AND o.from_time < %(toTime)s
-                AND spo.id IN %(ids)s
+                AND o.sampling_point_id IN %(ids)s
             )
             SELECT 
                 to_char (DateTime, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
@@ -505,12 +498,11 @@ class Mean:
                         ELSE NULL 
                     END val
                 FROM
-                    observations o, sampling_points spo
-                WHERE 1=1
-                AND spo.id = o.sampling_point_id  
+                    observations o 
+                WHERE 1=1  
                 AND o.from_time >= %(fromTime)s
                 AND o.from_time < %(toTime)s
-                AND spo.id IN %(ids)s
+                AND o.sampling_point_id IN %(ids)s
                 AND to_char(o.from_time, 'MM') IN ( '01','02','03','10','11','12')
             )
             SELECT 
@@ -561,12 +553,11 @@ class Mean:
                         ELSE NULL 
                     END val
                 FROM
-                    observations o, sampling_points spo
-                WHERE 1=1
-                AND spo.id = o.sampling_point_id  
+                    observations o 
+                WHERE 1=1 
                 AND o.from_time >= %(fromTime)s
                 AND o.from_time < %(toTime)s
-                AND spo.id IN %(ids)s
+                AND o.sampling_point_id IN %(ids)s
                 AND to_char(o.from_time, 'MM') IN ('05', '06', '07')
 		        AND to_char(o.from_time, 'HH24') IN ('08', '09', '10','11','12','13','14','15','16','17','18','19')
             ),
@@ -643,12 +634,11 @@ class Mean:
                         ELSE NULL 
                     END val
                 FROM
-                    observations o, sampling_points spo
-                WHERE 1=1
-                AND spo.id = o.sampling_point_id  
+                    observations o 
+                WHERE 1=1  
                 AND o.from_time >= %(fromTime)s
                 AND o.from_time < %(toTime)s
-                AND spo.id IN %(ids)s
+                AND o.sampling_point_id IN %(ids)s
                 AND to_char(o.from_time, 'MM') IN ('04', '05', '06', '07', '08', '09')
 		        AND to_char(o.from_time, 'HH24') IN ('08', '09', '10','11','12','13','14','15','16','17','18','19')
             ),
@@ -731,12 +721,11 @@ class Mean:
                         ELSE NULL 
                     END val
                 FROM
-                    observations o, sampling_points spo
-                WHERE 1=1 
-                AND spo.id = o.sampling_point_id  
+                    observations o 
+                WHERE 1=1   
                 AND o.from_time >= (%(fromTime)s::timestamp - interval '12 MONTH')
                 AND o.from_time < %(toTime)s::timestamp
-                AND spo.id IN %(ids)s
+                AND o.sampling_point_id IN %(ids)s
                 AND to_char(o.from_time, 'MM') IN ('01','02','03','10','11','12') 
             ),
             timeseries as
@@ -789,12 +778,11 @@ class Mean:
                         ELSE NULL 
                     END val
                 FROM
-                    observations o, sampling_points spo
-                WHERE 1=1
-                AND spo.id = o.sampling_point_id  
+                    observations o 
+                WHERE 1=1 
                 AND o.from_time >= %(fromTime)s
                 AND o.from_time < %(toTime)s
-                AND spo.id IN %(ids)s
+                AND o.sampling_point_id IN %(ids)s
                 AND to_char(o.from_time, 'MM') IN ('04','05','06','07','08','09')
             )
             SELECT 
@@ -845,12 +833,11 @@ class Mean:
                         ELSE NULL 
                     END val
                 FROM
-                    observations o, sampling_points spo
-                WHERE 1=1
-                AND spo.id = o.sampling_point_id  
+                    observations o 
+                WHERE 1=1 
                 AND o.from_time >= %(fromTime)s
                 AND o.from_time < %(toTime)s
-                AND spo.id IN %(ids)s
+                AND o.sampling_point_id IN %(ids)s
             ),
             timeseries as
             (
