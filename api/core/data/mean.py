@@ -172,10 +172,10 @@ class Mean:
             SELECT 
                 to_char (DATETIME + interval '1' HOUR, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
                 CASE 
-                    WHEN ROUND(cnt/(3600/TM.timestep)::float*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
+                    WHEN ROUND(cnt/(3600/TM.timestep::float)*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                     ELSE NULL 
                 END "value",
-                ROUND(cnt/(3600/TM.timestep)::float*100) "coverage",
+                ROUND(cnt/(3600/TM.timestep::float)*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
                 1 "meantype"                    
@@ -219,10 +219,10 @@ class Mean:
             SELECT 
                 to_char (DateTime, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
                 CASE 
-                    WHEN ROUND(cnt/(86400/TM.timestep)::float*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
+                    WHEN ROUND(cnt/(86400/TM.timestep::float)*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                     ELSE NULL 
                 END "value",
-                ROUND(cnt/(86400/TM.timestep)::float*100) "coverage",
+                ROUND(cnt/(86400/TM.timestep::float)*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
                 2 "meantype"                      
@@ -266,10 +266,10 @@ class Mean:
             SELECT             
                 to_char (C.DATETIME + interval '1' HOUR, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
                 CASE 
-                    WHEN ROUND(cnt/(28800/TM.timestep)::float*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
+                    WHEN ROUND(cnt/(28800/TM.timestep::float)*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                     ELSE NULL 
                 END "value",
-                ROUND(cnt/(28800/TM.timestep)::float*100) "coverage",
+                ROUND(cnt/(28800/TM.timestep::float)*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
                 3 "meantype"     
@@ -364,17 +364,17 @@ class Mean:
             SELECT            
                 to_char (DATE_TRUNC('day',B.DATETIME), 'YYYY-MM-DD HH24:MI:SS') as "datetime",
                 CASE 
-                    WHEN ROUND(COUNT(B.val)/(86400/B.timestep)::float*100) >= %(coverage)s THEN ROUND(MAX(B.val),%(fraction)s)::double PRECISION
+                    WHEN ROUND(COUNT(B.val)/(86400/B.timestep::float)*100) >= %(coverage)s THEN ROUND(MAX(B.val),%(fraction)s)::double PRECISION
                     ELSE NULL 
                 END "value",
-                ROUND(COUNT(B.val)/(86400/B.timestep)::float*100) "coverage",
+                ROUND(COUNT(B.val)/(86400/B.timestep::float)*100) "coverage",
                 COUNT(B.val) "cnt",
                 B.sampling_point_id "sampling_point_id",
                 6 "meantype" 
             FROM
             ( 
                 SELECT C.DATETIME, C.cnt, TM.timestep, C.sampling_point_id,
-                CASE WHEN C.cnt >= (75*(28800/TM.timestep)::float/100) THEN C.val ELSE NULL END val
+                CASE WHEN C.cnt >= (75*(28800/TM.timestep::float)/100) THEN C.val ELSE NULL END val
                 FROM
                 (
                     SELECT 
@@ -415,10 +415,10 @@ class Mean:
             SELECT 
                 to_char (DateTime + interval '1' hour, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
                 CASE 
-                    WHEN ROUND(cnt/(86400/TM.timestep)::float*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
+                    WHEN ROUND(cnt/(86400/TM.timestep::float)*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                     ELSE NULL 
                 END "value",
-                ROUND(cnt/(86400/TM.timestep)::float*100) "coverage",
+                ROUND(cnt/(86400/TM.timestep::float)*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
                 5 "meantype"                      
@@ -460,10 +460,10 @@ class Mean:
             SELECT 
                 to_char (DateTime, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
                 CASE 
-                    WHEN ROUND(cnt/(extract(days from (DateTime + interval '1 MONTH - 1 day'))/(1/(86400/TM.timestep)::float))*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
+                    WHEN ROUND(cnt/(extract(days from (DateTime + interval '1 MONTH - 1 day'))/(1/(86400/TM.timestep::float)))*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                     ELSE NULL 
                 END "value",
-                ROUND(cnt/(extract(days from (DateTime + interval '1 MONTH - 1 day'))/(1/(86400/TM.timestep)::float))*100) "coverage",
+                ROUND(cnt/(extract(days from (DateTime + interval '1 MONTH - 1 day'))/(1/(86400/TM.timestep::float)))*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
                 7 "meantype"                      
@@ -512,13 +512,13 @@ class Mean:
                         CASE WHEN cnt = 0 THEN NULL ELSE ROUND(val,%(fraction)s)::double PRECISION END
                     ELSE
                         CASE
-                            WHEN ROUND(cnt / ((extract(days from ((DateTime + interval '3 MONTH') - DateTime))) / (1 / (86400 / TM.timestep)::float) + ((extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep)::float) - (extract(days from ((DateTime + interval '9 MONTH') - DateTime))) / (1 / (86400 / TM.timestep)::float))) * 100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
+                            WHEN ROUND(cnt / ((extract(days from ((DateTime + interval '3 MONTH') - DateTime))) / (1 / (86400 / TM.timestep::float)) + ((extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float)) - (extract(days from ((DateTime + interval '9 MONTH') - DateTime))) / (1 / (86400 / TM.timestep::float)))) * 100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                             ELSE NULL 
                         END
                 END "value",
                 CASE TM.timestep WHEN 31536000 THEN 
                     CASE WHEN cnt = 0 THEN 0 ELSE 100 END 
-                    ELSE ROUND(cnt / ((extract(days from ((DateTime + interval '3 MONTH') - DateTime))) / (1 / (86400 / TM.timestep)::float) + ((extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep)::float) - (extract(days from ((DateTime + interval '9 MONTH') - DateTime))) / (1 / (86400 / TM.timestep)::float))) * 100) END "coverage",
+                    ELSE ROUND(cnt / ((extract(days from ((DateTime + interval '3 MONTH') - DateTime))) / (1 / (86400 / TM.timestep::float)) + ((extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float)) - (extract(days from ((DateTime + interval '9 MONTH') - DateTime))) / (1 / (86400 / TM.timestep::float)))) * 100) END "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
                 8 "meantype"  
@@ -740,10 +740,10 @@ class Mean:
                   WHEN TS.timestep = 31536000 THEN 
                       CASE WHEN cnt = 0 THEN NULL ELSE ROUND(val,%(fraction)s)::double PRECISION END 
                   ELSE 
-                      CASE WHEN ROUND(cnt / ((extract(days from(DateTime + interval '3 month') - DateTime)) / (1 / (86400 / TS.timestep)::float) + ((extract(days from(DateTime + interval '12 month') - DateTime))  / (1 / (86400 / TS.timestep)::float) - (extract(days from(DateTime + interval '9 month') - DateTime)) / (1 / (86400 / TS.timestep)::float))) * 100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
+                      CASE WHEN ROUND(cnt / ((extract(days from(DateTime + interval '3 month') - DateTime)) / (1 / (86400 / TS.timestep::float)) + ((extract(days from(DateTime + interval '12 month') - DateTime))  / (1 / (86400 / TS.timestep::float)) - (extract(days from(DateTime + interval '9 month') - DateTime)) / (1 / (86400 / TS.timestep::float)))) * 100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                       ELSE NULL END 
               END "value",                       
-              CASE TS.timestep WHEN 31536000 THEN CASE WHEN cnt = 0 THEN 0 ELSE 100 END ELSE ROUND(cnt / ((extract(days from(DateTime + interval '3 month') - DateTime)) / (1 / (86400 / TS.timestep)::float) + ((extract(days from(DateTime + interval '12 month') - DateTime))  / (1 / (86400 / TS.timestep)::float) - (extract(days from(DateTime + interval '9 month') - DateTime)) / (1 / (86400 / TS.timestep)::float))) * 100) END "coverage",
+              CASE TS.timestep WHEN 31536000 THEN CASE WHEN cnt = 0 THEN 0 ELSE 100 END ELSE ROUND(cnt / ((extract(days from(DateTime + interval '3 month') - DateTime)) / (1 / (86400 / TS.timestep::float)) + ((extract(days from(DateTime + interval '12 month') - DateTime))  / (1 / (86400 / TS.timestep::float)) - (extract(days from(DateTime + interval '9 month') - DateTime)) / (1 / (86400 / TS.timestep::float)))) * 100) END "coverage",
               cnt "cnt",
               TS.sampling_point_id "sampling_point_id",
               11 "meantype"     
@@ -792,13 +792,13 @@ class Mean:
                         CASE WHEN cnt = 0 THEN NULL ELSE ROUND(val,%(fraction)s)::double PRECISION END
                     ELSE
                         CASE
-                            WHEN ROUND(cnt / ( (extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep)::float) -(extract(days from ((DateTime + interval '3 MONTH') - DateTime))) / (1 / (86400 / TM.timestep)::float)-((extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep)::float)-(extract(days from ((DateTime + interval '9 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep)::float))) * 100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
+                            WHEN ROUND(cnt / ( (extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float)) -(extract(days from ((DateTime + interval '3 MONTH') - DateTime))) / (1 / (86400 / TM.timestep::float))-((extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float))-(extract(days from ((DateTime + interval '9 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float)))) * 100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                             ELSE NULL 
                         END
                 END "value",
                 CASE TM.timestep WHEN 31536000 THEN 
                     CASE WHEN cnt = 0 THEN 0 ELSE 100 END 
-                    ELSE ROUND(cnt / ( (extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep)::float) -(extract(days from ((DateTime + interval '3 MONTH') - DateTime))) / (1 / (86400 / TM.timestep)::float)-((extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep)::float)-(extract(days from ((DateTime + interval '9 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep)::float))) * 100) END "coverage",
+                    ELSE ROUND(cnt / ( (extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float)) -(extract(days from ((DateTime + interval '3 MONTH') - DateTime))) / (1 / (86400 / TM.timestep::float))-((extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float))-(extract(days from ((DateTime + interval '9 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float)))) * 100) END "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
                 12 "meantype"  

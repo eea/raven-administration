@@ -12,7 +12,7 @@ const Request = async (payload) => {
     catch (error) { 
         const message = ErrorParser.asMessage(error);
         Eventy.failProgress();
-        Eventy.showHideMessage("Error", message, "error", 60000);
+        Eventy.showHideMessage(message, "error", 60000);
         throw new Error(message);
     }
 };

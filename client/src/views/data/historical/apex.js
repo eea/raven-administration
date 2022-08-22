@@ -39,7 +39,7 @@ export default Apex = {
                 enabled: false
             },
             tooltip: {
-                x: { format: "dd MMM HH:mm" }
+                x: { format: "dd MMM HH:mm" }, 
             },
             marker: { size: 0 }
         }

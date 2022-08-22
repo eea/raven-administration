@@ -12,14 +12,14 @@ const Eventy = {
         emitter.emit('failProgress', s);
         Eventy.hideProgress(1000)
     },
-    showMessage: (title, msg, type) => {
-        emitter.emit('showMessage', { title, msg, type });
+    showMessage: (msg, type) => {
+        emitter.emit('showMessage', { msg, type });
     },
     hideMessage: (ms = 0) => {
         setTimeout(() => emitter.emit('hideMessage'), ms);
     },
-    showHideMessage: (title, msg, type, duration = 5000) => {
-        emitter.emit('showMessage', { title, msg, type });
+    showHideMessage: (msg, type, duration = 5000) => {
+        emitter.emit('showMessage', { msg, type });
         Eventy.hideMessage(duration);
     },
     listen: (e, f) => {

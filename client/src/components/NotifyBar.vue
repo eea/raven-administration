@@ -2,6 +2,7 @@
 import Eventy from "../helpers/eventy";
 import IconError from "~icons/ic/baseline-error-outline";
 import IconSuccess from "~icons/clarity/success-standard-line";
+import IconLoading from "~icons/uil/spinner-alt";
 import IconClose from "~icons/ic/sharp-close";
 
 var notify = ref({});
@@ -27,14 +28,17 @@ const cls = computed(() => {
 });
 
 const cls2 = computed(() => {
-  var s = notify.value.type == "error" ? "bg-nord11/50" : "bg-nord14/50";
-  return s;
+  if (notify.value.type == "error") return "bg-nord11/50";
+  if (notify.value.type == "loading") return "bg-nord15/50";
+
+  return "bg-nord14/50";
 });
 </script>
 <template>
   <div class="transition-position ease-in-out absolute bottom-4 border rounded shadow z-[9999] bg-white flex" :class="cls">
     <div class="flex p-1" :class="cls2">
       <icon-error v-if="notify.type == 'error'" class="text-base self-center" />
+      <icon-loading v-if="notify.type == 'loading'" class="text-base self-center animate-spin" />
       <icon-success v-else class="text-base self-center" />
     </div>
     <div class="px-4 py-2">{{ notify.msg }}</div>

@@ -77,14 +77,14 @@ const close = () => {
 const saveEdit = async (o) => {
   await Service.update(o);
   networks.value = await Service.get();
-  Eventy.showHideMessage("Network saved", "Network saved", "success", 5000);
+  Eventy.showHideMessage("Network saved", "success", 5000);
   close();
 };
 
 const saveAdd = async (o) => {
   await Service.insert(o);
   networks.value = await Service.get();
-  Eventy.showHideMessage("Network saved", "Network saved", "success", 5000);
+  Eventy.showHideMessage("Network saved", "success", 5000);
   close();
 };
 
@@ -92,7 +92,7 @@ const saveDelete = async (o) => {
   showConfirm.value = false;
   await Service.delete(selected.value);
   await loadData();
-  Eventy.showHideMessage("Network deleted", "Network deleted", "success", 5000);
+  Eventy.showHideMessage("Network deleted", "success", 5000);
   close();
 };
 

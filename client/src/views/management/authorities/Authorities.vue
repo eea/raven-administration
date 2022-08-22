@@ -67,14 +67,14 @@ const close = () => {
 const saveEdit = async (o) => {
   await Service.update(o);
   await loadData();
-  Eventy.showHideMessage("Authority saved", "Authority saved", "success", 5000);
+  Eventy.showHideMessage("Authority saved", "success", 5000);
   close();
 };
 
 const saveAdd = async (o) => {
   await Service.insert(o);
   await loadData();
-  Eventy.showHideMessage("Authority saved", "Authority saved", "success", 5000);
+  Eventy.showHideMessage("Authority saved", "success", 5000);
   close();
 };
 
@@ -82,7 +82,7 @@ const saveDelete = async () => {
   showConfirm.value = false;
   await Service.delete(selected.value);
   await loadData();
-  Eventy.showHideMessage("Authority deleted", "Authority deleted", "success", 5000);
+  Eventy.showHideMessage("Authority deleted", "success", 5000);
   close();
 };
 

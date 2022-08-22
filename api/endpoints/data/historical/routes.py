@@ -27,26 +27,28 @@ def timeseries():
         cursor.execute("""
             SELECT
               aa.value,
-              CONCAT(aa.networkname, ', ', aa.name,', ', aa.pollutant) as label,
+              CONCAT(aa.name,', ', aa.pollutant,', ', aa.timestep, ', ', aa.unit ) as label,
                   to_char(aa.fromtime, 'YYYY-MM-DD"T"HH24:MI:SS') as fromtime,
                   to_char(aa.totime, 'YYYY-MM-DD"T"HH24:MI:SS') as totime
               FROM
             (
-              SELECT sp.id as sp, sp.id as value, s.name, po.notation pollutant, n.name networkname, sp.from_time as fromtime, sp.to_time as totime
-                      FROM
-                          stations s,
-                          sampling_points sp,
-                          eea_pollutants po,
-                          networks n
-                      WHERE 1=1
-                          and s.id = sp.station_id
-                          and n.id = s.network_id
-                          and sp.pollutant = po.uri
-                          and sp.from_time is not null
-                          and sp.to_time is not null
-                      GROUP by s.name, sp.id, sp.pollutant, n.name, sp.id, po.notation, sp.from_time,  sp.to_time
-                  ) aa
-                  order by label
+              SELECT sp.id as sp, sp.id as value, s.name, po.notation pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.label as timestep, u.notation as unit
+                FROM
+                    stations s,
+                    sampling_points sp,
+                    eea_pollutants po,
+                    eea_times t,
+                    eea_concentrations u
+                WHERE 1=1
+                    and s.id = sp.station_id
+                    and sp.pollutant = po.uri
+                    and sp.timestep = t.id
+                    and sp.concentration = u.id
+                    and sp.from_time is not null
+                    and sp.to_time is not null
+                GROUP by s.name, sp.id, sp.pollutant,sp.id, po.notation, sp.from_time,  sp.to_time, t.label, u.notation
+            ) aa
+            order by label
         """)
         timeseries = cursor.fetchall()
         return jsonify(timeseries)
