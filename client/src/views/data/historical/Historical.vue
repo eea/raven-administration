@@ -4,7 +4,7 @@ import Service from "./service";
 
 import ApexCharts from "apexcharts";
 import Apex from "./apex";
-import { format, sub } from "date-fns";
+import { format, sub, isAfter, isBefore } from "date-fns";
 import { groupBy, sortBy } from "../../../helpers/utils";
 import Eventy from "../../../helpers/eventy";
 
@@ -26,7 +26,7 @@ var chart;
 onMounted(async () => {
   timeseries.value = await Service.timeseries();
   fromtime.value = format(sub(new Date(), { days: 14 }), "yyy-MM-dd 00:00");
-  await route.query; // bug in multiselect. if options are not yet drawn, v-model is not showing
+
   if (route.query.ids) selectedIds.value = route.query.ids.split(";");
   if (route.query.from) fromtime.value = route.query.from;
   if (route.query.to) totime.value = route.query.to;
@@ -71,6 +71,13 @@ const formatValues = (meanvalues) => {
   });
   return series;
 };
+
+const cmp_timeseries = computed(() => {
+  return timeseries.value.filter((t) => {
+    if (!t.fromtime && !t.totime) return true;
+    return isAfter(new Date(t.totime), new Date(fromtime.value)) && isBefore(new Date(t.fromtime), new Date(totime.value));
+  });
+});
 </script>
 
 <template>
@@ -123,13 +130,14 @@ const formatValues = (meanvalues) => {
 
       <div>
         <div class="font-bold">Timeseries</div>
-        <n-multiselect class="!w-full" v-model="selectedIds" :searchable="true">
-          <n-option v-for="t in timeseries" :value="t.value" :label="t.label" />
+        <n-multiselect class="!w-full" v-model="selectedIds" :searchable="cmp_timeseries.length > 0">
+          <n-option v-for="t in cmp_timeseries" :key="t.value" :value="t.value" :label="t.label" />
+          <n-option v-if="cmp_timeseries.length == 0" :value="0" label="No timeseries found for time period" class="!pointer-events-none" />
         </n-multiselect>
       </div>
 
       <div class="mt-2">
-        <button class="n-button" @click="plotData">Plot data</button>
+        <button class="n-button" @click="plotData" :disabled="selectedIds.length == 0">Plot data</button>
       </div>
     </div>
 
