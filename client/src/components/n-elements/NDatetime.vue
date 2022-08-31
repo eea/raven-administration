@@ -4,6 +4,7 @@ import NOption from "./NOption.vue";
 import Datepicker from "vanillajs-datepicker/Datepicker";
 
 const id = "id" + Math.random().toString(16).slice(2);
+let datepicker = null;
 
 var p = defineProps({
   modelValue: {
@@ -27,6 +28,7 @@ const date = computed({
       return o;
     }
     var t = p.modelValue.split(" ")[0];
+    if (datepicker) datepicker.setDate(t);
     return t;
   },
   set(value) {
@@ -56,7 +58,7 @@ const validate = (dt) => {
 
 onMounted(async () => {
   const elem = document.querySelector("input[id=" + id + "]");
-  const datepicker = new Datepicker(elem, {
+  datepicker = new Datepicker(elem, {
     format: "yyyy-mm-dd",
     autohide: true,
   });
