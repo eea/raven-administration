@@ -21,7 +21,10 @@ const q = ref("");
 const disabledOptions = ref([]);
 const labels = ref([]);
 
+var observer = null;
+
 onMounted(() => {
+  initOptionsObserver(); //To register when dom children of options ref changes
   setSelectedOnOptions();
 });
 
@@ -31,16 +34,6 @@ watch(
     setSelectedOnOptions();
   }
 );
-
-// bug in multiselect. if options are not yet drawn, v-model is not showing as selected
-// watch(
-//   () => options.children,
-//   (nv) => {
-//     console.log("WATCH2", options.value);
-//     setSelectedOnOptions();
-//   },
-//   { deep: true }
-// );
 
 watch(q, (nv) => {
   disabledOptions.value = [];
@@ -105,6 +98,22 @@ const closeOptions = () => {
   expand.value = false;
   return;
 };
+
+const initOptionsObserver = () => {
+  var config = {
+    subtree: false,
+    childList: true,
+  };
+
+  const callback = () => {
+    nextTick(() => {
+      setSelectedOnOptions();
+    });
+  };
+  const o = new MutationObserver(callback);
+  o.observe(options.value, config);
+  observer = o;
+};
 </script>
 <script>
 export default {
@@ -117,7 +126,7 @@ export default {
     <div class="select" v-bind="$attrs" @click="expand = !expand">
       <div class="selections">
         <div v-if="labels.length == 0">&nbsp;</div>
-        <div class="selected-box" v-for="(o, i) in modelValue" @click.stop.prevent="onSelectionClick(o, $event)">{{ labels[o] }}</div>
+        <div class="selected-box" v-for="o in modelValue" :key="o" @click.stop.prevent="onSelectionClick(o, $event)">{{ labels[o] }}</div>
       </div>
       <svg class="caret" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 256">
         <path fill="currentColor" d="M128 188a12.2 12.2 0 0 1-8.5-3.5l-80-80a12 12 0 0 1 17-17L128 159l71.5-71.5a12 12 0 0 1 17 17l-80 80a12.2 12.2 0 0 1-8.5 3.5Z"></path>
