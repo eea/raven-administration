@@ -1,4 +1,5 @@
 <script setup>
+import { onBeforeUnmount } from "vue-demi";
 import EventListener from "./EventListener.vue";
 
 var p = defineProps({
@@ -24,8 +25,12 @@ const labels = ref([]);
 var observer = null;
 
 onMounted(() => {
-  initOptionsObserver(); //To register when dom children of options ref changes
+  initOptionsObserver(); // Observe changes of $ref options. WATCH did not work, so needed to create an observable manually
   setSelectedOnOptions();
+});
+
+onBeforeUnmount(() => {
+  if (observer) observer.disconnect(); // Remove observable manually
 });
 
 watch(
