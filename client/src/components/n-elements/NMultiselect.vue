@@ -1,5 +1,4 @@
 <script setup>
-import { onBeforeUnmount } from "vue-demi";
 import EventListener from "./EventListener.vue";
 
 var p = defineProps({
