@@ -5,6 +5,7 @@ import IconNotValid from "~icons/prime/times-circle";
 import { useRoute } from "vue-router";
 import { format, sub, isAfter, isBefore } from "date-fns";
 import { tblToCsv, compare } from "../../../helpers/utils";
+import { multiRowClick } from "../../../helpers/table";
 import Eventy from "../../../helpers/eventy";
 import Service from "./service";
 
@@ -17,7 +18,7 @@ const selectedId = ref();
 const timevalues = ref([]);
 const ev = ref({});
 const showContextmenu = ref(false);
-const selectedRow = ref({});
+const selectedRows = ref([]);
 
 const route = useRoute();
 
@@ -64,7 +65,7 @@ const onDownload = () => {
 const cls_rowClass = (row) => {
   var classes = "";
   if (row.validation_flag < 1) classes = " bg-nord11/10";
-  if (compare(selectedRow.value, row)) classes = classes + " selected";
+  if (selectedRows.value.find((p) => compare(p, row))) classes = classes + " selected";
   // if (row.pollutant == "O3") return "bg-nord14/20"
   // if (row.pollutant == "NO") return "bg-nord13/20"
   return classes;
@@ -72,22 +73,31 @@ const cls_rowClass = (row) => {
 
 const onValidate = async (flag) => {
   Eventy.showMessage("Setting validation flag. Please wait", "loading");
-  const { id } = selectedRow.value;
+  const ids = selectedRows.value.map((p) => p.id);
   close();
-  await Service.validate({ flag, ids: [id] });
+  await Service.validate({ flag, ids });
   await load();
   Eventy.hideMessage();
 };
 
-const onContextMenu = (row, e) => {
-  selectedRow.value = row;
-  ev.value = e;
-  showContextmenu.value = true;
+const onRowClick = (row, e, rightClick) => {
+  const { shiftKey, ctrlKey } = e;
+  var r = Object.assign({}, row);
+  var model = selectedRows.value.map((o) => Object.assign({}, o));
+  var rows = timevalues.value.map((o) => Object.assign({}, o));
+  var isSelected = e.target.parentElement.classList.contains("selected");
+  var arr = multiRowClick(model, r, rows, shiftKey, ctrlKey, rightClick, isSelected);
+  selectedRows.value = arr;
+
+  if (rightClick) {
+    ev.value = e;
+    showContextmenu.value = true;
+  }
 };
 
 const close = () => {
   showContextmenu.value = false;
-  selectedRow.value = {};
+  selectedRows.value = [];
 };
 </script>
 
@@ -153,7 +163,7 @@ const close = () => {
           <th>Validation</th>
           <th>Verification</th>
         </tr>
-        <tr v-for="row in timevalues" :key="row.id" :class="cls_rowClass(row)" @contextmenu.prevent="onContextMenu(row, $event)" @click="selectedRow = {}">
+        <tr v-for="row in timevalues" :key="row.id" :class="cls_rowClass(row)" @contextmenu.prevent="onRowClick(row, $event, true)" @click="onRowClick(row, $event, false)">
           <td>{{ row.fromtime }}</td>
           <td>{{ row.totime }}</td>
           <td>{{ row.value }}</td>
