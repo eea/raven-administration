@@ -26,7 +26,8 @@ const loadData = async () => {
 
 const cmp_data = computed(() => {
   var t = data.value.filter((p) => {
-    return !q.value || p.network.toLowerCase().includes(q.value.toLowerCase()) || p.station.toLowerCase().includes(q.value.toLowerCase()) || p.pollutant.toLowerCase().includes(q.value.toLowerCase()) || p.timestep.toLowerCase().includes(q.value.toLowerCase());
+    return !q.value || p.station.toLowerCase().includes(q.value.toLowerCase()) || p.pollutant.toLowerCase().includes(q.value.toLowerCase()) || p.timestep.toLowerCase().includes(q.value.toLowerCase());
+    //return !q.value || p.network.toLowerCase().includes(q.value.toLowerCase()) || p.station.toLowerCase().includes(q.value.toLowerCase()) || p.pollutant.toLowerCase().includes(q.value.toLowerCase()) || p.timestep.toLowerCase().includes(q.value.toLowerCase());
   });
   return t;
 });
@@ -49,12 +50,11 @@ const onDownload = () => {
   tblToCsv("latestId", "latest_data");
 };
 
-const onPlot = () => {
+const onGoto = (name) => {
   const { id, to_time } = selected.value;
-
   var tt = format(new Date(to_time), "yyy-MM-dd HH:00");
   var ft = format(sub(new Date(tt), { days: 14 }), "yyy-MM-dd HH:00");
-  router.push({ name: "Historical", query: { ids: id, from: ft, to: tt } });
+  router.push({ name: name, query: { ids: id, from: ft, to: tt } });
 };
 
 const onContextMenu = (row, e) => {
@@ -68,13 +68,13 @@ const onContextMenu = (row, e) => {
   <common-layout>
     <contextmenu :evt="ev" @click-outside="close" :show="showContextmenu">
       <div class="px-2 font-bold">Menu:</div>
-      <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onPlot()">
+      <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onGoto('Historical')">
         <icon-plot class="text-nord15 self-center" />
         <div class="self-center ml-1">Plot data</div>
       </div>
-      <div class="pl-2 pr-4 py-2 flex hover:bg-gray-100 pointer-events-none" @click="onValidate()">
-        <icon-validate class="text-nord3/50 self-center" />
-        <div class="self-center ml-1 text-nord3/50">Validate data</div>
+      <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onGoto('Validate')">
+        <icon-validate class="text-nord12 self-center" />
+        <div class="self-center ml-1">Validate data</div>
       </div>
     </contextmenu>
 
@@ -83,7 +83,7 @@ const onContextMenu = (row, e) => {
     <div>
       <table id="latestId" class="n-table">
         <tr>
-          <th>Network</th>
+          <!-- <th>Network</th> -->
           <th>Station</th>
           <th>Pollutant</th>
           <th>Timestep</th>
@@ -94,8 +94,8 @@ const onContextMenu = (row, e) => {
           <th>Verification</th>
           <th>Unit</th>
         </tr>
-        <tr v-for="row in cmp_data" :class="cls_rowClass(row)" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}">
-          <td>{{ row.network }}</td>
+        <tr v-for="row in cmp_data" :class="cls_rowClass(row)" :key="row.id" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}">
+          <!-- <td>{{ row.network }}</td> -->
           <td>{{ row.station }}</td>
           <td>{{ row.pollutant }}</td>
           <td>{{ row.timestep }}</td>

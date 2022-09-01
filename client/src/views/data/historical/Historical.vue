@@ -83,6 +83,7 @@ const cmp_timeseries = computed(() => {
 <template>
   <common-layout>
     <tool-bar title="Historical data" :show-download="true" :show-add="false" :show-filter="false" />
+
     <div class="border border-nord4 bg-gray-50 p-2 flex flex-col gap-3">
       <div class="flex gap-2">
         <div>
@@ -102,7 +103,7 @@ const cmp_timeseries = computed(() => {
             <n-option value="0" label="Original" />
             <n-option value="1" label="Hour" />
             <n-option value="2" label="Day" />
-            <n-option value="5" label="Movingday" />
+            <n-option value="5" label="Moving 24 hour" />
             <n-option value="3" label="Moving eigth hour" />
             <n-option value="6" label="Moving eigth hour max" />
             <n-option value="7" label="Month" />

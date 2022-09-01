@@ -30,6 +30,11 @@ class Endpoints:
         from api.endpoints.data.latest.routes import latest_endpoint
         app.register_blueprint(latest_endpoint)
 
+        # QUALITY CONTROL
+        from api.endpoints.qualitycontrol.validate.routes import validate_endpoint
+        app.register_blueprint(validate_endpoint)
+
+
         # IMPORT
         from api.endpoints.imports.observations.routes import observations_endpoint
         app.register_blueprint(observations_endpoint)

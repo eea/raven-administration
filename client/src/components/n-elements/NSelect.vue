@@ -21,8 +21,15 @@ const q = ref("");
 const disabledOptions = ref([]);
 const label = ref("");
 
+var observer = null;
+
 onMounted(() => {
+  initOptionsObserver(); // Observe changes of $ref options. WATCH did not work, so needed to create an observable manually
   setSelectedOnOptions();
+});
+
+onBeforeUnmount(() => {
+  if (observer) observer.disconnect(); // Remove observable manually
 });
 
 watch(
@@ -79,6 +86,22 @@ const closeOptions = () => {
   q.value = "";
   expand.value = false;
   return;
+};
+
+const initOptionsObserver = () => {
+  var config = {
+    subtree: false,
+    childList: true,
+  };
+
+  const callback = () => {
+    nextTick(() => {
+      setSelectedOnOptions();
+    });
+  };
+  const o = new MutationObserver(callback);
+  o.observe(options.value, config);
+  observer = o;
 };
 </script>
 <script>

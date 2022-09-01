@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 class HistoricalModel(BaseModel):
-    sampling_point_ids: conlist(str,min_items=1)
+    sampling_point_ids: conlist(str, min_items=1)
     from_dt: datetime
     to_dt: datetime
     meantype: int
