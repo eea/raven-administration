@@ -77,7 +77,7 @@ const onValidate = async (flag) => {
   close();
   await Service.validate({ flag, ids });
   await load();
-  Eventy.hideMessage();
+  Eventy.showHideMessage("Validation flag updated", "success");
 };
 
 const onRowClick = (row, e, rightClick) => {
