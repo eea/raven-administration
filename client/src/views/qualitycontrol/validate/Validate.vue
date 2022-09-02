@@ -6,8 +6,10 @@ import { useRoute } from "vue-router";
 import { format, sub, isAfter, isBefore } from "date-fns";
 import { tblToCsv, compare } from "../../../helpers/utils";
 import { multiRowClick } from "../../../helpers/table";
+import ApexCharts from "apexcharts";
 import Eventy from "../../../helpers/eventy";
 import Service from "./service";
+import Apex from "./apex";
 
 const timeseries = ref([]);
 
@@ -20,7 +22,11 @@ const ev = ref({});
 const showContextmenu = ref(false);
 const selectedRows = ref([]);
 
+const showPlotAndTable = ref(false);
+
 const route = useRoute();
+
+var chart;
 
 onMounted(async () => {
   timeseries.value = await Service.timeseries();
@@ -40,8 +46,10 @@ const cmp_timeseries = computed(() => {
 });
 
 const showData = async () => {
-  Eventy.showMessage("Retrieving data. Please wait", "loading");
+  Eventy.showMessage("Loading data. Please wait", "loading");
+  showPlotAndTable.value = true;
   timevalues.value = [];
+  if (chart) chart.updateSeries([]);
   await load();
   Eventy.hideMessage();
 };
@@ -52,6 +60,13 @@ const load = async () => {
     from_dt: fromtime.value,
     to_dt: totime.value,
   });
+  if (!chart) {
+    chart = new ApexCharts(document.querySelector("#chart"), Apex.options([], onDatapointSelection));
+    chart.render();
+  }
+  var series = formatValues();
+  console.log("d", series);
+  chart.updateSeries(series);
 };
 
 const onDownload = () => {
@@ -98,6 +113,25 @@ const onRowClick = (row, e, rightClick) => {
 const close = () => {
   showContextmenu.value = false;
   selectedRows.value = [];
+};
+
+const formatValues = () => {
+  const data = timevalues.value.map((o) => {
+    var v = o.value == -9900 ? null : o.value;
+    var c = o.validation_flag < 1 ? "#BF616A" : "#A3BE8C";
+    const n = Object.assign({}, o);
+    return { x: o.totime, y: o.value, fillColor: c, obj: n };
+  });
+  return [{ name: "Value", data, type: "column" }];
+};
+
+const onDatapointSelection = (event, chartContext, opts) => {
+  console.log("AAA");
+  var serie = opts.w.config.series[opts.seriesIndex];
+  var data = serie.data[opts.dataPointIndex];
+  selectedRows.value = [data.obj];
+  ev.value = event;
+  showContextmenu.value = true;
 };
 </script>
 
@@ -154,23 +188,27 @@ const close = () => {
       </div>
     </div>
 
-    <div class="mt-4">
-      <table id="validationId" class="n-table">
-        <tr>
-          <th>From</th>
-          <th>To</th>
-          <th>Value</th>
-          <th>Validation</th>
-          <th>Verification</th>
-        </tr>
-        <tr v-for="row in timevalues" :key="row.id" :class="cls_rowClass(row)" @contextmenu.prevent="onRowClick(row, $event, true)" @click="onRowClick(row, $event, false)">
-          <td>{{ row.fromtime }}</td>
-          <td>{{ row.totime }}</td>
-          <td>{{ row.value }}</td>
-          <td>{{ row.validation_flag }}</td>
-          <td>{{ row.verification_flag }}</td>
-        </tr>
-      </table>
+    <div v-show="showPlotAndTable">
+      <div class="mt-4 border border-nord4 bg-gray-50 p-4" id="chart"></div>
+
+      <div class="mt-4">
+        <table id="validationId" class="n-table">
+          <tr>
+            <th>From</th>
+            <th>To</th>
+            <th>Value</th>
+            <th>Validation</th>
+            <th>Verification</th>
+          </tr>
+          <tr v-for="row in timevalues" :key="row.id" :class="cls_rowClass(row)" @contextmenu.prevent="onRowClick(row, $event, true)" @click="onRowClick(row, $event, false)">
+            <td>{{ row.fromtime }}</td>
+            <td>{{ row.totime }}</td>
+            <td>{{ row.value }}</td>
+            <td>{{ row.validation_flag }}</td>
+            <td>{{ row.verification_flag }}</td>
+          </tr>
+        </table>
+      </div>
     </div>
   </common-layout>
 </template>

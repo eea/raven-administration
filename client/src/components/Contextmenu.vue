@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded border border-nord4 bg-white absolute shadow select-none" :style="cls" v-if="show" ref="ctxm">
+  <div class="rounded border border-nord4 bg-white absolute shadow select-none z-50" :style="cls" v-if="show" ref="ctxm">
     <div class="flex flex-col py-2">
       <slot></slot>
     </div>
