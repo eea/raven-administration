@@ -24,8 +24,8 @@ const route = useRoute();
 var chart;
 
 onMounted(async () => {
-  timeseries.value = await Service.timeseries();
   fromtime.value = format(sub(new Date(), { days: 14 }), "yyy-MM-dd 00:00");
+  timeseries.value = await Service.timeseries();
 
   if (route.query.ids) selectedIds.value = route.query.ids.split(";");
   if (route.query.from) fromtime.value = route.query.from;
