@@ -93,18 +93,7 @@ const onDownload = () => {
 <template>
   <common-layout>
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete authority?" @close="close" @ok="saveDelete" />
-
-    <contextmenu :evt="ev" @click-outside="close" :show="showContextmenu">
-      <div class="px-2 font-bold">Menu:</div>
-      <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onEdit()">
-        <icon-edit class="text-nord15 text-sm self-center" />
-        <div class="self-center ml-1">Edit</div>
-      </div>
-      <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onDelete()">
-        <icon-delete class="text-nord11 text-sm self-center" />
-        <div class="self-center ml-1">Delete</div>
-      </div>
-    </contextmenu>
+    <contextmenu-crud :show="showContextmenu" :ev="ev" @click-outside="close" @on-edit="onEdit" @onDelete="onDelete" />
 
     <l-add :show="showAdd" @close="close" @save="saveAdd" />
     <l-edit :show="showEdit" :authority="selected" @close="close" @save="saveEdit" />

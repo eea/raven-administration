@@ -11,7 +11,7 @@ const modules = [
     items: [
       { name: "Authorities", comp: "Authorities" },
       { name: "Networks", comp: "Networks" },
-      // { name: "Zones", comp: "management/zones" },
+      { name: "Zones", comp: "Zones" },
       // { name: "Areas", comp: "management/areas" },
       // { name: "* - Stations", comp: "Stations" },
       // { name: "Timeseries", comp: "management/timeseries" }

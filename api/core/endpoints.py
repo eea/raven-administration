@@ -13,6 +13,9 @@ class Endpoints:
         from api.endpoints.management.stations.routes import stations_endpoint
         app.register_blueprint(stations_endpoint)
 
+        from api.endpoints.management.zones.routes import zones_endpoint
+        app.register_blueprint(zones_endpoint)
+
         # PROCESSING
         from api.endpoints.processing.calculate.routes import calculate_endpoint
         app.register_blueprint(calculate_endpoint)
@@ -33,7 +36,6 @@ class Endpoints:
         # QUALITY CONTROL
         from api.endpoints.qualitycontrol.validate.routes import validate_endpoint
         app.register_blueprint(validate_endpoint)
-
 
         # IMPORT
         from api.endpoints.imports.observations.routes import observations_endpoint

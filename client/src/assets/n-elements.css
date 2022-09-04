@@ -90,7 +90,7 @@
 
 .n-select .options {
   @apply box-border absolute mt-1 max-h-52 overflow-auto w-full;
-  @apply border border-nord4 rounded bg-white z-20;
+  @apply border border-nord4 rounded bg-white z-[9999];
 }
 
 /* -------------------------------------------------------------------------------- */

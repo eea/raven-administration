@@ -12,6 +12,7 @@
     "apexcharts": "^3.35.4",
     "axios": "^0.27.2",
     "date-fns": "^2.29.2",
+    "leaflet": "^1.8.0",
     "mitt": "^3.0.0",
     "tailwind-nord": "^1.2.0",
     "vanillajs-datepicker": "^1.2.0",
