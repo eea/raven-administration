@@ -17,11 +17,11 @@ const showContextmenu = ref(false);
 const showConfirm = ref(false);
 
 onMounted(async () => {
-  pollutants.value = await Service.pollutants();
   await loadData();
 });
 
 const loadData = async () => {
+  pollutants.value = await Service.pollutants();
   autovalidations.value = await Service.get();
 };
 
