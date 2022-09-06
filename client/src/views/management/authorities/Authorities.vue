@@ -2,9 +2,6 @@
 import LEdit from "./LEdit.vue";
 import LAdd from "./LAdd.vue";
 
-import IconEdit from "~icons/ic/baseline-edit";
-import IconDelete from "~icons/ic/baseline-delete";
-
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
 import { tblToCsv, compare } from "../../../helpers/utils";
