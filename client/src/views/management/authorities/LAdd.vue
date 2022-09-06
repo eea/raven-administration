@@ -1,10 +1,17 @@
 <script setup>
-const p = defineProps({
-  show: Boolean,
+const props = defineProps({
+  show: Boolean
 });
 
 const obj = ref({});
 const emit = defineEmits(["close", "save"]);
+
+watch(
+  () => props.show,
+  (nv) => {
+    obj.value = {};
+  }
+);
 
 const close = () => {
   obj.value = {};

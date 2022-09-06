@@ -1,6 +1,5 @@
 import { createWebHistory, createRouter } from "vue-router";
 import Auth from "./helpers/auth";
-import Home from "./views/home/Home.vue";
 import Login from "./views/login/Login.vue";
 
 import Authorities from "./views/management/authorities/Authorities.vue";
@@ -10,7 +9,7 @@ import Zones from "./views/management/zones/Zones.vue";
 
 // import Calculate from "./views/processing/calculate/Calculate.vue";
 // import Convert from "./views/processing/convert/Convert.vue";
-// import AutoValidate from "./views/processing/autovalidate/Autovalidate.vue";
+import AutoValidate from "./views/processing/autovalidate/Autovalidate.vue";
 
 import Latest from "./views/data/latest/Latest.vue";
 import Historical from "./views/data/historical/Historical.vue";
@@ -29,19 +28,19 @@ const routes = [
 
   // { path: '/processing/calculate', component: Calculate, name: "Calculate" },
   // { path: '/processing/convert', component: Convert, name: "Convert" },
-  // { path: '/processing/autovalidate', component: AutoValidate, name: "AutoValidate" },
+  { path: "/processing/autovalidate", component: AutoValidate, name: "AutoValidate" },
 
   { path: "/data/latest", component: Latest, name: "Latest" },
   { path: "/data/historical", component: Historical, name: "Historical" },
 
-  { path: "/qualitycontrol/validate", component: Validate, name: "Validate" },
+  { path: "/qualitycontrol/validate", component: Validate, name: "Validate" }
 
   // { path: '/:pathMatch(.*)*', component: Notfound }
 ];
 
 const router = createRouter({
   history: createWebHistory(),
-  routes,
+  routes
 });
 
 router.beforeEach(async (to, from, next) => {

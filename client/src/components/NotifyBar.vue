@@ -38,7 +38,7 @@ const cls2 = computed(() => {
   <div class="transition-position ease-in-out absolute bottom-4 border rounded shadow z-[9999] bg-white flex" :class="cls">
     <div class="flex p-1" :class="cls2">
       <icon-error v-if="notify.type == 'error'" class="text-base self-center" />
-      <icon-loading v-if="notify.type == 'loading'" class="text-base self-center animate-spin" />
+      <icon-loading v-else-if="notify.type == 'loading'" class="text-base self-center animate-spin" />
       <icon-success v-else class="text-base self-center" />
     </div>
     <div class="px-4 py-2">{{ notify.msg }}</div>
