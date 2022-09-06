@@ -72,7 +72,7 @@ const cmp_version = computed(() => version);
       </div>
     </div>
     <div class="">
-      <div class="px-2 text-xs font-bold">v.{{ cmp_version }}</div>
+      <div class="px-1 text-xs font-bold border-b">v.{{ cmp_version }}</div>
       <div class="flex py-2 px-2 hover:cursor-pointer hover:bg-nord8/20 hover:text-nord10" @click="signout">
         <icon-logout class="self-center" />
         <div class="self-center ml-1">Sign out</div>
