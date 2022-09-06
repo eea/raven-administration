@@ -4,7 +4,7 @@ from typing import Optional
 
 
 class InsertModel(BaseModel):
-    oc_id: str
+    sampling_point_id: str
     source_id: str
     target_id: str
     factor: float

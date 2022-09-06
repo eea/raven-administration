@@ -14,19 +14,20 @@ convert_endpoint = Blueprint("convert", __name__)
 def convert():
     with CursorFromPool() as cursor:
         cursor.execute("""
-            select 
-                cs.id, cs.oc_id, cs.factor::double PRECISION as factor,
+            select
+                cs.id, cs.sampling_point_id, cs.factor::double PRECISION as factor,
                 st.id as sta_id, st.name as station, po.notation as pollutant,
-                s.notation as source, cs.source as source_id, 
-                t.notation as target, cs.target as target_id
-            from converted_series cs, eea_concentrations s, eea_concentrations t, stations st, sampling_points p, observing_capabilities oc, eea_pollutants po
+                s.notation as source, cs.source as source_id,
+                t.notation as target, cs.target as target_id,
+                cs.createdby, ti.label as timestep
+            from converted_series cs, eea_concentrations s, eea_concentrations t, stations st, sampling_points p,  eea_pollutants po, eea_times ti
             where 1=1
             and cs.source = s.id
             and cs.target = t.id
-            and cs.oc_id = oc.id
-            and oc.sampling_point_id = p.id
+            and cs.sampling_point_id = p.id
             and p.station_id = st.id
-            and oc.pollutant = po.uri
+            and p.pollutant = po.uri
+            and p.timestep = ti.id
         """)
         convertions = cursor.fetchall()
         return jsonify(convertions)
@@ -39,8 +40,8 @@ def convert_insert():
         model = InsertModel(**request.json)
         model.createdby = get_jwt_identity()
         sql = """ 
-             insert into converted_series ("oc_id", "source", "target", "factor", createdby) 
-            values (%(oc_id)s,%(source_id)s,%(target_id)s,%(factor)s, %(createdby)s)
+             insert into converted_series ("sampling_point_id", "source", "target", "factor", createdby) 
+            values (%(sampling_point_id)s,%(source_id)s,%(target_id)s,%(factor)s, %(createdby)s)
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
@@ -96,17 +97,17 @@ def convert_units():
         return jsonify(units)
 
 
-@convert_endpoint.route("/api/processing/convert/capabilities", methods=['GET'])
+@convert_endpoint.route("/api/processing/convert/timeseries", methods=['GET'])
 @jwt_required()
-def convert_capabilities():
+def convert_timeseries():
     with CursorFromPool() as cursor:
         cursor.execute("""
-            select s.name || ' - ' || p.notation as label, c.id as value
-            from observing_capabilities c, sampling_points sp, stations s, eea_pollutants p
-            where c.sampling_point_id = sp.id
-            and sp.station_id = s.id
-            and c.pollutant = p.uri
-            order by s.name, p.notation
+            select CONCAT(s.name,', ', p.notation,', ', t.label )  as label, sp.id as value
+            from sampling_points sp, stations s, eea_pollutants p, eea_times t
+            where sp.station_id = s.id
+            and sp.pollutant = p.uri
+            and sp.timestep = t.id
+            order by s.name, p.notation, t.label
         """)
         units = cursor.fetchall()
         return jsonify(units)
