@@ -51,14 +51,14 @@ const onEdit = () => {
 
 const onSaveEdit = async (o) => {
   await Service.update(o);
-  autovalidations.value = await Service.get();
+  await loadData();
   Eventy.showHideMessage("Validation saved", "success", 5000);
   close();
 };
 
 const onSaveAdd = async (o) => {
   await Service.insert(o);
-  autovalidations.value = await Service.get();
+  await loadData();
   Eventy.showHideMessage("Validation saved", "success", 5000);
   close();
 };
