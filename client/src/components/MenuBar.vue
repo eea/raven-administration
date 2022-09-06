@@ -2,7 +2,7 @@
 import { useRouter } from "vue-router";
 import Auth from "../helpers/auth";
 import IconLogout from "~icons/ic/outline-logout";
-
+import { version } from "../helpers/utils";
 const router = useRouter();
 
 const modules = [
@@ -11,19 +11,19 @@ const modules = [
     items: [
       { name: "Authorities", comp: "Authorities" },
       { name: "Networks", comp: "Networks" },
-      { name: "Zones", comp: "Zones" },
+      { name: "Zones", comp: "Zones" }
       // { name: "Areas", comp: "management/areas" },
       // { name: "* - Stations", comp: "Stations" },
       // { name: "Timeseries", comp: "management/timeseries" }
-    ],
+    ]
   },
   {
     group: "Data",
     items: [
       { name: "Latest data", comp: "Latest" },
       { name: "Historical data", comp: "Historical" },
-      { name: "Dataflows", comp: "data/dataflows" },
-    ],
+      { name: "Dataflows", comp: "data/dataflows" }
+    ]
   },
   {
     group: "Import process",
@@ -31,23 +31,23 @@ const modules = [
       { name: "Scaled timeseries", comp: "process/scaled" },
       { name: "Calculate", comp: "Calculate" },
       { name: "Convert", comp: "Convert" },
-      { name: "Auto validate", comp: "AutoValidate" },
-    ],
+      { name: "Auto validate", comp: "AutoValidate" }
+    ]
   },
   {
     group: "Quality control",
     items: [
       { name: "Validate", comp: "Validate" },
-      { name: "Verify", comp: "qualitycontrol/verify" },
-    ],
+      { name: "Verify", comp: "qualitycontrol/verify" }
+    ]
   },
   {
     group: "Access",
     items: [
       { name: "Users", comp: "access/users" },
-      { name: "Groups", comp: "access/groups" },
-    ],
-  },
+      { name: "Groups", comp: "access/groups" }
+    ]
+  }
 ];
 const goto = (comp) => {
   router.push({ name: comp });
@@ -57,6 +57,8 @@ const signout = async () => {
   Auth.signout();
   router.push({ name: "Login" });
 };
+
+const cmp_version = computed(() => version);
 </script>
 
 <template>
@@ -69,9 +71,12 @@ const signout = async () => {
         </div>
       </div>
     </div>
-    <div class="flex py-2 px-2 hover:cursor-pointer hover:bg-nord8/20 hover:text-nord10" @click="signout">
-      <icon-logout class="self-center" />
-      <div class="self-center ml-1">Sign out</div>
+    <div class="">
+      <div class="px-2 text-xs font-bold">v.{{ cmp_version }}</div>
+      <div class="flex py-2 px-2 hover:cursor-pointer hover:bg-nord8/20 hover:text-nord10" @click="signout">
+        <icon-logout class="self-center" />
+        <div class="self-center ml-1">Sign out</div>
+      </div>
     </div>
   </div>
 </template>
