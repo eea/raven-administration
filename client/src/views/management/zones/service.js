@@ -1,51 +1,12 @@
-import Request from "../../../helpers/request";
+import { Get, Post } from "../../../helpers/request";
 
 const Service = {
-  get: async function () {
-    const payload = {
-      method: "get",
-      url: "/api/management/zones",
-    };
-    return await Request(payload);
-  },
-  update: async function (data) {
-    const payload = {
-      method: "post",
-      url: "/api/management/zones/update",
-      data,
-    };
-    return await Request(payload);
-  },
-  insert: async function (data) {
-    const payload = {
-      method: "post",
-      url: "/api/management/zones/insert",
-      data,
-    };
-    return await Request(payload);
-  },
-  delete: async function (data) {
-    const requestData = {
-      method: "post",
-      url: "/api/management/zones/delete",
-      data: data,
-    };
-    return Request(requestData);
-  },
-  authorities: async function () {
-    const payload = {
-      method: "get",
-      url: "/api/management/zones/authorities",
-    };
-    return await Request(payload);
-  },
-  types: async function () {
-    const payload = {
-      method: "get",
-      url: "/api/management/zones/types",
-    };
-    return await Request(payload);
-  },
+  get: async () => Get("/api/management/zones"),
+  update: async (data) => Post("/api/management/zones/update", data),
+  insert: async (data) => Post("/api/management/zones/insert", data),
+  delete: async (data) => Post("/api/management/zones/delete", data),
+  authorities: async () => Get("/api/management/zones/authorities"),
+  types: async () => Get("/api/management/zones/types")
 };
 
 export default Service;

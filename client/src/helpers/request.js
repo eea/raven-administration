@@ -1,20 +1,36 @@
 import axios from "axios";
-import ErrorParser from './error.parser';
-import Eventy from "../helpers/eventy"
+import ErrorParser from "./error.parser";
+import Eventy from "../helpers/eventy";
 
-const Request = async (payload) => {
-    try {
-        Eventy.showProgress();
-        const response = await axios(payload);
-        Eventy.hideProgress();
-        return response.data
-    }
-    catch (error) { 
-        const message = ErrorParser.asMessage(error);
-        Eventy.failProgress();
-        Eventy.showHideMessage(message, "error", 60000);
-        throw new Error(message);
-    }
+export const Request = async (payload) => {
+  try {
+    Eventy.showProgress();
+    const response = await axios(payload);
+    Eventy.hideProgress();
+    return response.data;
+  } catch (error) {
+    const message = ErrorParser.asMessage(error);
+    Eventy.failProgress();
+    Eventy.showHideMessage(message, "error", 60000);
+    throw new Error(message);
+  }
+};
+
+export const Get = async (url) => {
+  const payload = {
+    method: "get",
+    url: url
+  };
+  return await Request(payload);
+};
+
+export const Post = async (url, data) => {
+  const payload = {
+    method: "post",
+    url: url,
+    data: data
+  };
+  return await Request(payload);
 };
 
 export default Request;

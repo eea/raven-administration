@@ -1,51 +1,12 @@
-import Request from "../../../helpers/request";
+import { Get, Post } from "../../../helpers/request";
 
 const Service = {
-  get: async function () {
-    const requestData = {
-      method: "get",
-      url: "/api/processing/convert"
-    };
-    return Request(requestData);
-  },
-  insert: async function (data) {
-    const requestData = {
-      method: "post",
-      url: "/api/processing/convert/insert",
-      data: data
-    };
-    return Request(requestData);
-  },
-  update: async function (data) {
-    const requestData = {
-      method: "post",
-      url: "/api/processing/convert/update",
-      data: data
-    };
-    return Request(requestData);
-  },
-  delete: async function (data) {
-    const requestData = {
-      method: "post",
-      url: "/api/processing/convert/delete",
-      data: data
-    };
-    return Request(requestData);
-  },
-  units: async function () {
-    const requestData = {
-      method: "get",
-      url: "/api/processing/convert/units"
-    };
-    return Request(requestData);
-  },
-  timeseries: async function () {
-    const requestData = {
-      method: "get",
-      url: "/api/processing/convert/timeseries"
-    };
-    return Request(requestData);
-  }
+  get: async () => Get("/api/processing/convert"),
+  update: async (data) => Post("/api/processing/convert/update", data),
+  insert: async (data) => Post("/api/processing/convert/insert", data),
+  delete: async (data) => Post("/api/processing/convert/delete", data),
+  units: async () => Get("/api/processing/convert/units"),
+  timeseries: async () => Get("/api/processing/convert/timeseries")
 };
 
 export default Service;

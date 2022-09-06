@@ -1,14 +1,7 @@
-import Request from "../../../helpers/request"
+import { Get } from "../../../helpers/request";
 
 const Service = {
-    get: async function (data) {
-        const requestData = {
-            method: "get",
-            url: "/api/data/latest",
-            data
-        };
-        return Request(requestData);
-    }
+  get: async () => Get("/api/data/latest")
 };
 
 export default Service;
