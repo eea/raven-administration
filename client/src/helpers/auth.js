@@ -1,4 +1,4 @@
-import { Post } from "../../../helpers/request";
+import { Post } from "./request";
 
 const Auth = {
   isAuth() {
