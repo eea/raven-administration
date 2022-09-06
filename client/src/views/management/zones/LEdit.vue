@@ -53,7 +53,7 @@ const save = () => {
 };
 
 const initMap = () => {
-  mymap = map("map").setView([0, 0], 13);
+  mymap = map("map").setView([50.378472, 14.970598], 3);
   tileLayer(url, {}).addTo(mymap);
 };
 </script>

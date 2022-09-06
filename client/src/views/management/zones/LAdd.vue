@@ -26,10 +26,31 @@ onMounted(() => {
 watch(
   () => props.show,
   (nv) => {
-    console.log("AA", obj.value);
     obj.value = {};
   }
 );
+
+const toggleMap = () => {
+  if (!showMap.value) {
+    addLayer();
+  }
+  showMap.value = !showMap.value;
+};
+
+const addLayer = () => {
+  if (mymap && obj.value.geojson) {
+    if (zoneLayer) mymap.removeLayer(zoneLayer);
+    // console.log("AA", JSON.parse(obj.value.geojson));
+    zoneLayer = geoJSON(JSON.parse(obj.value.geojson), {
+      style: {
+        color: "#ff0000",
+        fillColor: "#ff0000",
+        weight: 1
+      }
+    }).addTo(mymap);
+    mymap.fitBounds(zoneLayer.getBounds());
+  }
+};
 
 const close = () => {
   obj.value = {};
@@ -41,7 +62,7 @@ const save = () => {
 };
 
 const initMap = () => {
-  mymap = map("map-add").setView([0, 0], 13);
+  mymap = map("map-add").setView([50.378472, 14.970598], 3);
   tileLayer(url, {}).addTo(mymap);
 };
 </script>
@@ -104,8 +125,8 @@ const initMap = () => {
           <div class="flex justify-between">
             <div class="font-bold">Zone:</div>
             <div>
-              <icon-code v-if="showMap" class="cursor-pointer text-nord15" @click="showMap = !showMap" />
-              <icon-map v-if="!showMap" class="cursor-pointer text-nord15" @click="showMap = !showMap" />
+              <icon-code v-if="showMap" class="cursor-pointer text-nord15" @click="toggleMap" />
+              <icon-map v-if="!showMap" class="cursor-pointer text-nord15" @click="toggleMap" />
             </div>
           </div>
           <div v-show="showMap" class="h-full border border-nord4" id="map-add"></div>
@@ -113,13 +134,16 @@ const initMap = () => {
             v-show="!showMap"
             v-model="obj.geojson"
             class="n-input w-80 h-full"
-            placeholder="{ 
-  'type': 'Feature',
-  'geometry': {
-    'type': 'Polygon',
-    'coordinates': [ [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ] ]
+            placeholder='{ 
+  "type": "MultiPolygon",
+  "crs":{"type":"name","properties":{"name":"EPSG:4258"}},
+  "coordinates": [
+    [[[102.0, 2.0], [103.0, 2.0], [103.0, 3.0], [102.0, 3.0], [102.0, 2.0]]],
+    [[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]],
+    [[100.2, 0.2], [100.8, 0.2], [100.8, 0.8], [100.2, 0.8], [100.2, 0.2]]]
+  ]
   }
-}"
+            '
           ></textarea>
         </div>
       </div>

@@ -85,12 +85,12 @@ def zones_insert():
         return jsonify({"success": True})
 
 
-@zones_endpoint.route("/api/management/networks/delete", methods=['POST'])
+@zones_endpoint.route("/api/management/zones/delete", methods=['POST'])
 @jwt_required()
-def networks_delete():
+def zones_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
-        sql = "delete from networks where id = %(id)s"
+        sql = "delete from zones where id = %(id)s"
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
             raise BadRequest("Could not delete for id " + model.id)

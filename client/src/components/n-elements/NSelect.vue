@@ -4,12 +4,12 @@ import EventListener from "./EventListener.vue";
 var p = defineProps({
   modelValue: {
     type: String,
-    default: "",
+    default: ""
   },
   searchable: {
     type: Boolean,
-    default: false,
-  },
+    default: false
+  }
 });
 
 const id = "id" + Math.random().toString(16).slice(2);
@@ -35,6 +35,7 @@ onBeforeUnmount(() => {
 watch(
   () => p.modelValue,
   (nv) => {
+    if (!nv) label.value = "";
     setSelectedOnOptions();
   }
 );
@@ -91,7 +92,7 @@ const closeOptions = () => {
 const initOptionsObserver = () => {
   var config = {
     subtree: false,
-    childList: true,
+    childList: true
   };
 
   const callback = () => {
@@ -106,7 +107,7 @@ const initOptionsObserver = () => {
 </script>
 <script>
 export default {
-  inheritAttrs: false,
+  inheritAttrs: false
 };
 </script>
 

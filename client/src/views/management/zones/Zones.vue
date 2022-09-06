@@ -41,6 +41,14 @@ const saveEdit = async (o) => {
   close();
 };
 
+const saveDelete = async (o) => {
+  showConfirm.value = false;
+  await Service.delete(selected.value);
+  await loadData();
+  Eventy.showHideMessage("Zone deleted", "success", 5000);
+  close();
+};
+
 const cmp_zones = computed(() => {
   return zones.value.filter((p) => {
     return !q.value || p.id.toLowerCase().includes(q.value.toLowerCase()) || p.name.toLowerCase().includes(q.value.toLowerCase()) || p.code.toLowerCase().includes(q.value.toLowerCase()) || p.type_label.toLowerCase().includes(q.value.toLowerCase()) || p.authority_label.toLowerCase().includes(q.value.toLowerCase());
@@ -85,6 +93,7 @@ const onDownload = () => {
 
 <template>
   <common-layout>
+    <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete zone?" @close="close" @ok="saveDelete" />
     <contextmenu-crud :show="showContextmenu" :ev="ev" @click-outside="close" @on-edit="onEdit" @onDelete="onDelete" />
     <l-add :show="showAdd" @close="close" @save="saveAdd" :authorities="authorities" :types="types" />
     <l-edit :show="showEdit" @close="close" @save="saveEdit" :zone="selected" :authorities="authorities" :types="types" />
