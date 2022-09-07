@@ -25,11 +25,9 @@ const loadData = async () => {
 };
 
 const cmp_data = computed(() => {
-  var t = data.value.filter((p) => {
+  return data.value.filter((p) => {
     return !q.value || p.station.toLowerCase().includes(q.value.toLowerCase()) || p.pollutant.toLowerCase().includes(q.value.toLowerCase()) || p.timestep.toLowerCase().includes(q.value.toLowerCase());
-    //return !q.value || p.network.toLowerCase().includes(q.value.toLowerCase()) || p.station.toLowerCase().includes(q.value.toLowerCase()) || p.pollutant.toLowerCase().includes(q.value.toLowerCase()) || p.timestep.toLowerCase().includes(q.value.toLowerCase());
   });
-  return t;
 });
 
 const close = () => {

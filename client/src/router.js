@@ -7,7 +7,7 @@ import Networks from "./views/management/networks/Networks.vue";
 // import Stations from "./views/management/stations/Stations.vue";
 import Zones from "./views/management/zones/Zones.vue";
 
-// import Calculate from "./views/processing/calculate/Calculate.vue";
+import Calculate from "./views/processing/calculate/Calculate.vue";
 import Convert from "./views/processing/convert/Convert.vue";
 import AutoValidate from "./views/processing/autovalidate/Autovalidate.vue";
 
@@ -26,7 +26,7 @@ const routes = [
   // { path: '/management/stations', component: Stations, name: "Stations" },
   { path: "/management/zones", component: Zones, name: "Zones" },
 
-  // { path: '/processing/calculate', component: Calculate, name: "Calculate" },
+  { path: "/processing/calculate", component: Calculate, name: "Calculate" },
   { path: "/processing/convert", component: Convert, name: "Convert" },
   { path: "/processing/autovalidate", component: AutoValidate, name: "AutoValidate" },
 

@@ -2,8 +2,8 @@ from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
-
 from api.endpoints.processing.convert.models import InsertModel, UpdateModel, DeleteModel
+from api.core.query import Q
 
 
 convert_endpoint = Blueprint("convert", __name__)
@@ -44,9 +44,6 @@ def convert_insert():
             values (%(sampling_point_id)s,%(source_id)s,%(target_id)s,%(factor)s, %(createdby)s)
         """
         cursor.execute(sql, model)
-        if cursor.rowcount == 0:
-            raise BadRequest("Could not insert for id " + model.id)
-
         return jsonify({"success": True})
 
 
@@ -100,14 +97,5 @@ def convert_units():
 @convert_endpoint.route("/api/processing/convert/timeseries", methods=['GET'])
 @jwt_required()
 def convert_timeseries():
-    with CursorFromPool() as cursor:
-        cursor.execute("""
-            select CONCAT(s.name,', ', p.notation,', ', t.label )  as label, sp.id as value
-            from sampling_points sp, stations s, eea_pollutants p, eea_times t
-            where sp.station_id = s.id
-            and sp.pollutant = p.uri
-            and sp.timestep = t.id
-            order by s.name, p.notation, t.label
-        """)
-        units = cursor.fetchall()
-        return jsonify(units)
+    timeseries = Q.timeseries()
+    return jsonify(timeseries)

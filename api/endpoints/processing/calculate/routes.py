@@ -2,8 +2,8 @@ from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
-
 from api.endpoints.processing.calculate.models import InsertModel, UpdateModel, DeleteModel
+from api.core.query import Q
 
 
 calculate_endpoint = Blueprint("calculate", __name__)
@@ -15,29 +15,28 @@ def calculate():
     with CursorFromPool() as cursor:
         cursor.execute("""
             WITH timeseries as (
-                select s.name as station, s.id as sta_id, po.notation, oc.id
-                from stations s, sampling_points p, observing_capabilities oc, eea_pollutants po
+                select s.name as station, s.id as sta_id, po.notation,p.id
+                from stations s, sampling_points p,  eea_pollutants po
                 where 1=1
                 and s.id = p.station_id
-                and p.id = oc.sampling_point_id
-                and oc.pollutant = po.uri 
+                and p.pollutant = po.uri
             )
             select 	
-                oc_pri.sta_id,
-	            oc_pri.station,
+                spo_pri.sta_id,
+	            spo_pri.station,
                 cs.*, 
-                oc_pri.notation as primary_pollutant,
-                oc_sec.notation as secondary_pollutant,
-                oc_res.notation as result_pollutant
+                spo_pri.notation as primary_pollutant,
+                spo_sec.notation as secondary_pollutant,
+                spo_res.notation as result_pollutant
             from 
-                timeseries oc_pri, 
-                timeseries oc_sec, 
-                timeseries oc_res, 
+                timeseries spo_pri,
+                timeseries spo_sec,
+                timeseries spo_res,
                 calculated_series cs
             where 1=1
-            and cs.primary = oc_pri.id
-            and cs.secondary = oc_sec.id
-            and cs.result = oc_res.id
+            and cs.primary = spo_pri.id
+            and cs.secondary = spo_sec.id
+            and cs.result = spo_res.id
         """)
         calculateions = cursor.fetchall()
         return jsonify(calculateions)
@@ -48,15 +47,11 @@ def calculate():
 def calculate_insert():
     with CursorFromPool() as cursor:
         model = InsertModel(**request.json)
-        model.createdby = get_jwt_identity()
         sql = """ 
-            insert into calculated_series ("primary", secondary, "result", "operator", createdby) 
-            values (%(primary)s,%(secondary)s,%(result)s,%(operator)s, %(createdby)s)
+            insert into calculated_series ("primary", secondary, "result", "operator") 
+            values (%(primary)s,%(secondary)s,%(result)s,%(operator)s)
         """
         cursor.execute(sql, model)
-        if cursor.rowcount == 0:
-            raise BadRequest("Could not insert for id " + model.id)
-
         return jsonify({"success": True})
 
 
@@ -96,17 +91,8 @@ def calculate_update():
 ## LOOKUPS ##
 
 
-@calculate_endpoint.route("/api/processing/calculate/capabilities", methods=['GET'])
+@calculate_endpoint.route("/api/processing/calculate/timeseries", methods=['GET'])
 @jwt_required()
-def calculate_capabilities():
-    with CursorFromPool() as cursor:
-        cursor.execute("""
-            select s.name || ' - ' || p.notation as label, c.id as value
-            from observing_capabilities c, sampling_points sp, stations s, eea_pollutants p
-            where c.sampling_point_id = sp.id
-            and sp.station_id = s.id
-            and c.pollutant = p.uri
-            order by s.name, p.notation
-        """)
-        timeseries = cursor.fetchall()
-        return jsonify(timeseries)
+def calculate_timeseries():
+    timeseries = Q.timeseries()
+    return jsonify(timeseries)

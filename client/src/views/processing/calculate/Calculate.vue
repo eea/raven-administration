@@ -6,9 +6,8 @@ import Service from "./service";
 import Eventy from "../../../helpers/eventy";
 import { tblToCsv, compare } from "../../../helpers/utils";
 
-const units = ref([]);
 const timeseries = ref([]);
-const convertions = ref([]);
+const calculations = ref([]);
 const q = ref("");
 const showEdit = ref(false);
 const showAdd = ref(false);
@@ -18,18 +17,17 @@ const showContextmenu = ref(false);
 const showConfirm = ref(false);
 
 onMounted(async () => {
-  units.value = await Service.units();
-  timeseries.value = await Service.timeseries();
   await loadData();
 });
 
 const loadData = async () => {
-  convertions.value = await Service.get();
+  timeseries.value = await Service.timeseries();
+  calculations.value = await Service.get();
 };
 
-const cmp_convertions = computed(() => {
-  var t = convertions.value.filter((p) => {
-    return !q.value || p.pollutant.toLowerCase().includes(q.value.toLowerCase()) || p.station.toLowerCase().includes(q.value.toLowerCase()) || p.source.toLowerCase().includes(q.value.toLowerCase()) || p.target.toLowerCase().includes(q.value.toLowerCase()) || p.createdBy.toLowerCase().includes(q.value.toLowerCase());
+const cmp_calculations = computed(() => {
+  var t = calculations.value.filter((p) => {
+    return !q.value || p.station.toLowerCase().includes(q.value.toLowerCase()) || p.primary.toLowerCase().includes(q.value.toLowerCase()) || p.operator.toLowerCase().includes(q.value.toLowerCase()) || p.secondary.toLowerCase().includes(q.value.toLowerCase());
   });
   return t;
 });
@@ -54,14 +52,14 @@ const onEdit = () => {
 const onSaveEdit = async (o) => {
   await Service.update(o);
   await loadData();
-  Eventy.showHideMessage("Convertion saved", "success", 5000);
+  Eventy.showHideMessage("Calculation saved", "success", 5000);
   close();
 };
 
 const onSaveAdd = async (o) => {
   await Service.insert(o);
   await loadData();
-  Eventy.showHideMessage("Convertion saved", "success", 5000);
+  Eventy.showHideMessage("Calculation saved", "success", 5000);
   close();
 };
 
@@ -83,42 +81,40 @@ const onSaveDelete = async (o) => {
   showConfirm.value = false;
   await Service.delete(selected.value);
   await loadData();
-  Eventy.showHideMessage("Convertion deleted", "success", 5000);
+  Eventy.showHideMessage("Calculation deleted", "success", 5000);
   close();
 };
 
 const onDownload = () => {
-  tblToCsv("convertionsId", "convertions");
+  tblToCsv("calculationsId", "calculations");
 };
 </script>
 
 <template>
   <common-layout>
-    <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete convertion?" @close="close" @ok="onSaveDelete" />
+    <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete calculation?" @close="close" @ok="onSaveDelete" />
     <contextmenu-crud :show="showContextmenu" :ev="ev" @click-outside="close" @on-edit="onEdit" @onDelete="onDelete" />
 
-    <l-add :show="showAdd" @close="close" @save="onSaveAdd" :timeseries="timeseries" :units="units" />
-    <l-edit :show="showEdit" @close="close" @save="onSaveEdit" :timeseries="timeseries" :units="units" :convertion="selected" />
+    <l-add :show="showAdd" @close="close" @save="onSaveAdd" :timeseries="timeseries" />
+    <l-edit :show="showEdit" @close="close" @save="onSaveEdit" :timeseries="timeseries" :calculation="selected" />
 
-    <tool-bar title="Convert" filter-text="Type to filter " v-model="q" @add-click="showAdd = true" @download-click="onDownload" />
+    <tool-bar title="Calculations" filter-text="Type to filter" v-model="q" @add-click="showAdd = true" @download-click="onDownload" />
 
     <div>
-      <table id="convertionsId" class="n-table">
+      <table id="calculationsId" class="n-table">
         <tr>
           <th>Station</th>
-          <th>Pollutant</th>
-          <th>Timestep</th>
-          <th>Source</th>
-          <th>Target</th>
-          <th>Factor</th>
+          <th>Primary</th>
+          <th>Operator</th>
+          <th>Secondary</th>
+          <th>Result</th>
         </tr>
-        <tr v-for="row in cmp_convertions" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
+        <tr v-for="row in cmp_calculations" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
           <td>{{ row.station }}</td>
-          <td>{{ row.pollutant }}</td>
-          <td>{{ row.timestep }}</td>
-          <td>{{ row.source }}</td>
-          <td>{{ row.target }}</td>
-          <td>{{ row.factor }}</td>
+          <td>{{ row.primary_pollutant }}</td>
+          <td>{{ row.operator }}</td>
+          <td>{{ row.secondary_pollutant }}</td>
+          <td>{{ row.result_pollutant }}</td>
         </tr>
       </table>
     </div>

@@ -2,7 +2,6 @@ from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
-
 from api.endpoints.processing.autovalidate.models import InsertModel, UpdateModel, DeleteModel
 
 
@@ -33,9 +32,6 @@ def autovalidate_insert():
             values (%(min)s,%(max)s,%(rep)s,%(pollutant_id)s)
         """
         cursor.execute(sql, model)
-        if cursor.rowcount == 0:
-            raise BadRequest("Could not insert for id " + model.id)
-
         return jsonify({"success": True})
 
 

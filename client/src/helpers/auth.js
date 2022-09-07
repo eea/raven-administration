@@ -9,7 +9,7 @@ const Auth = {
     return sessionStorage.getItem("token");
   },
   async signin(username, password) {
-    var resp = Post("/api/auth/signin", { username, password });
+    var resp = await Post("/api/auth/signin", { username, password });
     sessionStorage.setItem("token", resp.token);
   },
   signout() {

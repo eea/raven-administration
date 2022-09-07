@@ -14,21 +14,21 @@ def timevalues():
     m = TimevalueModel(**request.json)
     with CursorFromPool() as cursor:
         cursor.execute("""
-        SELECT
-          o.id,
-          to_char (o.from_time, 'YYYY-MM-DD HH24:MI:SS') as "fromtime",
-          to_char (o.to_time, 'YYYY-MM-DD HH24:MI:SS') as "totime",
-          o.sampling_point_id as "sampling_point_id",
-          o.validation_flag,
-          o.verification_flag,
-          o.value::double PRECISION
-        FROM observations o
-        WHERE 1=1
-        AND o.from_time >= %(from_dt)s
-        AND o.from_time < %(to_dt)s
-        AND  o.sampling_point_id = %(sampling_point_id)s
-        order by from_time
-    """, m)
+            SELECT
+              o.id,
+              to_char (o.from_time, 'YYYY-MM-DD HH24:MI:SS') as "fromtime",
+              to_char (o.to_time, 'YYYY-MM-DD HH24:MI:SS') as "totime",
+              o.sampling_point_id as "sampling_point_id",
+              o.validation_flag,
+              o.verification_flag,
+              o.value::double PRECISION
+            FROM observations o
+            WHERE 1=1
+            AND o.from_time >= %(from_dt)s
+            AND o.from_time < %(to_dt)s
+            AND  o.sampling_point_id = %(sampling_point_id)s
+            order by from_time
+        """, m)
         timevalues = cursor.fetchall()
         return jsonify(timevalues)
 
@@ -39,10 +39,10 @@ def flag():
     m = FlagModel(**request.json)
     with CursorFromPool() as cursor:
         cursor.execute("""
-        update observations
-        set validation_flag = %(flag)s
-        where id in %(ids_tuple)s
-    """, m)
+            update observations
+            set validation_flag = %(flag)s
+            where id in %(ids_tuple)s
+        """, m)
         if cursor.rowcount == 0:
             raise BadRequest("Could set validation flag")
         return jsonify({"success": True})
