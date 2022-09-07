@@ -15,8 +15,9 @@ import Latest from "./views/data/latest/Latest.vue";
 import Historical from "./views/data/historical/Historical.vue";
 
 import Validate from "./views/qualitycontrol/validate/Validate.vue";
+import Verify from "./views/qualitycontrol/verify/Verify.vue";
 
-// import Notfound from "./views/notfound/Notfound.vue"
+import Notfound from "./views/notfound/Notfound.vue";
 
 const routes = [
   { path: "/", component: Latest, name: "Home" },
@@ -33,9 +34,10 @@ const routes = [
   { path: "/data/latest", component: Latest, name: "Latest" },
   { path: "/data/historical", component: Historical, name: "Historical" },
 
-  { path: "/qualitycontrol/validate", component: Validate, name: "Validate" }
+  { path: "/qualitycontrol/validate", component: Validate, name: "Validate" },
+  { path: "/qualitycontrol/verify", component: Verify, name: "Verify" },
 
-  // { path: '/:pathMatch(.*)*', component: Notfound }
+  { path: "/:pathMatch(.*)*", component: Notfound }
 ];
 
 const router = createRouter({

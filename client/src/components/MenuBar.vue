@@ -28,17 +28,17 @@ const modules = [
   {
     group: "Import process",
     items: [
-      { name: "Scaled timeseries", comp: "process/scaled" },
-      { name: "Calculate", comp: "Calculate" },
+      { name: "Auto validate", comp: "AutoValidate" },
       { name: "Convert", comp: "Convert" },
-      { name: "Auto validate", comp: "AutoValidate" }
+      { name: "Calculate", comp: "Calculate" },
+      { name: "Scaled timeseries", comp: "process/scaled" }
     ]
   },
   {
     group: "Quality control",
     items: [
       { name: "Validate", comp: "Validate" },
-      { name: "Verify", comp: "qualitycontrol/verify" }
+      { name: "Verify", comp: "Verify" }
     ]
   },
   {
