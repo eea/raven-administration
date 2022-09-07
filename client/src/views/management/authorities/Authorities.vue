@@ -69,7 +69,6 @@ const saveEdit = async (o) => {
 };
 
 const saveAdd = async (o) => {
-  console.log("O", o);
   await Service.insert(o);
   await loadData();
   Eventy.showHideMessage("Authority saved", "success", 5000);

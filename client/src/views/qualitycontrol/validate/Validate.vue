@@ -58,14 +58,13 @@ const load = async () => {
   timevalues.value = await Service.get({
     sampling_point_id: selectedId.value,
     from_dt: fromtime.value,
-    to_dt: totime.value,
+    to_dt: totime.value
   });
   if (!chart) {
     chart = new ApexCharts(document.querySelector("#chart"), Apex.options([], onDatapointSelection));
     chart.render();
   }
   var series = formatValues();
-  console.log("d", series);
   chart.updateSeries(series);
 };
 
@@ -126,7 +125,6 @@ const formatValues = () => {
 };
 
 const onDatapointSelection = (event, chartContext, opts) => {
-  console.log("AAA");
   var serie = opts.w.config.series[opts.seriesIndex];
   var data = serie.data[opts.dataPointIndex];
   selectedRows.value = [data.obj];
