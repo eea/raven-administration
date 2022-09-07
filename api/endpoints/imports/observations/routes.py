@@ -5,7 +5,6 @@ from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest, InternalServerError
 from api.core.database import CursorFromPool
 from api.core.printcol import printcol
-from api.endpoints.imports.observations.models import Processvalues
 from api.core.data.processing.importing import Importing
 import io
 import pandas as pd
