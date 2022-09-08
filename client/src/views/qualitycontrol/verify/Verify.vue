@@ -13,6 +13,7 @@ const stationId = ref();
 
 const datasets = ref([]);
 const stations = ref([]);
+const q = ref("");
 
 const ev = ref({});
 const showContextmenu = ref(false);
@@ -66,6 +67,13 @@ const cmp_years = computed(() => {
     .map((p) => String(p));
 });
 
+const cmp_datasets = computed(() => {
+  var t = datasets.value.filter((p) => {
+    return !q.value || p.id.toLowerCase().includes(q.value.toLowerCase()) || p.station.toLowerCase().includes(q.value.toLowerCase()) || p.pollutant.toLowerCase().includes(q.value.toLowerCase()) || p.timestep.toLowerCase().includes(q.value.toLowerCase()) || month(p.month).toLowerCase().includes(q.value.toLowerCase());
+  });
+  return t;
+});
+
 // EVENTS //
 const onSetLevel = async (level) => {
   Eventy.showMessage("Setting verification flag. Please wait", "loading");
@@ -110,7 +118,7 @@ const onDownload = () => {
       </div>
     </contextmenu>
 
-    <tool-bar title="Verify" :show-filter="true" :show-add="false" :show-download="true" @download-click="onDownload" />
+    <tool-bar title="Verify" v-model="q" :show-filter="true" :show-add="false" :show-download="true" @download-click="onDownload" />
 
     <div class="border border-nord4 bg-gray-50 p-2 flex flex-col gap-3">
       <div class="flex gap-3">
@@ -149,7 +157,7 @@ const onDownload = () => {
           <th>Pre verified</th>
           <th>Not verified</th>
         </tr>
-        <tr v-for="row in datasets" :key="row.id" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
+        <tr v-for="row in cmp_datasets" :key="row.id" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
           <td>{{ row.id }}</td>
           <td>{{ row.station }}</td>
           <td>{{ row.pollutant }}</td>
