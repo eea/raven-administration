@@ -1,5 +1,6 @@
 <script setup>
 import IconCircle from "~icons/ph/circle-duotone";
+import IconLock from "~icons/ph/lock-simple-duotone";
 
 import { useRoute } from "vue-router";
 import { format, sub, isAfter, isBefore } from "date-fns";
@@ -208,7 +209,10 @@ const onDatapointSelection = (event, chartContext, opts) => {
             <td>{{ row.totime }}</td>
             <td>{{ row.value }}</td>
             <td>{{ row.validation_flag }}</td>
-            <td>{{ row.verification_flag }}</td>
+            <td class="flex gap-1">
+              <div class="self-center">{{ row.verification_flag }}</div>
+              <icon-lock v-if="row.verification_flag == 1" class="text-xs self-center text-nord14" />
+            </td>
           </tr>
         </table>
       </div>
