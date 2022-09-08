@@ -58,6 +58,7 @@ const onOptionClick = (v) => {
 };
 
 const setSelectedOnOptions = () => {
+  if (!options.value) return;
   for (let i = 0; i < options.value.children.length; i++) {
     var v = options.value.children[i].getAttribute("value");
     if (p.modelValue == v) {
