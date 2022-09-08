@@ -38,4 +38,12 @@ body {
 #app {
   @apply flex flex-col min-h-full items-stretch relative flex-1 w-full h-full;
 }
+
+a {
+  text-decoration-line: underline;
+}
+
+a:hover {
+  @apply no-underline text-nord0;
+}
 </style>

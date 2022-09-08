@@ -29,7 +29,7 @@ const cmp_timeseries = computed(() => {
   <side-bar-crud :show="show" @cancel="$emit('close')" @commit="$emit('save', Object.assign({}, obj))">
     <div class="mb-4 font-bold text-base border-b">Required</div>
     <div class="mb-2">
-      <div class="font-bold">Stations:</div>
+      <div class="font-bold">Station:</div>
       <n-select v-model="station" class="!w-64">
         <n-option v-for="a in cmp_stations" :key="a" :value="a" :label="a" />
       </n-select>

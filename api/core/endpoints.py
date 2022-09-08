@@ -37,6 +37,9 @@ class Endpoints:
         from api.endpoints.qualitycontrol.validate.routes import validate_endpoint
         app.register_blueprint(validate_endpoint)
 
+        from api.endpoints.qualitycontrol.verify.routes import verify_endpoint
+        app.register_blueprint(verify_endpoint)
+
         # IMPORT
         from api.endpoints.imports.observations.routes import observations_endpoint
         app.register_blueprint(observations_endpoint)

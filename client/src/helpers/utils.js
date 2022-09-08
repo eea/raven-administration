@@ -73,4 +73,20 @@ export const compare = (object1, object2) => {
   return true;
 };
 
+export const month = (monthAsInt) => {
+  if (monthAsInt == 1) return "January";
+  if (monthAsInt == 2) return "February";
+  if (monthAsInt == 3) return "March";
+  if (monthAsInt == 4) return "April";
+  if (monthAsInt == 5) return "May";
+  if (monthAsInt == 6) return "June";
+  if (monthAsInt == 7) return "July";
+  if (monthAsInt == 8) return "August";
+  if (monthAsInt == 9) return "September";
+  if (monthAsInt == 10) return "October";
+  if (monthAsInt == 11) return "November";
+  if (monthAsInt == 12) return "December";
+  return "Unknown";
+};
+
 export const version = "3.0.0-dev-1";

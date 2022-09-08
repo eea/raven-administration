@@ -1,6 +1,5 @@
 <script setup>
-import IconValid from "~icons/prime/check-circle";
-import IconNotValid from "~icons/prime/times-circle";
+import IconCircle from "~icons/ph/circle-duotone";
 
 import { useRoute } from "vue-router";
 import { format, sub, isAfter, isBefore } from "date-fns";
@@ -10,6 +9,8 @@ import ApexCharts from "apexcharts";
 import Eventy from "../../../helpers/eventy";
 import Service from "./service";
 import Apex from "./apex";
+
+import IconLink from "~icons/ph/link-simple-duotone";
 
 const timeseries = ref([]);
 
@@ -138,23 +139,23 @@ const onDatapointSelection = (event, chartContext, opts) => {
     <contextmenu :evt="ev" @click-outside="close" :show="showContextmenu">
       <div class="px-2 font-bold">Set validation to:</div>
       <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onValidate(-99)">
-        <icon-not-valid class="text-nord11 text-lg self-center" />
+        <icon-circle class="text-nord11 text-base self-center" />
         <div class="self-center ml-1">Not valid due to station maintenance or calibration (-99)</div>
       </div>
       <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onValidate(-1)">
-        <icon-not-valid class="text-nord11 text-lg self-center" />
+        <icon-circle class="text-nord11 text-base self-center" />
         <div class="self-center ml-1">Not valid (-1)</div>
       </div>
       <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onValidate(1)">
-        <icon-valid class="text-nord14 text-lg self-center" />
+        <icon-circle class="text-nord14 text-base self-center" />
         <div class="self-center ml-1">Valid (1)</div>
       </div>
       <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onValidate(2)">
-        <icon-valid class="text-nord14 text-lg self-center" />
+        <icon-circle class="text-nord14 text-base self-center" />
         <div class="self-center ml-1">Valid, but below detection limit measurement value given (2)</div>
       </div>
       <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onValidate(3)">
-        <icon-valid class="text-nord14 text-lg self-center" />
+        <icon-circle class="text-nord14 text-base self-center" />
         <div class="self-center ml-1">Valid, but below detection limit and number replaced by 0.5*detection limit (3)</div>
       </div>
     </contextmenu>
@@ -183,6 +184,10 @@ const onDatapointSelection = (event, chartContext, opts) => {
 
       <div class="mt-2">
         <button class="n-button" @click="showData" :disabled="!selectedId">Show data</button>
+      </div>
+      <div class="text-sm flex gap-1 mt-2">
+        <icon-link />
+        <div><a href="http://dd.eionet.europa.eu/vocabulary/aq/observationvalidity/view" target="_blank">Read more about validation levels here</a></div>
       </div>
     </div>
 
