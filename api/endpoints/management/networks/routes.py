@@ -2,8 +2,8 @@ from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
-
 from api.endpoints.management.networks.models import NetworkModel, DeleteModel
+from api.core.query import Q
 
 
 networks_endpoint = Blueprint('networks', __name__)
@@ -128,7 +128,5 @@ def media():
 @networks_endpoint.route('/api/management/networks/timezones', methods=['GET'])
 @jwt_required()
 def timezones():
-    with CursorFromPool() as cursor:
-        cursor.execute("select r.notation as label, r.id as value from eea_timezones r order by r.notation")
-        authorities = cursor.fetchall()
-        return jsonify(authorities)
+    timezones = Q.timezones()
+    return jsonify(timezones)

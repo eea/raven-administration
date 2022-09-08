@@ -14,3 +14,9 @@ class Q:
                 order by s.name, p.notation, t.label
             """)
             return cursor.fetchall()
+
+    @staticmethod
+    def timezones():
+        with CursorFromPool() as cursor:
+            cursor.execute("select r.notation as label, r.id as value from eea_timezones r order by r.notation")
+            return cursor.fetchall()
