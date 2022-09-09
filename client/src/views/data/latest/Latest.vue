@@ -4,7 +4,7 @@ import IconPlot from "~icons/material-symbols/bar-chart";
 
 import { useRouter } from "vue-router";
 
-import { format, sub } from "date-fns";
+import { format, sub, add } from "date-fns";
 import Service from "./service";
 import { tblToCsv, compare } from "../../../helpers/utils";
 
@@ -50,7 +50,7 @@ const onDownload = () => {
 
 const onGoto = (name) => {
   const { id, to_time } = selected.value;
-  var tt = format(new Date(to_time), "yyy-MM-dd HH:00");
+  var tt = format(add(new Date(to_time), { hours: 1 }), "yyy-MM-dd HH:00");
   var ft = format(sub(new Date(tt), { days: 14 }), "yyy-MM-dd HH:00");
   router.push({ name: name, query: { ids: id, from: ft, to: tt } });
 };
