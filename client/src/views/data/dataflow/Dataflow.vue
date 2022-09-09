@@ -6,6 +6,7 @@ import Eventy from "../../../helpers/eventy";
 const year = ref();
 const timezoneId = ref();
 const description = ref("update");
+const lastRequest = ref("");
 
 // METHODS
 const years = () => {
@@ -30,11 +31,18 @@ const downloadDataflow = async (type) => {
   FileDownload(xml, `dataflow-${type.toLowerCase()}.xml`);
   Eventy.hideMessage();
 };
+
+const downloadDataflowE2A = async () => {
+  Eventy.showMessage("Creating xml. Please wait", "loading");
+  const xml = await Service.dataflowE2A(lastRequest.value);
+  FileDownload(xml, `dataflow-e2a.xml`);
+  Eventy.hideMessage();
+};
 </script>
 
 <template>
   <common-layout>
-    <tool-bar title="Dataflow" :show-filter="false" :show-add="false" :show-download="false" />
+    <tool-bar title="Dataflows" :show-filter="false" :show-add="false" :show-download="false" />
 
     <div class="border border-nord4 bg-gray-50 p-2 flex flex-col gap-5">
       <div class="flex gap-3">
@@ -61,6 +69,21 @@ const downloadDataflow = async (type) => {
         <button class="n-button" @click="downloadDataflow('D')" :disabled="false">Dataflow D</button>
         <button class="n-button" @click="downloadDataflow('E1A')" :disabled="false">Dataflow E1A</button>
         <button class="n-button" @click="downloadDataflow('G')" :disabled="false">Dataflow G</button>
+      </div>
+    </div>
+
+    <tool-bar title="Dataflow E1A (UTD)" :show-filter="false" :show-add="false" :show-download="false" class="mt-4" />
+
+    <div class="border border-nord4 bg-gray-50 p-2 flex flex-col gap-5">
+      <div class="flex gap-3">
+        <div>
+          <div class="font-bold">Get data that changed since this date</div>
+          <n-datetime v-model="lastRequest" />
+        </div>
+        <div>
+          <div>&nbsp;</div>
+          <button class="n-button" @click="downloadDataflowE2A" :disabled="false">Dataflow E1A</button>
+        </div>
       </div>
     </div>
   </common-layout>
