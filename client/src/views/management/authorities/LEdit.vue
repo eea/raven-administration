@@ -46,6 +46,13 @@ watch(
       <div class="font-bold">Website:</div>
       <input type="text" class="n-input w-64" v-model="obj.website" />
     </div>
+    <div class="mb-2">
+      <div class="font-bold">Is the main authority:</div>
+      <n-select v-model="obj.is_responsible_reporter" class="!w-64">
+        <n-option value="true" label="true" />
+        <n-option value="false" label="false" />
+      </n-select>
+    </div>
   </side-bar-crud>
 </template>
 <style></style>

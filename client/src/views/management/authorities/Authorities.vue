@@ -109,6 +109,7 @@ const onDownload = () => {
           <th>Address</th>
           <th>Phone</th>
           <th>Website</th>
+          <th>Main?</th>
         </tr>
         <tr v-for="row in cmp_authoritites" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
           <td>{{ row.id }}</td>
@@ -120,6 +121,7 @@ const onDownload = () => {
           <td>{{ row.address }}</td>
           <td>{{ row.phone }}</td>
           <td>{{ row.website }}</td>
+          <td>{{ row.is_responsible_reporter }}</td>
         </tr>
       </table>
     </div>

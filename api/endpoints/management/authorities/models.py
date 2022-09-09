@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from typing import Optional
 
 
 class AuthorityModel(BaseModel):
@@ -12,7 +11,7 @@ class AuthorityModel(BaseModel):
     address: str
     phone: str
     website: str
-    is_responsible_reporter: Optional[bool] = False
+    is_responsible_reporter: bool
 
     def __getitem__(self, key):
         return super().__getattribute__(key)

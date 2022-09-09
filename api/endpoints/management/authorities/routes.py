@@ -13,7 +13,10 @@ authorities_endpoint = Blueprint('authorities', __name__)
 @jwt_required()
 def authorities():
     with CursorFromPool() as cursor:
-        cursor.execute("select * from responsible_authorities order by name")
+        cursor.execute("""
+          select id, name, organisation, locator, postcode, email, address, phone, website, is_responsible_reporter::varchar 
+          from responsible_authorities order by name
+        """)
         authorities = cursor.fetchall()
         return jsonify(authorities)
 
