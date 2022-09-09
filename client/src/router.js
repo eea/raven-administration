@@ -1,23 +1,25 @@
 import { createWebHistory, createRouter } from "vue-router";
 import Auth from "./helpers/auth";
-import Login from "./views/login/Login.vue";
 
-import Authorities from "./views/management/authorities/Authorities.vue";
-import Networks from "./views/management/networks/Networks.vue";
-// import Stations from "./views/management/stations/Stations.vue";
-import Zones from "./views/management/zones/Zones.vue";
+const Login = () => import("./views/login/Login.vue");
 
-import Calculate from "./views/processing/calculate/Calculate.vue";
-import Convert from "./views/processing/convert/Convert.vue";
-import AutoValidate from "./views/processing/autovalidate/Autovalidate.vue";
+const Authorities = () => import("./views/management/authorities/Authorities.vue");
+const Networks = () => import("./views/management/networks/Networks.vue");
+// const Stations = () => import() "./views/management/stations/Stations.vue");
+const Zones = () => import("./views/management/zones/Zones.vue");
 
-import Latest from "./views/data/latest/Latest.vue";
-import Historical from "./views/data/historical/Historical.vue";
+const Calculate = () => import("./views/processing/calculate/Calculate.vue");
+const Convert = () => import("./views/processing/convert/Convert.vue");
+const AutoValidate = () => import("./views/processing/autovalidate/Autovalidate.vue");
 
-import Validate from "./views/qualitycontrol/validate/Validate.vue";
-import Verify from "./views/qualitycontrol/verify/Verify.vue";
+const Latest = () => import("./views/data/latest/Latest.vue");
+const Historical = () => import("./views/data/historical/Historical.vue");
+const Dataflow = () => import("./views/data/dataflow/Dataflow.vue");
 
-import Notfound from "./views/notfound/Notfound.vue";
+const Validate = () => import("./views/qualitycontrol/validate/Validate.vue");
+const Verify = () => import("./views/qualitycontrol/verify/Verify.vue");
+
+const Notfound = () => import("./views/notfound/Notfound.vue");
 
 const routes = [
   { path: "/", component: Latest, name: "Home" },
@@ -33,6 +35,7 @@ const routes = [
 
   { path: "/data/latest", component: Latest, name: "Latest" },
   { path: "/data/historical", component: Historical, name: "Historical" },
+  { path: "/data/dataflow", component: Dataflow, name: "Dataflow" },
 
   { path: "/qualitycontrol/validate", component: Validate, name: "Validate" },
   { path: "/qualitycontrol/verify", component: Verify, name: "Verify" },
