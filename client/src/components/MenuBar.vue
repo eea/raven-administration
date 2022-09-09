@@ -22,7 +22,7 @@ const modules = [
     items: [
       { name: "Latest data", comp: "Latest" },
       { name: "Historical data", comp: "Historical" },
-      { name: "Dataflows", comp: "data/dataflows" }
+      { name: "Dataflow", comp: "Dataflow" }
     ]
   },
   {

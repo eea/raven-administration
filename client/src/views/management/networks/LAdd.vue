@@ -1,4 +1,6 @@
 <script setup>
+import IconLink from "~icons/ph/link-simple-duotone";
+
 const props = defineProps({
   show: Boolean,
   authorities: Array,
