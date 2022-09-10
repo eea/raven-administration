@@ -62,7 +62,7 @@ const cmp_version = computed(() => version);
 </script>
 
 <template>
-  <div class="border border-nord4 flex flex-col justify-between bg-gray-50">
+  <div class="border border-nord4 flex flex-col justify-between bg-gray-50 select-none">
     <div>
       <div class="mt-1 flex flex-col border-b" v-for="m in modules" :key="m.group">
         <div class="font-bold select-none px-2 mt-2 mb-1">{{ m.group }}</div>
