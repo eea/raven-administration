@@ -50,14 +50,9 @@ const cls_rowClass = (row) => {
 };
 
 // COMPUTED //
-const cmp_stations = computed(() => {
-  return Array.from({ length: 4 }, (_, i) => i + 2018)
-    .reverse()
-    .map((p) => String(p));
-});
 
 const cmp_years = computed(() => {
-  const s = stations.value.find((p) => (p.id = stationId.value));
+  const s = stations.value.find((p) => p.id == stationId.value);
   if (!s) return "";
 
   year.value = String(s.to_year);
@@ -124,8 +119,8 @@ const onDownload = () => {
       <div class="flex gap-3">
         <div>
           <div class="font-bold">Station</div>
-          <n-select class="!w-40" v-model="stationId">
-            <n-option v-for="s in stations" :value="s.id" :label="s.name" />
+          <n-select class="!w-56" v-model="stationId">
+            <n-option v-for="opt in stations" :value="opt.id" :label="opt.name" />
           </n-select>
         </div>
         <div>
