@@ -3,13 +3,15 @@ import { Post } from "./request";
 const Auth = {
   isAuth() {
     var token = sessionStorage.getItem("token");
-    return token ? true : false;
+    if (!token || token == "undefined" || token == "null") return false;
+    return true;
   },
   getToken() {
     return sessionStorage.getItem("token");
   },
   async signin(username, password) {
     var resp = await Post("/api/auth/signin", { username, password });
+    if (!resp.token) throw Error("Internal error. Could not get a valid response");
     sessionStorage.setItem("token", resp.token);
   },
   signout() {
