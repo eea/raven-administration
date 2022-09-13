@@ -11,7 +11,7 @@ const Auth = {
   },
   async signin(username, password) {
     var resp = await Post("/api/auth/signin", { username, password });
-    if (!resp.token) throw Error("Internal error. Could not get a valid response");
+    if (!resp.token) throw Error("Internal error. Could not get a valid token");
     sessionStorage.setItem("token", resp.token);
   },
   signout() {
