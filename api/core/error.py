@@ -1,6 +1,5 @@
 from flask import jsonify
 from pydantic import ValidationError
-from flask_pydantic import exceptions as py
 from werkzeug.exceptions import HTTPException
 
 
