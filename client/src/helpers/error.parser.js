@@ -6,6 +6,7 @@ const ErrorParser = {
       let errMsg = error.response.data.msg;
       message = JSON.stringify(errMsg);
     } else {
+      console.log("Error response: ", error.response);
       message = error.response.data.msg;
       if (!message) message = "Something went wrong!";
     }
