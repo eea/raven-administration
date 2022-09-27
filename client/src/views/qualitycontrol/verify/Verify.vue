@@ -115,7 +115,7 @@ const onDownload = () => {
 
     <tool-bar title="Verify" v-model="q" :show-filter="true" :show-add="false" :show-download="true" @download-click="onDownload" />
 
-    <div class="border border-nord4 bg-gray-50 p-2 flex flex-col gap-3">
+    <container>
       <div class="flex gap-3">
         <div>
           <div class="font-bold">Station</div>
@@ -138,7 +138,7 @@ const onDownload = () => {
         <icon-link />
         <div><a href="http://dd.eionet.europa.eu/vocabulary/aq/observationverification/view" target="_blank">Read more about verification levels here</a></div>
       </div>
-    </div>
+    </container>
 
     <div class="mt-4" v-if="showTable">
       <table id="verifyId" class="n-table">

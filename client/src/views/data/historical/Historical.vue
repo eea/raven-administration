@@ -43,7 +43,7 @@ const plotData = async () => {
     from_dt: fromtime.value,
     to_dt: totime.value,
     meantype: meantype.value,
-    coverage: coverage.value,
+    coverage: coverage.value
   });
 
   // console.log("PLOT", meanvalues);
@@ -84,7 +84,7 @@ const cmp_timeseries = computed(() => {
   <common-layout>
     <tool-bar title="Historical data" :show-download="true" :show-add="false" :show-filter="false" />
 
-    <div class="border border-nord4 bg-gray-50 p-2 flex flex-col gap-3">
+    <container>
       <div class="flex gap-2">
         <div>
           <div class="font-bold">From</div>
@@ -140,9 +140,9 @@ const cmp_timeseries = computed(() => {
       <div class="mt-2">
         <button class="n-button" @click="plotData" :disabled="selectedIds.length == 0">Plot data</button>
       </div>
-    </div>
+    </container>
 
-    <div v-show="showPlot" class="bg-gray-50 border border-gray-200 p-4 mt-4" id="chart"></div>
+    <container v-show="showPlot" class="mt-4 !p-4" id="chart"></container>
   </common-layout>
 </template>
 

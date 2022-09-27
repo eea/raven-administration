@@ -12,6 +12,7 @@ import Service from "./service";
 import Apex from "./apex";
 
 import IconLink from "~icons/ph/link-simple-duotone";
+import Container from "../../../components/Container.vue";
 
 const timeseries = ref([]);
 
@@ -163,7 +164,7 @@ const onDatapointSelection = (event, chartContext, opts) => {
 
     <tool-bar title="Validate" :show-filter="false" :show-add="false" :show-download="true" @download-click="onDownload" />
 
-    <div class="border border-nord4 bg-gray-50 p-2 flex flex-col gap-3">
+    <container>
       <div class="flex gap-2">
         <div>
           <div class="font-bold">From</div>
@@ -190,10 +191,10 @@ const onDatapointSelection = (event, chartContext, opts) => {
         <icon-link />
         <div><a href="http://dd.eionet.europa.eu/vocabulary/aq/observationvalidity/view" target="_blank">Read more about validation levels here</a></div>
       </div>
-    </div>
+    </container>
 
     <div v-show="showPlotAndTable">
-      <div class="mt-4 border border-nord4 bg-gray-50 p-4" id="chart"></div>
+      <container class="mt-4 !p-4" id="chart"></container>
 
       <div class="mt-4">
         <table id="validationId" class="n-table">
