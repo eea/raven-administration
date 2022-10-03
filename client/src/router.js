@@ -5,7 +5,7 @@ const Login = () => import("./views/login/Login.vue");
 
 const Authorities = () => import("./views/management/authorities/Authorities.vue");
 const Networks = () => import("./views/management/networks/Networks.vue");
-// const Stations = () => import() "./views/management/stations/Stations.vue");
+const Stations = () => import("./views/management/stations/Stations.vue");
 const Zones = () => import("./views/management/zones/Zones.vue");
 
 const Calculate = () => import("./views/processing/calculate/Calculate.vue");
@@ -26,7 +26,7 @@ const routes = [
   { path: "/login", component: Login, name: "Login" },
   { path: "/management/authorities", component: Authorities, name: "Authorities" },
   { path: "/management/networks", component: Networks, name: "Networks" },
-  // { path: '/management/stations', component: Stations, name: "Stations" },
+  { path: "/management/stations", component: Stations, name: "Stations" },
   { path: "/management/zones", component: Zones, name: "Zones" },
 
   { path: "/processing/calculate", component: Calculate, name: "Calculate" },
