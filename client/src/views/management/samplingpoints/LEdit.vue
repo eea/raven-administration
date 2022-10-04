@@ -69,7 +69,7 @@ watch(
           </div>
           <div class="mb-2">
             <div class="font-bold">Begin Position:</div>
-            <input type="text" class="n-input w-64" v-model="obj.begin_position" placeholder="str: Name of network" />
+            <input type="text" class="n-input w-64" v-model="obj.begin_position" placeholder="date: YYYY-MM-DDTHH:mm:ss+hh:00" />
           </div>
 
           <div class="mb-2">
@@ -101,6 +101,10 @@ watch(
         <div class="h-full w-64">
           <div class="mb-4 font-bold text-base border-b">Optional</div>
           <div class="mb-2">
+            <div class="font-bold">Logger Id:</div>
+            <input type="text" class="n-input w-64" v-model="obj.logger_id" placeholder="str: Logger Id (if using push logger functionality)" />
+          </div>
+          <div class="mb-2">
             <div class="font-bold">Main Emission Sources:</div>
             <input type="text" class="n-input w-64" v-model="obj.main_emission_sources" placeholder="str: Main Emission Sources" />
           </div>
@@ -123,6 +127,10 @@ watch(
           <div class="mb-2">
             <div class="font-bold">Change Aei Stations:</div>
             <input type="text" class="n-input w-64" v-model="obj.change_aei_stations" placeholder="str: Change Aei Stations" />
+          </div>
+          <div class="mb-2">
+            <div class="font-bold">End Position:</div>
+            <input type="text" class="n-input w-64" v-model="obj.end_position" placeholder="d: YYYY-MM-DDTHH:mm:ss+hh:00" />
           </div>
         </div>
       </div>
