@@ -16,6 +16,9 @@ class Endpoints:
         from api.endpoints.management.stations.routes import stations_endpoint
         app.register_blueprint(stations_endpoint)
 
+        from api.endpoints.management.samplingpoints.routes import samplingpoints_endpoint
+        app.register_blueprint(samplingpoints_endpoint)
+
         from api.endpoints.management.zones.routes import zones_endpoint
         app.register_blueprint(zones_endpoint)
 
