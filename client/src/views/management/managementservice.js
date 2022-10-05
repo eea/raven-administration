@@ -1,19 +1,24 @@
 import { Get, Post } from "../../helpers/request";
 
 const ManagementService = {
-  networks: async () => Get("/api/management/selects/network"),
+  area_classifications: async () => Get("/api/management/selects/areaclassifications"),
+  assessment_types: async () => Get("/api/management/selects/assessmenttypes"),
   authorities: async () => Get("/api/management/selects/authorities"),
+  concentrations: async () => Get("/api/management/selects/concentrations"),
+  equiv_demonstrations: async () => Get("/api/management/selects/equivdemonstrations"),
   levels: async () => Get("/api/management/selects/levels"),
   media: async () => Get("/api/management/selects/media"),
-  timezones: async () => Get("/api/management/selects/timezones"),
   measurement_regimes: async () => Get("/api/management/selects/measurementregimes"),
-  area_classifications: async () => Get("/api/management/selects/areaclassifications"),
+  measurement_types: async () => Get("/api/management/selects/measurementtypes"),
+  measurement_methods: async () => Get("/api/management/selects/measurementmethods"),
+  measurement_equipment: async () => Get("/api/management/selects/measurementequipment"),
+  networks: async () => Get("/api/management/selects/network"),
+  pollutants: async () => Get("/api/management/selects/pollutants"),
+  responsible_authorities: async () => Get("/api/management/selects/responsibleauthorities"),
   stations: async () => Get("/api/management/selects/stations"),
   station_classifications: async () => Get("/api/management/selects/stationclassifications"),
-  pollutants: async () => Get("/api/management/selects/pollutants"),
-  concentrations: async () => Get("/api/management/selects/concentrations"),
   timesteps: async () => Get("/api/management/selects/timesteps"),
-  assessment_types: async () => Get("/api/management/selects/assessmenttypes")
+  timezones: async () => Get("/api/management/selects/timezones")
 };
 
 export default ManagementService;

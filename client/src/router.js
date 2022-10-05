@@ -7,6 +7,7 @@ const Authorities = () => import("./views/management/authorities/Authorities.vue
 const Networks = () => import("./views/management/networks/Networks.vue");
 const Stations = () => import("./views/management/stations/Stations.vue");
 const SamplingPoints = () => import("./views/management/samplingpoints/Samplingpoints.vue");
+const Processes = () => import("./views/management/processes/Processes.vue");
 const Zones = () => import("./views/management/zones/Zones.vue");
 
 const Calculate = () => import("./views/processing/calculate/Calculate.vue");
@@ -29,6 +30,7 @@ const routes = [
   { path: "/management/networks", component: Networks, name: "Networks" },
   { path: "/management/stations", component: Stations, name: "Stations" },
   { path: "/management/samplingpoints", component: SamplingPoints, name: "SamplingPoints" },
+  { path: "/management/processes", component: Processes, name: "Processes" },
   { path: "/management/zones", component: Zones, name: "Zones" },
 
   { path: "/processing/calculate", component: Calculate, name: "Calculate" },

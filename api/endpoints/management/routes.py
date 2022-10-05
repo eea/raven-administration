@@ -11,13 +11,22 @@ management_endpoint = Blueprint('management', __name__)
 ## LOOKUPS ##
 
 
-@management_endpoint.route('/api/management/selects/network', methods=['GET'])
+@management_endpoint.route('/api/management/selects/areaclassifications', methods=['GET'])
 @jwt_required()
-def networks():
+def areaclassifications():
     with CursorFromPool() as cursor:
-        cursor.execute("select n.name as label, n.id as value from networks n order by n.name")
-        networks = cursor.fetchall()
-        return jsonify(networks)
+        cursor.execute("select r.label as label, r.id as value from eea_areaclassifications r order by r.label")
+        areaclassifications = cursor.fetchall()
+        return jsonify(areaclassifications)
+
+
+@management_endpoint.route('/api/management/selects/assessmenttypes', methods=['GET'])
+@jwt_required()
+def assessmenttypes():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.label as label, r.id as value from eea_assessmenttypes r order by r.label")
+        assessmenttypes = cursor.fetchall()
+        return jsonify(assessmenttypes)
 
 
 @management_endpoint.route('/api/management/selects/authorities', methods=['GET'])
@@ -27,6 +36,24 @@ def authorities():
         cursor.execute("select r.name as label, r.id as value from responsible_authorities r order by r.name")
         authorities = cursor.fetchall()
         return jsonify(authorities)
+
+
+@management_endpoint.route('/api/management/selects/concentrations', methods=['GET'])
+@jwt_required()
+def concentrations():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.label as label, r.id as value from eea_concentrations r order by r.label")
+        concentrations = cursor.fetchall()
+        return jsonify(concentrations)
+
+
+@management_endpoint.route('/api/management/selects/equivdemonstrations', methods=['GET'])
+@jwt_required()
+def equivdemonstrations():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.label as label, r.id as value from eea_equivalencedemonstrated r order by r.label")
+        equivdemonstrations = cursor.fetchall()
+        return jsonify(equivdemonstrations)
 
 
 @management_endpoint.route('/api/management/selects/levels', methods=['GET'])
@@ -47,11 +74,22 @@ def media():
         return jsonify(authorities)
 
 
-@management_endpoint.route('/api/management/selects/timezones', methods=['GET'])
+@management_endpoint.route('/api/management/selects/measurementequipment', methods=['GET'])
 @jwt_required()
-def timezones():
-    timezones = Q.timezones()
-    return jsonify(timezones)
+def measurementequipment():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.label as label, r.id as value from eea_measurementequipments r order by r.label")
+        measurementequipment = cursor.fetchall()
+        return jsonify(measurementequipment)
+
+
+@management_endpoint.route('/api/management/selects/measurementmethods', methods=['GET'])
+@jwt_required()
+def measurement_methods():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.label as label, r.id as value from eea_measurementmethods r order by r.label")
+        measurement_methods = cursor.fetchall()
+        return jsonify(measurement_methods)
 
 
 @management_endpoint.route('/api/management/selects/measurementregimes', methods=['GET'])
@@ -63,22 +101,40 @@ def measurementregimes():
         return jsonify(measurementregimes)
 
 
-@management_endpoint.route('/api/management/selects/areaclassifications', methods=['GET'])
+@management_endpoint.route('/api/management/selects/measurementtypes', methods=['GET'])
 @jwt_required()
-def areaclassifications():
+def measurementtypes():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_areaclassifications r order by r.label")
-        areaclassifications = cursor.fetchall()
-        return jsonify(areaclassifications)
+        cursor.execute("select r.label as label, r.id as value from eea_measurementtypes r order by r.label")
+        measurementtypes = cursor.fetchall()
+        return jsonify(measurementtypes)
 
 
-@management_endpoint.route('/api/management/selects/assessmenttypes', methods=['GET'])
+@management_endpoint.route('/api/management/selects/network', methods=['GET'])
 @jwt_required()
-def assessmenttypes():
+def networks():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_assessmenttypes r order by r.label")
-        assessmenttypes = cursor.fetchall()
-        return jsonify(assessmenttypes)
+        cursor.execute("select n.name as label, n.id as value from networks n order by n.name")
+        networks = cursor.fetchall()
+        return jsonify(networks)
+
+
+@management_endpoint.route('/api/management/selects/pollutants', methods=['GET'])
+@jwt_required()
+def pollutants():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.label as label, r.uri as value from eea_pollutants r order by r.label")
+        pollutants = cursor.fetchall()
+        return jsonify(pollutants)
+
+
+@management_endpoint.route('/api/management/selects/responsibleauthorities', methods=['GET'])
+@jwt_required()
+def responsibleauthorities():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.name as label, r.id as value from responsible_authorities r order by r.name")
+        responsibleauthorities = cursor.fetchall()
+        return jsonify(responsibleauthorities)
 
 
 @management_endpoint.route('/api/management/selects/stations', methods=['GET'])
@@ -99,22 +155,11 @@ def station_classifications():
         return jsonify(station_classifications)
 
 
-@management_endpoint.route('/api/management/selects/pollutants', methods=['GET'])
+@management_endpoint.route('/api/management/selects/timezones', methods=['GET'])
 @jwt_required()
-def pollutants():
-    with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.uri as value from eea_pollutants r order by r.label")
-        pollutants = cursor.fetchall()
-        return jsonify(pollutants)
-
-
-@management_endpoint.route('/api/management/selects/concentrations', methods=['GET'])
-@jwt_required()
-def concentrations():
-    with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_concentrations r order by r.label")
-        concentrations = cursor.fetchall()
-        return jsonify(concentrations)
+def timezones():
+    timezones = Q.timezones()
+    return jsonify(timezones)
 
 
 @management_endpoint.route('/api/management/selects/timesteps', methods=['GET'])
@@ -124,12 +169,3 @@ def timesteps():
         cursor.execute("select r.label as label, r.id as value from eea_times r order by r.label")
         timesteps = cursor.fetchall()
         return jsonify(timesteps)
-
-
-@management_endpoint.route('/api/management/selects/assessment_types', methods=['GET'])
-@jwt_required()
-def assessment_types():
-    with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_assessmenttypes r order by r.label")
-        assessment_types = cursor.fetchall()
-        return jsonify(assessment_types)
