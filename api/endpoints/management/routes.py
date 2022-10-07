@@ -128,6 +128,24 @@ def pollutants():
         return jsonify(pollutants)
 
 
+@management_endpoint.route('/api/management/selects/processes', methods=['GET'])
+@jwt_required()
+def processes():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.id as label, r.id as value from processes r order by r.id")
+        processes = cursor.fetchall()
+        return jsonify(processes)
+
+
+@management_endpoint.route('/api/management/selects/processtypevalues', methods=['GET'])
+@jwt_required()
+def processtypevalues():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.label as label, r.id as value from eea_processtypevalues r order by r.label")
+        processtypevalues = cursor.fetchall()
+        return jsonify(processtypevalues)
+
+
 @management_endpoint.route('/api/management/selects/responsibleauthorities', methods=['GET'])
 @jwt_required()
 def responsibleauthorities():
@@ -135,6 +153,33 @@ def responsibleauthorities():
         cursor.execute("select r.name as label, r.id as value from responsible_authorities r order by r.name")
         responsibleauthorities = cursor.fetchall()
         return jsonify(responsibleauthorities)
+
+
+@management_endpoint.route('/api/management/selects/resultnaturevalues', methods=['GET'])
+@jwt_required()
+def resultnaturevalues():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.label as label, r.id as value from eea_resultnaturevalues r order by r.label")
+        resultnaturevalues = cursor.fetchall()
+        return jsonify(resultnaturevalues)
+
+
+@management_endpoint.route('/api/management/selects/samplingpoints', methods=['GET'])
+@jwt_required()
+def samplingpoints():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.id as label, r.id as value from sampling_points r order by r.id")
+        samplingpoints = cursor.fetchall()
+        return jsonify(samplingpoints)
+
+
+@management_endpoint.route('/api/management/selects/samples', methods=['GET'])
+@jwt_required()
+def samples():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.id as label, r.id as value from samples r order by r.id")
+        samples = cursor.fetchall()
+        return jsonify(samples)
 
 
 @management_endpoint.route('/api/management/selects/stations', methods=['GET'])
