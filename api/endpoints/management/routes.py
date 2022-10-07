@@ -214,3 +214,12 @@ def timesteps():
         cursor.execute("select r.label as label, r.id as value from eea_times r order by r.label")
         timesteps = cursor.fetchall()
         return jsonify(timesteps)
+
+
+@management_endpoint.route('/api/management/selects/zones', methods=['GET'])
+@jwt_required()
+def zones():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.name as label, r.id as value from zones r order by r.name")
+        zones = cursor.fetchall()
+        return jsonify(zones)

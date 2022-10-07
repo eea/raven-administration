@@ -23,7 +23,8 @@ const ManagementService = {
   stations: async () => Get("/api/management/selects/stations"),
   station_classifications: async () => Get("/api/management/selects/stationclassifications"),
   timesteps: async () => Get("/api/management/selects/timesteps"),
-  timezones: async () => Get("/api/management/selects/timezones")
+  timezones: async () => Get("/api/management/selects/timezones"),
+  zones: async () => Get("/api/management/selects/zones")
 };
 
 export default ManagementService;

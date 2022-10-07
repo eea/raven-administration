@@ -17,7 +17,8 @@ const modules = [
       { name: "Stations", comp: "Stations" },
       { name: "Processes", comp: "Processes" },
       { name: "Samples", comp: "Samples" },
-      { name: "Observing Capabilities", comp: "ObservingCapabilities" }
+      { name: "Observing Capabilities", comp: "ObservingCapabilities" },
+      { name: "Assessment Regimes", comp: "AssessmentRegimes" }
       // { name: "Timeseries", comp: "management/timeseries" }
     ]
   },

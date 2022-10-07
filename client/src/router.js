@@ -10,6 +10,7 @@ const SamplingPoints = () => import("./views/management/samplingpoints/Samplingp
 const Processes = () => import("./views/management/processes/Processes.vue");
 const Samples = () => import("./views/management/samples/Samples.vue");
 const ObservingCapabilities = () => import("./views/management/observingcapabilities/ObservingCapabilities.vue");
+const AssessmentRegimes = () => import("./views/management/assessmentregimes/AssessmentRegimes.vue");
 const Zones = () => import("./views/management/zones/Zones.vue");
 
 const Calculate = () => import("./views/processing/calculate/Calculate.vue");
@@ -35,6 +36,7 @@ const routes = [
   { path: "/management/processes", component: Processes, name: "Processes" },
   { path: "/management/samples", component: Samples, name: "Samples" },
   { path: "/management/observingcapabilities", component: ObservingCapabilities, name: "ObservingCapabilities" },
+  { path: "/management/assessmentregimes", component: AssessmentRegimes, name: "AssessmentRegimes" },
   { path: "/management/zones", component: Zones, name: "Zones" },
 
   { path: "/processing/calculate", component: Calculate, name: "Calculate" },

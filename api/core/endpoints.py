@@ -7,6 +7,9 @@ class Endpoints:
         from api.endpoints.management.routes import management_endpoint
         app.register_blueprint(management_endpoint)
 
+        from api.endpoints.management.assessmentregimes.routes import assessmentregimes_endpoint
+        app.register_blueprint(assessmentregimes_endpoint)
+
         from api.endpoints.management.authorities.routes import authorities_endpoint
         app.register_blueprint(authorities_endpoint)
 

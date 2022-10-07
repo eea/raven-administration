@@ -136,7 +136,7 @@ const onDownload = () => {
     <l-edit :show="showAdd" @close="close" @save="saveAdd" :observingcapability="selected" :result_nature_values="result_nature_values" :processtype_values="processtype_values" :samples="samples" :processes="processes" :samplingpoints="samplingpoints" />
     <l-edit :show="showEdit" @close="close" @save="saveEdit" :observingcapability="selected" :result_nature_values="result_nature_values" :processtype_values="processtype_values" :samples="samples" :processes="processes" :samplingpoints="samplingpoints" />
 
-    <tool-bar title="observing_capabilities" filter-text="Type to filter observing_capabilities " v-model="q" @add-click="showAdd = true" @download-click="onDownload" :column-picker="columns" :columns-picked="columnsPicked" @columns-changed="columnsChanged" />
+    <tool-bar title="Observing Capabilities" filter-text="Type to filter" v-model="q" @add-click="showAdd = true" @download-click="onDownload" :column-picker="columns" :columns-picked="columnsPicked" @columns-changed="columnsChanged" />
 
     <div>
       <table id="observing_capabilitiesId" class="n-table">
