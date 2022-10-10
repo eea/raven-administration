@@ -13,7 +13,7 @@ authorities_endpoint = Blueprint('authorities', __name__)
 def authorities():
     with CursorFromPool() as cursor:
         cursor.execute("""
-          select id, name, organisation, locator, postcode, email, address, phone, website, is_responsible_reporter::varchar 
+          select id, name, organisation, locator, postcode, email, address, phone, website, is_responsible_reporter 
           from responsible_authorities order by name
         """)
         authorities = cursor.fetchall()

@@ -9,10 +9,7 @@ const obj = ref({});
 
 watch(
   () => props.show,
-  () => {
-    obj.value = {};
-    obj.value.is_responsible_reporter = "false";
-  }
+  () => (obj.value = {})
 );
 </script>
 
@@ -57,10 +54,11 @@ watch(
     </div>
     <div class="mb-2">
       <div class="font-bold">Is the main authority:</div>
-      <n-select v-model="obj.is_responsible_reporter" class="!w-64">
+      <n-checkbox v-model="obj.is_responsible_reporter" />
+      <!-- <n-select v-model="obj.is_responsible_reporter" class="!w-64">
         <n-option value="true" label="true" />
         <n-option value="false" label="false" />
-      </n-select>
+      </n-select> -->
     </div>
   </side-bar-crud>
 </template>
