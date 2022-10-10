@@ -2,7 +2,6 @@ from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
-from flask_pydantic import validate
 from api.endpoints.management.assessmentregimes.models import AssessmentRegimeModel, DeleteModel
 
 
