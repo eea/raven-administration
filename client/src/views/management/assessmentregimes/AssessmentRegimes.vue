@@ -12,6 +12,7 @@ const zones = ref([]);
 const pollutants = ref([]);
 const assessmentRegimes = ref([]);
 const assessmentTypes = ref([]);
+const exceedances = ref([]);
 const columns = ref([]);
 const columnsPicked = ref([]);
 
@@ -26,6 +27,7 @@ onMounted(async () => {
   zones.value = await ManagementService.zones();
   pollutants.value = await ManagementService.pollutants();
   assessmentTypes.value = await ManagementService.assessment_types();
+  exceedances.value = await ManagementService.assessment_exceedances();
   await loadData();
 });
 
@@ -133,8 +135,8 @@ const onDownload = () => {
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete the assessment regime?" @close="close" @ok="saveDelete" />
     <contextmenu-crud :show="showContextmenu" :ev="ev" @click-outside="close" @on-edit="onEdit" @onDelete="onDelete" />
 
-    <l-edit :show="showAdd" @close="close" @save="saveAdd" :edit="false" :assessmentregime="selected" :zones="zones" :pollutants="pollutants" :assessmentTypes="assessmentTypes" />
-    <l-edit :show="showEdit" @close="close" @save="saveEdit" :edit="true" :assessmentregime="selected" :zones="zones" :pollutants="pollutants" :assessmentTypes="assessmentTypes" />
+    <l-edit :show="showAdd" @close="close" @save="saveAdd" :edit="false" :assessmentregime="selected" :zones="zones" :pollutants="pollutants" :assessmentTypes="assessmentTypes" :exceedances="exceedances" />
+    <l-edit :show="showEdit" @close="close" @save="saveEdit" :edit="true" :assessmentregime="selected" :zones="zones" :pollutants="pollutants" :assessmentTypes="assessmentTypes" :exceedances="exceedances" />
 
     <tool-bar title="Assessment Regimes" filter-text="Type to filter Assessment Regimes" v-model="q" @add-click="showAdd = true" @download-click="onDownload" :column-picker="columns" :columns-picked="columnsPicked" @columns-changed="columnsChanged" />
 

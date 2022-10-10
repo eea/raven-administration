@@ -2,6 +2,7 @@ import { Get, Post } from "../../helpers/request";
 
 const ManagementService = {
   area_classifications: async () => Get("/api/management/selects/areaclassifications"),
+  assessment_exceedances: async () => Get("/api/management/selects/assessmentexceedances"),
   assessment_types: async () => Get("/api/management/selects/assessmenttypes"),
   authorities: async () => Get("/api/management/selects/authorities"),
   concentrations: async () => Get("/api/management/selects/concentrations"),
