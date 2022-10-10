@@ -36,7 +36,7 @@ const modules = [
       { name: "Auto validate", comp: "AutoValidate" },
       { name: "Convert", comp: "Convert" },
       { name: "Calculate", comp: "Calculate" },
-      { name: "Scaled timeseries", comp: "process/scaled" }
+      { name: "Scale", comp: "Scale" }
     ]
   },
   {

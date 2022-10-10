@@ -16,6 +16,7 @@ const Zones = () => import("./views/management/zones/Zones.vue");
 const Calculate = () => import("./views/processing/calculate/Calculate.vue");
 const Convert = () => import("./views/processing/convert/Convert.vue");
 const AutoValidate = () => import("./views/processing/autovalidate/Autovalidate.vue");
+const Scale = () => import("./views/processing/scale/Scale.vue");
 
 const Latest = () => import("./views/data/latest/Latest.vue");
 const Historical = () => import("./views/data/historical/Historical.vue");
@@ -42,6 +43,7 @@ const routes = [
   { path: "/processing/calculate", component: Calculate, name: "Calculate" },
   { path: "/processing/convert", component: Convert, name: "Convert" },
   { path: "/processing/autovalidate", component: AutoValidate, name: "AutoValidate" },
+  { path: "/processing/scale", component: Scale, name: "Scale" },
 
   { path: "/data/latest", component: Latest, name: "Latest" },
   { path: "/data/historical", component: Historical, name: "Historical" },

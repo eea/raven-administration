@@ -35,6 +35,9 @@ class Endpoints:
         app.register_blueprint(zones_endpoint)
 
         # PROCESSING
+        from api.endpoints.processing.scale.routes import scale_endpoint
+        app.register_blueprint(scale_endpoint)
+
         from api.endpoints.processing.calculate.routes import calculate_endpoint
         app.register_blueprint(calculate_endpoint)
 
