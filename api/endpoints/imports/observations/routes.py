@@ -8,10 +8,9 @@ from api.core.printcol import printcol
 from api.core.data.processing.importing import Importing
 import io
 import pandas as pd
-import pandera as pa
-import numpy as np
-from pandera import Column, DataFrameSchema, Check, Index
 import time
+from api.endpoints.imports.observations.model import LoggerValues
+from pandas import DataFrame
 
 observations_endpoint = Blueprint('observations', __name__)
 
@@ -30,4 +29,18 @@ def import_obs():
         Importing.Import(cursor, df)
 
         printcol(f"- Total time used {time.perf_counter() - bench} seconds")
-    return jsonify({"hey": "ho"})
+    return jsonify({"success": True})
+
+
+@observations_endpoint.route('/api/imports/logger', methods=['POST'])
+# @jwt_required()
+def import_logger():
+    with CursorFromPool() as cursor:
+        bench = time.perf_counter()
+        # Read list into a pandas DataFrame
+        df = DataFrame(request.json['values'])
+        # Import values
+        Importing.Import(cursor, df)
+
+        printcol(f"- Total time used {time.perf_counter() - bench} seconds")
+    return jsonify({"success": True})

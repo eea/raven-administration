@@ -1,6 +1,8 @@
 from simplexml import dumps
 from flask import make_response
 import xml.etree.cElementTree as ET
+from datetime import timedelta, datetime
+import calendar
 
 
 class U:
@@ -24,3 +26,27 @@ class U:
             resp.headers.extend(headers or {})
             resp.mimetype = "application/xml"
             return resp
+
+    @staticmethod
+    def to_epoch_ignore_tz(val):
+        dt = val.split("+")
+        epoch = datetime(1970, 1, 1)
+        return (datetime.strptime(dt[0], '%Y-%m-%dT%H:%M:%S') - epoch).total_seconds()
+
+    @staticmethod
+    def from_epoch_to_string(val):
+        return datetime.utcfromtimestamp(val).strftime('%Y-%m-%dT%H:%M:%S')
+
+    @staticmethod
+    def tz_in_seconds(dt):
+        return dt.tzinfo.utcoffset(dt).total_seconds()
+
+    @staticmethod
+    def actual_timestep(dt: datetime, timestep: int):
+        if timestep == 31536000 and calendar.isleap(dt.year):  # year
+            timestep = 31622400
+        if timestep == 2592000:  # month
+            weekday, number_of_days = calendar.monthrange(dt.year, dt.month)
+            timestep = number_of_days * 60 * 60  # seconds
+
+        return timestep
