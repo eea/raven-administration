@@ -20,6 +20,15 @@ def areaclassifications():
         return jsonify(areaclassifications)
 
 
+@management_endpoint.route('/api/management/selects/assessmentexceedances', methods=['GET'])
+@jwt_required()
+def exceedances():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.id as label, r.id as value from eea_assessmentthresholdexceedances r order by r.id")
+        equivdemonstrations = cursor.fetchall()
+        return jsonify(equivdemonstrations)
+
+
 @management_endpoint.route('/api/management/selects/assessmenttypes', methods=['GET'])
 @jwt_required()
 def assessmenttypes():
