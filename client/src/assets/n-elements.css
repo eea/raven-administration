@@ -167,11 +167,16 @@ N-CHECKBOX
 
 .n-checkbox[disabled="true"] {
   border: 0.2em solid white;
-  @apply pointer-events-none cursor-auto  bg-nord3/40 outline-nord3/40;
+  @apply pointer-events-none cursor-auto   outline-nord3/40;
 }
 
 .n-checkbox-checked {
   @apply bg-nord14;
+}
+
+.n-checkbox-checked[disabled="true"] {
+  border: 0.2em solid white;
+  @apply pointer-events-none cursor-auto  bg-nord3/40 outline-nord3/40;
 }
 
 /* -------------------------------------------------------------------------------- */
