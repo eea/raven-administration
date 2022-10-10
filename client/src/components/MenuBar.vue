@@ -11,9 +11,14 @@ const modules = [
     items: [
       { name: "Authorities", comp: "Authorities" },
       { name: "Networks", comp: "Networks" },
-      { name: "Zones", comp: "Zones" }
+      { name: "Zones", comp: "Zones" },
       // { name: "Areas", comp: "management/areas" },
-      // { name: "* - Stations", comp: "Stations" },
+      { name: "Sampling Points", comp: "SamplingPoints" },
+      { name: "Stations", comp: "Stations" },
+      { name: "Processes", comp: "Processes" },
+      { name: "Samples", comp: "Samples" },
+      { name: "Observing Capabilities", comp: "ObservingCapabilities" },
+      { name: "Assessment Regimes", comp: "AssessmentRegimes" }
       // { name: "Timeseries", comp: "management/timeseries" }
     ]
   },

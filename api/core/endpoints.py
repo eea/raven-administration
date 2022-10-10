@@ -4,6 +4,12 @@ class Endpoints:
         app.register_blueprint(auth_endpoint)
 
         # MANAGEMENT
+        from api.endpoints.management.routes import management_endpoint
+        app.register_blueprint(management_endpoint)
+
+        from api.endpoints.management.assessmentregimes.routes import assessmentregimes_endpoint
+        app.register_blueprint(assessmentregimes_endpoint)
+
         from api.endpoints.management.authorities.routes import authorities_endpoint
         app.register_blueprint(authorities_endpoint)
 
@@ -12,6 +18,18 @@ class Endpoints:
 
         from api.endpoints.management.stations.routes import stations_endpoint
         app.register_blueprint(stations_endpoint)
+
+        from api.endpoints.management.samplingpoints.routes import samplingpoints_endpoint
+        app.register_blueprint(samplingpoints_endpoint)
+
+        from api.endpoints.management.processes.routes import processes_endpoint
+        app.register_blueprint(processes_endpoint)
+
+        from api.endpoints.management.samples.routes import samples_endpoint
+        app.register_blueprint(samples_endpoint)
+
+        from api.endpoints.management.observingcapabilities.routes import observingcapabilities_endpoint
+        app.register_blueprint(observingcapabilities_endpoint)
 
         from api.endpoints.management.zones.routes import zones_endpoint
         app.register_blueprint(zones_endpoint)

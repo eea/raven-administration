@@ -14,20 +14,38 @@ stations_endpoint = Blueprint('stations', __name__)
 def stations():
     with CursorFromPool() as cursor:
         cursor.execute("""
-            select 
-                s.id, s.name, 
-                s.eoi_code, n.name as network, 
-                n.id as network_id , 
-                ac.label as area_classification, 
-                ac.id as area_classification_id, 
-                st_x(geom) as lng, 
-                st_y(geom) as lat,
-                st_z(geom) as alt,
-                st_srid(geom) as epsg
-            from stations s, networks n, eea_areaclassifications ac
-            where s.network_id = n.id
-            and s.area_classification = ac.id
-            order by s.name
+          SELECT st.id,
+                st.name,
+                st.begin_position,
+                st.end_position,
+                st.network_id,
+                st.city,
+                st.national_station_code,
+                st.media_monitored,
+                st.mobile,
+                st.measurement_regime,
+                st.area_classification,
+                st.distance_junction,
+                st.traffic_volume,
+                st.heavy_duty_fraction::DOUBLE PRECISION,
+                st.height_facades,
+                st.municipality,
+                st.street_width,
+                st.eoi_code,
+                ST_X(st.geom)    longitude,
+                ST_Y(st.geom)    latitude,
+                ST_Z(st.geom)    altitude,
+                ST_SRID(st.geom) epsg,
+                n.name   as      network,
+                mv.label as      media_monitored_name,
+                mr.label as      measurement_regime_name,
+                ac.label as      area_classification_name
+          FROM stations st
+                  LEFT OUTER JOIN eea_mediavalues mv ON lower(st.media_monitored) = lower(mv.id)
+                  LEFT OUTER JOIN eea_measurementregimevalues mr ON lower(st.measurement_regime) = lower(mr.id)
+                  LEFT OUTER JOIN eea_areaclassifications ac ON lower(st.area_classification) = lower(ac.id),
+              networks n
+          WHERE st.network_id = n.id
         """)
         stations = cursor.fetchall()
         return jsonify(stations)
