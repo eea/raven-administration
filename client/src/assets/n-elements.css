@@ -56,10 +56,10 @@
   @apply bg-gray-100;
 }
 
-.n-table td:first-child {
+/* .n-table td:first-child {
   width: 1%;
   white-space: nowrap;
-}
+} */
 
 .n-table .selected {
   @apply bg-nord14/20;

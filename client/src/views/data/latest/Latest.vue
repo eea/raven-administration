@@ -1,6 +1,7 @@
 <script setup>
 import IconValidate from "~icons/material-symbols/fact-check";
 import IconPlot from "~icons/material-symbols/bar-chart";
+import IconScale from "~icons/uil/process";
 
 import { useRouter } from "vue-router";
 
@@ -52,7 +53,8 @@ const onGoto = (name) => {
   const { id, to_time } = selected.value;
   var tt = format(add(new Date(to_time), { hours: 1 }), "yyy-MM-dd HH:00");
   var ft = format(sub(new Date(tt), { days: 14 }), "yyy-MM-dd HH:00");
-  router.push({ name: name, query: { ids: id, from: ft, to: tt } });
+  if (name == "Scale") router.push({ name: name, query: { id: id } });
+  else router.push({ name: name, query: { ids: id, from: ft, to: tt } });
 };
 
 const onContextMenu = (row, e) => {
@@ -73,6 +75,10 @@ const onContextMenu = (row, e) => {
       <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onGoto('Validate')">
         <icon-validate class="text-nord12 self-center" />
         <div class="self-center ml-1">Validate data</div>
+      </div>
+      <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onGoto('Scale')">
+        <icon-scale class="text-nord10 self-center" />
+        <div class="self-center ml-1">Scale data</div>
       </div>
     </contextmenu>
 
