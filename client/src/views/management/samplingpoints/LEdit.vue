@@ -87,13 +87,11 @@ watch(
           </div>
 
           <div class="mb-2 pt-2">
-            <n-checkbox v-model="obj.mobile" class="mr-1" />
-            <label class="font-bold">Mobile</label>
+            <n-checkbox v-model="obj.mobile" class="mr-1" label="Mobile" />
           </div>
 
           <div class="mb-2">
-            <n-checkbox v-model="obj.used_aqd" class="mr-1" />
-            <label class="font-bold">Used Aqd</label>
+            <n-checkbox v-model="obj.used_aqd" class="mr-1" label="Used Aqd" />
           </div>
         </div>
       </div>

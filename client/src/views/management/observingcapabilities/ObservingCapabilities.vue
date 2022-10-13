@@ -6,6 +6,7 @@ import ManagementService from "../managementservice";
 import Eventy from "../../../helpers/eventy";
 import { tblToCsv, compare } from "../../../helpers/utils";
 import ToolBar from "../../../components/ToolBar.vue";
+import Columns from "./columns";
 
 const q = ref("");
 const samplingpoints = ref([]);
@@ -31,27 +32,14 @@ onMounted(async () => {
   processtype_values.value = await ManagementService.processtype_values();
   samples.value = await ManagementService.samples();
   processes.value = await ManagementService.processes();
+  columns.value = Columns;
 
   await loadData();
 });
 
 const loadData = async () => {
   observing_capabilities.value = await Service.get();
-  //  oc.id,
-  //     oc.begin_position,
-  //     oc.end_position,
-  //     oc.process_type,
-  //     oc.result_nature,
-  //     oc.sampling_point_id,
-  //     oc.process_id,
-  //     oc.sample_id,
-  //     ptv.label as process_type_name,
-  //     rnv.label as result_nature_name
-  columns.value = { id: "Id", begin_position: "Begin position", end_position: "End position", process_type: "Process type", result_nature: "Result nature", sampling_point_id: "Sampling point", process_id: "Process", sample_id: "Sample" };
-  columnsPicked.value = ["id", "begin_position", "end_position", "process_type", "result_nature", "sampling_point_id", "process_id", "sample_id", "process_type_name", "result_nature_name"];
   console.log("observing_capabilities", observing_capabilities.value);
-  console.log("colums", columns.value);
-  console.log("columnsPicked", columnsPicked.value);
 };
 
 const cmp_observing_capabilities = computed(() => {
@@ -114,15 +102,6 @@ const saveDelete = async (o) => {
   close();
 };
 
-const columnsChanged = (column) => {
-  console.log("columnsChanged", column);
-  if (columnsPicked.value.includes(column)) {
-    columnsPicked.value = columnsPicked.value.filter((c) => c !== column);
-  } else {
-    columnsPicked.value.push(column);
-  }
-};
-
 const onDownload = () => {
   tblToCsv("id", "observing_capabilities");
 };
@@ -136,29 +115,29 @@ const onDownload = () => {
     <l-edit :show="showAdd" @close="close" @save="saveAdd" :observingcapability="selected" :result_nature_values="result_nature_values" :processtype_values="processtype_values" :samples="samples" :processes="processes" :samplingpoints="samplingpoints" />
     <l-edit :show="showEdit" @close="close" @save="saveEdit" :observingcapability="selected" :result_nature_values="result_nature_values" :processtype_values="processtype_values" :samples="samples" :processes="processes" :samplingpoints="samplingpoints" />
 
-    <tool-bar title="Observing Capabilities" filter-text="Type to filter" v-model="q" @add-click="showAdd = true" @download-click="onDownload" :column-picker="columns" :columns-picked="columnsPicked" @columns-changed="columnsChanged" />
+    <tool-bar title="Observing Capabilities" filter-text="Type to filter" v-model="q" @add-click="showAdd = true" @download-click="onDownload" :column-picker="columns" />
 
     <div>
       <table id="observing_capabilitiesId" class="n-table">
         <tr>
-          <th v-if="columnsPicked.includes('id')">Id</th>
-          <th v-if="columnsPicked.includes('begin_position')">Begin Position</th>
-          <th v-if="columnsPicked.includes('end_position')">End Position</th>
-          <th v-if="columnsPicked.includes('process_type')">Process Type</th>
-          <th v-if="columnsPicked.includes('result_nature')">Result Nature</th>
-          <th v-if="columnsPicked.includes('sampling_point_id')">Sampling Point Id</th>
-          <th v-if="columnsPicked.includes('process_id')">Process Id</th>
-          <th v-if="columnsPicked.includes('sample_id')">Sample Id</th>
+          <th v-if="columns.find((c) => c.col == 'Id')?.checked">Id</th>
+          <th v-if="columns.find((c) => c.col == 'Begin position')?.checked">Begin position</th>
+          <th v-if="columns.find((c) => c.col == 'End position')?.checked">End position</th>
+          <th v-if="columns.find((c) => c.col == 'Process type')?.checked">Process type</th>
+          <th v-if="columns.find((c) => c.col == 'Result nature')?.checked">Result nature</th>
+          <th v-if="columns.find((c) => c.col == 'Sampling point')?.checked">Sampling point</th>
+          <th v-if="columns.find((c) => c.col == 'Process')?.checked">Process</th>
+          <th v-if="columns.find((c) => c.col == 'Sample')?.checked">Sample</th>
         </tr>
         <tr v-for="row in cmp_observing_capabilities" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
-          <td v-if="columnsPicked.includes('id')">{{ row.id }}</td>
-          <td v-if="columnsPicked.includes('begin_position')">{{ row.begin_position }}</td>
-          <td v-if="columnsPicked.includes('end_position')">{{ row.end_position }}</td>
-          <td v-if="columnsPicked.includes('process_type')">{{ row.process_type_name }}</td>
-          <td v-if="columnsPicked.includes('result_nature')">{{ row.result_nature_name }}</td>
-          <td v-if="columnsPicked.includes('sampling_point_id')">{{ row.sampling_point_id }}</td>
-          <td v-if="columnsPicked.includes('process_id')">{{ row.process_id }}</td>
-          <td v-if="columnsPicked.includes('sample_id')">{{ row.sample_id }}</td>
+          <td v-if="columns.find((c) => c.col == 'Id')?.checked">{{ row.id }}</td>
+          <td v-if="columns.find((c) => c.col == 'Begin position')?.checked">{{ row.begin_position }}</td>
+          <td v-if="columns.find((c) => c.col == 'End position')?.checked">{{ row.end_position }}</td>
+          <td v-if="columns.find((c) => c.col == 'Process type')?.checked">{{ row.process_type_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Result nature')?.checked">{{ row.result_nature_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Sampling point')?.checked">{{ row.sampling_point_id }}</td>
+          <td v-if="columns.find((c) => c.col == 'Process')?.checked">{{ row.process_id }}</td>
+          <td v-if="columns.find((c) => c.col == 'Sample')?.checked">{{ row.sample_id }}</td>
         </tr>
       </table>
     </div>

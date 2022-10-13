@@ -1,5 +1,6 @@
 <script setup>
 import LEdit from "./LEdit.vue";
+import Columns from "./columns";
 
 import Service from "./service";
 import ManagementService from "../managementservice";
@@ -14,7 +15,6 @@ const assessmentRegimes = ref([]);
 const assessmentTypes = ref([]);
 const exceedances = ref([]);
 const columns = ref([]);
-const columnsPicked = ref([]);
 
 const showEdit = ref(false);
 const showAdd = ref(false);
@@ -28,31 +28,12 @@ onMounted(async () => {
   pollutants.value = await ManagementService.pollutants();
   assessmentTypes.value = await ManagementService.assessment_types();
   exceedances.value = await ManagementService.assessment_exceedances();
+  columns.value = Columns;
   await loadData();
 });
 
-// id: str
-//     name: str
-//     objecttype: str
-//     reportingmetric: str
-//     protectiontarget: str
-//     assessmentthresholdexceedance: str
-//     include: str
-//     thresholdclassificationyear: str
-//     thresholdclassificationreport: str
-//     zoneid: str
-//     zone_name: str
-//     pollutant: str
-//     pollutant_name: str
-//     data: list
-
 const loadData = async () => {
   assessmentRegimes.value = await Service.get();
-  columns.value = { id: "Id", name: "Name", objecttype: "Object Type", reportingmetric: "Reporting Metric", protectiontarget: "Protection Target", assessmentthresholdexceedance: "Assessment Threshold Exceedance", include: "Include", thresholdclassificationyear: "Threshold Classification Year", thresholdclassificationreport: "Threshold Classification Report", zoneid: "Zone", pollutant: "Pollutant" };
-  columnsPicked.value = ["id", "name", "objecttype", "reportingmetric", "protectiontarget", "assessmentthresholdexceedance", "include", "thresholdclassificationyear", "thresholdclassificationreport", "zoneid", "pollutant"];
-  console.log("assessmentRegimes", assessmentRegimes.value);
-  console.log("colums", columns.value);
-  console.log("columnsPicked", columnsPicked.value);
 };
 
 const cmp_assessmentregimes = computed(() => {
@@ -116,15 +97,6 @@ const saveDelete = async (o) => {
   close();
 };
 
-const columnsChanged = (column) => {
-  console.log("columnsChanged", column);
-  if (columnsPicked.value.includes(column)) {
-    columnsPicked.value = columnsPicked.value.filter((c) => c !== column);
-  } else {
-    columnsPicked.value.push(column);
-  }
-};
-
 const onDownload = () => {
   tblToCsv("id", "assessmentRegimes");
 };
@@ -138,35 +110,35 @@ const onDownload = () => {
     <l-edit :show="showAdd" @close="close" @save="saveAdd" :edit="false" :assessmentregime="selected" :zones="zones" :pollutants="pollutants" :assessmentTypes="assessmentTypes" :exceedances="exceedances" />
     <l-edit :show="showEdit" @close="close" @save="saveEdit" :edit="true" :assessmentregime="selected" :zones="zones" :pollutants="pollutants" :assessmentTypes="assessmentTypes" :exceedances="exceedances" />
 
-    <tool-bar title="Assessment Regimes" filter-text="Type to filter Assessment Regimes" v-model="q" @add-click="showAdd = true" @download-click="onDownload" :column-picker="columns" :columns-picked="columnsPicked" @columns-changed="columnsChanged" />
+    <tool-bar title="Assessment Regimes" filter-text="Type to filter Assessment Regimes" v-model="q" @add-click="showAdd = true" @download-click="onDownload" :column-picker="columns" />
 
     <div>
       <table id="assessmentRegimesId" class="n-table">
         <tr>
-          <th v-if="columnsPicked.includes('id')">Id</th>
-          <th v-if="columnsPicked.includes('name')">Name</th>
-          <th v-if="columnsPicked.includes('objecttype')">Object Type</th>
-          <th v-if="columnsPicked.includes('reportingmetric')">Reporting Metric</th>
-          <th v-if="columnsPicked.includes('protectiontarget')">Protection Target</th>
-          <th v-if="columnsPicked.includes('assessmentthresholdexceedance')">Assessment Threshold Exceedance</th>
-          <th v-if="columnsPicked.includes('include')">Include</th>
-          <th v-if="columnsPicked.includes('thresholdclassificationyear')">Threshold Classification Year</th>
-          <th v-if="columnsPicked.includes('thresholdclassificationreport')">Threshold Classification Report</th>
-          <th v-if="columnsPicked.includes('zoneid')">Zone</th>
-          <th v-if="columnsPicked.includes('pollutant')">Pollutant</th>
+          <th v-if="columns.find((c) => c.col == 'Id')?.checked">Id</th>
+          <th v-if="columns.find((c) => c.col == 'Name')?.checked">Name</th>
+          <th v-if="columns.find((c) => c.col == 'Zone')?.checked">Zone</th>
+          <th v-if="columns.find((c) => c.col == 'Pollutant')?.checked">Pollutant</th>
+          <th v-if="columns.find((c) => c.col == 'Object Type')?.checked">Object Type</th>
+          <th v-if="columns.find((c) => c.col == 'Reporting Metric')?.checked">Reporting Metric</th>
+          <th v-if="columns.find((c) => c.col == 'Protection Target')?.checked">Protection Target</th>
+          <th v-if="columns.find((c) => c.col == 'Year')?.checked">Year</th>
+          <th v-if="columns.find((c) => c.col == 'Report')?.checked">Threshold Classification Report</th>
+          <th v-if="columns.find((c) => c.col == 'Exceedance')?.checked">Exceedance</th>
+          <th v-if="columns.find((c) => c.col == 'Include')?.checked">Include</th>
         </tr>
         <tr v-for="row in cmp_assessmentregimes" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
-          <td v-if="columnsPicked.includes('id')">{{ row.id }}</td>
-          <td v-if="columnsPicked.includes('name')">{{ row.name }}</td>
-          <td v-if="columnsPicked.includes('objecttype')">{{ row.objecttype }}</td>
-          <td v-if="columnsPicked.includes('reportingmetric')">{{ row.reportingmetric }}</td>
-          <td v-if="columnsPicked.includes('protectiontarget')">{{ row.protectiontarget }}</td>
-          <td v-if="columnsPicked.includes('assessmentthresholdexceedance')">{{ row.assessmentthresholdexceedance }}</td>
-          <td v-if="columnsPicked.includes('include')">{{ row.include }}</td>
-          <td v-if="columnsPicked.includes('thresholdclassificationyear')">{{ row.thresholdclassificationyear }}</td>
-          <td v-if="columnsPicked.includes('thresholdclassificationreport')">{{ row.thresholdclassificationreport }}</td>
-          <td v-if="columnsPicked.includes('zoneid')">{{ row.zone_name }}</td>
-          <td v-if="columnsPicked.includes('pollutant')">{{ row.pollutant_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Id')?.checked">{{ row.id }}</td>
+          <td v-if="columns.find((c) => c.col == 'Name')?.checked">{{ row.name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Zone')?.checked">{{ row.zone_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Pollutant')?.checked">{{ row.pollutant_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Object Type')?.checked">{{ row.objecttype }}</td>
+          <td v-if="columns.find((c) => c.col == 'Reporting Metric')?.checked">{{ row.reportingmetric }}</td>
+          <td v-if="columns.find((c) => c.col == 'Protection Target')?.checked">{{ row.protectiontarget }}</td>
+          <td v-if="columns.find((c) => c.col == 'Year')?.checked">{{ row.thresholdclassificationyear }}</td>
+          <td v-if="columns.find((c) => c.col == 'Report')?.checked">{{ row.thresholdclassificationreport }}</td>
+          <td v-if="columns.find((c) => c.col == 'Exceedance')?.checked">{{ row.assessmentthresholdexceedance }}</td>
+          <td v-if="columns.find((c) => c.col == 'Include')?.checked">{{ row.include }}</td>
         </tr>
       </table>
     </div>

@@ -6,6 +6,7 @@ import ManagementService from "../managementservice";
 import Eventy from "../../../helpers/eventy";
 import { tblToCsv, compare } from "../../../helpers/utils";
 import ToolBar from "../../../components/ToolBar.vue";
+import Columns from "./columns";
 
 const q = ref("");
 const media = ref([]);
@@ -20,7 +21,6 @@ const measurement_regimes = ref([]);
 const area_classifications = ref([]);
 const samplingPoints = ref([]);
 const columns = ref([]);
-const columnsPicked = ref([]);
 
 const showEdit = ref(false);
 const showAdd = ref(false);
@@ -45,11 +45,8 @@ onMounted(async () => {
 
 const loadData = async () => {
   samplingPoints.value = await Service.get();
-  columns.value = { id: "Id", media_monitored: "Media", station: "Station", measurement_regime: "Measurement regime", mobile: "Mobile", assessment_type: "Assessment type", station_classification: "Station classification", used_aqd: "Used aqd", main_emission_sources: "Main emission sources", traffic_emissions: "Traffic emissions", heating_emissions: "Heating emissions", industrial_emissions: "Industrial emissions", distance_source: "Distance source", change_aei_stations: "Change aei stations", begin_position: "Begin position", end_position: "End position", logger_id: "Logger id", pollutant: "Pollutant", concentration: "Concentration", timestep: "Timestep", from_time: "From time", to_time: "To time" };
-  columnsPicked.value = ["id", "station", "station_classification", "pollutant", "concentration", "timestep", "begin_position"];
   console.log("samplingPoints", samplingPoints.value);
-  console.log("colums", columns.value);
-  console.log("columnsPicked", columnsPicked.value);
+  columns.value = Columns;
 };
 
 const cmp_samplingpoints = computed(() => {
@@ -112,15 +109,6 @@ const saveDelete = async (o) => {
   close();
 };
 
-const columnsChanged = (column) => {
-  console.log("columnsChanged", column);
-  if (columnsPicked.value.includes(column)) {
-    columnsPicked.value = columnsPicked.value.filter((c) => c !== column);
-  } else {
-    columnsPicked.value.push(column);
-  }
-};
-
 const onDownload = () => {
   tblToCsv("id", "samplingPoints");
 };
@@ -134,58 +122,57 @@ const onDownload = () => {
     <l-edit :show="showAdd" @close="close" @save="saveAdd" :samplingpoint="selected" :media="media" :stations="stations" :pollutants="pollutants" :concentrations="concentrations" :timesteps="timesteps" :assessmentTypes="assessmentTypes" :stationClassifications="stationClassifications" :networks="networks" :measurement_regimes="measurement_regimes" :area_classifications="area_classifications" />
     <l-edit :show="showEdit" @close="close" @save="saveEdit" :samplingpoint="selected" :media="media" :stations="stations" :pollutants="pollutants" :concentrations="concentrations" :timesteps="timesteps" :assessmentTypes="assessmentTypes" :stationClassifications="stationClassifications" :networks="networks" :measurement_regimes="measurement_regimes" :area_classifications="area_classifications" />
 
-    <tool-bar title="samplingPoints" filter-text="Type to filter samplingPoints " v-model="q" @add-click="showAdd = true" @download-click="onDownload" :column-picker="columns" :columns-picked="columnsPicked" @columns-changed="columnsChanged" />
+    <tool-bar title="Sampling Points" filter-text="Type to filter samplingPoints " v-model="q" @add-click="showAdd = true" @download-click="onDownload" :column-picker="columns" />
 
     <div>
       <table id="samplingPointsId" class="n-table">
         <tr>
-          <!-- SamplingPointsModel -->
-          <th v-if="columnsPicked.includes('id')">Id</th>
-          <th v-if="columnsPicked.includes('media_monitored')">Media</th>
-          <th v-if="columnsPicked.includes('station')">Station</th>
-          <th v-if="columnsPicked.includes('mobile')">Mobile</th>
-          <th v-if="columnsPicked.includes('measurement_regime')">Measurment Regime</th>
-          <th v-if="columnsPicked.includes('assessment_type')">Assessment Type</th>
-          <th v-if="columnsPicked.includes('station_classification')">Station Classification</th>
-          <th v-if="columnsPicked.includes('used_aqd')">Used AQD</th>
-          <th v-if="columnsPicked.includes('main_emission_sources')">Main Emisison Sources</th>
-          <th v-if="columnsPicked.includes('traffic_emissions')">Traffic Emissions</th>
-          <th v-if="columnsPicked.includes('heating_emissions')">Heating Emissions</th>
-          <th v-if="columnsPicked.includes('industrial_emissions')">Industrial Emissions</th>
-          <th v-if="columnsPicked.includes('distance_source')">Distance Source</th>
-          <th v-if="columnsPicked.includes('change_aei_stations')">Change AEI Stations</th>
-          <th v-if="columnsPicked.includes('begin_position')">Begin Position</th>
-          <th v-if="columnsPicked.includes('end_position')">End Position</th>
-          <th v-if="columnsPicked.includes('logger_id')">Logger</th>
-          <th v-if="columnsPicked.includes('pollutant')">Pollutant</th>
-          <th v-if="columnsPicked.includes('concentration')">Concentration</th>
-          <th v-if="columnsPicked.includes('timestep')">Timestep</th>
-          <th v-if="columnsPicked.includes('from_time')">From Time</th>
-          <th v-if="columnsPicked.includes('to_time')">To Time</th>
+          <th v-if="columns.find((c) => c.col == 'Id')?.checked">Id</th>
+          <th v-if="columns.find((c) => c.col == 'Media')?.checked">Media</th>
+          <th v-if="columns.find((c) => c.col == 'Station')?.checked">Station</th>
+          <th v-if="columns.find((c) => c.col == 'Mobile')?.checked">Mobile</th>
+          <th v-if="columns.find((c) => c.col == 'Measurement Regime')?.checked">Measurement Regime</th>
+          <th v-if="columns.find((c) => c.col == 'Assessment Type')?.checked">Assessment Type</th>
+          <th v-if="columns.find((c) => c.col == 'Station Classification')?.checked">Station Classification</th>
+          <th v-if="columns.find((c) => c.col == 'Used AQD')?.checked">Used AQD</th>
+          <th v-if="columns.find((c) => c.col == 'Main Emission Sources')?.checked">Main Emission Sources</th>
+          <th v-if="columns.find((c) => c.col == 'Traffic Emissions')?.checked">Traffic Emissions</th>
+          <th v-if="columns.find((c) => c.col == 'Heating Emissions')?.checked">Heating Emissions</th>
+          <th v-if="columns.find((c) => c.col == 'Industrial Emissions')?.checked">Industrial Emissions</th>
+          <th v-if="columns.find((c) => c.col == 'Distance Source')?.checked">Distance Source</th>
+          <th v-if="columns.find((c) => c.col == 'Change AEI Stations')?.checked">Change AEI Stations</th>
+          <th v-if="columns.find((c) => c.col == 'Begin Position')?.checked">Begin Position</th>
+          <th v-if="columns.find((c) => c.col == 'End position')?.checked">End Position</th>
+          <th v-if="columns.find((c) => c.col == 'Logger Id')?.checked">Logger</th>
+          <th v-if="columns.find((c) => c.col == 'Pollutant')?.checked">Pollutant</th>
+          <th v-if="columns.find((c) => c.col == 'Concentration')?.checked">Concentration</th>
+          <th v-if="columns.find((c) => c.col == 'Timestep')?.checked">Timestep</th>
+          <th v-if="columns.find((c) => c.col == 'From Time')?.checked">From Time</th>
+          <th v-if="columns.find((c) => c.col == 'To Time')?.checked">To Time</th>
         </tr>
         <tr v-for="row in cmp_samplingpoints" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
-          <td v-if="columnsPicked.includes('id')">{{ row.id }}</td>
-          <td v-if="columnsPicked.includes('media_monitored')">{{ row.media_monitored_name }}</td>
-          <td v-if="columnsPicked.includes('station')">{{ row.station }}</td>
-          <td v-if="columnsPicked.includes('mobile')">{{ row.mobile }}</td>
-          <td v-if="columnsPicked.includes('measurement_regime')">{{ row.measurement_regime_name }}</td>
-          <td v-if="columnsPicked.includes('assessment_type')">{{ row.assessment_type_name }}</td>
-          <td v-if="columnsPicked.includes('station_classification')">{{ row.station_classification_name }}</td>
-          <td v-if="columnsPicked.includes('used_aqd')">{{ row.used_aqd }}</td>
-          <td v-if="columnsPicked.includes('main_emission_sources')">{{ row.main_emission_sources }}</td>
-          <td v-if="columnsPicked.includes('traffic_emissions')">{{ row.traffic_emissions }}</td>
-          <td v-if="columnsPicked.includes('heating_emissions')">{{ row.heating_emissions }}</td>
-          <td v-if="columnsPicked.includes('industrial_emissions')">{{ row.industrial_emissions }}</td>
-          <td v-if="columnsPicked.includes('distance_source')">{{ row.distance_source }}</td>
-          <td v-if="columnsPicked.includes('change_aei_stations')">{{ row.change_aei_stations }}</td>
-          <td v-if="columnsPicked.includes('begin_position')">{{ row.begin_position }}</td>
-          <td v-if="columnsPicked.includes('end_position')">{{ row.end_position }}</td>
-          <td v-if="columnsPicked.includes('logger_id')">{{ row.logger_id }}</td>
-          <td v-if="columnsPicked.includes('pollutant')">{{ row.pollutant_name }}</td>
-          <td v-if="columnsPicked.includes('concentration')">{{ row.concentration_name }}</td>
-          <td v-if="columnsPicked.includes('timestep')">{{ row.timestep_name }}</td>
-          <td v-if="columnsPicked.includes('from_time')">{{ row.from_time }}</td>
-          <td v-if="columnsPicked.includes('to_time')">{{ row.to_time }}</td>
+          <td v-if="columns.find((c) => c.col == 'Id')?.checked">{{ row.id }}</td>
+          <td v-if="columns.find((c) => c.col == 'Media')?.checked">{{ row.media_monitored_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Station')?.checked">{{ row.station }}</td>
+          <td v-if="columns.find((c) => c.col == 'Mobile')?.checked">{{ row.mobile }}</td>
+          <td v-if="columns.find((c) => c.col == 'Measurement Regime')?.checked">{{ row.measurement_regime_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Assessment Type')?.checked">{{ row.assessment_type_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Station Classification')?.checked">{{ row.station_classification_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Used AQD')?.checked">{{ row.used_aqd }}</td>
+          <td v-if="columns.find((c) => c.col == 'Main Emission Sources')?.checked">{{ row.main_emission_sources }}</td>
+          <td v-if="columns.find((c) => c.col == 'Traffic Emissions')?.checked">{{ row.traffic_emissions }}</td>
+          <td v-if="columns.find((c) => c.col == 'Heating Emissions')?.checked">{{ row.heating_emissions }}</td>
+          <td v-if="columns.find((c) => c.col == 'Industrial Emissions')?.checked">{{ row.industrial_emissions }}</td>
+          <td v-if="columns.find((c) => c.col == 'Distance Source')?.checked">{{ row.distance_source }}</td>
+          <td v-if="columns.find((c) => c.col == 'Change AEI Stations')?.checked">{{ row.change_aei_stations }}</td>
+          <td v-if="columns.find((c) => c.col == 'Begin Position')?.checked">{{ row.begin_position }}</td>
+          <td v-if="columns.find((c) => c.col == 'End position')?.checked">{{ row.end_position }}</td>
+          <td v-if="columns.find((c) => c.col == 'Logger Id')?.checked">{{ row.logger_id }}</td>
+          <td v-if="columns.find((c) => c.col == 'Pollutant')?.checked">{{ row.pollutant_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Concentration')?.checked">{{ row.concentration_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Timestep')?.checked">{{ row.timestep_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'From Time')?.checked">{{ row.from_time }}</td>
+          <td v-if="columns.find((c) => c.col == 'To Time')?.checked">{{ row.to_time }}</td>
         </tr>
       </table>
     </div>

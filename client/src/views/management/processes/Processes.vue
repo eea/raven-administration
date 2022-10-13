@@ -6,6 +6,7 @@ import ManagementService from "../managementservice";
 import Eventy from "../../../helpers/eventy";
 import { tblToCsv, compare } from "../../../helpers/utils";
 import ToolBar from "../../../components/ToolBar.vue";
+import Columns from "./columns";
 
 const q = ref("");
 const measurement_types = ref([]);
@@ -29,16 +30,6 @@ const showContextmenu = ref(false);
 const showConfirm = ref(false);
 
 onMounted(async () => {
-  // media.value = await ManagementService.media();
-  // networks.value = await ManagementService.networks();
-  // measurement_regimes.value = await ManagementService.measurement_regimes();
-  // area_classifications.value = await ManagementService.area_classifications();
-  // stations.value = await ManagementService.stations();
-  // pollutants.value = await ManagementService.pollutants();
-  // timesteps.value = await ManagementService.timesteps();
-  // assessmentTypes.value = await ManagementService.assessment_types();
-  // stationClassifications.value = await ManagementService.station_classifications();
-  // concentrations.value = await ManagementService.concentrations();
   measurement_types.value = await ManagementService.measurement_types();
   measurement_methods.value = await ManagementService.measurement_methods();
   measurement_equipment.value = await ManagementService.measurement_equipment();
@@ -46,20 +37,13 @@ onMounted(async () => {
   concentrations.value = await ManagementService.concentrations();
   timesteps.value = await ManagementService.timesteps();
   responsible_authorities.value = await ManagementService.responsible_authorities();
+  columns.value = Columns;
 
   await loadData();
 });
 
 const loadData = async () => {
   processes.value = await Service.get();
-  // select id, measurement_type, measurement_method, other_measurement_method, sampling_method, other_sampling_method, analytical_tech, other_analytical_tech, sampling_equipment,
-  // measurement_equipment, equiv_demonstration, equiv_demonstration_report, detection_limit, detection_limit_uom, uncertainty_estimate, documentation, qa_report, duration_number, duration_unit,
-  // cadence_number, cadence_unit, responsible_authority_id, other_measurement_equipment, other_sampling_equipment from processes
-  columns.value = { id: "Id", measurement_type: "Measurement Type", measurement_method: "Measurement Method", other_measurement_method: "Other Measurement Method", sampling_method: "Sampling Method", other_sampling_method: "Other Sampling Method", analytical_tech: "Analytical Tech", other_analytical_tech: "Other Analytical Tech", sampling_equipment: "Sampling Equipment", measurement_equipment: "Measurement Equipment", equiv_demonstration: "Equiv Demonstration", equiv_demonstration_report: "Equiv Demonstration Report", detection_limit: "Detection Limit", detection_limit_uom: "Detection Limit Uom", uncertainty_estimate: "Uncertainty Estimate", documentation: "Documentation", qa_report: "Qa Report", duration_number: "Duration Number", duration_unit: "Duration Unit", cadence_number: "Cadence Number", cadence_unit: "Cadence Unit", responsible_authority_id: "Responsible Authority Id", other_measurement_equipment: "Other Measurement Equipment", other_sampling_equipment: "Other Sampling Equipment" };
-  columnsPicked.value = ["id", "measurement_method", "equiv_demonstration", "duration_number", "duration_unit", "cadence_number", "cadence_unit", "responsible_authority_id"];
-  console.log("processes", processes.value);
-  console.log("colums", columns.value);
-  console.log("columnsPicked", columnsPicked.value);
 };
 
 const cmp_processes = computed(() => {
@@ -122,15 +106,6 @@ const saveDelete = async (o) => {
   close();
 };
 
-const columnsChanged = (column) => {
-  console.log("columnsChanged", column);
-  if (columnsPicked.value.includes(column)) {
-    columnsPicked.value = columnsPicked.value.filter((c) => c !== column);
-  } else {
-    columnsPicked.value.push(column);
-  }
-};
-
 const onDownload = () => {
   tblToCsv("id", "processes");
 };
@@ -144,61 +119,61 @@ const onDownload = () => {
     <l-edit :show="showAdd" @close="close" @save="saveAdd" :process="selected" :measurement_types="measurement_types" :measurement_methods="measurement_methods" :cadence_units="cadence_units" :concentrations="concentrations" :timesteps="timesteps" :equiv_demonstrations="equiv_demonstrations" :responsible_authorities="responsible_authorities" :measurement_equipment="measurement_equipment" />
     <l-edit :show="showEdit" @close="close" @save="saveEdit" :process="selected" :measurement_types="measurement_types" :measurement_methods="measurement_methods" :cadence_units="cadence_units" :concentrations="concentrations" :timesteps="timesteps" :equiv_demonstrations="equiv_demonstrations" :responsible_authorities="responsible_authorities" :measurement_equipment="measurement_equipment" />
 
-    <tool-bar title="processes" filter-text="Type to filter processes " v-model="q" @add-click="showAdd = true" @download-click="onDownload" :column-picker="columns" :columns-picked="columnsPicked" @columns-changed="columnsChanged" />
+    <tool-bar title="processes" filter-text="Type to filter processes " v-model="q" @add-click="showAdd = true" @download-click="onDownload" :column-picker="columns" />
 
     <div>
       <table id="processesId" class="n-table">
         <tr>
-          <th v-if="columnsPicked.includes('id')">Id</th>
-          <th v-if="columnsPicked.includes('measurement_type')">Measurement type</th>
-          <th v-if="columnsPicked.includes('measurement_method')">Measurement method</th>
-          <th v-if="columnsPicked.includes('other_measurement_method')">Other measurement method</th>
-          <th v-if="columnsPicked.includes('sampling_method')">Sampling method</th>
-          <th v-if="columnsPicked.includes('other_sampling_method')">Other sampling method</th>
-          <th v-if="columnsPicked.includes('analytical_tech')">Analytical tech</th>
-          <th v-if="columnsPicked.includes('other_analytical_tech')">Other analytical tech</th>
-          <th v-if="columnsPicked.includes('sampling_equipment')">Sampling equipment</th>
-          <th v-if="columnsPicked.includes('measurement_equipment')">Measurement equipment</th>
-          <th v-if="columnsPicked.includes('equiv_demonstration')">Equiv demonstration</th>
-          <th v-if="columnsPicked.includes('equiv_demonstration_report')">Equiv demonstration report</th>
-          <th v-if="columnsPicked.includes('detection_limit')">Detection limit</th>
-          <th v-if="columnsPicked.includes('detection_limit_uom')">Detection limit uom</th>
-          <th v-if="columnsPicked.includes('uncertainty_estimate')">Uncertainty estimate</th>
-          <th v-if="columnsPicked.includes('documentation')">Documentation</th>
-          <th v-if="columnsPicked.includes('qa_report')">Qa report</th>
-          <th v-if="columnsPicked.includes('duration_number')">Duration number</th>
-          <th v-if="columnsPicked.includes('duration_unit')">Duration unit</th>
-          <th v-if="columnsPicked.includes('cadence_number')">Cadence number</th>
-          <th v-if="columnsPicked.includes('cadence_unit')">Cadence unit</th>
-          <th v-if="columnsPicked.includes('responsible_authority_id')">Responsible authority id</th>
-          <th v-if="columnsPicked.includes('other_measurement_equipment')">Other measurement equipment</th>
-          <th v-if="columnsPicked.includes('other_sampling_equipment')">Other sampling equipment</th>
+          <th v-if="columns.find((c) => c.col == 'Id')?.checked">Id</th>
+          <th v-if="columns.find((c) => c.col == 'Measurement Type')?.checked">Measurement Type</th>
+          <th v-if="columns.find((c) => c.col == 'Measurement Method')?.checked">Measurement Method</th>
+          <th v-if="columns.find((c) => c.col == 'Other Measurement Method')?.checked">Other Measurement Method</th>
+          <th v-if="columns.find((c) => c.col == 'Sampling Method')?.checked">Sampling Method</th>
+          <th v-if="columns.find((c) => c.col == 'Other Sampling Method')?.checked">Other Sampling Method</th>
+          <th v-if="columns.find((c) => c.col == 'Analytical Tech')?.checked">Analytical Tech</th>
+          <th v-if="columns.find((c) => c.col == 'Other Analytical Tech')?.checked">Other Analytical Tech</th>
+          <th v-if="columns.find((c) => c.col == 'Sampling Equipment')?.checked">Sampling Equipment</th>
+          <th v-if="columns.find((c) => c.col == 'Measurement Equipment')?.checked">Measurement Equipment</th>
+          <th v-if="columns.find((c) => c.col == 'Equiv Demonstration')?.checked">Equiv Demonstration</th>
+          <th v-if="columns.find((c) => c.col == 'Equiv Demonstration Report')?.checked">Equiv Demonstration Report</th>
+          <th v-if="columns.find((c) => c.col == 'Detection Limit')?.checked">Detection Limit</th>
+          <th v-if="columns.find((c) => c.col == 'Detection Limit Uom')?.checked">Detection Limit Uom</th>
+          <th v-if="columns.find((c) => c.col == 'Uncertainty Estimate')?.checked">Uncertainty Estimate</th>
+          <th v-if="columns.find((c) => c.col == 'Documentation')?.checked">Documentation</th>
+          <th v-if="columns.find((c) => c.col == 'Qa Report')?.checked">Qa Report</th>
+          <th v-if="columns.find((c) => c.col == 'Duration Number')?.checked">Duration Number</th>
+          <th v-if="columns.find((c) => c.col == 'Duration Unit')?.checked">Duration Unit</th>
+          <th v-if="columns.find((c) => c.col == 'Cadence Number')?.checked">Cadence Number</th>
+          <th v-if="columns.find((c) => c.col == 'Cadence Unit')?.checked">Cadence Unit</th>
+          <th v-if="columns.find((c) => c.col == 'Responsible Authority Id')?.checked">Responsible Authority Id</th>
+          <th v-if="columns.find((c) => c.col == 'Other Measurement Equipment')?.checked">Other Measurement Equipment</th>
+          <th v-if="columns.find((c) => c.col == 'Other Sampling Equipment')?.checked">Other Sampling Equipment</th>
         </tr>
         <tr v-for="row in cmp_processes" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
-          <td v-if="columnsPicked.includes('id')">{{ row.id }}</td>
-          <td v-if="columnsPicked.includes('measurement_type')">{{ row.measurement_type_name }}</td>
-          <td v-if="columnsPicked.includes('measurement_method')">{{ row.measurement_method_name }}</td>
-          <td v-if="columnsPicked.includes('other_measurement_method')">{{ row.other_measurement_method }}</td>
-          <td v-if="columnsPicked.includes('sampling_method')">{{ row.sampling_method }}</td>
-          <td v-if="columnsPicked.includes('other_sampling_method')">{{ row.other_sampling_method }}</td>
-          <td v-if="columnsPicked.includes('analytical_tech')">{{ row.analytical_tech }}</td>
-          <td v-if="columnsPicked.includes('other_analytical_tech')">{{ row.other_analytical_tech }}</td>
-          <td v-if="columnsPicked.includes('sampling_equipment')">{{ row.sampling_equipment }}</td>
-          <td v-if="columnsPicked.includes('measurement_equipment')">{{ row.measurement_equipment_name }}</td>
-          <td v-if="columnsPicked.includes('equiv_demonstration')">{{ row.equiv_demonstration_name }}</td>
-          <td v-if="columnsPicked.includes('equiv_demonstration_report')">{{ row.equiv_demonstration_report }}</td>
-          <td v-if="columnsPicked.includes('detection_limit')">{{ row.detection_limit }}</td>
-          <td v-if="columnsPicked.includes('detection_limit_uom')">{{ row.detection_limit_uom_name }}</td>
-          <td v-if="columnsPicked.includes('uncertainty_estimate')">{{ row.uncertainty_estimate }}</td>
-          <td v-if="columnsPicked.includes('documentation')">{{ row.documentation }}</td>
-          <td v-if="columnsPicked.includes('qa_report')">{{ row.qa_report }}</td>
-          <td v-if="columnsPicked.includes('duration_number')">{{ row.duration_number }}</td>
-          <td v-if="columnsPicked.includes('duration_unit')">{{ row.duration_unit_name }}</td>
-          <td v-if="columnsPicked.includes('cadence_number')">{{ row.cadence_number }}</td>
-          <td v-if="columnsPicked.includes('cadence_unit')">{{ row.cadence_unit_name }}</td>
-          <td v-if="columnsPicked.includes('responsible_authority_id')">{{ row.responsible_authority }}</td>
-          <td v-if="columnsPicked.includes('other_measurement_equipment')">{{ row.other_measurement_equipment }}</td>
-          <td v-if="columnsPicked.includes('other_sampling_equipment')">{{ row.other_sampling_equipment }}</td>
+          <td v-if="columns.find((c) => c.col == 'Id')?.checked">{{ row.id }}</td>
+          <td v-if="columns.find((c) => c.col == 'Measurement Type')?.checked">{{ row.measurement_type_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Measurement Method')?.checked">{{ row.measurement_method_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Other Measurement Method')?.checked">{{ row.other_measurement_method }}</td>
+          <td v-if="columns.find((c) => c.col == 'Sampling Method')?.checked">{{ row.sampling_method }}</td>
+          <td v-if="columns.find((c) => c.col == 'Other Sampling Method')?.checked">{{ row.other_sampling_method }}</td>
+          <td v-if="columns.find((c) => c.col == 'Analytical Tech')?.checked">{{ row.analytical_tech }}</td>
+          <td v-if="columns.find((c) => c.col == 'Other Analytical Tech')?.checked">{{ row.other_analytical_tech }}</td>
+          <td v-if="columns.find((c) => c.col == 'Sampling Equipment')?.checked">{{ row.sampling_equipment }}</td>
+          <td v-if="columns.find((c) => c.col == 'Measurement Equipment')?.checked">{{ row.measurement_equipment_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Equiv Demonstration')?.checked">{{ row.equiv_demonstration_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Equiv Demonstration Report')?.checked">{{ row.equiv_demonstration_report }}</td>
+          <td v-if="columns.find((c) => c.col == 'Detection Limit')?.checked">{{ row.detection_limit }}</td>
+          <td v-if="columns.find((c) => c.col == 'Detection Limit Uom')?.checked">{{ row.detection_limit_uom_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Uncertainty Estimate')?.checked">{{ row.uncertainty_estimate }}</td>
+          <td v-if="columns.find((c) => c.col == 'Documentation')?.checked">{{ row.documentation }}</td>
+          <td v-if="columns.find((c) => c.col == 'Qa Report')?.checked">{{ row.qa_report }}</td>
+          <td v-if="columns.find((c) => c.col == 'Duration Number')?.checked">{{ row.duration_number }}</td>
+          <td v-if="columns.find((c) => c.col == 'Duration Unit')?.checked">{{ row.duration_unit_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Cadence Number')?.checked">{{ row.cadence_number }}</td>
+          <td v-if="columns.find((c) => c.col == 'Cadence Unit')?.checked">{{ row.cadence_unit_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Responsible Authority Id')?.checked">{{ row.responsible_authority_id }}</td>
+          <td v-if="columns.find((c) => c.col == 'Other Measurement Equipment')?.checked">{{ row.other_measurement_equipment }}</td>
+          <td v-if="columns.find((c) => c.col == 'Other Sampling Equipment')?.checked">{{ row.other_sampling_equipment }}</td>
         </tr>
       </table>
     </div>

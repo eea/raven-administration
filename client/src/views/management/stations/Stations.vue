@@ -6,6 +6,7 @@ import ManagementService from "../managementservice";
 import Eventy from "../../../helpers/eventy";
 import { tblToCsv, compare } from "../../../helpers/utils";
 import ToolBar from "../../../components/ToolBar.vue";
+import Columns from "./columns";
 
 const q = ref("");
 const media = ref([]);
@@ -28,16 +29,12 @@ onMounted(async () => {
   networks.value = await ManagementService.networks();
   measurement_regimes.value = await ManagementService.measurement_regimes();
   area_classifications.value = await ManagementService.area_classifications();
+  columns.value = Columns;
   await loadData();
 });
 
 const loadData = async () => {
   stations.value = await Service.get();
-  columns.value = { id: "Id", name: "Name", begin_position: "Begin position", end_position: "End position", network: "Network", city: "City", national_station_code: "National Station Code", media_monitored_name: "Media", mobile: "Mobile", measurement_regime: "Measurement Regime", area_classification_name: "Area Classification", distance_junction: "Distance Junction", traffic_volume: "Traffic Volume", heavy_duty_fraction: "Heavy Duty Fraction", street_width: "Street Width", height_facades: "Height Facade", municipality: "Municipality", eoi_code: "Eoi Code" };
-  columnsPicked.value = ["id", "name", "begin_position", "end_position", "network", "area_classification_name", "municipality", "eoi_code"];
-  console.log("stations", stations.value);
-  console.log("colums", columns.value);
-  console.log("columnsPicked", columnsPicked.value);
 };
 
 const cmp_stations = computed(() => {
@@ -100,15 +97,6 @@ const saveDelete = async (o) => {
   close();
 };
 
-const columnsChanged = (column) => {
-  console.log("columnsChanged", column);
-  if (columnsPicked.value.includes(column)) {
-    columnsPicked.value = columnsPicked.value.filter((c) => c !== column);
-  } else {
-    columnsPicked.value.push(column);
-  }
-};
-
 const onDownload = () => {
   tblToCsv("stationsId", "stations");
 };
@@ -122,48 +110,49 @@ const onDownload = () => {
     <l-edit :show="showAdd" @close="close" @save="saveAdd" :station="selected" :media="media" :networks="networks" :measurement_regimes="measurement_regimes" :area_classifications="area_classifications" />
     <l-edit :show="showEdit" @close="close" @save="saveEdit" :station="selected" :media="media" :networks="networks" :measurement_regimes="measurement_regimes" :area_classifications="area_classifications" />
 
-    <tool-bar title="stations" filter-text="Type to filter stations " v-model="q" @add-click="showAdd = true" @download-click="onDownload" :column-picker="columns" :columns-picked="columnsPicked" @columns-changed="columnsChanged" />
+    <tool-bar title="Stations" filter-text="Type to filter stations " v-model="q" @add-click="showAdd = true" @download-click="onDownload" :column-picker="columns" />
 
     <div>
       <table id="stationsId" class="n-table">
         <tr>
-          <th v-if="columnsPicked.includes('id')">Id</th>
-          <th v-if="columnsPicked.includes('name')">Name</th>
-          <th v-if="columnsPicked.includes('begin_position')">Begin Position</th>
-          <th v-if="columnsPicked.includes('end_position')">End Position</th>
-          <th v-if="columnsPicked.includes('network')">Network</th>
-          <th v-if="columnsPicked.includes('city')">City</th>
-          <th v-if="columnsPicked.includes('national_station_code')">National Station Code</th>
-          <th v-if="columnsPicked.includes('media_monitored_name')">Media Monitored</th>
-          <th v-if="columnsPicked.includes('mobile')">Mobile</th>
-          <th v-if="columnsPicked.includes('measurement_regime')">Measurement Regime</th>
-          <th v-if="columnsPicked.includes('area_classification_name')">Area classification</th>
-          <th v-if="columnsPicked.includes('distance_junction')">Distance Junction</th>
-          <th v-if="columnsPicked.includes('traffic_volume')">Traffic Volume</th>
-          <th v-if="columnsPicked.includes('heavy_duty_fraction')">Heavy Duty Fraction</th>
-          <th v-if="columnsPicked.includes('street_width')">Street Width</th>
-          <th v-if="columnsPicked.includes('height_facades')">Height Facades</th>
-          <th v-if="columnsPicked.includes('municipality')">Municipality</th>
-          <th v-if="columnsPicked.includes('eoi_code')">Eoi Code</th>
+          <th v-if="columns.find((c) => c.col == 'Id')?.checked">Id</th>
+          <th v-if="columns.find((c) => c.col == 'Name')?.checked">Name</th>
+          <th v-if="columns.find((c) => c.col == 'Begin position')?.checked">Begin position</th>
+          <th v-if="columns.find((c) => c.col == 'End position')?.checked">End position</th>
+          <th v-if="columns.find((c) => c.col == 'Network')?.checked">Network</th>
+          <th v-if="columns.find((c) => c.col == 'City')?.checked">City</th>
+          <th v-if="columns.find((c) => c.col == 'National Station Code')?.checked">National Station Code</th>
+          <th v-if="columns.find((c) => c.col == 'Media')?.checked">Media</th>
+          <th v-if="columns.find((c) => c.col == 'Mobile')?.checked">Mobile</th>
+          <th v-if="columns.find((c) => c.col == 'Measurement Regime')?.checked">Measurement Regime</th>
+          <th v-if="columns.find((c) => c.col == 'Area Classification')?.checked">Area Classification</th>
+          <th v-if="columns.find((c) => c.col == 'Distance Junction')?.checked">Distance Junction</th>
+          <th v-if="columns.find((c) => c.col == 'Traffic Volume')?.checked">Traffic Volume</th>
+          <th v-if="columns.find((c) => c.col == 'Heavy Duty Fraction')?.checked">Heavy Duty Fraction</th>
+          <th v-if="columns.find((c) => c.col == 'Street Width')?.checked">Street Width</th>
+          <th v-if="columns.find((c) => c.col == 'Height Facade')?.checked">Height Facade</th>
+          <th v-if="columns.find((c) => c.col == 'Municipality')?.checked">Municipality</th>
+          <th v-if="columns.find((c) => c.col == 'Eoi Code')?.checked">Eoi Code</th>
         </tr>
         <tr v-for="row in cmp_stations" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
-          <td v-if="columnsPicked.includes('id')">{{ row.id }}</td>
-          <td v-if="columnsPicked.includes('name')">{{ row.name }}</td>
-          <td v-if="columnsPicked.includes('begin_position')">{{ row.begin_position }}</td>
-          <td v-if="columnsPicked.includes('end_position')">{{ row.end_position }}</td>
-          <td v-if="columnsPicked.includes('network')">{{ row.network }}</td>
-          <td v-if="columnsPicked.includes('city')">{{ row.city }}</td>
-          <td v-if="columnsPicked.includes('national_station_code')">{{ row.national_station_code }}</td>
-          <td v-if="columnsPicked.includes('media_monitored_name')">{{ row.media_monitored_name }}</td>
-          <td v-if="columnsPicked.includes('mobile')">{{ row.mobile }}</td>
-          <td v-if="columnsPicked.includes('measurement_regime_name')">{{ row.measurement_regime_name }}</td>
-          <td v-if="columnsPicked.includes('area_classification_name')">{{ row.area_classification_name }}</td>
-          <td v-if="columnsPicked.includes('distance_junction')">{{ row.distance_junction }}</td>
-          <td v-if="columnsPicked.includes('heavy_duty_fraction')">{{ row.heavy_duty_fraction }}</td>
-          <td v-if="columnsPicked.includes('street_width')">{{ row.street_width }}</td>
-          <td v-if="columnsPicked.includes('height_facades')">{{ row.height_facades }}</td>
-          <td v-if="columnsPicked.includes('municipality')">{{ row.municipality }}</td>
-          <td v-if="columnsPicked.includes('eoi_code')">{{ row.eoi_code }}</td>
+          <td v-if="columns.find((c) => c.col == 'Id')?.checked">{{ row.id }}</td>
+          <td v-if="columns.find((c) => c.col == 'Name')?.checked">{{ row.name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Begin position')?.checked">{{ row.begin_position }}</td>
+          <td v-if="columns.find((c) => c.col == 'End position')?.checked">{{ row.end_position }}</td>
+          <td v-if="columns.find((c) => c.col == 'Network')?.checked">{{ row.network }}</td>
+          <td v-if="columns.find((c) => c.col == 'City')?.checked">{{ row.city }}</td>
+          <td v-if="columns.find((c) => c.col == 'National Station Code')?.checked">{{ row.national_station_code }}</td>
+          <td v-if="columns.find((c) => c.col == 'Media')?.checked">{{ row.media_monitored_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Mobile')?.checked">{{ row.mobile }}</td>
+          <td v-if="columns.find((c) => c.col == 'Measurement Regime')?.checked">{{ row.measurement_regime_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Area Classification')?.checked">{{ row.area_classification_name }}</td>
+          <td v-if="columns.find((c) => c.col == 'Distance Junction')?.checked">{{ row.distance_junction }}</td>
+          <td v-if="columns.find((c) => c.col == 'Traffic Volume')?.checked">{{ row.traffic_volume }}</td>
+          <td v-if="columns.find((c) => c.col == 'Heavy Duty Fraction')?.checked">{{ row.heavy_duty_fraction }}</td>
+          <td v-if="columns.find((c) => c.col == 'Street Width')?.checked">{{ row.street_width }}</td>
+          <td v-if="columns.find((c) => c.col == 'Height Facade')?.checked">{{ row.height_facades }}</td>
+          <td v-if="columns.find((c) => c.col == 'Municipality')?.checked">{{ row.municipality }}</td>
+          <td v-if="columns.find((c) => c.col == 'Eoi Code')?.checked">{{ row.eoi_code }}</td>
         </tr>
       </table>
     </div>

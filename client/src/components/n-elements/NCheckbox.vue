@@ -2,8 +2,12 @@
 var p = defineProps({
   modelValue: {
     type: Boolean,
-    default: false,
+    default: false
   },
+  label: {
+    type: String,
+    default: ""
+  }
 });
 
 const internalValue = ref(false);
@@ -34,10 +38,13 @@ const cls = computed(() => {
 
 <script>
 export default {
-  inheritAttrs: false,
+  inheritAttrs: false
 };
 </script>
 
 <template>
-  <div class="n-checkbox" v-bind="$attrs" @click="onClick($el)" :class="cls"></div>
+  <label @click="onClick($el)" style="cursor: pointer">
+    <div class="n-checkbox" v-bind="$attrs" :class="cls"></div>
+    <span class="ml-1" style="position: relative; bottom: 2px">{{ label }}</span>
+  </label>
 </template>
