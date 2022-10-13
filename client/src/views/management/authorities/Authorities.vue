@@ -5,6 +5,7 @@ import LAdd from "./LAdd.vue";
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
 import { tblToCsv, compare } from "../../../helpers/utils";
+import NCheckbox from "../../../components/n-elements/NCheckbox.vue";
 
 const authoritites = ref([]);
 const q = ref("");
@@ -109,7 +110,7 @@ const onDownload = () => {
           <th>Address</th>
           <th>Phone</th>
           <th>Website</th>
-          <th>Main?</th>
+          <th>Is main authority?</th>
         </tr>
         <tr v-for="row in cmp_authoritites" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
           <td>{{ row.id }}</td>
@@ -121,7 +122,9 @@ const onDownload = () => {
           <td>{{ row.address }}</td>
           <td>{{ row.phone }}</td>
           <td>{{ row.website }}</td>
-          <td>{{ row.is_responsible_reporter }}</td>
+          <td class="!text-center">
+            <n-checkbox v-model="row.is_responsible_reporter" :disabled="true" />
+          </td>
         </tr>
       </table>
     </div>

@@ -3,7 +3,8 @@ export default Apex = {
     return {
       chart: {
         type: "line",
-        height: 400,
+        height: 300,
+        toolbar: false,
         animations: {
           enabled: false,
           animateGradually: {
@@ -24,10 +25,10 @@ export default Apex = {
           year: "yyyy",
           month: "MMM 'yy",
           day: "dd MMM",
-          hour: "HH:mm"
+          hour: "HH"
         }
       },
-      colors: ["#A3BE8C", "#D08770", "#B48EAD", "#BF616A", "#EBCB8B", "#88C0D0", "#5E81AC"],
+      legend: { show: true, showForSingleSeries: true },
       stroke: {
         show: true,
         curve: "straight",
@@ -39,7 +40,7 @@ export default Apex = {
         enabled: false
       },
       tooltip: {
-        x: { format: "dd MMM HH:mm" }
+        x: { format: "dd MMM HH" }
       },
       marker: { size: 0 }
     };

@@ -12,30 +12,30 @@ export default Apex = {
             zoom: true,
             zoomin: false,
             zoomout: false,
-            pan: true,
+            pan: true
           },
-          autoSelected: "pan",
+          autoSelected: "pan"
         },
         animations: {
           enabled: false,
           animateGradually: {
-            enabled: false,
+            enabled: false
           },
           dynamicAnimation: {
-            enabled: false,
-          },
+            enabled: false
+          }
         },
         events: {
-          dataPointSelection: onDatapointSelection,
-        },
+          dataPointSelection: onDatapointSelection
+        }
       },
       states: {
         active: {
-          allowMultipleDataPointsSelection: false,
-        },
+          allowMultipleDataPointsSelection: false
+        }
       },
       legend: {
-        show: false,
+        show: false
       },
       series: series,
       xaxis: {
@@ -47,13 +47,13 @@ export default Apex = {
           year: "yyyy",
           month: "MMM 'yy",
           day: "dd MMM",
-          hour: "HH:mm",
+          hour: "HH:mm"
         },
         labels: {
           style: {
-            cssClass: "text-xs ",
-          },
-        },
+            cssClass: "text-xs "
+          }
+        }
       },
       //colors: ["#A3BE8C", "#D08770", "#B48EAD", "#BF616A", "#EBCB8B", "#88C0D0", "#5E81AC"],
       stroke: {
@@ -61,15 +61,15 @@ export default Apex = {
         curve: "straight",
         lineCap: "butt",
         width: 2,
-        dashArray: 0,
+        dashArray: 0
       },
       dataLabels: {
-        enabled: false,
+        enabled: false
       },
       tooltip: {
-        x: { format: "dd MMM HH:mm" },
+        x: { format: "dd MMM HH:mm" }
       },
-      marker: { size: 0 },
+      marker: { size: 0 }
     };
-  },
+  }
 };

@@ -48,10 +48,7 @@ watch(
     </div>
     <div class="mb-2">
       <div class="font-bold">Is the main authority:</div>
-      <n-select v-model="obj.is_responsible_reporter" class="!w-64">
-        <n-option value="true" label="true" />
-        <n-option value="false" label="false" />
-      </n-select>
+      <n-checkbox v-model="obj.is_responsible_reporter" />
     </div>
   </side-bar-crud>
 </template>
