@@ -6,10 +6,13 @@ import { useRoute } from "vue-router";
 import { format, sub, isAfter, isBefore } from "date-fns";
 import { tblToCsv, compare } from "../../../helpers/utils";
 import { multiRowClick } from "../../../helpers/table";
-import ApexCharts from "apexcharts";
+
 import Eventy from "../../../helpers/eventy";
 import Service from "./service";
-import Apex from "./apex";
+
+import Chart from "chart.js/auto";
+import "chartjs-adapter-luxon";
+import Plot from "./plot";
 
 import IconLink from "~icons/ph/link-simple-duotone";
 import Container from "../../../components/Container.vue";
@@ -52,7 +55,10 @@ const showData = async () => {
   Eventy.showMessage("Loading data. Please wait", "loading");
   showPlotAndTable.value = true;
   timevalues.value = [];
-  if (chart) chart.updateSeries([]);
+  if (chart) {
+    chart.data = [];
+    chart.update();
+  }
   await load();
   Eventy.hideMessage();
 };
@@ -64,11 +70,10 @@ const load = async () => {
     to_dt: totime.value
   });
   if (!chart) {
-    chart = new ApexCharts(document.querySelector("#chart"), Apex.options([], onDatapointSelection));
-    chart.render();
+    chart = new Chart("chart", Plot.config(onDatapointSelection));
   }
-  var series = formatValues();
-  chart.updateSeries(series);
+  chart.data = formatValues();
+  chart.update();
 };
 
 const onDownload = () => {
@@ -118,20 +123,24 @@ const close = () => {
 };
 
 const formatValues = () => {
-  const data = timevalues.value.map((o) => {
+  let colors = [];
+  let data = [];
+  timevalues.value.forEach((o) => {
     var v = o.value == -9900 ? null : o.value;
     var c = o.validation_flag < 1 ? "#BF616A" : "#A3BE8C";
     const n = Object.assign({}, o);
-    return { x: o.totime, y: o.value, fillColor: c, obj: n };
+    colors.push(c);
+    data.push({ x: o.totime.replace(" ", "T"), y: o.value, obj: n });
   });
-  return [{ name: "Value", data, type: "column" }];
+  return { datasets: [Plot.dataset("Value", data, colors)] };
 };
 
-const onDatapointSelection = (event, chartContext, opts) => {
-  var serie = opts.w.config.series[opts.seriesIndex];
-  var data = serie.data[opts.dataPointIndex];
-  selectedRows.value = [data.obj];
-  ev.value = event;
+const onDatapointSelection = (event, sel, chart) => {
+  console.log("first", event);
+  console.log("second", sel);
+  console.log("third", chart);
+  selectedRows.value = [sel[0].element.$context.raw.obj];
+  ev.value = event.native;
   showContextmenu.value = true;
 };
 </script>
@@ -194,7 +203,7 @@ const onDatapointSelection = (event, chartContext, opts) => {
     </container>
 
     <div v-show="showPlotAndTable">
-      <container class="mt-4 !p-4" id="chart"></container>
+      <container class="mt-4 !p-4 h-72"><canvas id="chart"></canvas></container>
 
       <div class="mt-4">
         <table id="validationId" class="n-table">

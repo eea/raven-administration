@@ -2,8 +2,10 @@
 import { useRoute } from "vue-router";
 import Service from "./service";
 
-import ApexCharts from "apexcharts";
-import Apex from "./apex";
+import Chart from "chart.js/auto";
+import "chartjs-adapter-luxon";
+import Plot from "./plot";
+
 import { format, sub, isAfter, isBefore } from "date-fns";
 import { groupBy, sortBy } from "../../../helpers/utils";
 import Eventy from "../../../helpers/eventy";
@@ -36,7 +38,10 @@ onMounted(async () => {
 const plotData = async () => {
   showPlot.value = true;
   Eventy.showMessage("Plotting data. Please wait", "loading");
-  if (chart) chart.updateSeries([]);
+  if (chart) {
+    chart.data = [];
+    chart.update();
+  }
 
   var meanvalues = await Service.get({
     sampling_point_ids: selectedIds.value,
@@ -46,14 +51,12 @@ const plotData = async () => {
     coverage: coverage.value
   });
 
-  // console.log("PLOT", meanvalues);
-
-  const series = formatValues(meanvalues);
   if (!chart) {
-    chart = new ApexCharts(document.querySelector("#chart"), Apex.options([]));
-    chart.render();
+    chart = new Chart("chart", Plot.config());
   }
-  chart.updateSeries(series);
+
+  chart.data = formatValues(meanvalues);
+  chart.update();
   Eventy.hideMessage();
 };
 
@@ -63,13 +66,12 @@ const formatValues = (meanvalues) => {
   grouped_values.forEach((p) => {
     const values = sortBy(p[1], ["datetime"]);
     const data = values.map((o) => {
-      return { x: o.datetime, y: o.value };
+      return { x: o.datetime.replace(" ", "T"), y: o.value };
     });
-    let serie = { name: p[1][0].station + " - " + p[1][0].component, data, type: plotType.value };
-
+    let serie = Plot.dataset(p[1][0].station + " - " + p[1][0].component, data, "#A3BE8C", plotType.value);
     series.push(serie);
   });
-  return series;
+  return { datasets: series };
 };
 
 const cmp_timeseries = computed(() => {
@@ -124,7 +126,7 @@ const cmp_timeseries = computed(() => {
           <div class="font-bold">Plot type</div>
           <n-select class="!w-36" v-model="plotType">
             <n-option value="line" label="Line" />
-            <n-option value="column" label="Column" />
+            <n-option value="bar" label="Bar" />
           </n-select>
         </div>
       </div>
@@ -142,7 +144,7 @@ const cmp_timeseries = computed(() => {
       </div>
     </container>
 
-    <container v-show="showPlot" class="mt-4 !p-4" id="chart"></container>
+    <container v-show="showPlot" class="mt-4 !p-4 h-96 w-full"><canvas id="chart"></canvas></container>
   </common-layout>
 </template>
 
