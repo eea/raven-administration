@@ -8,6 +8,7 @@ from api.core.data.processing.scaling import Scaling
 from api.core.data.processing.calculation import Calculating
 from api.core.data.processing.converting import Converting
 from api.core.data.processing.filling import Filling
+from api.core.data.processing.common import Common
 import pandas as pd
 
 
@@ -27,17 +28,24 @@ class Importing:
         # - DoFlagging sets the qa and qc flag based on a number of criterias, like scalingpoints and instrument flags. It also lookup values in database to change if we have multiple equal values in a row
         # - Upsert inserts or updates data to aqrw_rawdatavalues, aqte_timevalue and aqal_additionalloggervalues. It will not update values with qc >= 4. If QA has been manually set it will used the old qa instead of the new
 
-        Importing.validate_dataframe(df_values)
+        Common.validate_dataframe(df_values)
         Importing.set_import_value(df_values)
-        df_values = Importing.add_timeserie_info(cursor, df_values)
+        df_values = Common.add_timeserie_info(cursor, df_values)
         Importing.verify_values(cursor, df_values)
         Scaling.Scale(cursor, df_values)
+        df_values = Importing.process_scaled_values(cursor, df_values)
+        df_values = Importing.upsert(cursor, df_values)
+        pass
+
+    @staticmethod
+    def process_scaled_values(cursor, df_values: DataFrame, doFlagging: bool = True):
         df_values = Calculating.calculate(cursor, df_values)  # Rethink function for better performance
         Converting.convert(cursor, df_values)
         df_values = Filling.fillinmissing(cursor, df_values)  # Use pandas more active for better performance?
-        Flagging.flag(cursor, df_values)
-        df_values = Importing.upsert(cursor, df_values)
-        pass
+
+        if doFlagging:
+            Flagging.flag(cursor, df_values)
+        return df_values
 
     @staticmethod
     def set_import_value(df_values: DataFrame):
@@ -45,62 +53,6 @@ class Importing:
         df_values["import_value"] = df_values["value"]
         df_values["scaled_value"] = None
         printcol(f"- Setting import value took {time.perf_counter() - bench} seconds")
-
-    @staticmethod
-    def validate_dataframe(df_values: DataFrame):
-        bench = time.perf_counter()
-        # Validations raises an exception if it fails
-        df_values["begin_position"] = pd.to_datetime(df_values["begin_position"], format="%Y-%m-%dT%H:%M:%S%Z")
-        df_values["end_position"] = pd.to_datetime(df_values["end_position"], format="%Y-%m-%dT%H:%M:%S%Z")
-        df_values.sampling_point_id.astype(str)
-        df_values.value = df_values.value.astype(float)
-        df_values.verification_flag.astype(int)
-        df_values.validation_flag.astype(int)
-        printcol(f"- Validating datatypes took {time.perf_counter() - bench} seconds")
-
-    @staticmethod
-    def add_timeserie_info(cursor: any, df_values: pd.DataFrame):
-        bench = time.perf_counter()
-        ids = tuple(df_values.sampling_point_id.unique().tolist())
-        sql = """
-            select
-                p.id as sampling_point_id,
-                extract(epoch from p.from_time) as from_time,
-                extract(epoch from p.to_time) as to_time,
-                t.timestep,
-                case when cs.id is NULL then False else True end as is_calculated
-            from
-                eea_times t,
-                sampling_points p left join calculated_series cs on cs.result = p.id
-            where p.timestep = t.id
-            and p.id in %(ids)s
-        """
-        cursor.execute(sql, {"ids": ids})
-        timeseries = cursor.fetchall()
-
-        grouped = df_values.groupby("sampling_point_id")
-
-        new_table = []
-        for key, group in grouped:
-            timeserie = next(filter(lambda t: t["sampling_point_id"] == key, timeseries), None)
-            if timeserie != None:
-                group["ts_from_epoch"] = timeserie["from_time"]
-                group["ts_to_epoch"] = timeserie["to_time"]
-                group["ts_timestep"] = timeserie["timestep"]
-                group["ts_is_calculated"] = timeserie["is_calculated"]
-                group["has_timeserie_info"] = True
-            else:
-                group["ts_from_epoch"] = None
-                group["ts_to_epoch"] = None
-                group["ts_timestep"] = None
-                group["ts_is_calculated"] = None
-                group["has_timeserie_info"] = False
-            new_table.append(group.copy())
-
-        df = pd.concat(new_table).reset_index(drop=True)
-
-        printcol(f"- Adding timeserie info took {time.perf_counter() - bench} seconds")
-        return df
 
     @staticmethod
     def verify_values(cursor: any, df_values: DataFrame):

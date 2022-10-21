@@ -136,9 +136,6 @@ const formatValues = () => {
 };
 
 const onDatapointSelection = (event, sel, chart) => {
-  console.log("first", event);
-  console.log("second", sel);
-  console.log("third", chart);
   selectedRows.value = [sel[0].element.$context.raw.obj];
   ev.value = event.native;
   showContextmenu.value = true;

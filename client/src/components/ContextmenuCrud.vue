@@ -5,12 +5,12 @@ import IconDelete from "~icons/ic/baseline-delete";
 var p = defineProps({
   ev: {
     type: Object,
-    default: null,
+    default: null
   },
   show: {
     type: Boolean,
-    default: false,
-  },
+    default: false
+  }
 });
 </script>
 
@@ -25,6 +25,7 @@ var p = defineProps({
       <icon-delete class="text-nord11 text-sm self-center" />
       <div class="self-center ml-1">Delete</div>
     </div>
+    <slot />
   </contextmenu>
 </template>
 

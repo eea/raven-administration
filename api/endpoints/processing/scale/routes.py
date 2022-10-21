@@ -1,8 +1,11 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from api.core.database import CursorFromPool
-from api.endpoints.processing.scale.models import ScalingpointModel
+from api.endpoints.processing.scale.helper import Helper
+from api.endpoints.processing.scale.models import ScalingpointModel, UpdateModel, InsertModel, DeleteModel, PreviewModel
+from api.core.data.processing.scaling import Scaling
+from api.core.data.processing.importing import Importing
 
 
 scale_endpoint = Blueprint('scale', __name__)
@@ -14,14 +17,13 @@ def scaling_points():
     with CursorFromPool() as cursor:
         model = ScalingpointModel(**request.json)
         cursor.execute("""
-            select 
-              id, 
-              zero_point::DOUBLE PRECISION, 
-              span_value::DOUBLE PRECISION, 
+            select
+              id,
+              zero_point::DOUBLE PRECISION,
+              span_value::DOUBLE PRECISION,
               gas_concentration::DOUBLE PRECISION, 
-              to_char(timestamp, 'YYYY-MM-DD HH24') as timestamp, 
-              to_char(timestamp, 'YYYY-MM-DD HH24:MI:SS') as datetime, 
-              createdby, 
+              to_char(timestamp, 'YYYY-MM-DD HH24:MI') as timestamp,
+              createdby,
               sampling_point_id
             from scaling_points
             where sampling_point_id = %(sampling_point_id)s
@@ -30,9 +32,89 @@ def scaling_points():
         convertions = cursor.fetchall()
         return jsonify(convertions)
 
+
+@scale_endpoint.route("/api/processing/scale/scaling_points/update", methods=['POST'])
+@jwt_required()
+def update():
+    with CursorFromPool() as cursor:
+        model = UpdateModel(**request.json)
+        model.createdby = get_jwt_identity()
+        current_timestamp = model.current_timestamp if model.current_timestamp is not None else model.timestamp
+
+        values = Scaling.ReScale(cursor, True, model.sampling_point_id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, current_timestamp)
+
+        if len(values[values["verification_flag"] == 1]) > 0:
+            raise Exception("Cannot scale values with verification flag 1")
+
+        values = Importing.process_scaled_values(cursor, values, False)
+
+        rows = Helper.editScalingPoint(cursor, model.id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, model.createdby, values.to_dict("records"))
+
+        if rows == 0:
+            raise BadRequest(description="Could not update.")
+
+        return jsonify({"success": True})
+
+
+@scale_endpoint.route("/api/processing/scale/scaling_points/insert", methods=['POST'])
+@jwt_required()
+def insert():
+    with CursorFromPool() as cursor:
+        model = InsertModel(**request.json)
+        model.createdby = get_jwt_identity()
+
+        values = Scaling.ReScale(cursor, True, model.sampling_point_id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, model.timestamp)
+
+        if len(values[values["verification_flag"] == 1]) > 0:
+            raise Exception("Cannot scale values with verification flag 1")
+
+        values = Importing.process_scaled_values(cursor, values, False)
+        rows = Helper.addScalingPoint(cursor, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, model.sampling_point_id, model.createdby, values.to_dict("records"))
+
+        if rows == 0:
+            raise BadRequest(description="Could not insert.")
+
+        return jsonify({"success": True})
+
+
+@scale_endpoint.route("/api/processing/scale/scaling_points/delete", methods=['POST'])
+@jwt_required()
+def delete():
+    with CursorFromPool() as cursor:
+        model = DeleteModel(**request.json)
+        sp = Helper.getScalingPoint(cursor, model.id)
+        values = Scaling.ReScale(cursor, False, sp["sampling_point_id"], sp["zero_point"], sp["span_value"], sp["gas_concentration"], sp["timestamp"], sp["timestamp"])
+
+        if len(values[values["verification_flag"] == 1]) > 0:
+            raise Exception("Cannot scale values with verification flag 1")
+
+        values = Importing.process_scaled_values(cursor, values, False)
+        rows = Helper.removeScalingPoint(cursor, model.id, values.to_dict("records"))
+
+        if rows == 0:
+            raise BadRequest(description="Could not delete.")
+
+        return jsonify({"success": True})
+
+
+@scale_endpoint.route("/api/processing/scale/scaling_points/preview", methods=['POST'])
+@jwt_required()
+def preview():
+    with CursorFromPool() as cursor:
+        model = InsertModel(**request.json)
+        model.createdby = get_jwt_identity()
+        current_timestamp = model.current_timestamp if model.current_timestamp is not None else model.timestamp
+
+        values = Scaling.ReScale(cursor, True, model.sampling_point_id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, current_timestamp)
+
+        hasVerifiedValues = len(values[values["verification_flag"] == 1]) > 0
+
+        values = Importing.process_scaled_values(cursor, values, False)
+
+        return {"message": "The data contains verified values" if hasVerifiedValues else "", "values": values.to_dict("records")}
+
+
 ## LOOKUPS ##
-
-
 @scale_endpoint.route('/api/processing/scale/timeseries', methods=['GET'])
 @jwt_required()
 def timeseries():

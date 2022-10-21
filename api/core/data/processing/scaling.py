@@ -1,7 +1,9 @@
 from pandas import DataFrame
+import pandas as pd
 import time
 import numpy as np
 from api.core.printcol import printcol
+from api.core.data.processing.common import Common
 
 
 class Scaling:
@@ -40,12 +42,15 @@ class Scaling:
                             df_values.at[row.Index,  "scaled_value"] = scaled_value
 
         printcol(f"- Scaling took {time.perf_counter() - bench} seconds")
+        return df_values
 
     @staticmethod
     def ReScale(cursor, use_scalingpoint, sampling_point_id, zero, span, gas, timestamp, old_timestamp=None):
         minmax = Scaling.__minmax__(cursor, sampling_point_id, timestamp, old_timestamp)
-        values = Scaling.__get_imported_observations(cursor, sampling_point_id, minmax["min"], minmax["max"])
-        return Scaling.Scale(cursor, values, {"sampling_point_id": sampling_point_id, "zero_point": zero, "span_value": span, "gas_concentration": gas, "timestamp": timestamp, "old_timestamp": old_timestamp, "use_scalingpoint": use_scalingpoint})
+        df_values = Scaling.__get_imported_observations(cursor, sampling_point_id, minmax["min"], minmax["max"])
+        Common.validate_dataframe(df_values)
+        df_values = Common.add_timeserie_info(cursor, df_values)
+        return Scaling.Scale(cursor, df_values, {"sampling_point_id": sampling_point_id, "zero_point": zero, "span_value": span, "gas_concentration": gas, "timestamp": timestamp, "old_timestamp": old_timestamp, "use_scalingpoint": use_scalingpoint})
 
     @staticmethod
     def __minmax__(cursor, sampling_point_id, timestamp, old_timestamp):
@@ -84,8 +89,19 @@ class Scaling:
     @staticmethod
     def __get_imported_observations(cursor, sampling_point_id, min=None, max=None):
         sql = """
-            select o.id, o.sampling_point_id, o.begin_position, o.end_position, o.verification_flag, o.validation_flag, o.import_value::DOUBLE PRECISION, o.import_value::DOUBLE PRECISION as value, o.from_time, o.to_time, extract(epoch from o.to_time)*1000 as to_epoch , extract(epoch from o.from_time)*1000 as from_epoch
-            from observations o
+            select 
+              o.id, 
+              o.sampling_point_id, 
+              o.begin_position, 
+              o.end_position, 
+              o.verification_flag, 
+              o.validation_flag, 
+              o.import_value::DOUBLE PRECISION, 
+              o.import_value::DOUBLE PRECISION as value, 
+              o.from_time, o.to_time, 
+              extract(epoch from o.to_time)*1000 as to_epoch, 
+              extract(epoch from o.from_time)*1000 as from_epoch
+            from observations o 
             where o.sampling_point_id = %(sampling_point_id)s
         """
 
@@ -98,7 +114,8 @@ class Scaling:
         sql = sql + " order by o.to_time"
 
         cursor.execute(sql, {"sampling_point_id": sampling_point_id, "min": min, "max": max})
-        return cursor.fetchall()
+        values = cursor.fetchall()
+        return pd.DataFrame(values)
 
     @staticmethod
     def __scalingpoints__(cursor: any, sampling_point_id: str, scalingpoint=None):
