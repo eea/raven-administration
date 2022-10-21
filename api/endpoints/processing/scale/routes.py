@@ -101,7 +101,7 @@ def delete():
 @jwt_required()
 def preview():
     with CursorFromPool() as cursor:
-        model = InsertModel(**request.json)
+        model = PreviewModel(**request.json)
         model.createdby = get_jwt_identity()
         current_timestamp = model.current_timestamp if model.current_timestamp is not None else model.timestamp
 

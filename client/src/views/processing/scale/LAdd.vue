@@ -8,7 +8,7 @@ const props = defineProps({
 
 watch(
   () => props.show,
-  () => (props.obj.value = {})
+  () => (props.obj = {})
 );
 </script>
 

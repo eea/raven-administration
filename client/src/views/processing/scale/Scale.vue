@@ -40,7 +40,6 @@ const loadData = async () => {
 const onShowScalingpoints = async () => {
   showPlotAndTable.value = true;
   scalingpoints.value = await Service.scalingpoints({ sampling_point_id: timeserieId.value });
-  console.log("scalingpoints", scalingpoints.value);
 
   const config1 = Plot.config();
   const config2 = Plot.config();
