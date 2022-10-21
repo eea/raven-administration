@@ -26,6 +26,7 @@ watch(
 const emit = defineEmits(["update:modelValue"]);
 
 const onClick = (el) => {
+  console.log("el", el);
   internalValue.value = !internalValue.value;
   emit("update:modelValue", internalValue.value);
 };
@@ -43,7 +44,7 @@ export default {
 </script>
 
 <template>
-  <label @click="onClick($el)" style="cursor: pointer">
+  <label class="n-checkbox-wrapper" @click="onClick($el)" style="cursor: pointer" v-bind="$attrs">
     <div class="n-checkbox" v-bind="$attrs" :class="cls"></div>
     <span class="ml-1" style="position: relative; bottom: 2px">{{ label }}</span>
   </label>
