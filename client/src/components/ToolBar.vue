@@ -67,7 +67,7 @@ const columnsChanged = (column) => {
         </div>
       </div>
       <div v-if="showFilter" class="flex">
-        <input :placeholder="filterText" class="n-input" type="search" :value="modelValue" input="$emit('update:modelValue', $event.target.value)" v-bind="$attrs" />
+        <input :placeholder="filterText" class="n-input" type="search" :value="modelValue" @input="$emit('update:modelValue', $event.target.value)" v-bind="$attrs" />
       </div>
     </div>
     <contextmenu :evt="ev" :show="showColumnPicker" @click-outside="showColumnPicker = false">
