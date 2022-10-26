@@ -122,9 +122,7 @@ const onDownload = () => {
           <td>{{ row.address }}</td>
           <td>{{ row.phone }}</td>
           <td>{{ row.website }}</td>
-          <td class="!text-center">
-            <n-checkbox v-model="row.is_responsible_reporter" :disabled="true" />
-          </td>
+          <td><n-checkbox v-model="row.is_responsible_reporter" :disabled="true" /></td>
         </tr>
       </table>
     </div>
