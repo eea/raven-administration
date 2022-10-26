@@ -72,7 +72,7 @@ const setSelectedOnOptions = () => {
   for (let i = 0; i < options.value.children.length; i++) {
     var v = options.value.children[i].getAttribute("value");
     var values = p.modelValue.map((p) => p);
-    if (values.includes(v)) {
+    if (values.some((p) => String(p) == String(v))) {
       options.value.children[i].setAttribute("selected", true);
       labels.value[v] = options.value.children[i].getAttribute("label");
     } else options.value.children[i].removeAttribute("selected");
