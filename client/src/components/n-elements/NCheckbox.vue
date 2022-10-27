@@ -26,7 +26,6 @@ watch(
 const emit = defineEmits(["update:modelValue"]);
 
 const onClick = (el) => {
-  console.log("el", el);
   internalValue.value = !internalValue.value;
   emit("update:modelValue", internalValue.value);
 };
