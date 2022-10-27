@@ -25,6 +25,9 @@ const Dataflow = () => import("./views/data/dataflow/Dataflow.vue");
 const Validate = () => import("./views/qualitycontrol/validate/Validate.vue");
 const Verify = () => import("./views/qualitycontrol/verify/Verify.vue");
 
+const Users = () => import("./views/access/users/Users.vue");
+const Groups = () => import("./views/access/groups/Groups.vue");
+
 const Notfound = () => import("./views/notfound/Notfound.vue");
 
 const routes = [
@@ -51,6 +54,9 @@ const routes = [
 
   { path: "/qualitycontrol/validate", component: Validate, name: "Validate" },
   { path: "/qualitycontrol/verify", component: Verify, name: "Verify" },
+
+  { path: "/acess/users", component: Users, name: "Users" },
+  { path: "/acess/groups", component: Groups, name: "Groups" },
 
   { path: "/:pathMatch(.*)*", component: Notfound }
 ];

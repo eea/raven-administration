@@ -49,8 +49,8 @@ const modules = [
   {
     group: "Access",
     items: [
-      { name: "Users", comp: "access/users" },
-      { name: "Groups", comp: "access/groups" }
+      { name: "Users", comp: "Users" },
+      { name: "Groups", comp: "Groups" }
     ]
   }
 ];
