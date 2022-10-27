@@ -86,12 +86,14 @@ watch(
             </n-select>
           </div>
 
-          <div class="mb-2 pt-2">
-            <n-checkbox v-model="obj.mobile" class="mr-1" label="Mobile" />
+          <div class="mt-2 mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
+            <div class="font-bold self-center flex-1" @click="obj.mobile = !obj.mobile">Mobile:</div>
+            <n-checkbox v-model="obj.mobile" class="self-center" />
           </div>
 
-          <div class="mb-2">
-            <n-checkbox v-model="obj.used_aqd" class="mr-1" label="Used Aqd" />
+          <div class="mt-2 mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
+            <div class="font-bold self-center flex-1" @click="obj.used_aqd = !obj.used_aqd">Used Aqd:</div>
+            <n-checkbox v-model="obj.used_aqd" class="self-center" />
           </div>
         </div>
       </div>

@@ -3,10 +3,6 @@ var p = defineProps({
   modelValue: {
     type: Boolean,
     default: false
-  },
-  label: {
-    type: String,
-    default: ""
   }
 });
 
@@ -43,8 +39,5 @@ export default {
 </script>
 
 <template>
-  <label class="n-checkbox-wrapper" @click="onClick($el)" style="cursor: pointer" v-bind="$attrs">
-    <div class="n-checkbox" v-bind="$attrs" :class="cls"></div>
-    <span class="ml-1" style="position: relative; bottom: 2px">{{ label }}</span>
-  </label>
+  <div class="n-checkbox" v-bind="$attrs" :class="cls" @click="onClick($el)"></div>
 </template>

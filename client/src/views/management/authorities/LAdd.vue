@@ -52,13 +52,9 @@ watch(
       <div class="font-bold">Website:</div>
       <input type="text" class="n-input w-64" v-model="obj.website" placeholder="str: Website of authority" />
     </div>
-    <div class="mb-2">
-      <div class="font-bold">Is the main authority:</div>
-      <n-checkbox v-model="obj.is_responsible_reporter" />
-      <!-- <n-select v-model="obj.is_responsible_reporter" class="!w-64">
-        <n-option value="true" label="true" />
-        <n-option value="false" label="false" />
-      </n-select> -->
+    <div class="mt-2 mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
+      <div class="font-bold self-center flex-1" @click="obj.is_responsible_reporter = !obj.is_responsible_reporter">Is the main authority:</div>
+      <n-checkbox v-model="obj.is_responsible_reporter" class="self-center" />
     </div>
   </side-bar-crud>
 </template>

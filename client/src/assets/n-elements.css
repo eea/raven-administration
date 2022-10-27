@@ -170,10 +170,6 @@ N-CHECKBOX
   @apply pointer-events-none cursor-auto   outline-nord3/40;
 }
 
-.n-checkbox-wrapper[disabled="true"] {
-  @apply pointer-events-none cursor-auto;
-}
-
 .n-checkbox-checked {
   @apply bg-nord14;
 }
