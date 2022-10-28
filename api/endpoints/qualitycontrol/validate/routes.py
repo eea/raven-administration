@@ -3,13 +3,13 @@ from werkzeug.exceptions import BadRequest
 from flask_jwt_extended import jwt_required
 from api.core.database import CursorFromPool
 from api.endpoints.qualitycontrol.validate.models import TimevalueModel, FlagModel
-
+from api.core.jwt_ext_custom import jwt_required_with_qualitycontrol_claim
 
 validate_endpoint = Blueprint('validate', __name__)
 
 
 @validate_endpoint.route('/api/qualitycontrol/validate/timevalues', methods=['POST'])
-@jwt_required()
+@jwt_required_with_qualitycontrol_claim()
 def timevalues():
     m = TimevalueModel(**request.json)
     with CursorFromPool() as cursor:
@@ -34,7 +34,7 @@ def timevalues():
 
 
 @validate_endpoint.route('/api/qualitycontrol/validate/flag', methods=['POST'])
-@jwt_required()
+@jwt_required_with_qualitycontrol_claim()
 def flag():
     m = FlagModel(**request.json)
     with CursorFromPool() as cursor:
@@ -51,7 +51,7 @@ def flag():
 ## LOOKUPS ##
 
 @validate_endpoint.route('/api/qualitycontrol/validate/timeseries', methods=['GET'])
-@jwt_required()
+@jwt_required_with_qualitycontrol_claim()
 def timeseries():
     with CursorFromPool() as cursor:
         cursor.execute("""

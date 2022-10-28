@@ -3,13 +3,13 @@ from werkzeug.exceptions import BadRequest
 from flask_jwt_extended import jwt_required
 from api.core.database import CursorFromPool
 from api.endpoints.qualitycontrol.verify.models import DatasetModel, FlagModel
-
+from api.core.jwt_ext_custom import jwt_required_with_qualitycontrol_claim
 
 verify_endpoint = Blueprint('verify', __name__)
 
 
 @verify_endpoint.route('/api/qualitycontrol/verify/datasets', methods=['POST'])
-@jwt_required()
+@jwt_required_with_qualitycontrol_claim()
 def datasets():
     m = DatasetModel(**request.json)
     with CursorFromPool() as cursor:
@@ -43,7 +43,7 @@ def datasets():
 
 
 @verify_endpoint.route('/api/qualitycontrol/verify/stations', methods=['GET'])
-@jwt_required()
+@jwt_required_with_qualitycontrol_claim()
 def stations():
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -60,7 +60,7 @@ def stations():
 
 
 @verify_endpoint.route('/api/qualitycontrol/verify/flag', methods=['POST'])
-@jwt_required()
+@jwt_required_with_qualitycontrol_claim()
 def flag():
     m = FlagModel(**request.json)
     with CursorFromPool() as cursor:

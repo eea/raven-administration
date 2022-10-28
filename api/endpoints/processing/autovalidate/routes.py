@@ -3,13 +3,13 @@ from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
 from api.endpoints.processing.autovalidate.models import InsertModel, UpdateModel, DeleteModel
-
+from api.core.jwt_ext_custom import jwt_required_with_processing_claim
 
 autovalidate_endpoint = Blueprint("autovalidate", __name__)
 
 
 @autovalidate_endpoint.route("/api/processing/autovalidate", methods=['GET'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def autovalidate():
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -23,7 +23,7 @@ def autovalidate():
 
 
 @autovalidate_endpoint.route("/api/processing/autovalidate/insert", methods=['POST'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def autovalidate_insert():
     with CursorFromPool() as cursor:
         model = InsertModel(**request.json)
@@ -36,7 +36,7 @@ def autovalidate_insert():
 
 
 @autovalidate_endpoint.route("/api/processing/autovalidate/delete", methods=['POST'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def autovalidate_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
@@ -49,7 +49,7 @@ def autovalidate_delete():
 
 
 @autovalidate_endpoint.route("/api/processing/autovalidate/update", methods=['POST'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def autovalidate_update():
     with CursorFromPool() as cursor:
         model = UpdateModel(**request.json)
@@ -68,7 +68,7 @@ def autovalidate_update():
 ## LOOKUPS ##
 
 @autovalidate_endpoint.route("/api/processing/autovalidate/pollutants", methods=['GET'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def autovalidate_pollutants():
     with CursorFromPool() as cursor:
         cursor.execute("""

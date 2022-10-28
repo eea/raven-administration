@@ -5,12 +5,13 @@ from api.core.query import Q
 from api.core.utils import U
 from api.endpoints.data.dataflow.models import DataflowModel, DataflowModelE2a
 from api.core.eea.dataflows import Dataflows
-
+from api.core.jwt_ext_custom import jwt_required_with_exporting_claim
 
 dataflow_endpoint = Blueprint('dataflow', __name__)
 
 
 @dataflow_endpoint.route('/api/dataflow', methods=['GET'])
+@jwt_required_with_exporting_claim()
 def dataflows():
     m = DataflowModel(**request.args.to_dict())
     xml = Dataflows.get_xml(m.type, m.year, m.timezone, m.description)
@@ -21,6 +22,7 @@ def dataflows():
 
 
 @dataflow_endpoint.route('/api/dataflow/e2a', methods=['GET'])
+@jwt_required_with_exporting_claim()
 def dataflows_e2a():
     m = DataflowModelE2a(**request.args.to_dict())
     xml = Dataflows.get_dataflowE2A(m.last_request)

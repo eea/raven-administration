@@ -1,5 +1,4 @@
 from flask import jsonify, Blueprint, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
 from api.core.database import CursorFromPool
 from api.core.user import add_user, update_user, remove_user, add_group, update_group, remove_group
 from api.endpoints.access.models import InsertModel, UpdateModel, DeleteModel, InsertGroupModel, UpdateGroupModel

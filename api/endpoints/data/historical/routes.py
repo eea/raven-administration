@@ -4,13 +4,13 @@ from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
 from api.endpoints.data.historical.models import HistoricalModel
 from api.core.data.mean import Mean, MeanType
-
+from api.core.jwt_ext_custom import jwt_required_with_observations_claim
 
 historical_endpoint = Blueprint('historical', __name__)
 
 
 @historical_endpoint.route('/api/data/historical', methods=['POST'])
-@jwt_required()
+@jwt_required_with_observations_claim()
 def historical():
     with CursorFromPool() as cursor:
         m = HistoricalModel(**request.json)
@@ -21,7 +21,7 @@ def historical():
 ## LOOKUPS ##
 
 @historical_endpoint.route('/api/data/historical/timeseries', methods=['GET'])
-@jwt_required()
+@jwt_required_with_observations_claim()
 def timeseries():
     with CursorFromPool() as cursor:
         cursor.execute("""

@@ -1,14 +1,12 @@
-from flask import jsonify, Blueprint, request
-from flask_jwt_extended import jwt_required
+from flask import jsonify, Blueprint
 from api.core.database import CursorFromPool
-from api.core.data.mean import Mean, MeanType
-
+from api.core.jwt_ext_custom import jwt_required_with_observations_claim
 
 latest_endpoint = Blueprint('latest', __name__)
 
 
 @latest_endpoint.route('/api/data/latest', methods=['GET'])
-@jwt_required()
+@jwt_required_with_observations_claim()
 def latest():
     with CursorFromPool() as cursor:
         sql = """

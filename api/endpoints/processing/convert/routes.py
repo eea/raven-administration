@@ -1,16 +1,16 @@
 from flask import jsonify, Blueprint, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
 from api.endpoints.processing.convert.models import InsertModel, UpdateModel, DeleteModel
 from api.core.query import Q
-
+from api.core.jwt_ext_custom import jwt_required_with_processing_claim
+from api.core.jwt_ext_custom import get_name
 
 convert_endpoint = Blueprint("convert", __name__)
 
 
 @convert_endpoint.route("/api/processing/convert", methods=['GET'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def convert():
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -34,11 +34,11 @@ def convert():
 
 
 @convert_endpoint.route("/api/processing/convert/insert", methods=['POST'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def convert_insert():
     with CursorFromPool() as cursor:
         model = InsertModel(**request.json)
-        model.createdby = get_jwt_identity()
+        model.createdby = get_name()
         sql = """ 
              insert into converted_series ("sampling_point_id", "source", "target", "factor", createdby) 
             values (%(sampling_point_id)s,%(source_id)s,%(target_id)s,%(factor)s, %(createdby)s)
@@ -48,7 +48,7 @@ def convert_insert():
 
 
 @convert_endpoint.route("/api/processing/convert/delete", methods=['POST'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def convert_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
@@ -61,7 +61,7 @@ def convert_delete():
 
 
 @convert_endpoint.route("/api/processing/convert/update", methods=['POST'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def convert_update():
     with CursorFromPool() as cursor:
         model = UpdateModel(**request.json)
@@ -82,7 +82,7 @@ def convert_update():
 ## LOOKUPS ##
 
 @convert_endpoint.route("/api/processing/convert/units", methods=['GET'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def convert_units():
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -95,7 +95,7 @@ def convert_units():
 
 
 @convert_endpoint.route("/api/processing/convert/timeseries", methods=['GET'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def convert_timeseries():
     timeseries = Q.timeseries()
     return jsonify(timeseries)

@@ -1,16 +1,16 @@
 from flask import jsonify, Blueprint, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
 from api.endpoints.processing.calculate.models import InsertModel, UpdateModel, DeleteModel
 from api.core.query import Q
+from api.core.jwt_ext_custom import jwt_required_with_processing_claim
 
 
 calculate_endpoint = Blueprint("calculate", __name__)
 
 
 @calculate_endpoint.route("/api/processing/calculate", methods=['GET'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def calculate():
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -43,7 +43,7 @@ def calculate():
 
 
 @calculate_endpoint.route("/api/processing/calculate/insert", methods=['POST'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def calculate_insert():
     with CursorFromPool() as cursor:
         model = InsertModel(**request.json)
@@ -56,7 +56,7 @@ def calculate_insert():
 
 
 @calculate_endpoint.route("/api/processing/calculate/delete", methods=['POST'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def calculate_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
@@ -69,7 +69,7 @@ def calculate_delete():
 
 
 @calculate_endpoint.route("/api/processing/calculate/update", methods=['POST'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def calculate_update():
     with CursorFromPool() as cursor:
         model = UpdateModel(**request.json)
@@ -92,7 +92,7 @@ def calculate_update():
 
 
 @calculate_endpoint.route("/api/processing/calculate/timeseries", methods=['GET'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def calculate_timeseries():
     timeseries = Q.timeseries()
     return jsonify(timeseries)

@@ -1,18 +1,19 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
-from flask_jwt_extended import jwt_required, get_jwt_identity
 from api.core.database import CursorFromPool
 from api.endpoints.processing.scale.helper import Helper
 from api.endpoints.processing.scale.models import ScalingpointModel, UpdateModel, InsertModel, DeleteModel, PreviewModel
 from api.core.data.processing.scaling import Scaling
 from api.core.data.processing.importing import Importing
+from api.core.jwt_ext_custom import jwt_required_with_processing_claim
+from api.core.jwt_ext_custom import get_name
 
 
 scale_endpoint = Blueprint('scale', __name__)
 
 
 @scale_endpoint.route("/api/processing/scale/scaling_points", methods=['POST'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def scaling_points():
     with CursorFromPool() as cursor:
         model = ScalingpointModel(**request.json)
@@ -34,11 +35,11 @@ def scaling_points():
 
 
 @scale_endpoint.route("/api/processing/scale/scaling_points/update", methods=['POST'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def update():
     with CursorFromPool() as cursor:
         model = UpdateModel(**request.json)
-        model.createdby = get_jwt_identity()
+        model.createdby = get_name()
         current_timestamp = model.current_timestamp if model.current_timestamp is not None else model.timestamp
 
         values = Scaling.ReScale(cursor, True, model.sampling_point_id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, current_timestamp)
@@ -57,11 +58,11 @@ def update():
 
 
 @scale_endpoint.route("/api/processing/scale/scaling_points/insert", methods=['POST'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def insert():
     with CursorFromPool() as cursor:
         model = InsertModel(**request.json)
-        model.createdby = get_jwt_identity()
+        model.createdby = get_name()
 
         values = Scaling.ReScale(cursor, True, model.sampling_point_id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, model.timestamp)
 
@@ -78,7 +79,7 @@ def insert():
 
 
 @scale_endpoint.route("/api/processing/scale/scaling_points/delete", methods=['POST'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
@@ -98,11 +99,11 @@ def delete():
 
 
 @scale_endpoint.route("/api/processing/scale/scaling_points/preview", methods=['POST'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def preview():
     with CursorFromPool() as cursor:
         model = PreviewModel(**request.json)
-        model.createdby = get_jwt_identity()
+        model.createdby = get_name()
         current_timestamp = model.current_timestamp if model.current_timestamp is not None else model.timestamp
 
         values = Scaling.ReScale(cursor, True, model.sampling_point_id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, current_timestamp)
@@ -116,7 +117,7 @@ def preview():
 
 ## LOOKUPS ##
 @scale_endpoint.route('/api/processing/scale/timeseries', methods=['GET'])
-@jwt_required()
+@jwt_required_with_processing_claim()
 def timeseries():
     with CursorFromPool() as cursor:
         cursor.execute("""
