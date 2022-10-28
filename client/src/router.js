@@ -1,5 +1,6 @@
 import { createWebHistory, createRouter } from "vue-router";
 import Auth from "./helpers/auth";
+import Eventy from "./helpers/eventy";
 
 const Login = () => import("./views/login/Login.vue");
 
@@ -28,6 +29,7 @@ const Verify = () => import("./views/qualitycontrol/verify/Verify.vue");
 const Users = () => import("./views/access/users/Users.vue");
 const Groups = () => import("./views/access/groups/Groups.vue");
 
+const Forbidden = () => import("./views/forbidden/Forbidden.vue");
 const Notfound = () => import("./views/notfound/Notfound.vue");
 
 const routes = [
@@ -58,6 +60,7 @@ const routes = [
   { path: "/acess/users", component: Users, name: "Users" },
   { path: "/acess/groups", component: Groups, name: "Groups" },
 
+  { path: "/forbidden", component: Forbidden, name: "Forbidden" },
   { path: "/:pathMatch(.*)*", component: Notfound }
 ];
 
@@ -67,6 +70,7 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
+  Eventy.hideMessage();
   var isAuth = Auth.isAuth();
   if (to.name !== "Login" && !isAuth) next({ name: "Login" });
   else next();

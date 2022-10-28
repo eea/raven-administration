@@ -3,14 +3,14 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from api.core.database import CursorFromPool
 from api.core.user import add_user, update_user, remove_user, add_group, update_group, remove_group
 from api.endpoints.access.models import InsertModel, UpdateModel, DeleteModel, InsertGroupModel, UpdateGroupModel
-
+from api.core.jwt_ext_custom import jwt_required_with_users_claim, get_name
 
 access_endpoint = Blueprint('access', __name__)
 
 
 # USERS
 @access_endpoint.route('/api/access/users', methods=['GET'])
-@jwt_required()
+@jwt_required_with_users_claim()
 def users():
     with CursorFromPool() as cursor:
         sql = """
@@ -31,23 +31,23 @@ def users():
 
 
 @access_endpoint.route('/api/access/users/insert', methods=['POST'])
-@jwt_required()
+@jwt_required_with_users_claim()
 def users_insert():
     model = InsertModel(**request.json)
-    add_user(model.name, model.username, model.password, model.groups, get_jwt_identity())
+    add_user(model.name, model.username, model.password, model.groups, get_name())
     return jsonify({"success": True})
 
 
 @access_endpoint.route('/api/access/users/update', methods=['POST'])
-@jwt_required()
+@jwt_required_with_users_claim()
 def users_update():
     model = UpdateModel(**request.json)
-    update_user(model.id, model.name, model.username, model.password, model.groups, get_jwt_identity())
+    update_user(model.id, model.name, model.username, model.password, model.groups, get_name())
     return jsonify({"success": True})
 
 
 @access_endpoint.route('/api/access/users/delete', methods=['POST'])
-@jwt_required()
+@jwt_required_with_users_claim()
 def users_delete():
     model = DeleteModel(**request.json)
     remove_user(model.id)
@@ -56,7 +56,7 @@ def users_delete():
 
 # GROUPS
 @access_endpoint.route('/api/access/groups', methods=['GET'])
-@jwt_required()
+@jwt_required_with_users_claim()
 def groups():
     with CursorFromPool() as cursor:
         sql = """
@@ -77,7 +77,7 @@ def groups():
 
 
 @access_endpoint.route('/api/access/groups/insert', methods=['POST'])
-@jwt_required()
+@jwt_required_with_users_claim()
 def groups_insert():
     model = InsertGroupModel(**request.json)
     add_group(model.name, model.network, model.observations, model.exporting, model.processing, model.qualitycontrol, model.users, model.allnetworks, model.networks)
@@ -85,7 +85,7 @@ def groups_insert():
 
 
 @access_endpoint.route('/api/access/groups/update', methods=['POST'])
-@jwt_required()
+@jwt_required_with_users_claim()
 def groups_update():
     model = UpdateGroupModel(**request.json)
     update_group(model.id, model.name, model.network, model.observations, model.exporting, model.processing, model.qualitycontrol, model.users, model.allnetworks, model.networks)
@@ -93,7 +93,7 @@ def groups_update():
 
 
 @access_endpoint.route('/api/access/groups/delete', methods=['POST'])
-@jwt_required()
+@jwt_required_with_users_claim()
 def groups_delete():
     model = DeleteModel(**request.json)
     remove_group(model.id)
@@ -102,7 +102,7 @@ def groups_delete():
 
 # LOOKUPS
 @access_endpoint.route('/api/access/networks', methods=['GET'])
-@jwt_required()
+@jwt_required_with_users_claim()
 def networks():
     with CursorFromPool() as cursor:
         sql = """

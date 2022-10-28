@@ -3,57 +3,83 @@ import { useRouter } from "vue-router";
 import Auth from "../helpers/auth";
 import IconLogout from "~icons/ic/outline-logout";
 import { version } from "../helpers/utils";
-const router = useRouter();
+import jwt_decode from "jwt-decode";
 
-const modules = [
-  {
-    group: "Management",
-    items: [
-      { name: "Authorities", comp: "Authorities" },
-      { name: "Networks", comp: "Networks" },
-      { name: "Zones", comp: "Zones" },
-      // { name: "Areas", comp: "management/areas" },
-      { name: "Sampling Points", comp: "SamplingPoints" },
-      { name: "Stations", comp: "Stations" },
-      { name: "Processes", comp: "Processes" },
-      { name: "Samples", comp: "Samples" },
-      { name: "Observing Capabilities", comp: "ObservingCapabilities" },
-      { name: "Assessment Regimes", comp: "AssessmentRegimes" }
-      // { name: "Timeseries", comp: "management/timeseries" }
-    ]
-  },
-  {
-    group: "Data",
-    items: [
-      { name: "Latest data", comp: "Latest" },
-      { name: "Historical data", comp: "Historical" },
-      { name: "Dataflow", comp: "Dataflow" }
-    ]
-  },
-  {
-    group: "Import process",
-    items: [
-      { name: "Auto validate", comp: "AutoValidate" },
-      { name: "Convert", comp: "Convert" },
-      { name: "Calculate", comp: "Calculate" },
-      { name: "Scale", comp: "Scale" }
-    ]
-  },
-  {
-    group: "Quality control",
-    items: [
-      { name: "Validate", comp: "Validate" },
-      { name: "Verify", comp: "Verify" }
-    ]
-  },
-  {
-    group: "Access",
-    items: [
-      { name: "Users", comp: "Users" },
-      { name: "Groups", comp: "Groups" }
-    ]
-  }
-];
+const router = useRouter();
+const modules = ref([]);
+
+const props = defineProps({
+  show: Boolean
+});
+
+watch(
+  () => props.show,
+  () => (modules.value = getmodules())
+);
+
+onMounted(() => {
+  modules.value = getmodules();
+});
+
+const getmodules = () => {
+  var token = sessionStorage.getItem("token");
+  if (!token) return [];
+  const jwt = jwt_decode(token);
+  console.log("JWT", jwt);
+  return [
+    {
+      group: "Management",
+      show: jwt.users || jwt.network || jwt.observations,
+      items: [
+        { name: "Authorities", comp: "Authorities", show: jwt.users },
+        { name: "Networks", comp: "Networks", show: jwt.network },
+        { name: "Zones", comp: "Zones", show: jwt.network },
+        { name: "Sampling Points", comp: "SamplingPoints", show: jwt.observations },
+        { name: "Stations", comp: "Stations", show: jwt.network },
+        { name: "Processes", comp: "Processes", show: jwt.network },
+        { name: "Samples", comp: "Samples", show: jwt.observations },
+        { name: "Observing Capabilities", comp: "ObservingCapabilities", show: jwt.observations },
+        { name: "Assessment Regimes", comp: "AssessmentRegimes", show: jwt.network }
+      ]
+    },
+    {
+      group: "Data",
+      show: jwt.observations || jwt.exporting,
+      items: [
+        { name: "Latest data", comp: "Latest", show: jwt.observations },
+        { name: "Historical data", comp: "Historical", show: jwt.observations },
+        { name: "Dataflow", comp: "Dataflow", show: jwt.exporting }
+      ]
+    },
+    {
+      group: "Import process",
+      show: jwt.processing,
+      items: [
+        { name: "Auto validate", comp: "AutoValidate", show: jwt.processing },
+        { name: "Convert", comp: "Convert", show: jwt.processing },
+        { name: "Calculate", comp: "Calculate", show: jwt.processing },
+        { name: "Scale", comp: "Scale", show: jwt.processing }
+      ]
+    },
+    {
+      group: "Quality control",
+      show: jwt.qualitycontrol,
+      items: [
+        { name: "Validate", comp: "Validate", show: jwt.qualitycontrol },
+        { name: "Verify", comp: "Verify", show: jwt.qualitycontrol }
+      ]
+    },
+    {
+      group: "Access",
+      show: jwt.users,
+      items: [
+        { name: "Users", comp: "Users", show: jwt.users },
+        { name: "Groups", comp: "Groups", show: jwt.users }
+      ]
+    }
+  ];
+};
+
 const goto = (comp) => {
   router.push({ name: comp });
 };
@@ -67,11 +93,11 @@ const cmp_version = computed(() => version);
 </script>
 
 <template>
-  <div class="border border-nord4 flex flex-col justify-between bg-gray-50 select-none">
+  <div class="border border-nord4 flex flex-col justify-between bg-gray-50 select-none" v-show="show">
     <div>
-      <div class="mt-1 flex flex-col border-b" v-for="m in modules" :key="m.group">
+      <div class="mt-1 flex flex-col border-b" v-for="m in modules" :key="m.group" v-show="m.show">
         <div class="font-bold select-none px-2 mt-2 mb-1">{{ m.group }}</div>
-        <div class="hover:bg-gray-100 hover:cursor-pointer" v-for="i in m.items" :key="i.name" @click="goto(i.comp)">
+        <div class="hover:bg-gray-100 hover:cursor-pointer" v-for="i in m.items" :key="i.name" @click="goto(i.comp)" v-show="i.show">
           <div class="py-1 px-4">{{ i.name }}</div>
         </div>
       </div>

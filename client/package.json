@@ -15,6 +15,7 @@
     "chartjs-plugin-autocolors": "^0.0.7",
     "date-fns": "^2.29.2",
     "js-file-download": "^0.4.12",
+    "jwt-decode": "^3.1.2",
     "leaflet": "^1.8.0",
     "luxon": "^3.0.4",
     "mitt": "^3.0.0",

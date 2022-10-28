@@ -1,23 +1,47 @@
 from datetime import datetime
 from api.core.database import CursorFromPool
-from pydantic import BaseModel
+from pydantic import BaseModel, conlist
 from werkzeug.security import check_password_hash, generate_password_hash
-from typing import Optional
+from typing import List, Optional
 
 
 class User(BaseModel):
     id: str
     name: str
     username: str
+    network: bool
+    observations: bool
+    exporting: bool
+    processing: bool
+    qualitycontrol: bool
+    users: bool
+    allnetworks: bool
+    networks: conlist(str, min_items=0)
 
 
 # USER
 def get_user(username, password):
     with CursorFromPool() as cursor:
         sql = """
-             select id, name, username, password
-             from users
-             where username = %(username)s
+          select
+            u.id, u.name, u.username, u.password,
+            bool_or(g.network) as network, 
+            bool_or(g.observations) as observations,
+            bool_or(g.exporting) as exporting,
+            bool_or(g.processing) as processing, 
+            bool_or(g.qualitycontrol) as qualitycontrol,
+            bool_or(g.allnetworks) as allnetworks,
+            bool_or(g.users) as users,
+            CASE
+                WHEN bool_or(g.allnetworks) = true
+                THEN '{}'
+                ELSE coalesce( array_agg(gn.networkid) FILTER (WHERE gn.networkid is not NULL),'{}')
+            END as networks
+          from users u, usergroup ug, "group" g left join groupnetwork gn on gn.groupid = g.id
+          where ug.userid = u.id
+          and ug.groupid = g.id
+          and u.username = %(username)s
+          group by u.id, u.name, u.username, u.password             
         """
         cursor.execute(sql, {"username": username})
         user = cursor.fetchone()
@@ -26,6 +50,20 @@ def get_user(username, password):
             return None
 
         return User(**user)
+
+
+def get_claims(user: User):
+    return {
+        "name": user.name,
+        "network": user.network,
+        "observations": user.observations,
+        "exporting": user.exporting,
+        "processing": user.processing,
+        "qualitycontrol": user.qualitycontrol,
+        "allnetworks": user.allnetworks,
+        "users": user.users,
+        "networks": user.networks
+    }
 
 
 def remove_user(id):

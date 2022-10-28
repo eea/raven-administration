@@ -1,7 +1,7 @@
 from flask import jsonify, Blueprint, request
 from flask_jwt_extended import create_access_token
 from werkzeug.exceptions import BadRequest
-from api.core.user import get_user
+from api.core.user import get_user, get_claims
 
 auth_endpoint = Blueprint('auth', __name__)
 
@@ -13,7 +13,7 @@ def login():
     if usr and pwd:
         user = get_user(usr, pwd)
         if user != None:
-            token = create_access_token(identity=user.username)
+            token = create_access_token(identity=user.username, additional_claims=get_claims(user))
             return jsonify({"token": token})
         else:
             raise BadRequest("Incorrect username or password")

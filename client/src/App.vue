@@ -16,7 +16,7 @@ const isLogin = computed(() => {
   <div class="h-full flex flex-col overflow-hidden">
     <top-bar @on-click="showMenu = !showMenu" :hide-menu-button="isLogin" />
     <div class="flex overflow-hidden flex-1">
-      <menu-bar v-if="showMenu && !isLogin" />
+      <menu-bar :show="showMenu && !isLogin" />
       <div class="flex-1 overflow-auto">
         <router-view></router-view>
       </div>

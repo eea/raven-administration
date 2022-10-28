@@ -84,7 +84,7 @@ const cls_rowClass = (row) => {
 };
 
 const cls_usedby = (row) => {
-  if (row.users == 0) return "text-nord11";
+  if (row.user_count == 0) return "text-nord11";
   return "text-nord14";
 };
 </script>

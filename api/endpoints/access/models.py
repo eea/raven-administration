@@ -1,4 +1,3 @@
-from xmlrpc.client import Boolean
 from pydantic import BaseModel, conlist
 from typing import Optional
 from pytz import timezone
@@ -36,13 +35,13 @@ class DeleteModel(BaseModel):
 
 class InsertGroupModel(BaseModel):
     name: str
-    network: Optional[Boolean] = False
-    observations: Optional[Boolean] = False
-    exporting: Optional[Boolean] = False
-    processing: Optional[Boolean] = False
-    qualitycontrol: Optional[Boolean] = False
-    users: Optional[Boolean] = False
-    allnetworks: Optional[Boolean] = False
+    network: Optional[bool] = False
+    observations: Optional[bool] = False
+    exporting: Optional[bool] = False
+    processing: Optional[bool] = False
+    qualitycontrol: Optional[bool] = False
+    users: Optional[bool] = False
+    allnetworks: Optional[bool] = False
     networks: conlist(str, min_items=0)
 
     def __getitem__(self, key):
@@ -52,13 +51,13 @@ class InsertGroupModel(BaseModel):
 class UpdateGroupModel(BaseModel):
     id: int
     name: str
-    network: Optional[Boolean] = False
-    observations: Optional[Boolean] = False
-    exporting: Optional[Boolean] = False
-    processing: Optional[Boolean] = False
-    qualitycontrol: Optional[Boolean] = False
-    users: Optional[Boolean] = False
-    allnetworks: Optional[Boolean] = False
+    network: Optional[bool] = False
+    observations: Optional[bool] = False
+    exporting: Optional[bool] = False
+    processing: Optional[bool] = False
+    qualitycontrol: Optional[bool] = False
+    users: Optional[bool] = False
+    allnetworks: Optional[bool] = False
     networks: conlist(str, min_items=0)
 
     def __getitem__(self, key):
