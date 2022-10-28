@@ -72,7 +72,7 @@ const downloadDataflowE2A = async () => {
       </div>
     </div>
 
-    <tool-bar title="Dataflow E1A (UTD)" :show-filter="false" :show-add="false" :show-download="false" class="mt-4" />
+    <tool-bar title="Dataflow E2A (UTD)" :show-filter="false" :show-add="false" :show-download="false" class="mt-4" />
 
     <div class="border border-nord4 bg-gray-50 p-2 flex flex-col gap-5">
       <div class="flex gap-3">
@@ -82,7 +82,7 @@ const downloadDataflowE2A = async () => {
         </div>
         <div>
           <div>&nbsp;</div>
-          <button class="n-button" @click="downloadDataflowE2A" :disabled="false">Dataflow E1A</button>
+          <button class="n-button" @click="downloadDataflowE2A" :disabled="false">Dataflow E2A</button>
         </div>
       </div>
     </div>
