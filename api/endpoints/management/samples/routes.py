@@ -2,15 +2,15 @@ from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
-
 from api.endpoints.management.samples.models import SampleModel, DeleteModel
+from api.core.jwt_ext_custom import jwt_required_with_observations_claim
 
 
 samples_endpoint = Blueprint('samples', __name__)
 
 
 @samples_endpoint.route('/api/management/samples', methods=['GET'])
-@jwt_required()
+@jwt_required_with_observations_claim()
 def samples():
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -23,7 +23,7 @@ def samples():
 
 
 @samples_endpoint.route('/api/management/samples/update', methods=['POST'])
-@jwt_required()
+@jwt_required_with_observations_claim()
 def samples_update():
     with CursorFromPool() as cursor:
         model = SampleModel(**request.json)
@@ -44,7 +44,7 @@ def samples_update():
 
 
 @samples_endpoint.route('/api/management/samples/delete', methods=['POST'])
-@jwt_required()
+@jwt_required_with_observations_claim()
 def samples_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)

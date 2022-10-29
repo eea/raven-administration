@@ -3,13 +3,14 @@ from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
 from api.endpoints.management.authorities.models import AuthorityModel, DeleteModel
+from api.core.jwt_ext_custom import jwt_required_with_users_claim
 
 
 authorities_endpoint = Blueprint('authorities', __name__)
 
 
 @authorities_endpoint.route('/api/management/authorities', methods=['GET'])
-@jwt_required()
+@jwt_required_with_users_claim()
 def authorities():
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -21,7 +22,7 @@ def authorities():
 
 
 @authorities_endpoint.route('/api/management/authorities/update', methods=['POST'])
-@jwt_required()
+@jwt_required_with_users_claim()
 def authorities_update():
     with CursorFromPool() as cursor:
         model = AuthorityModel(**request.json)
@@ -46,7 +47,7 @@ def authorities_update():
 
 
 @authorities_endpoint.route('/api/management/authorities/insert', methods=['POST'])
-@jwt_required()
+@jwt_required_with_users_claim()
 def authorities_insert():
     with CursorFromPool() as cursor:
         model = AuthorityModel(**request.json)
@@ -61,7 +62,7 @@ def authorities_insert():
 
 
 @authorities_endpoint.route("/api/management/authorities/delete", methods=['POST'])
-@jwt_required()
+@jwt_required_with_users_claim()
 def authorities_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)

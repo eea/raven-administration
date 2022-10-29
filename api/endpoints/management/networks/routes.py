@@ -4,13 +4,14 @@ from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
 from api.endpoints.management.networks.models import NetworkModel, DeleteModel
 from api.core.query import Q
+from api.core.jwt_ext_custom import jwt_required_with_network_claim
 
 
 networks_endpoint = Blueprint('networks', __name__)
 
 
 @networks_endpoint.route('/api/management/networks', methods=['GET'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def networks():
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -27,7 +28,7 @@ def networks():
 
 
 @networks_endpoint.route('/api/management/networks/update', methods=['POST'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def networks_update():
     with CursorFromPool() as cursor:
         model = NetworkModel(**request.json)
@@ -50,7 +51,7 @@ def networks_update():
 
 
 @networks_endpoint.route('/api/management/networks/insert', methods=['POST'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def networks_insert():
     with CursorFromPool() as cursor:
         model = NetworkModel(**request.json)
@@ -84,7 +85,7 @@ def networks_insert():
 
 
 @networks_endpoint.route("/api/management/networks/delete", methods=['POST'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def networks_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
@@ -99,7 +100,7 @@ def networks_delete():
 ## LOOKUPS ##
 
 @networks_endpoint.route('/api/management/networks/authorities', methods=['GET'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def authorities():
     with CursorFromPool() as cursor:
         cursor.execute("select r.name as label, r.id as value from responsible_authorities r order by r.name")
@@ -108,7 +109,7 @@ def authorities():
 
 
 @networks_endpoint.route('/api/management/networks/levels', methods=['GET'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def levels():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_organisationallevels r order by r.label")
@@ -117,7 +118,7 @@ def levels():
 
 
 @networks_endpoint.route('/api/management/networks/media', methods=['GET'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def media():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_mediavalues r order by r.label")
@@ -126,7 +127,7 @@ def media():
 
 
 @networks_endpoint.route('/api/management/networks/timezones', methods=['GET'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def timezones():
     timezones = Q.timezones()
     return jsonify(timezones)

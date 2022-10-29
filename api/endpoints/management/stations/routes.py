@@ -2,15 +2,15 @@ from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
-
 from api.endpoints.management.stations.models import StationModel
+from api.core.jwt_ext_custom import jwt_required_with_network_claim
 
 
 stations_endpoint = Blueprint('stations', __name__)
 
 
 @stations_endpoint.route('/api/management/stations', methods=['GET'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def stations():
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -52,7 +52,7 @@ def stations():
 
 
 @stations_endpoint.route('/api/management/stations/update', methods=['POST'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def stations_update():
     with CursorFromPool() as cursor:
         model = StationModel(**request.json)
@@ -76,7 +76,7 @@ def stations_update():
 
 
 @stations_endpoint.route('/api/management/stations/networks', methods=['GET'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def networks():
     with CursorFromPool() as cursor:
         cursor.execute("select r.name as label, r.id as value from networks r order by r.name")
@@ -85,7 +85,7 @@ def networks():
 
 
 @stations_endpoint.route('/api/management/stations/classifications', methods=['GET'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def classifications():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_areaclassifications r order by r.label")

@@ -5,7 +5,6 @@ from api.core.database import CursorFromPool
 from api.endpoints.management.networks.models import NetworkModel, DeleteModel
 from api.core.query import Q
 
-
 management_endpoint = Blueprint('management', __name__)
 
 ## LOOKUPS ##

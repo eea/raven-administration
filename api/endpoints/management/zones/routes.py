@@ -2,15 +2,15 @@ from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
-
 from api.endpoints.management.zones.models import ZoneModel, DeleteModel
+from api.core.jwt_ext_custom import jwt_required_with_network_claim
 
 
 zones_endpoint = Blueprint('zones', __name__)
 
 
 @zones_endpoint.route('/api/management/zones', methods=['GET'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def zones():
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -24,7 +24,7 @@ def zones():
 
 
 @zones_endpoint.route('/api/management/zones/update', methods=['POST'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def zones_update():
     with CursorFromPool() as cursor:
         model = ZoneModel(**request.json)
@@ -48,7 +48,7 @@ def zones_update():
 
 
 @zones_endpoint.route('/api/management/zones/insert', methods=['POST'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def zones_insert():
     with CursorFromPool() as cursor:
         model = ZoneModel(**request.json)
@@ -86,7 +86,7 @@ def zones_insert():
 
 
 @zones_endpoint.route("/api/management/zones/delete", methods=['POST'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def zones_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
@@ -101,7 +101,7 @@ def zones_delete():
 ## LOOKUPS ##
 
 @zones_endpoint.route('/api/management/zones/authorities', methods=['GET'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def authorities():
     with CursorFromPool() as cursor:
         cursor.execute("select r.name as label, r.id as value from responsible_authorities r order by r.name")
@@ -110,7 +110,7 @@ def authorities():
 
 
 @zones_endpoint.route('/api/management/zones/types', methods=['GET'])
-@jwt_required()
+@jwt_required_with_network_claim()
 def types():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_zonetypes r order by r.label")
