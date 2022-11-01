@@ -25,7 +25,6 @@ const getmodules = () => {
   var token = sessionStorage.getItem("token");
   if (!token) return [];
   const jwt = jwt_decode(token);
-  console.log("JWT", jwt);
   return [
     {
       group: "Management",

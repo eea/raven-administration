@@ -1,4 +1,5 @@
 from api.core.database import CursorFromPool
+from api.core.jwt_ext_custom import can_see_all_networks, get_networks
 
 
 class Q:
@@ -17,7 +18,108 @@ class Q:
             return cursor.fetchall()
 
     @staticmethod
+    def timeseries_by_access():
+        with CursorFromPool() as cursor:
+            with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+            cursor.execute(f"""
+                {with_network_sql}
+                select CONCAT(s.name,', ', p.notation,', ', t.label, ', ', u.notation )  as label, sp.id as value
+                from sampling_points sp, stations s, eea_pollutants p, eea_times t, eea_concentrations u, network_access n
+                where sp.station_id = s.id
+                and n.id = s.network_id
+                and sp.pollutant = p.uri
+                and sp.timestep = t.id
+                and sp.concentration = u.id
+                order by s.name, p.notation, t.label
+            """, n_param)
+            return cursor.fetchall()
+
+    @staticmethod
+    def timeseries_with_time_by_access():
+        with CursorFromPool() as cursor:
+            with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+            cursor.execute(f"""
+                {with_network_sql}
+                SELECT
+                  aa.value,
+                  CONCAT(aa.name,', ', aa.pollutant,', ', aa.timestep, ', ', aa.unit ) as label,
+                      to_char(aa.fromtime, 'YYYY-MM-DD"T"HH24:MI:SS') as fromtime,
+                      to_char(aa.totime, 'YYYY-MM-DD"T"HH24:MI:SS') as totime
+                  FROM
+                (
+                  SELECT sp.id as sp, sp.id as value, s.name, po.notation pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.label as timestep, u.notation as unit
+                    FROM
+                        network_access n,
+                        stations s,
+                        sampling_points sp,
+                        eea_pollutants po,
+                        eea_times t,
+                        eea_concentrations u
+                    WHERE 1=1
+                        and n.id = s.network_id
+                        and s.id = sp.station_id
+                        and sp.pollutant = po.uri
+                        and sp.timestep = t.id
+                        and sp.concentration = u.id
+                        and sp.from_time is not null
+                        and sp.to_time is not null
+                    GROUP by s.name, sp.id, sp.pollutant,sp.id, po.notation, sp.from_time,  sp.to_time, t.label, u.notation
+                ) aa
+                order by label
+            """, n_param)
+            return cursor.fetchall()
+
+    @staticmethod
     def timezones():
         with CursorFromPool() as cursor:
             cursor.execute("select r.notation as label, r.id as value from eea_timezones r order by r.notation")
             return cursor.fetchall()
+
+    @staticmethod
+    def with_networks_by_access_as_sql():
+
+        sql = f"""
+          with network_access as
+          (
+            select *
+            from networks
+            {"" if can_see_all_networks() else "where id in %(networkids)s"}
+          )
+        """
+        return sql, {"networkids": tuple(get_networks())}
+
+    @staticmethod
+    def networks_by_access_as_sql():
+
+        sql = f"""
+          network_access as
+          (        
+            select *
+            from networks
+            {"" if can_see_all_networks() else "where id in %(networkids)s"}
+          )
+        """
+        return sql, {"networkids": tuple(get_networks())}
+
+    @staticmethod
+    def sampling_point_ids_by_networks_access(sampling_point_ids: list):
+        with CursorFromPool() as cursor:
+            sql = f"""
+              select array_agg(sp.id) as spid
+              from sampling_points sp, stations s, networks n
+              where sp.station_id = s.id
+              and s.network_id = n.id
+              and sp.id in %(sampling_point_ids)s
+              {"" if can_see_all_networks() else "and n.id in %(networkids)s"}      
+            """
+            cursor.execute(sql, {"sampling_point_ids": tuple(sampling_point_ids), "networkids": tuple(get_networks())})
+            row = cursor.fetchone()
+            return tuple(row["spid"])
+
+    @staticmethod
+    def has_no_access(sampling_point_id):
+        return len(Q.sampling_point_ids_by_networks_access([sampling_point_id])) == 0
+
+    @staticmethod
+    def any_has_no_access(sampling_point_ids):
+        return len(Q.sampling_point_ids_by_networks_access(sampling_point_ids)) != len(sampling_point_ids)

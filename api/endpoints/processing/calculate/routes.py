@@ -13,17 +13,20 @@ calculate_endpoint = Blueprint("calculate", __name__)
 @jwt_required_with_processing_claim()
 def calculate():
     with CursorFromPool() as cursor:
-        cursor.execute("""
-            WITH timeseries as (
+        with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+        cursor.execute(f"""
+            {with_network_sql},            
+            timeseries as (
                 select s.name as station, s.id as sta_id, po.notation,p.id
-                from stations s, sampling_points p,  eea_pollutants po
+                from stations s, sampling_points p,  eea_pollutants po, network_access n
                 where 1=1
+                and s.network_id = n.id
                 and s.id = p.station_id
                 and p.pollutant = po.uri
             )
             select 	
                 spo_pri.sta_id,
-	            spo_pri.station,
+	              spo_pri.station,
                 cs.*, 
                 spo_pri.notation as primary_pollutant,
                 spo_sec.notation as secondary_pollutant,
@@ -37,7 +40,7 @@ def calculate():
             and cs.primary = spo_pri.id
             and cs.secondary = spo_sec.id
             and cs.result = spo_res.id
-        """)
+        """, n_param)
         calculateions = cursor.fetchall()
         return jsonify(calculateions)
 
@@ -47,6 +50,10 @@ def calculate():
 def calculate_insert():
     with CursorFromPool() as cursor:
         model = InsertModel(**request.json)
+
+        if Q.any_has_no_access([model.primary, model.secondary, model.result]):
+            raise BadRequest("Access denied for samplingpoint")
+
         sql = """ 
             insert into calculated_series ("primary", secondary, "result", "operator") 
             values (%(primary)s,%(secondary)s,%(result)s,%(operator)s)
@@ -60,6 +67,11 @@ def calculate_insert():
 def calculate_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
+        sampling_point_ids = __get_sampling_points_from_id(model.id)
+
+        if Q.any_has_no_access(sampling_point_ids):
+            raise BadRequest("Access denied for samplingpoint")
+
         sql = "delete from calculated_series where id = %(id)s"
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
@@ -73,6 +85,10 @@ def calculate_delete():
 def calculate_update():
     with CursorFromPool() as cursor:
         model = UpdateModel(**request.json)
+
+        if Q.any_has_no_access([model.primary, model.secondary, model.result]):
+            raise BadRequest("Access denied for samplingpoint")
+
         sql = """ 
             update calculated_series
             set "primary" = %(primary)s,
@@ -94,5 +110,17 @@ def calculate_update():
 @calculate_endpoint.route("/api/processing/calculate/timeseries", methods=['GET'])
 @jwt_required_with_processing_claim()
 def calculate_timeseries():
-    timeseries = Q.timeseries()
+    timeseries = Q.timeseries_by_access()
     return jsonify(timeseries)
+
+
+def __get_sampling_points_from_id(id):
+    with CursorFromPool() as cursor:
+        sql = f""" 
+            select ARRAY[cs.primary, cs.secondary,cs.result] as spid
+            from calculated_series cs
+            where cs.id =  %(id)s
+        """
+        cursor.execute(sql, {"id": id})
+        row = cursor.fetchone()
+        return tuple(row["spid"])

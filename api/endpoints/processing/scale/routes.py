@@ -1,6 +1,7 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
+from api.core.query import Q
 from api.endpoints.processing.scale.helper import Helper
 from api.endpoints.processing.scale.models import ScalingpointModel, UpdateModel, InsertModel, DeleteModel, PreviewModel
 from api.core.data.processing.scaling import Scaling
@@ -17,6 +18,10 @@ scale_endpoint = Blueprint('scale', __name__)
 def scaling_points():
     with CursorFromPool() as cursor:
         model = ScalingpointModel(**request.json)
+
+        if Q.has_no_access(model.sampling_point_id):
+            raise BadRequest("Access denied for samplingpoint")
+
         cursor.execute("""
             select
               id,
@@ -39,6 +44,10 @@ def scaling_points():
 def update():
     with CursorFromPool() as cursor:
         model = UpdateModel(**request.json)
+
+        if Q.has_no_access(model.sampling_point_id):
+            raise BadRequest("Access denied for samplingpoint")
+
         model.createdby = get_name()
         current_timestamp = model.current_timestamp if model.current_timestamp is not None else model.timestamp
 
@@ -64,6 +73,9 @@ def insert():
         model = InsertModel(**request.json)
         model.createdby = get_name()
 
+        if Q.has_no_access(model.sampling_point_id):
+            raise BadRequest("Access denied for samplingpoint")
+
         values = Scaling.ReScale(cursor, True, model.sampling_point_id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, model.timestamp)
 
         if len(values[values["verification_flag"] == 1]) > 0:
@@ -84,6 +96,10 @@ def delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
         sp = Helper.getScalingPoint(cursor, model.id)
+
+        if Q.has_no_access(sp["sampling_point_id"]):
+            raise BadRequest("Access denied for samplingpoint")
+
         values = Scaling.ReScale(cursor, False, sp["sampling_point_id"], sp["zero_point"], sp["span_value"], sp["gas_concentration"], sp["timestamp"], sp["timestamp"])
 
         if len(values[values["verification_flag"] == 1]) > 0:
@@ -103,6 +119,10 @@ def delete():
 def preview():
     with CursorFromPool() as cursor:
         model = PreviewModel(**request.json)
+
+        if Q.has_no_access(model.sampling_point_id):
+            raise BadRequest("Access denied for samplingpoint")
+
         model.createdby = get_name()
         current_timestamp = model.current_timestamp if model.current_timestamp is not None else model.timestamp
 
@@ -120,12 +140,15 @@ def preview():
 @jwt_required_with_processing_claim()
 def timeseries():
     with CursorFromPool() as cursor:
-        cursor.execute("""
+        with_network_sql, n_param = Q.networks_by_access_as_sql()
+        cursor.execute(f"""
             with
+            {with_network_sql},
             timeseries as (
                 select CONCAT(s.name,', ', p.notation,', ', t.label, ', ', u.notation )  as label, sp.id as value
-                from sampling_points sp, stations s, eea_pollutants p, eea_times t, eea_concentrations u
+                from sampling_points sp, stations s, eea_pollutants p, eea_times t, eea_concentrations u, network_access n
                 where sp.station_id = s.id
+                and n.id = s.network_id
                 and sp.pollutant = p.uri
                 and sp.timestep = t.id
                 and sp.concentration = u.id
@@ -139,6 +162,6 @@ def timeseries():
             LEFT JOIN scaling_points_with_timeseries sp
             ON t.value=sp.id
             order by hasScalingPoint desc, t.label
-        """)
+        """, n_param)
         timeseries = cursor.fetchall()
         return jsonify(timeseries)

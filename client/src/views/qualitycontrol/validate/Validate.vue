@@ -97,7 +97,7 @@ const onValidate = async (flag) => {
   Eventy.showMessage("Setting validation flag. Please wait", "loading");
   const ids = selectedRows.value.map((p) => p.id);
   close();
-  await Service.validate({ flag, ids });
+  await Service.validate({ flag, ids, sampling_point_id: selectedId.value });
   await load();
   Eventy.showHideMessage("Validation flag updated", "success");
 };
