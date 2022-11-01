@@ -72,7 +72,7 @@ const columnsChanged = (column) => {
     </div>
     <contextmenu :evt="ev" :show="showColumnPicker" @click-outside="showColumnPicker = false">
       <div v-for="column in columnPicker" class="pl-2 pr-4 py-1 flex cursor-pointer gap-2 hover:bg-gray-100">
-        <div class="flex-1" @click="column.checked = !column.checked">{{ column.checked }}</div>
+        <div class="flex-1" @click="column.checked = !column.checked">{{ column.col }}</div>
         <n-checkbox class="self-center" v-model="column.checked"></n-checkbox>
       </div>
     </contextmenu>
