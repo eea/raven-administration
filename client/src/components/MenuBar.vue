@@ -31,13 +31,13 @@ const getmodules = () => {
       show: jwt.users || jwt.network || jwt.observations,
       items: [
         { name: "Authorities", comp: "Authorities", show: jwt.users },
-        { name: "Networks", comp: "Networks", show: jwt.network },
         { name: "Zones", comp: "Zones", show: jwt.network },
-        { name: "Sampling Points", comp: "SamplingPoints", show: jwt.observations },
+        { name: "Networks", comp: "Networks", show: jwt.network },
         { name: "Stations", comp: "Stations", show: jwt.network },
+        { name: "Sampling Points", comp: "SamplingPoints", show: jwt.observations },
+        { name: "Observing Capabilities", comp: "ObservingCapabilities", show: jwt.observations },
         { name: "Processes", comp: "Processes", show: jwt.network },
         { name: "Samples", comp: "Samples", show: jwt.observations },
-        { name: "Observing Capabilities", comp: "ObservingCapabilities", show: jwt.observations },
         { name: "Assessment Regimes", comp: "AssessmentRegimes", show: jwt.network }
       ]
     },
