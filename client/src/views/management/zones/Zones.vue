@@ -1,7 +1,7 @@
 <script setup>
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
-import { tblToCsv, compare } from "../../../helpers/utils";
+import { tblToCsv, compare, filterList } from "../../../helpers/utils";
 
 import LAdd from "./LAdd.vue";
 import LEdit from "./LEdit.vue";
@@ -49,11 +49,7 @@ const saveDelete = async (o) => {
   close();
 };
 
-const cmp_zones = computed(() => {
-  return zones.value.filter((p) => {
-    return !q.value || p.id.toLowerCase().includes(q.value.toLowerCase()) || p.name.toLowerCase().includes(q.value.toLowerCase()) || p.code.toLowerCase().includes(q.value.toLowerCase()) || p.type_label.toLowerCase().includes(q.value.toLowerCase()) || p.authority_label.toLowerCase().includes(q.value.toLowerCase());
-  });
-});
+const cmp_zones = computed(() => filterList(q.value, zones.value));
 
 const cls_rowClass = (row) => {
   if (compare(selected.value, row)) return " selected";

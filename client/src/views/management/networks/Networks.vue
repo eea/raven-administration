@@ -4,7 +4,7 @@ import LAdd from "./LAdd.vue";
 
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
-import { tblToCsv, compare } from "../../../helpers/utils";
+import { tblToCsv, compare, filterList } from "../../../helpers/utils";
 import ToolBar from "../../../components/ToolBar.vue";
 
 const q = ref("");
@@ -33,12 +33,7 @@ const loadData = async () => {
   networks.value = await Service.get();
 };
 
-const cmp_networks = computed(() => {
-  var t = networks.value.filter((p) => {
-    return !q.value || p.id.toLowerCase().includes(q.value.toLowerCase()) || p.name.toLowerCase().includes(q.value.toLowerCase()) || p.authority.toLowerCase().includes(q.value.toLowerCase()) || p.organisationlevel.toLowerCase().includes(q.value.toLowerCase());
-  });
-  return t;
-});
+const cmp_networks = computed(() => filterList(q.value, networks.value));
 
 const cls_rowClass = (row) => {
   if (compare(selected.value, row)) return " selected";

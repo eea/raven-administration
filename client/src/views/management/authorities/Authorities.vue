@@ -4,7 +4,7 @@ import LAdd from "./LAdd.vue";
 
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
-import { tblToCsv, compare } from "../../../helpers/utils";
+import { tblToCsv, compare, filterList } from "../../../helpers/utils";
 import NCheckbox from "../../../components/n-elements/NCheckbox.vue";
 
 const authoritites = ref([]);
@@ -24,12 +24,7 @@ const loadData = async () => {
   authoritites.value = await Service.get();
 };
 
-const cmp_authoritites = computed(() => {
-  var t = authoritites.value.filter((p) => {
-    return !q.value || p.id.toLowerCase().includes(q.value.toLowerCase()) || p.name.toLowerCase().includes(q.value.toLowerCase()) || p.organisation.toLowerCase().includes(q.value.toLowerCase()) || p.locator.toLowerCase().includes(q.value.toLowerCase());
-  });
-  return t;
-});
+const cmp_authoritites = computed(() => filterList(q.value, authoritites.value));
 
 const cls_rowClass = (row) => {
   if (compare(selected.value, row)) return " selected";

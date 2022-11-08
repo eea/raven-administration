@@ -7,7 +7,7 @@ import { useRouter } from "vue-router";
 
 import { format, sub, add } from "date-fns";
 import Service from "./service";
-import { tblToCsv, compare } from "../../../helpers/utils";
+import { tblToCsv, compare, filterList } from "../../../helpers/utils";
 
 const q = ref("");
 const data = ref([]);
@@ -25,11 +25,7 @@ const loadData = async () => {
   data.value = await Service.get();
 };
 
-const cmp_data = computed(() => {
-  return data.value.filter((p) => {
-    return !q.value || p.station.toLowerCase().includes(q.value.toLowerCase()) || p.pollutant.toLowerCase().includes(q.value.toLowerCase()) || p.timestep.toLowerCase().includes(q.value.toLowerCase());
-  });
-});
+const cmp_data = computed(() => filterList(q.value, data.value));
 
 const close = () => {
   showContextmenu.value = false;

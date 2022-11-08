@@ -4,7 +4,7 @@ import LEdit from "./LEdit.vue";
 
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
-import { tblToCsv, compare } from "../../../helpers/utils";
+import { tblToCsv, compare, filterList } from "../../../helpers/utils";
 
 const pollutants = ref([]);
 const autovalidations = ref([]);
@@ -25,12 +25,7 @@ const loadData = async () => {
   autovalidations.value = await Service.get();
 };
 
-const cmp_autovalidations = computed(() => {
-  var t = autovalidations.value.filter((p) => {
-    return !q.value || p.pollutant.toLowerCase().includes(q.value.toLowerCase()) || p.min.toLowerCase().includes(q.value.toLowerCase()) || p.max.toLowerCase().includes(q.value.toLowerCase()) || p.repeat.toLowerCase().includes(q.value.toLowerCase());
-  });
-  return t;
-});
+const cmp_autovalidations = computed(() => filterList(q.value, autovalidations.value));
 
 const cls_rowClass = (row) => {
   if (compare(selected.value, row)) return " selected";

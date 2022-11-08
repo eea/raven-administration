@@ -3,7 +3,7 @@ import Service from "./service";
 import { month } from "../../../helpers/utils";
 import { computed } from "@vue/reactivity";
 import Eventy from "../../../helpers/eventy";
-import { tblToCsv, compare } from "../../../helpers/utils";
+import { tblToCsv, compare, filterList } from "../../../helpers/utils";
 
 import IconLink from "~icons/ph/link-simple-duotone";
 import IconCircle from "~icons/ph/circle-duotone";
@@ -62,12 +62,7 @@ const cmp_years = computed(() => {
     .map((p) => String(p));
 });
 
-const cmp_datasets = computed(() => {
-  var t = datasets.value.filter((p) => {
-    return !q.value || p.id.toLowerCase().includes(q.value.toLowerCase()) || p.station.toLowerCase().includes(q.value.toLowerCase()) || p.pollutant.toLowerCase().includes(q.value.toLowerCase()) || p.timestep.toLowerCase().includes(q.value.toLowerCase()) || month(p.month).toLowerCase().includes(q.value.toLowerCase());
-  });
-  return t;
-});
+const cmp_datasets = computed(() => filterList(q.value, datasets.value));
 
 // EVENTS //
 const onSetLevel = async (level) => {

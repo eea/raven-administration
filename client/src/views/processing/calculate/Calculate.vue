@@ -4,7 +4,7 @@ import LEdit from "./LEdit.vue";
 
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
-import { tblToCsv, compare } from "../../../helpers/utils";
+import { tblToCsv, compare, filterList } from "../../../helpers/utils";
 
 const timeseries = ref([]);
 const calculations = ref([]);
@@ -25,12 +25,7 @@ const loadData = async () => {
   calculations.value = await Service.get();
 };
 
-const cmp_calculations = computed(() => {
-  var t = calculations.value.filter((p) => {
-    return !q.value || p.station.toLowerCase().includes(q.value.toLowerCase()) || p.primary.toLowerCase().includes(q.value.toLowerCase()) || p.operator.toLowerCase().includes(q.value.toLowerCase()) || p.secondary.toLowerCase().includes(q.value.toLowerCase());
-  });
-  return t;
-});
+const cmp_calculations = computed(() => filterList(q.value, calculations.value));
 
 const cls_rowClass = (row) => {
   if (compare(selected.value, row)) return " selected";

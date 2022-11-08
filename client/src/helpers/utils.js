@@ -89,4 +89,11 @@ export const month = (monthAsInt) => {
   return "Unknown";
 };
 
+export const filterList = (q, list) => {
+  if (!q) return list;
+  return list.filter((row) => {
+    return Object.values(row).some((p) => String(p).toLowerCase().includes(q.toLowerCase()));
+  });
+};
+
 export const version = "3.0.0-dev-1";

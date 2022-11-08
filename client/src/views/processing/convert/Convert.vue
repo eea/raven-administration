@@ -4,7 +4,7 @@ import LEdit from "./LEdit.vue";
 
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
-import { tblToCsv, compare } from "../../../helpers/utils";
+import { tblToCsv, compare, filterList } from "../../../helpers/utils";
 
 const units = ref([]);
 const timeseries = ref([]);
@@ -27,12 +27,7 @@ const loadData = async () => {
   convertions.value = await Service.get();
 };
 
-const cmp_convertions = computed(() => {
-  var t = convertions.value.filter((p) => {
-    return !q.value || p.pollutant.toLowerCase().includes(q.value.toLowerCase()) || p.station.toLowerCase().includes(q.value.toLowerCase()) || p.source.toLowerCase().includes(q.value.toLowerCase()) || p.target.toLowerCase().includes(q.value.toLowerCase()) || p.createdBy.toLowerCase().includes(q.value.toLowerCase());
-  });
-  return t;
-});
+const cmp_convertions = computed(() => filterList(q.value, convertions.value));
 
 const cls_rowClass = (row) => {
   if (compare(selected.value, row)) return " selected";
