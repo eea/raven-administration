@@ -52,7 +52,7 @@ def last_entry():
     with CursorFromPool() as cursor:
         m = LoggerLastValue(**request.args.to_dict())
         sql = """
-			      select to_char(s.to_time,'yyyy-mm-dd HH24:mi:ss') as to_time
+			      select to_char(s.to_time,'yyyy-mm-dd HH24:mi:ss') as "lastEntry"
             from sampling_points s
             where s.logger_id = %(id)s
         """
