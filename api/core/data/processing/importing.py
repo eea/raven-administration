@@ -19,14 +19,15 @@ class Importing:
 
         # IMPORT FLOW
         # - Validates datatypes
+        # - Set import value
         # - Add additional timeserie info to value
         # - Verify no duplicate times, is calculated etc
-        # - Scale values if possible. Sets scaledvalue for non-scalables as importvalue
-        # - Calculate new values if possible. Requires all timeseries to be present in importvalues or db. Uses value.scaledvalue to calculate
+        # - Scale values if possible.
+        # - Calculate new values if possible.
         # - Convert values if convertion factor is present.
-        # - FillInMissing fills holes based on timestep. it uses timeserie totime or timevalue totime to determine the period to fill out
-        # - DoFlagging sets the qa and qc flag based on a number of criterias, like scalingpoints and instrument flags. It also lookup values in database to change if we have multiple equal values in a row
-        # - Upsert inserts or updates data to aqrw_rawdatavalues, aqte_timevalue and aqal_additionalloggervalues. It will not update values with qc >= 4. If QA has been manually set it will used the old qa instead of the new
+        # - FillInMissing fills holes based on timestep.
+        # - DoFlagging
+        # - Upsert inserts
 
         Common.validate_dataframe(df_values)
         Importing.set_import_value(df_values)
