@@ -9,7 +9,7 @@ from api.core.data.processing.importing import Importing
 import io
 import pandas as pd
 import time
-from api.endpoints.imports.observations.model import LoggerValues
+from api.endpoints.imports.observations.model import LoggerValues, LoggerLastValue
 from pandas import DataFrame
 
 observations_endpoint = Blueprint('observations', __name__)
@@ -44,3 +44,18 @@ def import_logger():
 
         printcol(f"- Total time used {time.perf_counter() - bench} seconds")
     return jsonify({"success": True})
+
+
+@observations_endpoint.route('/api/imports/logger', methods=['GET'])
+# @jwt_required()
+def last_entry():
+    with CursorFromPool() as cursor:
+        m = LoggerLastValue(**request.args.to_dict())
+        sql = """
+			      select to_char(s.to_time,'yyyy-mm-dd HH24:mi:ss') as to_time
+            from sampling_points s
+            where s.logger_id = %(id)s
+        """
+        cursor.execute(sql, m)
+        values = cursor.fetchone()
+        return jsonify(values)
