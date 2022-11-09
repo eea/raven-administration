@@ -71,7 +71,7 @@ class Importing:
             raise Exception("Calculated values cannot be imported")
 
         # Check to see if timestep matches with the imported values. Ignore if timestep is 1
-        if not (((df_values.end_position - df_values.begin_position) / pd.Timedelta(seconds=1) == (df_values.apply(lambda x: U.actual_timestep(x.begin_position, x.ts_timestep), axis=1)))).all() and not (df_values.ts_timestep == 1).all():
+        if not (((df_values.end_position - df_values.begin_position) / pd.Timedelta(seconds=1) == (df_values.apply(lambda x: U.actual_timestep(x.begin_position, x.ts_timestep), axis=1)))).all() and not (df_values.ts_timestep == -1).all():
             raise Exception("The difference between end_position and begin_position must be the same as the samplingpoint timestep")
 
         # Check if any are verified values

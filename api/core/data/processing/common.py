@@ -26,7 +26,7 @@ class Common:
                 p.id as sampling_point_id,
                 extract(epoch from p.from_time) as from_time,
                 extract(epoch from p.to_time) as to_time,
-                t.timestep,
+                case when t.timestep = 1 and t.notation != 's' then -1 else t.timestep end as timestep,
                 case when cs.id is NULL then False else True end as is_calculated
             from
                 eea_times t,

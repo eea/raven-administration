@@ -16,6 +16,10 @@ class Filling:
             ts_from_epoch = values.ts_from_epoch[0]
             ts_to_epoch = values.ts_to_epoch[0]
             ts_timestep = values.ts_timestep[0]
+
+            if ts_timestep == -1:
+                continue
+
             scaled_value = -9900 if values.scaled_value[0] != None else None
             tz = values.end_position[0].strftime('%z')
             tz = "{0}:{1}".format(tz[:-2], tz[-2:])
