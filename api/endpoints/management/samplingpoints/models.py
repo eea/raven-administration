@@ -1,38 +1,30 @@
 from datetime import datetime
 from pydantic import BaseModel
+from typing import Optional
 
 
 class SamplingPointsModel(BaseModel):
     id: str
-    media_monitored: str
     station_id: str
-    mobile: bool
-    measurement_regime: str
-    assessment_type: str
-    station_classification: str
-    used_aqd: bool
-    main_emission_sources: str
-    traffic_emissions: str
-    heating_emissions: str
-    industrial_emissions: str
-    distance_source: str
-    change_aei_stations: str
+    pollutant_id: str
+    timestep_id: str
+    concentration_id: str
+    station_classification_id: str
+    media_id: str
+    measurement_regime_id: str
+    assessment_type_id: str
     begin_position: str
-    end_position: str
-    logger_id: str
-    pollutant: str
-    concentration: str
-    timestep: str
-    from_time: datetime
-    to_time: datetime
-    media_monitored_name: str
-    station: str
-    measurement_regime_name: str
-    assessment_type_name: str
-    station_classification_name: str
-    pollutant_name: str
-    concentration_name: str
-    timestep_name: str
+    mobile: bool
+
+    main_emission_sources: Optional[str] = None
+    traffic_emissions: Optional[str] = None
+    heating_emissions: Optional[str] = None
+    industrial_emissions: Optional[str] = None
+    distance_source: Optional[str] = None
+    change_aei_stations: Optional[str] = None
+    end_position: Optional[str] = None
+    logger_id: Optional[str] = None
+    used_aqd: Optional[bool] = None
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
