@@ -13,11 +13,7 @@ samples_endpoint = Blueprint('samples', __name__)
 @jwt_required_with_observations_claim()
 def samples():
     with CursorFromPool() as cursor:
-        cursor.execute("""
-         SELECT id, inlet_height::DOUBLE PRECISION, building_distance::DOUBLE PRECISION, kerb_distance::DOUBLE PRECISION
-            FROM samples
-
-        """)
+        cursor.execute("SELECT * FROM samples ORDER BY id asc")
         samples = cursor.fetchall()
         return jsonify(samples)
 
@@ -27,18 +23,33 @@ def samples():
 def samples_update():
     with CursorFromPool() as cursor:
         model = SampleModel(**request.json)
-        sql = """
-            INSERT INTO samples (id, inlet_height, building_distance, kerb_distance)
-            VALUES (%(id)s, %(inlet_height)s, %(building_distance)s, %(kerb_distance)s)
-            ON CONFLICT (id) DO 
-            UPDATE SET inlet_height=%(inlet_height)s,
-  			    building_distance=%(building_distance)s,
-	      		kerb_distance=%(kerb_distance)s
+        sql = """ 
+            UPDATE samples 
+            SET 
+              inlet_height = %(inlet_height)s,
+  			      building_distance = %(building_distance)s,
+	      		  kerb_distance = %(kerb_distance)s
+            WHERE id = %(id)s
         """
-
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
             raise BadRequest("Could not update for id " + model.id)
+
+        return jsonify({"success": True})
+
+
+@samples_endpoint.route('/api/management/samples/insert', methods=['POST'])
+@jwt_required_with_observations_claim()
+def samples_insert():
+    with CursorFromPool() as cursor:
+        model = SampleModel(**request.json)
+        sql = """
+            INSERT INTO samples (id, inlet_height, building_distance, kerb_distance)
+            VALUES (%(id)s, %(inlet_height)s, %(building_distance)s, %(kerb_distance)s) 
+        """
+        cursor.execute(sql, model)
+        if cursor.rowcount == 0:
+            raise BadRequest("Could not insert for id " + model.id)
 
         return jsonify({"success": True})
 

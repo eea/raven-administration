@@ -53,6 +53,9 @@ const onColumnPicker = (e) => {
 };
 
 const saveEdit = async (o) => {
+  for (const key in o) {
+    o[key] = o[key]?.length == 0 ? null : o[key];
+  }
   await props.service.update(o);
   await loadData();
   Eventy.showHideMessage(`${props.name} saved`, "success", 5000);
@@ -60,6 +63,9 @@ const saveEdit = async (o) => {
 };
 
 const saveAdd = async (o) => {
+  for (const key in o) {
+    o[key] = o[key]?.length == 0 ? null : o[key];
+  }
   await props.service.insert(o);
   await loadData();
   Eventy.showHideMessage(`${props.name} saved`, "success", 5000);
