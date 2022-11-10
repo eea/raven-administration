@@ -48,7 +48,7 @@ const cmp_optional_properties = computed(() => {
         <div class="mb-2" v-for="p in cmp_required_properties">
           <div v-if="p.type == 'text' || p.type == 'number'">
             <div class="font-bold">{{ p.label }}:</div>
-            <input :type="p.type" class="n-input w-64" v-model="obj[p.prop]" :placeholder="p.placeholder" />
+            <input :type="p.type" class="n-input w-72" v-model="obj[p.prop]" :placeholder="p.placeholder" />
           </div>
           <div v-else-if="p.type == 'checkbox'" class="mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
             <div class="font-bold self-center flex-1" @click="obj[p.prop] = !obj[p.prop]">{{ p.label }}:</div>
@@ -56,7 +56,7 @@ const cmp_optional_properties = computed(() => {
           </div>
           <div v-else-if="p.type == 'lookup'">
             <div class="font-bold">{{ p.label }}:</div>
-            <n-select v-model="obj[p.prop_id]" class="!w-64">
+            <n-select v-model="obj[p.prop_id]" class="!w-72">
               <n-option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value" :label="p.label" />
             </n-select>
           </div>
@@ -69,7 +69,7 @@ const cmp_optional_properties = computed(() => {
         <div class="mb-2" v-for="p in cmp_optional_properties">
           <div v-if="p.type == 'text' || p.type == 'number'">
             <div class="font-bold">{{ p.label }}:</div>
-            <input :type="p.type" class="n-input w-64" v-model="obj[p.prop]" :placeholder="p.placeholder" />
+            <input :type="p.type" class="n-input w-72" v-model="obj[p.prop]" :placeholder="p.placeholder" />
           </div>
           <div v-else-if="p.type == 'checkbox'" class="mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
             <div class="font-bold self-center flex-1" @click="obj[p.prop] = !obj[p.prop]">{{ p.label }}:</div>
@@ -77,7 +77,7 @@ const cmp_optional_properties = computed(() => {
           </div>
           <div v-else-if="p.type == 'lookup'">
             <div class="font-bold">{{ p.label }}:</div>
-            <n-select v-model="obj[p.prop_id]" class="!w-64">
+            <n-select v-model="obj[p.prop_id]" class="!w-72">
               <n-option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value" :label="p.label" />
             </n-select>
           </div>

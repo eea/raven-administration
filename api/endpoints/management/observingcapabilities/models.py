@@ -1,18 +1,18 @@
 from datetime import datetime
 from pydantic import BaseModel
+from typing import Optional
 
 
 class ObservingCapabilityModel(BaseModel):
     id: str
     begin_position: datetime
-    end_position: datetime
-    process_type: str
-    result_nature: str
+    process_type_id: str
+    result_nature_id: str
     sampling_point_id: str
     process_id: str
     sample_id: str
-    process_type_name: str
-    result_nature_name: str
+
+    end_position: Optional[str] = None
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
