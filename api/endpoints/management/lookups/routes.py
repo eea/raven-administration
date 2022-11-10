@@ -218,7 +218,12 @@ def timezones():
 @jwt_required()
 def timesteps():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_times r order by r.label")
+        cursor.execute("""
+        select r.label as label, r.id as value
+        from eea_times r
+        where r.id ~ 'vocabulary/aq'
+        order by r.label
+        """)
         timesteps = cursor.fetchall()
         return jsonify(timesteps)
 
