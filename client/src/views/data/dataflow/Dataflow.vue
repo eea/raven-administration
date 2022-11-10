@@ -42,7 +42,7 @@ const downloadDataflowE2A = async () => {
 
 <template>
   <common-layout>
-    <tool-bar title="Dataflows" :show-filter="false" :show-add="false" :show-download="false" />
+    <tool-bar title="Dataflows" :show-filter="false" :show-add="false" :show-column-picker="false" :show-download="false" />
 
     <div class="border border-nord4 bg-gray-50 p-2 flex flex-col gap-5">
       <div class="flex gap-3">

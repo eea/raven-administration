@@ -91,7 +91,7 @@ const cmp_data = computed(() => {
     <l-add :show="showAdd" @close="close" @save="onSaveAdd" :groups="groups" />
     <l-edit :show="showEdit" @close="close" @save="onSaveEdit" :groups="groups" :user="selected" />
 
-    <tool-bar title="Users" filter-text="Type to filter users" v-model="q" @add-click="showAdd = true" :show-download="false" />
+    <tool-bar title="Users" :show-column-picker="false" v-model:q="q" @add-click="showAdd = true" :show-download="false" />
 
     <div>
       <table class="n-table">

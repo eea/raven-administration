@@ -2,7 +2,7 @@ from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
-from api.endpoints.management.stations.models import StationModel
+from api.endpoints.management.stations.models import StationModel, DeleteModel
 from api.core.jwt_ext_custom import jwt_required_with_network_claim
 
 
@@ -21,10 +21,10 @@ def stations():
                 st.network_id,
                 st.city,
                 st.national_station_code,
-                st.media_monitored,
+                st.media_monitored as media_id,
                 st.mobile,
-                st.measurement_regime,
-                st.area_classification,
+                st.measurement_regime  as measurement_regime_id,
+                st.area_classification  as area_classification_id,
                 st.distance_junction,
                 st.traffic_volume,
                 st.heavy_duty_fraction::DOUBLE PRECISION,
@@ -37,15 +37,15 @@ def stations():
                 ST_Z(st.geom)    altitude,
                 ST_SRID(st.geom) epsg,
                 n.name   as      network,
-                mv.label as      media_monitored_name,
-                mr.label as      measurement_regime_name,
-                ac.label as      area_classification_name
-          FROM stations st
-                  LEFT OUTER JOIN eea_mediavalues mv ON lower(st.media_monitored) = lower(mv.id)
-                  LEFT OUTER JOIN eea_measurementregimevalues mr ON lower(st.measurement_regime) = lower(mr.id)
-                  LEFT OUTER JOIN eea_areaclassifications ac ON lower(st.area_classification) = lower(ac.id),
-              networks n
+                mv.label as      media,
+                mr.label as      measurement_regime,
+                ac.label as      area_classification
+          FROM stations st, eea_mediavalues mv, eea_areaclassifications ac, eea_measurementregimevalues mr, networks n
           WHERE st.network_id = n.id
+          AND st.area_classification = ac.id
+          AND st.media_monitored = mv.id
+          AND st.measurement_regime = mr.id
+          ORDER BY st.name, st.id
         """)
         stations = cursor.fetchall()
         return jsonify(stations)
@@ -58,11 +58,25 @@ def stations_update():
         model = StationModel(**request.json)
         sql = """ 
             UPDATE stations
-            SET name = %(name)s,
-            eoi_code = %(eoi_code)s,
-            network_id = %(network_id)s,
-            area_classification = %(area_classification_id)s,
-            geom = ST_Transform(ST_SetSRID(ST_MakePoint(%(lng)s,%(lat)s,%(alt)s),%(epsg)s),4326)
+            SET 
+              name=%(name)s, 
+              begin_position=%(begin_position)s, 
+              end_position=%(end_position)s, 
+              network_id=%(network_id)s, 
+              city=%(city)s, 
+              national_station_code=%(national_station_code)s, 
+              media_monitored=%(media_id)s, 
+              mobile=%(mobile)s, 
+              measurement_regime=%(measurement_regime_id)s, 
+              area_classification=%(area_classification_id)s, 
+              distance_junction=%(distance_junction)s, 
+              traffic_volume=%(traffic_volume)s, 
+              heavy_duty_fraction=%(heavy_duty_fraction)s, 
+              street_width=%(street_width)s, 
+              height_facades=%(height_facades)s, 
+              geom = ST_SetSRID(ST_MakePoint(%(longitude)s,%(latitude)s,%(altitude)s),%(epsg)s),
+              municipality=%(municipality)s, 
+              eoi_code=%(eoi_code)s
             where id = %(id)s
         """
         cursor.execute(sql, model)
@@ -72,22 +86,70 @@ def stations_update():
         return jsonify({"success": True})
 
 
-## LOOKUPS ##
-
-
-@stations_endpoint.route('/api/management/stations/networks', methods=['GET'])
+@stations_endpoint.route('/api/management/stations/insert', methods=['POST'])
 @jwt_required_with_network_claim()
-def networks():
+def stations_insert():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.name as label, r.id as value from networks r order by r.name")
-        authorities = cursor.fetchall()
-        return jsonify(authorities)
+        model = StationModel(**request.json)
+        sql = """ 
+            INSERT INTO stations (
+              id, 
+              name, 
+              begin_position, 
+              end_position, 
+              network_id, 
+              city, 
+              national_station_code, 
+              media_monitored, 
+              mobile, 
+              measurement_regime, 
+              area_classification, 
+              distance_junction, 
+              traffic_volume, 
+              heavy_duty_fraction, 
+              street_width, 
+              height_facades, 
+              geom, 
+              municipality, 
+              eoi_code
+            )
+            VALUES (
+              %(id)s, 
+              %(name)s, 
+              %(begin_position)s, 
+              %(end_position)s, 
+              %(network_id)s, 
+              %(city)s, 
+              %(national_station_code)s, 
+              %(media_id)s, 
+              %(mobile)s, 
+              %(measurement_regime_id)s, 
+              %(area_classification_id)s, 
+              %(distance_junction)s, 
+              %(traffic_volume)s, 
+              %(heavy_duty_fraction)s, 
+              %(street_width)s, 
+              %(height_facades)s, 
+              ST_Transform(ST_SetSRID(ST_MakePoint(%(longitude)s,%(latitude)s,%(altitude)s),%(epsg)s),4326), 
+              %(municipality)s, 
+              %(eoi_code)s
+            )           
+        """
+        cursor.execute(sql, model)
+        if cursor.rowcount == 0:
+            raise BadRequest("Could not update for id " + model.id)
+
+        return jsonify({"success": True})
 
 
-@stations_endpoint.route('/api/management/stations/classifications', methods=['GET'])
+@stations_endpoint.route("/api/management/stations/delete", methods=['POST'])
 @jwt_required_with_network_claim()
-def classifications():
+def stations_delete():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_areaclassifications r order by r.label")
-        authorities = cursor.fetchall()
-        return jsonify(authorities)
+        model = DeleteModel(**request.json)
+        sql = "delete from stations where id = %(id)s"
+        cursor.execute(sql, model)
+        if cursor.rowcount == 0:
+            raise BadRequest("Could not delete for id " + model.id)
+
+        return jsonify({"success": True})

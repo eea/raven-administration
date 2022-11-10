@@ -93,7 +93,7 @@ const onDownload = () => {
     <l-add :show="showAdd" @close="close" @save="onSaveAdd" :pollutants="pollutants" />
     <l-edit :show="showEdit" @close="close" @save="onSaveEdit" :pollutants="pollutants" :validation="selected" />
 
-    <tool-bar title="Auto validate" filter-text="Type to filter " v-model="q" @add-click="showAdd = true" @download-click="onDownload" />
+    <tool-bar title="Auto validate" :show-column-picker="false" v-model:q="q" @add-click="showAdd = true" @download-click="onDownload" />
 
     <div>
       <table id="autovalidationsId" class="n-table">

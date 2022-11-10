@@ -95,7 +95,7 @@ const onDownload = () => {
     <l-add :show="showAdd" @close="close" @save="onSaveAdd" :timeseries="timeseries" :units="units" />
     <l-edit :show="showEdit" @close="close" @save="onSaveEdit" :timeseries="timeseries" :units="units" :convertion="selected" />
 
-    <tool-bar title="Convert" filter-text="Type to filter " v-model="q" @add-click="showAdd = true" @download-click="onDownload" />
+    <tool-bar title="Convert" :show-column-picker="false" v-model:q="q" @add-click="showAdd = true" @download-click="onDownload" />
 
     <div>
       <table id="convertionsId" class="n-table">

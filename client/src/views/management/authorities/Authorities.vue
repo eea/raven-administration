@@ -1,125 +1,13 @@
 <script setup>
-import LEdit from "./LEdit.vue";
-import LAdd from "./LAdd.vue";
-
 import Service from "./service";
-import Eventy from "../../../helpers/eventy";
-import { tblToCsv, compare, filterList } from "../../../helpers/utils";
-import NCheckbox from "../../../components/n-elements/NCheckbox.vue";
+import pageOptions from "./pageOptions";
 
-const authoritites = ref([]);
-const q = ref("");
-const showEdit = ref(false);
-const showAdd = ref(false);
-const selected = ref({});
-const ev = ref({});
-const showContextmenu = ref(false);
-const showConfirm = ref(false);
+const options = ref({});
 
 onMounted(async () => {
-  await loadData();
+  options.value = pageOptions({});
 });
-
-const loadData = async () => {
-  authoritites.value = await Service.get();
-};
-
-const cmp_authoritites = computed(() => filterList(q.value, authoritites.value));
-
-const cls_rowClass = (row) => {
-  if (compare(selected.value, row)) return " selected";
-  return "";
-};
-
-const onContextMenu = (row, e) => {
-  selected.value = row;
-  ev.value = e;
-  showContextmenu.value = true;
-};
-
-const onEdit = () => {
-  if (showEdit.value) selected.value = {};
-  showEdit.value = !showEdit.value;
-  showContextmenu.value = false;
-};
-
-const onDelete = () => {
-  if (showConfirm.value) selected.value = {};
-  showConfirm.value = !showConfirm.value;
-  showContextmenu.value = false;
-};
-
-const close = () => {
-  showEdit.value = false;
-  showAdd.value = false;
-  selected.value = {};
-  showContextmenu.value = false;
-  showConfirm.value = false;
-};
-
-const saveEdit = async (o) => {
-  await Service.update(o);
-  await loadData();
-  Eventy.showHideMessage("Authority saved", "success", 5000);
-  close();
-};
-
-const saveAdd = async (o) => {
-  await Service.insert(o);
-  await loadData();
-  Eventy.showHideMessage("Authority saved", "success", 5000);
-  close();
-};
-
-const saveDelete = async () => {
-  showConfirm.value = false;
-  await Service.delete(selected.value);
-  await loadData();
-  Eventy.showHideMessage("Authority deleted", "success", 5000);
-  close();
-};
-
-const onDownload = () => {
-  tblToCsv("authoritiesId", "authorities");
-};
 </script>
 <template>
-  <common-layout>
-    <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete authority?" @close="close" @ok="saveDelete" />
-    <contextmenu-crud :show="showContextmenu" :ev="ev" @click-outside="close" @on-edit="onEdit" @onDelete="onDelete" />
-
-    <l-add :show="showAdd" @close="close" @save="saveAdd" />
-    <l-edit :show="showEdit" :authority="selected" @close="close" @save="saveEdit" />
-
-    <tool-bar title="Authorities" filter-text="Type to filter authorities " v-model="q" @add-click="showAdd = true" @download-click="onDownload" />
-
-    <div>
-      <table id="authoritiesId" class="n-table">
-        <tr>
-          <th>Id</th>
-          <th>Name</th>
-          <th>Organisation</th>
-          <th>Locator</th>
-          <th>Postcode</th>
-          <th>Email</th>
-          <th>Address</th>
-          <th>Phone</th>
-          <th>Website</th>
-          <th>Is main authority?</th>
-        </tr>
-        <tr v-for="row in cmp_authoritites" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
-          <td>{{ row.id }}</td>
-          <td>{{ row.name }}</td>
-          <td>{{ row.organisation }}</td>
-          <td>{{ row.locator }}</td>
-          <td>{{ row.postcode }}</td>
-          <td>{{ row.email }}</td>
-          <td>{{ row.address }}</td>
-          <td>{{ row.phone }}</td>
-          <td>{{ row.website }}</td>
-          <td><n-checkbox class="align-middle" v-model="row.is_responsible_reporter" :disabled="true" /></td>
-        </tr>
-      </table>
-    </div>
-  </common-layout>
+  <manager name="Authorities" :options="options" :service="Service" />
 </template>

@@ -7,10 +7,9 @@ from api.core.query import Q
 
 management_endpoint = Blueprint('management', __name__)
 
+
 ## LOOKUPS ##
-
-
-@management_endpoint.route('/api/management/selects/areaclassifications', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/areaclassifications', methods=['GET'])
 @jwt_required()
 def areaclassifications():
     with CursorFromPool() as cursor:
@@ -19,7 +18,7 @@ def areaclassifications():
         return jsonify(areaclassifications)
 
 
-@management_endpoint.route('/api/management/selects/assessmentexceedances', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/assessmentexceedances', methods=['GET'])
 @jwt_required()
 def exceedances():
     with CursorFromPool() as cursor:
@@ -28,7 +27,7 @@ def exceedances():
         return jsonify(equivdemonstrations)
 
 
-@management_endpoint.route('/api/management/selects/assessmenttypes', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/assessmenttypes', methods=['GET'])
 @jwt_required()
 def assessmenttypes():
     with CursorFromPool() as cursor:
@@ -37,7 +36,7 @@ def assessmenttypes():
         return jsonify(assessmenttypes)
 
 
-@management_endpoint.route('/api/management/selects/authorities', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/authorities', methods=['GET'])
 @jwt_required()
 def authorities():
     with CursorFromPool() as cursor:
@@ -46,7 +45,7 @@ def authorities():
         return jsonify(authorities)
 
 
-@management_endpoint.route('/api/management/selects/concentrations', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/concentrations', methods=['GET'])
 @jwt_required()
 def concentrations():
     with CursorFromPool() as cursor:
@@ -55,7 +54,7 @@ def concentrations():
         return jsonify(concentrations)
 
 
-@management_endpoint.route('/api/management/selects/equivdemonstrations', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/equivdemonstrations', methods=['GET'])
 @jwt_required()
 def equivdemonstrations():
     with CursorFromPool() as cursor:
@@ -64,7 +63,7 @@ def equivdemonstrations():
         return jsonify(equivdemonstrations)
 
 
-@management_endpoint.route('/api/management/selects/levels', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/levels', methods=['GET'])
 @jwt_required()
 def levels():
     with CursorFromPool() as cursor:
@@ -73,7 +72,7 @@ def levels():
         return jsonify(authorities)
 
 
-@management_endpoint.route('/api/management/selects/media', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/media', methods=['GET'])
 @jwt_required()
 def media():
     with CursorFromPool() as cursor:
@@ -82,7 +81,7 @@ def media():
         return jsonify(authorities)
 
 
-@management_endpoint.route('/api/management/selects/measurementequipment', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/measurementequipment', methods=['GET'])
 @jwt_required()
 def measurementequipment():
     with CursorFromPool() as cursor:
@@ -91,7 +90,7 @@ def measurementequipment():
         return jsonify(measurementequipment)
 
 
-@management_endpoint.route('/api/management/selects/measurementmethods', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/measurementmethods', methods=['GET'])
 @jwt_required()
 def measurement_methods():
     with CursorFromPool() as cursor:
@@ -100,7 +99,7 @@ def measurement_methods():
         return jsonify(measurement_methods)
 
 
-@management_endpoint.route('/api/management/selects/measurementregimes', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/measurementregimes', methods=['GET'])
 @jwt_required()
 def measurementregimes():
     with CursorFromPool() as cursor:
@@ -109,7 +108,7 @@ def measurementregimes():
         return jsonify(measurementregimes)
 
 
-@management_endpoint.route('/api/management/selects/measurementtypes', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/measurementtypes', methods=['GET'])
 @jwt_required()
 def measurementtypes():
     with CursorFromPool() as cursor:
@@ -118,7 +117,7 @@ def measurementtypes():
         return jsonify(measurementtypes)
 
 
-@management_endpoint.route('/api/management/selects/network', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/networks', methods=['GET'])
 @jwt_required()
 def networks():
     with CursorFromPool() as cursor:
@@ -127,7 +126,7 @@ def networks():
         return jsonify(networks)
 
 
-@management_endpoint.route('/api/management/selects/pollutants', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/pollutants', methods=['GET'])
 @jwt_required()
 def pollutants():
     with CursorFromPool() as cursor:
@@ -136,7 +135,7 @@ def pollutants():
         return jsonify(pollutants)
 
 
-@management_endpoint.route('/api/management/selects/processes', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/processes', methods=['GET'])
 @jwt_required()
 def processes():
     with CursorFromPool() as cursor:
@@ -145,7 +144,7 @@ def processes():
         return jsonify(processes)
 
 
-@management_endpoint.route('/api/management/selects/processtypevalues', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/processtypevalues', methods=['GET'])
 @jwt_required()
 def processtypevalues():
     with CursorFromPool() as cursor:
@@ -154,7 +153,7 @@ def processtypevalues():
         return jsonify(processtypevalues)
 
 
-@management_endpoint.route('/api/management/selects/responsibleauthorities', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/responsibleauthorities', methods=['GET'])
 @jwt_required()
 def responsibleauthorities():
     with CursorFromPool() as cursor:
@@ -163,7 +162,7 @@ def responsibleauthorities():
         return jsonify(responsibleauthorities)
 
 
-@management_endpoint.route('/api/management/selects/resultnaturevalues', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/resultnaturevalues', methods=['GET'])
 @jwt_required()
 def resultnaturevalues():
     with CursorFromPool() as cursor:
@@ -172,7 +171,7 @@ def resultnaturevalues():
         return jsonify(resultnaturevalues)
 
 
-@management_endpoint.route('/api/management/selects/samplingpoints', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/samplingpoints', methods=['GET'])
 @jwt_required()
 def samplingpoints():
     with CursorFromPool() as cursor:
@@ -181,7 +180,7 @@ def samplingpoints():
         return jsonify(samplingpoints)
 
 
-@management_endpoint.route('/api/management/selects/samples', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/samples', methods=['GET'])
 @jwt_required()
 def samples():
     with CursorFromPool() as cursor:
@@ -190,7 +189,7 @@ def samples():
         return jsonify(samples)
 
 
-@management_endpoint.route('/api/management/selects/stations', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/stations', methods=['GET'])
 @jwt_required()
 def stations():
     with CursorFromPool() as cursor:
@@ -199,7 +198,7 @@ def stations():
         return jsonify(stations)
 
 
-@management_endpoint.route('/api/management/selects/stationclassifications', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/stationclassifications', methods=['GET'])
 @jwt_required()
 def station_classifications():
     with CursorFromPool() as cursor:
@@ -208,14 +207,14 @@ def station_classifications():
         return jsonify(station_classifications)
 
 
-@management_endpoint.route('/api/management/selects/timezones', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/timezones', methods=['GET'])
 @jwt_required()
 def timezones():
     timezones = Q.timezones()
     return jsonify(timezones)
 
 
-@management_endpoint.route('/api/management/selects/timesteps', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/timesteps', methods=['GET'])
 @jwt_required()
 def timesteps():
     with CursorFromPool() as cursor:
@@ -224,7 +223,7 @@ def timesteps():
         return jsonify(timesteps)
 
 
-@management_endpoint.route('/api/management/selects/zones', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/zones', methods=['GET'])
 @jwt_required()
 def zones():
     with CursorFromPool() as cursor:

@@ -95,39 +95,3 @@ def networks_delete():
             raise BadRequest("Could not delete for id " + model.id)
 
         return jsonify({"success": True})
-
-
-## LOOKUPS ##
-
-@networks_endpoint.route('/api/management/networks/authorities', methods=['GET'])
-@jwt_required_with_network_claim()
-def authorities():
-    with CursorFromPool() as cursor:
-        cursor.execute("select r.name as label, r.id as value from responsible_authorities r order by r.name")
-        authorities = cursor.fetchall()
-        return jsonify(authorities)
-
-
-@networks_endpoint.route('/api/management/networks/levels', methods=['GET'])
-@jwt_required_with_network_claim()
-def levels():
-    with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_organisationallevels r order by r.label")
-        authorities = cursor.fetchall()
-        return jsonify(authorities)
-
-
-@networks_endpoint.route('/api/management/networks/media', methods=['GET'])
-@jwt_required_with_network_claim()
-def media():
-    with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_mediavalues r order by r.label")
-        authorities = cursor.fetchall()
-        return jsonify(authorities)
-
-
-@networks_endpoint.route('/api/management/networks/timezones', methods=['GET'])
-@jwt_required_with_network_claim()
-def timezones():
-    timezones = Q.timezones()
-    return jsonify(timezones)

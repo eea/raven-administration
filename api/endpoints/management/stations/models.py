@@ -1,34 +1,39 @@
 from datetime import datetime
 from pydantic import BaseModel
+from typing import Optional
 
 
 class StationModel(BaseModel):
     id: str
     name: str
-    begin_position: datetime
-    end_position: datetime
     network_id: str
-    city: str
-    national_station_code: str
-    media_monitored: str
-    mobile: bool
-    measurement_regime: str
-    area_classification: str
-    distance_junction: int
-    traffic_volume: int
-    heavy_duty_fraction: float
-    height_facades: int
-    municipality: str
-    street_width: int
+    area_classification_id: str
+    media_id: str
+    measurement_regime_id: str
     eoi_code: str
     longitude: float
     latitude: float
     altitude: float
     epsg: int
-    network: str
-    media_monitored_name: str
-    measurement_regime_name: str
-    area_classification_name: str
+    begin_position: datetime
+    mobile: bool
+
+    national_station_code: Optional[str] = None
+    municipality: Optional[str] = None
+    city: Optional[str] = None
+    street_width: Optional[int] = None
+    distance_junction: Optional[int] = None
+    traffic_volume: Optional[int] = None
+    heavy_duty_fraction: Optional[float] = None
+    height_facades: Optional[float] = None
+    end_position: Optional[datetime] = None
+
+    def __getitem__(self, key):
+        return super().__getattribute__(key)
+
+
+class DeleteModel(BaseModel):
+    id: str
 
     def __getitem__(self, key):
         return super().__getattribute__(key)

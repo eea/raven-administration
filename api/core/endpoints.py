@@ -4,7 +4,7 @@ class Endpoints:
         app.register_blueprint(auth_endpoint)
 
         # MANAGEMENT
-        from api.endpoints.management.routes import management_endpoint
+        from api.endpoints.management.lookups.routes import management_endpoint
         app.register_blueprint(management_endpoint)
 
         from api.endpoints.management.assessmentregimes.routes import assessmentregimes_endpoint

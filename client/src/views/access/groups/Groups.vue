@@ -96,7 +96,7 @@ const cls_usedby = (row) => {
     <l-add :show="showAdd" @close="close" @save="onSaveAdd" :networks="networks" />
     <l-edit :show="showEdit" @close="close" @save="onSaveEdit" :networks="networks" :group="selected" />
 
-    <tool-bar title="Groups" filter-text="Type to filter groups" v-model="q" @add-click="showAdd = true" :show-download="false" />
+    <tool-bar title="Groups" :show-column-picker="false" v-model:q="q" @add-click="showAdd = true" :show-download="false" />
 
     <div>
       <table class="n-table">

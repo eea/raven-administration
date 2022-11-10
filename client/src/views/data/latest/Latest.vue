@@ -78,7 +78,7 @@ const onContextMenu = (row, e) => {
       </div>
     </contextmenu>
 
-    <tool-bar title="Latest data" filter-text="Type to filter data" :show-add="false" v-model="q" @download-click="onDownload" />
+    <tool-bar title="Latest data" :show-column-picker="false" :show-add="false" v-model:q="q" @download-click="onDownload" />
 
     <div>
       <table id="latestId" class="n-table">

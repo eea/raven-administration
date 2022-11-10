@@ -43,7 +43,7 @@ const Plot = {
         },
         datasets: {
           line: {
-            pointRadius: 0,
+            pointRadius: 1,
             borderWidth: 2
           }
         }

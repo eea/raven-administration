@@ -168,7 +168,7 @@ const onDatapointSelection = (event, sel, chart) => {
       </div>
     </contextmenu>
 
-    <tool-bar title="Validate" :show-filter="false" :show-add="false" :show-download="true" @download-click="onDownload" />
+    <tool-bar title="Validate" :show-filter="false" :show-add="false" :show-column-picker="false" @download-click="onDownload" />
 
     <container>
       <div class="flex gap-2">

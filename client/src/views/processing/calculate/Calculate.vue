@@ -93,7 +93,7 @@ const onDownload = () => {
     <l-add :show="showAdd" @close="close" @save="onSaveAdd" :timeseries="timeseries" />
     <l-edit :show="showEdit" @close="close" @save="onSaveEdit" :timeseries="timeseries" :calculation="selected" />
 
-    <tool-bar title="Calculations" filter-text="Type to filter" v-model="q" @add-click="showAdd = true" @download-click="onDownload" />
+    <tool-bar title="Calculations" :show-column-picker="false" v-model:q="q" @add-click="showAdd = true" @download-click="onDownload" />
 
     <div>
       <table id="calculationsId" class="n-table">

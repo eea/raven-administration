@@ -155,7 +155,7 @@ const cls_timeseries = (hasscalingpoint) => {
         <div class="self-center ml-1">Duplicate</div>
       </div>
     </contextmenu-crud>
-    <tool-bar title="Scale" :show-filter="false" @add-click="onShowAdd" :show-download="false" />
+    <tool-bar title="Scale" :show-filter="false" @add-click="onShowAdd" :show-download="false" :show-column-picker="false" />
     <l-add :show="showAdd" :obj="selected" @close="close" @save="onSaveAdd" />
     <l-edit :show="showEdit" :scalingpoint="selected" @close="close" @save="onSaveEdit" />
 

@@ -5,10 +5,10 @@ const Service = {
   update: async (data) => Post("/api/management/stations/update", data),
   insert: async (data) => Post("/api/management/stations/insert", data),
   delete: async (data) => Post("/api/management/stations/delete", data),
-  // authorities: async () => Get("/api/management/stations/authorities"),
-  // levels: async () => Get("/api/management/stations/levels"),
-  media: async () => Get("/api/management/stations/media")
-  // timezones: async () => Get("/api/management/stations/timezones")
+  media: async () => Get("/api/management/lookups/media"),
+  networks: async () => Get("/api/management/lookups/networks"),
+  areaclassifications: async () => Get("/api/management/lookups/areaclassifications"),
+  measurementregimes: async () => Get("/api/management/lookups/measurementregimes")
 };
 
 export default Service;

@@ -84,7 +84,7 @@ const cmp_timeseries = computed(() => {
 
 <template>
   <common-layout>
-    <tool-bar title="Historical data" :show-download="true" :show-add="false" :show-filter="false" />
+    <tool-bar title="Historical data" :show-column-picker="false" :show-add="false" :show-filter="false" />
 
     <container>
       <div class="flex gap-2">
