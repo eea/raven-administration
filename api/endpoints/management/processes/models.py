@@ -1,42 +1,34 @@
-from datetime import datetime
 from pydantic import BaseModel
-
-# select id, measurement_type, measurement_method, other_measurement_method, sampling_method, other_sampling_method, analytical_tech, other_analytical_tech, sampling_equipment, measurement_equipment, equiv_demonstration, equiv_demonstration_report, detection_limit, detection_limit_uom, uncertainty_estimate, documentation, qa_report, duration_number, duration_unit, cadence_number, cadence_unit, responsible_authority_id, other_measurement_equipment, other_sampling_equipment from processes
+from typing import Optional
 
 
 class ProcessModel(BaseModel):
     id: str
-    measurement_type: str
-    measurement_type_name: str
-    measurement_method: str
-    measurement_method_name: str
-    other_measurement_method: str
-    sampling_method: str
-    other_sampling_method: str
-    analytical_tech: str
-    other_analytical_tech: str
-    sampling_equipment: str
-    measurement_equipment: str
-    measurement_equipment_name: str
-    equiv_demonstration: str
-    equiv_demonstration_name: str
-    equiv_demonstration_report: str
-    detection_limit: int
-    detection_limit_uom: str
-    detection_limit_uom_name: str
-    uncertainty_estimate: int
-    documentation: str
-    qa_report: str
+    measurement_type_id: str
+    measurement_method_id: str
+    equiv_demonstration_id: str
+    detection_limit: float
+    detection_limit_uom_id: str
     duration_number: int
-    duration_unit: str
-    duration_unit_name: str
+    duration_unit_id: str
     cadence_number: int
-    cadence_unit: str
-    cadence_unit_name: str
-    responsible_authority_id: str
-    responsible_authority: str
-    other_measurement_equipment: str
-    other_sampling_equipment: str
+    cadence_unit_id: str
+    authority_id: str
+
+    measurement_equipment_id: Optional[str] = None
+    other_measurement_equipment: Optional[str] = None
+    other_measurement_method: Optional[str] = None
+    analytical_tech: Optional[str] = None
+    other_analytical_tech: Optional[str] = None
+    sampling_equipment: Optional[str] = None
+    other_sampling_equipment: Optional[str] = None
+    equiv_demonstration_report: Optional[str] = None
+    uncertainty_estimate: Optional[float] = None
+    documentation: Optional[str] = None
+    qa_report: Optional[str] = None
+
+    sampling_method: Optional[str] = None
+    other_sampling_method: Optional[str] = None
 
     def __getitem__(self, key):
         return super().__getattribute__(key)

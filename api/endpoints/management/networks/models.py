@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from typing import Optional
-from pytz import timezone
 
 
 class NetworkModel(BaseModel):

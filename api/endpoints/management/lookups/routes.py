@@ -49,7 +49,7 @@ def authorities():
 @jwt_required()
 def concentrations():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_concentrations r order by r.label")
+        cursor.execute("select r.notation as label, r.id as value from eea_concentrations r order by r.notation")
         concentrations = cursor.fetchall()
         return jsonify(concentrations)
 
@@ -217,13 +217,14 @@ def timezones():
 @management_endpoint.route('/api/management/lookups/timesteps', methods=['GET'])
 @jwt_required()
 def timesteps():
+    type = request.args.get("type", default="aq", type=str)
     with CursorFromPool() as cursor:
         cursor.execute("""
         select r.label as label, r.id as value
         from eea_times r
-        where r.id ~ 'vocabulary/aq'
+        where r.id ~ %(type)s
         order by r.label
-        """)
+        """, {"type": "vocabulary/" + type})
         timesteps = cursor.fetchall()
         return jsonify(timesteps)
 
