@@ -32,7 +32,6 @@ def authorities():
                   group by a.id
               ) x
               GROUP BY id
-
           )
           select a.id, a.name, a.organisation, a.locator, a.postcode, a.email, a.address, a.phone, a.website, a.is_responsible_reporter, b.ref_count
           from responsible_authorities a,refs b

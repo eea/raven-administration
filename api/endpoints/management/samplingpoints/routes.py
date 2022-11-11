@@ -14,7 +14,42 @@ samplingpoints_endpoint = Blueprint('samplingpoints', __name__)
 def samplingpoints():
     with CursorFromPool() as cursor:
         cursor.execute("""
-            SELECT
+            WITH refs as
+              (
+                SELECT id, sum(ref_count) as ref_count
+                FROM
+                (
+                    SELECT a.id, count(b.id) as ref_count
+                    FROM sampling_points a left join observing_capabilities b on b.sampling_point_id = a.id
+                    group by a.id
+                    union all
+                    SELECT a.id, count(b.id) as ref_count
+                    FROM sampling_points a left join calculated_series b on b.result = a.id
+                    group by a.id
+                    union all
+                    SELECT a.id, count(b.id) as ref_count
+                    FROM sampling_points a left join calculated_series b on b.secondary = a.id
+                    group by a.id
+                    union all
+                    SELECT a.id, count(b.id) as ref_count
+                    FROM sampling_points a left join calculated_series b on b.primary = a.id
+                    group by a.id
+                    union all
+                    SELECT a.id, count(b.id) as ref_count
+                    FROM sampling_points a left join converted_series b on b.sampling_point_id = a.id
+                    group by a.id
+                    union all
+                    SELECT a.id, count(b.id) as ref_count
+                    FROM sampling_points a left join scaling_points b on b.sampling_point_id = a.id
+                    group by a.id
+                    union all
+                    SELECT a.id, count(b.id) as ref_count
+                    FROM sampling_points a left join assessmentdata b on b.assessmentlocal_id = a.id
+                    group by a.id
+                ) x
+                GROUP BY id
+              )
+              SELECT
                 sp.id,
                 sp.station_classification as station_classification_id,
                 sp.assessment_type as assessment_type_id,
@@ -42,10 +77,11 @@ def samplingpoints():
                 sc.label as station_classification,
                 p.notation as pollutant,
                 cn.notation as concentration,
-                tm.label as timestep,tm.label,cn.notation
+                tm.label as timestep,tm.label,cn.notation,
+                r.ref_count
             FROM
                 sampling_points sp,eea_mediavalues mv, eea_measurementregimevalues mr, eea_assessmenttypes ast,
-                eea_stationclassifications sc, stations st, eea_pollutants p, eea_concentrations cn, eea_times tm
+                eea_stationclassifications sc, stations st, eea_pollutants p, eea_concentrations cn, eea_times tm,refs r
             WHERE sp.station_id = st.id
             AND sp.pollutant = p.uri
             AND sp.concentration = cn.id
@@ -54,6 +90,7 @@ def samplingpoints():
             AND sp.measurement_regime = mr.id
             AND sp.assessment_type = ast.id
             AND sp.station_classification = sc.id
+            AND sp.id = r.id
             ORDER BY st.name, p.notation
         """)
         samplingpoints = cursor.fetchall()

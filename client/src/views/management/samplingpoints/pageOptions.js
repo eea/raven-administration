@@ -27,7 +27,17 @@ const pageOptions = (lookups) => ({
     { type: "text", label: "Traffic emissions", prop: "traffic_emissions", placeholder: "str:  Traffic emissions", required: false, default: null, showInEdit: true, showInGrid: false },
 
     { type: "text", label: "End", prop: "end_position", placeholder: "str: YYYY-MM-DDTHH:mm:ssZ", required: false, default: null, showInEdit: true, showInGrid: false },
-    { type: "checkbox", label: "Used aqd", prop: "used_aqd", required: false, default: false, showInEdit: true, showInGrid: false }
+    { type: "checkbox", label: "Used aqd", prop: "used_aqd", required: false, default: false, showInEdit: true, showInGrid: false },
+
+    // OTHER
+    {
+      type: "gridOnly",
+      label: "Ref by (excluding obs)",
+      prop: "ref_count",
+      default: 0,
+      showInGrid: true,
+      cls_func: (row) => (row.ref_count == 0 ? "text-nord11" : "text-nord10")
+    }
   ],
   lookups: lookups
 });
