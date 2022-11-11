@@ -36,7 +36,7 @@
 /* -------------------------------------------------------------------------------- */
 
 .n-table {
-  @apply bg-gray-50 min-w-full divide-y divide-nord4/20 border border-nord4 select-none;
+  @apply bg-gray-50 min-w-full divide-y divide-nord4/20 border border-nord4;
 }
 
 .n-table td,
