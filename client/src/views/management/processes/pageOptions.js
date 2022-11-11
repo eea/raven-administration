@@ -27,7 +27,17 @@ const pageOptions = (lookups) => ({
     { type: "text", label: "Equiv Demonstration Report", prop: "equiv_demonstration_report", placeholder: "text: Equiv Demonstration Report", required: false, default: null, showInEdit: true, showInGrid: false },
     { type: "number", label: "Uncertainty estimate", prop: "uncertainty_estimate", placeholder: "float: Uncertainty estimate", required: false, default: null, showInEdit: true, showInGrid: false },
     { type: "text", label: "Documentation", prop: "documentation", placeholder: "text: Documentation", required: false, default: null, showInEdit: true, showInGrid: false },
-    { type: "text", label: "QA Report", prop: "qa_report", placeholder: "text: QA Report", required: false, default: null, showInEdit: true, showInGrid: false }
+    { type: "text", label: "QA Report", prop: "qa_report", placeholder: "text: QA Report", required: false, default: null, showInEdit: true, showInGrid: false },
+
+    // OTHER
+    {
+      type: "gridOnly",
+      label: "Referenced by",
+      prop: "ref_count",
+      default: 0,
+      showInGrid: true,
+      cls_func: (row) => (row.ref_count == 0 ? "text-nord11" : "text-nord10")
+    }
   ],
   lookups: lookups
 });

@@ -8,7 +8,17 @@ const pageOptions = (lookups) => ({
     { type: "lookup", label: "Authority", prop_id: "authority_id", prop: "authority", required: true, lookup: "authorities", default: null, showInEdit: true, showInGrid: true },
     { type: "lookup", label: "Timezone", prop_id: "timezone_id", prop: "timezone", required: true, lookup: "timezones", default: null, showInEdit: true, showInGrid: false },
     { type: "text", label: "Begin", prop: "begin_position", placeholder: "str: YYYY-MM-DDTHH:mm:ssZ", required: true, default: null, showInEdit: true, showInGrid: false },
-    { type: "text", label: "End", prop: "end_position", placeholder: "str: YYYY-MM-DDTHH:mm:ssZ", required: false, default: null, showInEdit: true, showInGrid: false }
+    { type: "text", label: "End", prop: "end_position", placeholder: "str: YYYY-MM-DDTHH:mm:ssZ", required: false, default: null, showInEdit: true, showInGrid: false },
+
+    // OTHER
+    {
+      type: "gridOnly",
+      label: "Referenced by",
+      prop: "ref_count",
+      default: 0,
+      showInGrid: true,
+      cls_func: (row) => (row.ref_count == 0 ? "text-nord11" : "text-nord10")
+    }
   ],
   lookups: lookups
 });

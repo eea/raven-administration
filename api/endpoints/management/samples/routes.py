@@ -13,7 +13,12 @@ samples_endpoint = Blueprint('samples', __name__)
 @jwt_required_with_observations_claim()
 def samples():
     with CursorFromPool() as cursor:
-        cursor.execute("SELECT * FROM samples ORDER BY id asc")
+        cursor.execute("""
+          SELECT s.*, count(oc.id) as ref_count
+          FROM samples s left join observing_capabilities oc on oc.sample_id = s.id
+          GROUP BY s.id, s.inlet_height, s.building_distance,s.kerb_distance
+          ORDER BY s.id asc
+        """)
         samples = cursor.fetchall()
         return jsonify(samples)
 

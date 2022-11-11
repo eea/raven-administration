@@ -14,6 +14,12 @@ processes_endpoint = Blueprint('processes', __name__)
 def processes():
     with CursorFromPool() as cursor:
         cursor.execute("""
+          WITH refs as
+          (
+              SELECT s.id, count(oc.id) as ref_count
+              FROM processes s left join observing_capabilities oc on oc.process_id = s.id
+              group by s.id
+          )
           SELECT
               pr.id,
               pr.sampling_method,
@@ -32,8 +38,8 @@ def processes():
               pr.other_measurement_equipment,
               pr.other_sampling_equipment,
               pr.other_measurement_method,
-
-
+              
+              
               pr.equiv_demonstration as equiv_demonstration_id,
               pr.measurement_type as measurement_type_id,
               pr.measurement_method as measurement_method_id,
@@ -42,7 +48,7 @@ def processes():
               pr.duration_unit as duration_unit_id,
               pr.cadence_unit as cadence_unit_id,
               pr.responsible_authority_id as authority_id,
-
+              
               mt.label as measurement_type,
               mm.label as measurement_method,
               me.label as measurement_equipment,
@@ -50,9 +56,10 @@ def processes():
               tm_c.label as cadence_unit,
               ra.name as authority,
               ed.label as equiv_demonstration,
-              ct.notation as detection_limit_uom
-          FROM processes pr
-              LEFT OUTER JOIN eea_measurementtypes mt ON lower(pr.measurement_type) = lower(mt.id) 
+              ct.notation as detection_limit_uom,
+              re.ref_count
+          FROM refs re, processes pr
+              LEFT OUTER JOIN eea_measurementtypes mt ON lower(pr.measurement_type) = lower(mt.id)
               LEFT OUTER JOIN eea_measurementmethods mm ON lower(pr.measurement_method) = lower(mm.id)
               LEFT OUTER JOIN eea_measurementequipments me ON lower(pr.measurement_equipment) = lower(me.id)
               LEFT OUTER JOIN eea_equivalencedemonstrated ed ON lower(pr.equiv_demonstration) = lower(ed.id)
@@ -60,6 +67,7 @@ def processes():
               LEFT OUTER JOIN eea_concentrations ct ON lower(pr.detection_limit_uom) = lower(ct.id)
               LEFT OUTER JOIN eea_times tm_d ON lower(pr.duration_unit) = lower(tm_d.id)
               LEFT OUTER JOIN eea_times tm_c ON lower(pr.cadence_unit) = lower(tm_c.id)
+          WHERE re.id = pr.id
           ORDER BY pr.id
         """)
         processes = cursor.fetchall()

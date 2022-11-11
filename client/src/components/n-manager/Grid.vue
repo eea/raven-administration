@@ -12,7 +12,12 @@ const props = defineProps({
 const emit = defineEmits(["update:selected", "update:ev", "on-right-click"]);
 
 const cls_rowClass = (row) => {
-  if (compare(props.selected, row)) return " selected";
+  if (compare(props.selected, row)) return "selected";
+  return "";
+};
+
+const cls_cellClass = (cell, row) => {
+  if (cell.cls_func) return cell.cls_func(Object.assign({}, row));
   return "";
 };
 
@@ -33,7 +38,7 @@ const onClick = () => {
     <table :id="id" class="n-table">
       <th v-for="header in properties" v-show="header.showInGrid">{{ header.label }}</th>
       <tr v-for="row in values" :class="cls_rowClass(row)" @contextmenu.prevent="onRightClick(row, $event)" @click="onClick()">
-        <td v-for="header in properties" v-show="header.showInGrid">
+        <td v-for="header in properties" v-show="header.showInGrid" :class="cls_cellClass(header, row)">
           <n-checkbox v-if="header.type == 'checkbox'" class="align-middle" v-model="row[header.prop]" :disabled="true" />
           <span v-else>{{ row[header.prop] }}</span>
         </td>

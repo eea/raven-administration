@@ -14,8 +14,30 @@ authorities_endpoint = Blueprint('authorities', __name__)
 def authorities():
     with CursorFromPool() as cursor:
         cursor.execute("""
-          select id, name, organisation, locator, postcode, email, address, phone, website, is_responsible_reporter 
-          from responsible_authorities order by name
+          WITH refs as
+          (
+              SELECT id, sum(ref_count) as ref_count
+              FROM
+              (
+                  SELECT a.id, count(b.id) as ref_count
+                  FROM responsible_authorities a left join processes b on b.responsible_authority_id = a.id
+                  group by a.id
+                  union all
+                  SELECT a.id, count(b.id) as ref_count
+                  FROM responsible_authorities a left join zones b on b.responsible_authority_id = a.id
+                  group by a.id
+                  union all
+                  SELECT a.id, count(b.id) as ref_count
+                  FROM responsible_authorities a left join networks b on b.responsible_authority_id = a.id
+                  group by a.id
+              ) x
+              GROUP BY id
+
+          )
+          select a.id, a.name, a.organisation, a.locator, a.postcode, a.email, a.address, a.phone, a.website, a.is_responsible_reporter, b.ref_count
+          from responsible_authorities a,refs b
+          where a.id = b.id
+          order by name
         """)
         authorities = cursor.fetchall()
         return jsonify(authorities)

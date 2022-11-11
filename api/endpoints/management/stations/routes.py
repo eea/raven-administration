@@ -14,6 +14,13 @@ stations_endpoint = Blueprint('stations', __name__)
 def stations():
     with CursorFromPool() as cursor:
         cursor.execute("""
+          WITH refs as
+          (
+              SELECT a.id, count(b.id) as ref_count
+              FROM stations a left join sampling_points b on b.station_id = a.id
+              group by a.id
+
+          )
           SELECT st.id,
                 st.name,
                 st.begin_position,
@@ -39,12 +46,14 @@ def stations():
                 n.name   as      network,
                 mv.label as      media,
                 mr.label as      measurement_regime,
-                ac.label as      area_classification
-          FROM stations st, eea_mediavalues mv, eea_areaclassifications ac, eea_measurementregimevalues mr, networks n
+                ac.label as      area_classification,
+                r.ref_count
+          FROM stations st, eea_mediavalues mv, eea_areaclassifications ac, eea_measurementregimevalues mr, networks n, refs r
           WHERE st.network_id = n.id
           AND st.area_classification = ac.id
           AND st.media_monitored = mv.id
           AND st.measurement_regime = mr.id
+          AND st.id = r.id
           ORDER BY st.name, st.id
         """)
         stations = cursor.fetchall()

@@ -85,7 +85,7 @@ const cls_rowClass = (row) => {
 
 const cls_usedby = (row) => {
   if (row.user_count == 0) return "text-nord11";
-  return "text-nord14";
+  return "text-nord10";
 };
 </script>
 
@@ -110,7 +110,7 @@ const cls_usedby = (row) => {
           <th>Quality control</th>
           <th>Users</th>
           <th>All networks</th>
-          <th>Used by</th>
+          <th>Referenced by</th>
         </tr>
 
         <tr v-for="row in cmp_data" :key="row.id" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
