@@ -5,7 +5,7 @@ from typing import Optional
 
 class ObservingCapabilityModel(BaseModel):
     id: str
-    begin_position: datetime
+    begin_position: str
     process_type_id: str
     result_nature_id: str
     sampling_point_id: str
