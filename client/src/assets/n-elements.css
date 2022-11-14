@@ -93,6 +93,10 @@
   @apply border border-nord4 rounded bg-white z-[9999];
 }
 
+.n-select .select[disabled="true"] {
+  @apply !pointer-events-none bg-nord6 text-nord3/50 border-nord4;
+}
+
 /* -------------------------------------------------------------------------------- */
 
 .n-option {
@@ -193,6 +197,32 @@ N-CHECKBOX
 }
 
 .n-datetime .time {
+  @apply !border !border-nord4 !rounded;
+  border-top-left-radius: 0px !important;
+  border-bottom-left-radius: 0px !important;
+}
+
+/* -------------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------------- */
+
+.n-eea-datetime {
+  @apply flex box-border w-auto relative bg-white;
+}
+
+.n-eea-datetime .date {
+  @apply !w-full !border !border-nord4 !rounded;
+  border-right: none !important;
+  border-top-right-radius: 0px !important;
+  border-bottom-right-radius: 0px !important;
+}
+
+.n-eea-datetime .time {
+  @apply !border !border-nord4 !rounded-none;
+  border-right: none !important;
+}
+
+.n-eea-datetime .utc {
   @apply !border !border-nord4 !rounded;
   border-top-left-radius: 0px !important;
   border-bottom-left-radius: 0px !important;

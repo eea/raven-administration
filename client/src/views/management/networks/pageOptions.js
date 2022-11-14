@@ -7,8 +7,8 @@ const pageOptions = (lookups) => ({
     { type: "lookup", label: "Organisation level", prop_id: "organisationlevel_id", prop: "organisationlevel", lookup: "levels", required: true, default: null, showInEdit: true, showInGrid: true },
     { type: "lookup", label: "Authority", prop_id: "authority_id", prop: "authority", required: true, lookup: "authorities", default: null, showInEdit: true, showInGrid: true },
     { type: "lookup", label: "Timezone", prop_id: "timezone_id", prop: "timezone", required: true, lookup: "timezones", default: null, showInEdit: true, showInGrid: false },
-    { type: "text", label: "Begin", prop: "begin_position", placeholder: "str: YYYY-MM-DDTHH:mm:ssZ", required: true, default: null, showInEdit: true, showInGrid: false },
-    { type: "text", label: "End", prop: "end_position", placeholder: "str: YYYY-MM-DDTHH:mm:ssZ", required: false, default: null, showInEdit: true, showInGrid: false },
+    { type: "eeaDatetime", label: "Begin", prop: "begin_position", required: true, default: null, showInEdit: true, showInGrid: false },
+    { type: "eeaDatetime", label: "End", prop: "end_position", required: false, default: null, showInEdit: true, showInGrid: false },
 
     // OTHER
     {

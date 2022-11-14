@@ -13,7 +13,7 @@ const pageOptions = (lookups) => ({
     { type: "lookup", label: "Measurement regime", prop_id: "measurement_regime_id", prop: "measurement_regime", required: true, lookup: "measurementregimes", default: null, showInEdit: true, showInGrid: false },
     { type: "lookup", label: "Assessment types", prop_id: "assessment_type_id", prop: "assessment_type", required: true, lookup: "assessmenttypes", default: null, showInEdit: true, showInGrid: false },
 
-    { type: "text", label: "Begin", prop: "begin_position", placeholder: "str: YYYY-MM-DDTHH:mm:ssZ", required: true, default: null, showInEdit: true, showInGrid: false },
+    { type: "eeaDatetime", label: "Begin", prop: "begin_position", required: true, default: null, showInEdit: true, showInGrid: false },
 
     { type: "checkbox", label: "Mobile", prop: "mobile", required: true, default: false, showInEdit: true, showInGrid: false },
 
@@ -26,7 +26,7 @@ const pageOptions = (lookups) => ({
     { type: "text", label: "Heating emissions", prop: "heating_emissions", placeholder: "str:  Heating emissions", required: false, default: null, showInEdit: true, showInGrid: false },
     { type: "text", label: "Traffic emissions", prop: "traffic_emissions", placeholder: "str:  Traffic emissions", required: false, default: null, showInEdit: true, showInGrid: false },
 
-    { type: "text", label: "End", prop: "end_position", placeholder: "str: YYYY-MM-DDTHH:mm:ssZ", required: false, default: null, showInEdit: true, showInGrid: false },
+    { type: "eeaDatetime", label: "End", prop: "end_position", required: false, default: null, showInEdit: true, showInGrid: false },
     { type: "checkbox", label: "Used aqd", prop: "used_aqd", required: false, default: false, showInEdit: true, showInGrid: false },
 
     // OTHER

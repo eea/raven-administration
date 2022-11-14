@@ -17,7 +17,7 @@ const pageOptions = (lookups) => ({
     { type: "number", label: "Altitude", prop: "altitude", placeholder: "float: Altitude", required: true, default: null, showInEdit: true, showInGrid: false },
     { type: "number", label: "Epsg", prop: "epsg", placeholder: "int: Epsg", required: true, default: null, showInEdit: true, showInGrid: false },
 
-    { type: "text", label: "Begin", prop: "begin_position", placeholder: "str: YYYY-MM-DDTHH:mm:ssZ", required: true, default: null, showInEdit: true, showInGrid: false },
+    { type: "eeaDatetime", label: "Begin", prop: "begin_position", required: true, default: null, showInEdit: true, showInGrid: false },
 
     { type: "checkbox", label: "Mobile", prop: "mobile", required: true, default: false, showInEdit: true, showInGrid: false },
 
@@ -30,7 +30,7 @@ const pageOptions = (lookups) => ({
     { type: "number", label: "Traffic Volume", prop: "traffic_volume", placeholder: "int: Traffic Volume", required: false, default: null, showInEdit: true, showInGrid: false },
     { type: "number", label: "Heavy Duty Fraction", prop: "heavy_duty_fraction", placeholder: "float: Heavy Duty Fraction", required: false, default: null, showInEdit: true, showInGrid: false },
     { type: "number", label: "Height Facade", prop: "height_facade", placeholder: "float: Height Facade", required: false, default: null, showInEdit: true, showInGrid: false },
-    { type: "text", label: "End", prop: "end_position", placeholder: "str: YYYY-MM-DDTHH:mm:ssZ", required: false, default: null, showInEdit: true, showInGrid: false },
+    { type: "eeaDatetime", label: "End", prop: "end_position", required: false, default: null, showInEdit: true, showInGrid: false },
 
     // OTHER
     {

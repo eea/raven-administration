@@ -9,10 +9,10 @@ const pageOptions = (lookups) => ({
     { type: "lookup", label: "Sample", prop_id: "sample_id", prop: "sample_id", required: true, lookup: "samples", default: null, showInEdit: true, showInGrid: true },
     { type: "lookup", label: "Result nature", prop_id: "result_nature_id", prop: "result_nature", required: true, lookup: "result_nature_values", default: null, showInEdit: true, showInGrid: false },
     { type: "lookup", label: "Process type", prop_id: "process_type_id", prop: "process_type", required: true, lookup: "processtype_values", default: null, showInEdit: true, showInGrid: false },
-    { type: "text", label: "Begin", prop: "begin_position", placeholder: "str: YYYY-MM-DDTHH:mm:ssZ", required: true, default: null, showInEdit: true, showInGrid: true },
+    { type: "eeaDatetime", label: "Begin", prop: "begin_position", required: true, default: null, showInEdit: true, showInGrid: true },
 
     // OPTIONAL
-    { type: "text", label: "End", prop: "end_position", placeholder: "str: YYYY-MM-DDTHH:mm:ssZ", required: false, default: null, showInEdit: true, showInGrid: false }
+    { type: "eeaDatetime", label: "End", prop: "end_position", required: false, default: null, showInEdit: true, showInGrid: false }
   ],
   lookups: lookups
 });

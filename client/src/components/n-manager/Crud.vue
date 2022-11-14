@@ -60,6 +60,10 @@ const cmp_optional_properties = computed(() => {
               <n-option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value" :label="p.label" />
             </n-select>
           </div>
+          <div v-else-if="p.type == 'eeaDatetime'">
+            <div class="font-bold">{{ p.label }}:</div>
+            <n-eea-datetime v-model="obj[p.prop]" class="!w-72" />
+          </div>
         </div>
       </div>
 
@@ -80,6 +84,10 @@ const cmp_optional_properties = computed(() => {
             <n-select v-model="obj[p.prop_id]" class="!w-72">
               <n-option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value" :label="p.label" />
             </n-select>
+          </div>
+          <div v-else-if="p.type == 'eeaDatetime'">
+            <div class="font-bold">{{ p.label }}:</div>
+            <n-eea-datetime v-model="obj[p.prop]" class="!w-72" />
           </div>
         </div>
       </div>
