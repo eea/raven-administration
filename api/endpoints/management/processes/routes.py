@@ -3,14 +3,14 @@ from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
 from api.endpoints.management.processes.models import ProcessModel, DeleteModel
-from api.core.jwt_ext_custom import jwt_required_with_network_claim
+from api.core.jwt_ext_custom import jwt_required_with_management_claim
 
 
 processes_endpoint = Blueprint('processes', __name__)
 
 
 @processes_endpoint.route('/api/management/processes', methods=['GET'])
-@jwt_required_with_network_claim()
+@jwt_required_with_management_claim()
 def processes():
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -75,7 +75,7 @@ def processes():
 
 
 @processes_endpoint.route('/api/management/processes/update', methods=['POST'])
-@jwt_required_with_network_claim()
+@jwt_required_with_management_claim()
 def processes_update():
     with CursorFromPool() as cursor:
         model = ProcessModel(**request.json)
@@ -116,7 +116,7 @@ def processes_update():
 
 
 @processes_endpoint.route('/api/management/processes/insert', methods=['POST'])
-@jwt_required_with_network_claim()
+@jwt_required_with_management_claim()
 def processes_insert():
     with CursorFromPool() as cursor:
         model = ProcessModel(**request.json)
@@ -142,7 +142,7 @@ def processes_insert():
 
 
 @processes_endpoint.route('/api/management/processes/delete', methods=['POST'])
-@jwt_required_with_network_claim()
+@jwt_required_with_management_claim()
 def processes_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)

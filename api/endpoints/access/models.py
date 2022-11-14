@@ -35,8 +35,8 @@ class DeleteModel(BaseModel):
 
 class InsertGroupModel(BaseModel):
     name: str
-    network: Optional[bool] = False
-    observations: Optional[bool] = False
+    management: Optional[bool] = False
+    data: Optional[bool] = False
     exporting: Optional[bool] = False
     processing: Optional[bool] = False
     qualitycontrol: Optional[bool] = False
@@ -51,8 +51,8 @@ class InsertGroupModel(BaseModel):
 class UpdateGroupModel(BaseModel):
     id: int
     name: str
-    network: Optional[bool] = False
-    observations: Optional[bool] = False
+    management: Optional[bool] = False
+    data: Optional[bool] = False
     exporting: Optional[bool] = False
     processing: Optional[bool] = False
     qualitycontrol: Optional[bool] = False

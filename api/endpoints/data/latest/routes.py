@@ -1,12 +1,12 @@
 from flask import jsonify, Blueprint
 from api.core.database import CursorFromPool
-from api.core.jwt_ext_custom import jwt_required_with_observations_claim
+from api.core.jwt_ext_custom import jwt_required_with_data_claim
 from api.core.query import Q
 latest_endpoint = Blueprint('latest', __name__)
 
 
 @latest_endpoint.route('/api/data/latest', methods=['GET'])
-@jwt_required_with_observations_claim()
+@jwt_required_with_data_claim()
 def latest():
     with CursorFromPool() as cursor:
         with_network_sql, n_param = Q.with_networks_by_access_as_sql()

@@ -52,20 +52,20 @@ def jwt_required_with_exporting_claim():
     return wrapper
 
 
-def jwt_required_with_observations_claim():
+def jwt_required_with_data_claim():
     def wrapper(fn):
         @wraps(fn)
         def decorator(*args, **kwargs):
-            return verify_claim("observations", fn, *args, **kwargs)
+            return verify_claim("data", fn, *args, **kwargs)
         return decorator
     return wrapper
 
 
-def jwt_required_with_network_claim():
+def jwt_required_with_management_claim():
     def wrapper(fn):
         @wraps(fn)
         def decorator(*args, **kwargs):
-            return verify_claim("network", fn, *args, **kwargs)
+            return verify_claim("management", fn, *args, **kwargs)
         return decorator
     return wrapper
 

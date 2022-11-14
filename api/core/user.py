@@ -9,8 +9,8 @@ class User(BaseModel):
     id: str
     name: str
     username: str
-    network: bool
-    observations: bool
+    management: bool
+    data: bool
     exporting: bool
     processing: bool
     qualitycontrol: bool
@@ -25,8 +25,8 @@ def get_user(username, password):
         sql = """
           select
             u.id, u.name, u.username, u.password,
-            bool_or(g.network) as network, 
-            bool_or(g.observations) as observations,
+            bool_or(g.management) as management, 
+            bool_or(g.data) as data,
             bool_or(g.exporting) as exporting,
             bool_or(g.processing) as processing, 
             bool_or(g.qualitycontrol) as qualitycontrol,
@@ -55,8 +55,8 @@ def get_user(username, password):
 def get_claims(user: User):
     return {
         "name": user.name,
-        "network": user.network,
-        "observations": user.observations,
+        "management": user.management,
+        "data": user.data,
         "exporting": user.exporting,
         "processing": user.processing,
         "qualitycontrol": user.qualitycontrol,
@@ -125,20 +125,20 @@ def update_user(id, name, username, password, groups, createdby):
 
 
 # GROUP
-def add_group(name, network, observations, exporting, processing, qualitycontrol, users, allnetworks, networks):
+def add_group(name, management, data, exporting, processing, qualitycontrol, users, allnetworks, networks):
     if allnetworks == False and len(networks) == 0:
         raise Exception("Networks cannot be empty when allnetworks is false")
 
     with CursorFromPool() as cursor:
         sql = """
-            insert into "group" ("name", "network", "observations", "exporting", "processing", "qualitycontrol", "users", "allnetworks") 
-            values (%(name)s, %(network)s, %(observations)s, %(exporting)s, %(processing)s, %(qualitycontrol)s, %(users)s, %(allnetworks)s)
+            insert into "group" ("name", "network", "data", "exporting", "processing", "qualitycontrol", "users", "allnetworks") 
+            values (%(name)s, %(management)s, %(data)s, %(exporting)s, %(processing)s, %(qualitycontrol)s, %(users)s, %(allnetworks)s)
             returning "id"
         """
         o = {
             "name": name,
-            "network": network,
-            "observations": observations,
+            "management": management,
+            "data": data,
             "exporting": exporting,
             "processing": processing,
             "qualitycontrol": qualitycontrol,
@@ -154,7 +154,7 @@ def add_group(name, network, observations, exporting, processing, qualitycontrol
             cursor.execute(sql, {"networkid": n, "groupid": groupid["id"]})
 
 
-def update_group(id, name, network, observations, exporting, processing, qualitycontrol, users, allnetworks, networks):
+def update_group(id, name, management, data, exporting, processing, qualitycontrol, users, allnetworks, networks):
     if allnetworks == False and len(networks) == 0:
         raise Exception("Networks cannot be empty when allnetworks is false")
 
@@ -163,8 +163,8 @@ def update_group(id, name, network, observations, exporting, processing, quality
             update "group" 
             set
                 "name"=%(name)s,
-                "network"=%(network)s,
-                "observations"=%(observations)s,
+                "management"=%(management)s,
+                "data"=%(data)s,
                 "exporting"=%(exporting)s,
                 "processing"=%(processing)s,
                 "qualitycontrol"=%(qualitycontrol)s,
@@ -175,8 +175,8 @@ def update_group(id, name, network, observations, exporting, processing, quality
 
         o = {
             "name": name,
-            "network": network,
-            "observations": observations,
+            "management": management,
+            "data": data,
             "exporting": exporting,
             "processing": processing,
             "qualitycontrol": qualitycontrol,

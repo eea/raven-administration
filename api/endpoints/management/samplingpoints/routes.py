@@ -3,14 +3,14 @@ from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
 from api.endpoints.management.samplingpoints.models import SamplingPointsModel, DeleteModel
-from api.core.jwt_ext_custom import jwt_required_with_observations_claim
+from api.core.jwt_ext_custom import jwt_required_with_management_claim
 
 
 samplingpoints_endpoint = Blueprint('samplingpoints', __name__)
 
 
 @samplingpoints_endpoint.route('/api/management/samplingpoints', methods=['GET'])
-@jwt_required_with_observations_claim()
+@jwt_required_with_management_claim()
 def samplingpoints():
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -98,7 +98,7 @@ def samplingpoints():
 
 
 @samplingpoints_endpoint.route('/api/management/samplingpoints/update', methods=['POST'])
-@jwt_required_with_observations_claim()
+@jwt_required_with_management_claim()
 def samplingpoints_update():
     with CursorFromPool() as cursor:
         model = SamplingPointsModel(**request.json)
@@ -135,7 +135,7 @@ def samplingpoints_update():
 
 
 @samplingpoints_endpoint.route('/api/management/samplingpoints/insert', methods=['POST'])
-@jwt_required_with_observations_claim()
+@jwt_required_with_management_claim()
 def samplingpoints_insert():
     with CursorFromPool() as cursor:
         model = SamplingPointsModel(**request.json)
@@ -193,7 +193,7 @@ def samplingpoints_insert():
 
 
 @samplingpoints_endpoint.route('/api/management/samplingpoints/delete', methods=['POST'])
-@jwt_required_with_observations_claim()
+@jwt_required_with_management_claim()
 def samplingpoints_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)

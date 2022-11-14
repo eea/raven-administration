@@ -3,14 +3,14 @@ from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
 from api.endpoints.management.observingcapabilities.models import ObservingCapabilityModel, DeleteModel
-from api.core.jwt_ext_custom import jwt_required_with_observations_claim
+from api.core.jwt_ext_custom import jwt_required_with_management_claim
 
 
 observingcapabilities_endpoint = Blueprint('observingcapabilities', __name__)
 
 
 @observingcapabilities_endpoint.route('/api/management/observingcapabilities', methods=['GET'])
-@jwt_required_with_observations_claim()
+@jwt_required_with_management_claim()
 def observingcapabilities():
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -36,7 +36,7 @@ def observingcapabilities():
 
 
 @observingcapabilities_endpoint.route('/api/management/observingcapabilities/update', methods=['POST'])
-@jwt_required_with_observations_claim()
+@jwt_required_with_management_claim()
 def observingcapabilities_update():
     with CursorFromPool() as cursor:
         model = ObservingCapabilityModel(**request.json)
@@ -61,7 +61,7 @@ def observingcapabilities_update():
 
 
 @observingcapabilities_endpoint.route('/api/management/observingcapabilities/insert', methods=['POST'])
-@jwt_required_with_observations_claim()
+@jwt_required_with_management_claim()
 def observingcapabilities_insert():
     with CursorFromPool() as cursor:
         model = ObservingCapabilityModel(**request.json)
@@ -96,7 +96,7 @@ def observingcapabilities_insert():
 
 
 @observingcapabilities_endpoint.route('/api/management/observingcapabilities/delete', methods=['POST'])
-@jwt_required_with_observations_claim()
+@jwt_required_with_management_claim()
 def observingcapabilities_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)

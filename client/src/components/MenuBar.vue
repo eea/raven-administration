@@ -28,25 +28,25 @@ const getmodules = () => {
   return [
     {
       group: "Management",
-      show: jwt.users || jwt.network || jwt.observations,
+      show: jwt.management,
       items: [
-        { name: "Authorities", comp: "Authorities", show: jwt.users },
-        { name: "Zones", comp: "Zones", show: jwt.network },
-        { name: "Networks", comp: "Networks", show: jwt.network },
-        { name: "Stations", comp: "Stations", show: jwt.network },
-        { name: "Sampling Points", comp: "SamplingPoints", show: jwt.observations },
-        { name: "Observing Capabilities", comp: "ObservingCapabilities", show: jwt.observations },
-        { name: "Processes", comp: "Processes", show: jwt.network },
-        { name: "Samples", comp: "Samples", show: jwt.observations },
-        { name: "Assessment Regimes", comp: "AssessmentRegimes", show: jwt.network }
+        { name: "Authorities", comp: "Authorities", show: jwt.management },
+        { name: "Zones", comp: "Zones", show: jwt.management },
+        { name: "Networks", comp: "Networks", show: jwt.management },
+        { name: "Stations", comp: "Stations", show: jwt.management },
+        { name: "Sampling Points", comp: "SamplingPoints", show: jwt.management },
+        { name: "Observing Capabilities", comp: "ObservingCapabilities", show: jwt.management },
+        { name: "Processes", comp: "Processes", show: jwt.management },
+        { name: "Samples", comp: "Samples", show: jwt.management },
+        { name: "Assessment Regimes", comp: "AssessmentRegimes", show: jwt.management }
       ]
     },
     {
       group: "Data",
-      show: jwt.observations || jwt.exporting,
+      show: jwt.data || jwt.exporting,
       items: [
-        { name: "Latest data", comp: "Latest", show: jwt.observations },
-        { name: "Historical data", comp: "Historical", show: jwt.observations },
+        { name: "Latest data", comp: "Latest", show: jwt.data },
+        { name: "Historical data", comp: "Historical", show: jwt.data },
         { name: "Dataflow", comp: "Dataflow", show: jwt.exporting }
       ]
     },

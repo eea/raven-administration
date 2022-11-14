@@ -60,14 +60,14 @@ def groups():
     with CursorFromPool() as cursor:
         sql = """
 			      select
-                  g.id, g.name, g.network, g.observations, g.exporting, g.processing, g.qualitycontrol, g.allnetworks, g.users,
+                  g.id, g.name, g.management, g.data, g.exporting, g.processing, g.qualitycontrol, g.allnetworks, g.users,
                   count(ug.groupid) as user_count,
                   coalesce( array_agg(gn.networkid) FILTER (WHERE gn.networkid is not NULL),'{}') as networks
             from
                 "group" g
                 left join usergroup ug on ug.groupid = g.id
                 left join groupnetwork gn on gn.groupid = g.id
-            group by g.id, g.name, g.network, g.observations, g.exporting, g.processing, g.qualitycontrol, g.allnetworks, g.users
+            group by g.id, g.name, g.management, g.data, g.exporting, g.processing, g.qualitycontrol, g.allnetworks, g.users
             order by g.name
         """
         cursor.execute(sql)
@@ -79,7 +79,7 @@ def groups():
 @jwt_required_with_users_claim()
 def groups_insert():
     model = InsertGroupModel(**request.json)
-    add_group(model.name, model.network, model.observations, model.exporting, model.processing, model.qualitycontrol, model.users, model.allnetworks, model.networks)
+    add_group(model.name, model.management, model.data, model.exporting, model.processing, model.qualitycontrol, model.users, model.allnetworks, model.networks)
     return jsonify({"success": True})
 
 
@@ -87,7 +87,7 @@ def groups_insert():
 @jwt_required_with_users_claim()
 def groups_update():
     model = UpdateGroupModel(**request.json)
-    update_group(model.id, model.name, model.network, model.observations, model.exporting, model.processing, model.qualitycontrol, model.users, model.allnetworks, model.networks)
+    update_group(model.id, model.name, model.management, model.data, model.exporting, model.processing, model.qualitycontrol, model.users, model.allnetworks, model.networks)
     return jsonify({"success": True})
 
 
