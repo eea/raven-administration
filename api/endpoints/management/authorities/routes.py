@@ -2,6 +2,7 @@ from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
+from api.core.query_access import Access
 from api.endpoints.management.authorities.models import AuthorityModel, DeleteModel
 from api.core.jwt_ext_custom import jwt_required_with_management_claim
 
@@ -85,6 +86,9 @@ def authorities_insert():
 @authorities_endpoint.route("/api/management/authorities/delete", methods=['POST'])
 @jwt_required_with_management_claim()
 def authorities_delete():
+    if not Access.to_all_networks():
+        raise BadRequest("Access denied for deleting authority")
+
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
         sql = "delete from responsible_authorities where id = %(id)s"

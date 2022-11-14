@@ -2,6 +2,7 @@ from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
+from api.core.query_access import Access
 from api.endpoints.management.samples.models import SampleModel, DeleteModel
 from api.core.jwt_ext_custom import jwt_required_with_management_claim
 
@@ -28,9 +29,9 @@ def samples():
 def samples_update():
     with CursorFromPool() as cursor:
         model = SampleModel(**request.json)
-        sql = """ 
-            UPDATE samples 
-            SET 
+        sql = """
+            UPDATE samples
+            SET
               inlet_height = %(inlet_height)s,
   			      building_distance = %(building_distance)s,
 	      		  kerb_distance = %(kerb_distance)s
@@ -50,7 +51,7 @@ def samples_insert():
         model = SampleModel(**request.json)
         sql = """
             INSERT INTO samples (id, inlet_height, building_distance, kerb_distance)
-            VALUES (%(id)s, %(inlet_height)s, %(building_distance)s, %(kerb_distance)s) 
+            VALUES (%(id)s, %(inlet_height)s, %(building_distance)s, %(kerb_distance)s)
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
@@ -62,6 +63,9 @@ def samples_insert():
 @samples_endpoint.route('/api/management/samples/delete', methods=['POST'])
 @jwt_required_with_management_claim()
 def samples_delete():
+    if not Access.to_all_networks():
+        raise BadRequest("Access denied for deleting sample")
+
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
         sql = """
