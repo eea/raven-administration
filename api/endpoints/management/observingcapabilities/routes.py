@@ -1,9 +1,10 @@
 from flask import jsonify, Blueprint, request
-from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
 from api.endpoints.management.observingcapabilities.models import ObservingCapabilityModel, DeleteModel
 from api.core.jwt_ext_custom import jwt_required_with_management_claim
+from api.core.query import Q
+from api.core.query_access import Access
 
 
 observingcapabilities_endpoint = Blueprint('observingcapabilities', __name__)
@@ -13,7 +14,9 @@ observingcapabilities_endpoint = Blueprint('observingcapabilities', __name__)
 @jwt_required_with_management_claim()
 def observingcapabilities():
     with CursorFromPool() as cursor:
-        cursor.execute("""
+        with_samplingpoints_sql, n_param = Q.with_sampling_points_by_networks_access()
+        cursor.execute(f"""
+            {with_samplingpoints_sql}   
             SELECT
               oc.id,
               oc.begin_position,
@@ -25,12 +28,13 @@ def observingcapabilities():
               oc.sample_id,
               ptv.label as process_type,
               rnv.label as result_nature
-          FROM observing_capabilities oc, eea_processtypevalues ptv,eea_resultnaturevalues rnv
+          FROM observing_capabilities oc, eea_processtypevalues ptv,eea_resultnaturevalues rnv, sampling_point_access spa
           WHERE 1=1
           AND oc.process_type = ptv.id
           AND oc.result_nature = rnv.id
+          AND oc.sampling_point_id = spa.id
           ORDER BY  oc.sampling_point_id, oc.begin_position
-        """)
+        """, n_param)
         observingcapabilities = cursor.fetchall()
         return jsonify(observingcapabilities)
 
@@ -40,6 +44,10 @@ def observingcapabilities():
 def observingcapabilities_update():
     with CursorFromPool() as cursor:
         model = ObservingCapabilityModel(**request.json)
+
+        if not Access.to_observing_capability(model.id):
+            raise BadRequest("Access denied for observing capability")
+
         sql = """
             UPDATE observing_capabilities 
             SET 
@@ -65,6 +73,10 @@ def observingcapabilities_update():
 def observingcapabilities_insert():
     with CursorFromPool() as cursor:
         model = ObservingCapabilityModel(**request.json)
+
+        if not Access.to_sampling_point(model.sampling_point_id):
+            raise BadRequest("Access denied for samplingpoint")
+
         sql = """
             INSERT INTO observing_capabilities (
               id, 
@@ -100,6 +112,10 @@ def observingcapabilities_insert():
 def observingcapabilities_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
+
+        if not Access.to_observing_capability(model.id):
+            raise BadRequest("Access denied for observing capability")
+
         sql = "delete from observing_capabilities where id = %(id)s"
         cursor.execute(sql, model)
         if cursor.rowcount == 0:

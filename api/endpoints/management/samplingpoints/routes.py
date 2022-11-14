@@ -1,9 +1,10 @@
 from flask import jsonify, Blueprint, request
-from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
 from api.endpoints.management.samplingpoints.models import SamplingPointsModel, DeleteModel
 from api.core.jwt_ext_custom import jwt_required_with_management_claim
+from api.core.query import Q
+from api.core.query_access import Access
 
 
 samplingpoints_endpoint = Blueprint('samplingpoints', __name__)
@@ -13,8 +14,10 @@ samplingpoints_endpoint = Blueprint('samplingpoints', __name__)
 @jwt_required_with_management_claim()
 def samplingpoints():
     with CursorFromPool() as cursor:
-        cursor.execute("""
-            WITH refs as
+        with_samplingpoints_sql, n_param = Q.with_sampling_points_by_networks_access()
+        cursor.execute(f"""        
+            {with_samplingpoints_sql},
+            refs as
               (
                 SELECT id, sum(ref_count) as ref_count
                 FROM
@@ -81,7 +84,7 @@ def samplingpoints():
                 r.ref_count
             FROM
                 sampling_points sp,eea_mediavalues mv, eea_measurementregimevalues mr, eea_assessmenttypes ast,
-                eea_stationclassifications sc, stations st, eea_pollutants p, eea_concentrations cn, eea_times tm,refs r
+                eea_stationclassifications sc, stations st, eea_pollutants p, eea_concentrations cn, eea_times tm,refs r, sampling_point_access spa
             WHERE sp.station_id = st.id
             AND sp.pollutant = p.uri
             AND sp.concentration = cn.id
@@ -91,8 +94,9 @@ def samplingpoints():
             AND sp.assessment_type = ast.id
             AND sp.station_classification = sc.id
             AND sp.id = r.id
+            AND sp.id = spa.id
             ORDER BY st.name, p.notation
-        """)
+        """, n_param)
         samplingpoints = cursor.fetchall()
         return jsonify(samplingpoints)
 
@@ -102,6 +106,10 @@ def samplingpoints():
 def samplingpoints_update():
     with CursorFromPool() as cursor:
         model = SamplingPointsModel(**request.json)
+
+        if not Access.to_sampling_point(model.id):
+            raise BadRequest("Access denied for samplingpoint")
+
         sql = """ 
           UPDATE sampling_points
           SET 
@@ -139,6 +147,10 @@ def samplingpoints_update():
 def samplingpoints_insert():
     with CursorFromPool() as cursor:
         model = SamplingPointsModel(**request.json)
+
+        if not Access.to_station(model.station_id):
+            raise BadRequest("Access denied for station")
+
         sql = """
           INSERT INTO sampling_points (
             id, 
@@ -197,6 +209,10 @@ def samplingpoints_insert():
 def samplingpoints_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
+
+        if not Access.to_sampling_point(model.id):
+            raise BadRequest("Access denied for samplingpoint")
+
         sql = "delete from sampling_points where id = %(id)s"
         cursor.execute(sql, model)
         if cursor.rowcount == 0:

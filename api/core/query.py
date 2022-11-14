@@ -102,6 +102,27 @@ class Q:
         return sql, {"networkids": tuple(get_networks())}
 
     @staticmethod
+    def with_sampling_points_by_networks_access():
+        sql = f"""
+          with network_access as
+          (
+            select *
+            from networks
+            {"" if can_see_all_networks() else "where id in %(networkids)s"}
+          ),
+          sampling_point_access as 
+          (
+            select p.id
+            from stations s, sampling_points p,  eea_pollutants po, network_access n
+            where 1=1
+            and s.network_id = n.id
+            and s.id = p.station_id
+            and p.pollutant = po.uri
+          )
+        """
+        return sql, {"networkids": tuple(get_networks())}
+
+    @staticmethod
     def sampling_point_ids_by_networks_access(sampling_point_ids: list):
         with CursorFromPool() as cursor:
             sql = f"""
@@ -114,7 +135,7 @@ class Q:
             """
             cursor.execute(sql, {"sampling_point_ids": tuple(sampling_point_ids), "networkids": tuple(get_networks())})
             row = cursor.fetchone()
-            return tuple(row["spid"])
+            return [] if row["spid"] == None else tuple(row["spid"])
 
     @staticmethod
     def has_no_access(sampling_point_id):

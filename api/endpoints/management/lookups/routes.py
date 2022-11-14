@@ -115,13 +115,13 @@ def measurementtypes():
         return jsonify(measurementtypes)
 
 
-@management_endpoint.route('/api/management/lookups/networks', methods=['GET'])
+@management_endpoint.route('/api/management/lookups/processtypevalues', methods=['GET'])
 @jwt_required_with_management_claim()
-def networks():
+def processtypevalues():
     with CursorFromPool() as cursor:
-        cursor.execute("select n.name as label, n.id as value from networks n order by n.name")
-        networks = cursor.fetchall()
-        return jsonify(networks)
+        cursor.execute("select r.label as label, r.id as value from eea_processtypevalues r order by r.label")
+        processtypevalues = cursor.fetchall()
+        return jsonify(processtypevalues)
 
 
 @management_endpoint.route('/api/management/lookups/pollutants', methods=['GET'])
@@ -131,24 +131,6 @@ def pollutants():
         cursor.execute("select r.label as label, r.uri as value from eea_pollutants r order by r.label")
         pollutants = cursor.fetchall()
         return jsonify(pollutants)
-
-
-@management_endpoint.route('/api/management/lookups/processes', methods=['GET'])
-@jwt_required_with_management_claim()
-def processes():
-    with CursorFromPool() as cursor:
-        cursor.execute("select r.id as label, r.id as value from processes r order by r.id")
-        processes = cursor.fetchall()
-        return jsonify(processes)
-
-
-@management_endpoint.route('/api/management/lookups/processtypevalues', methods=['GET'])
-@jwt_required_with_management_claim()
-def processtypevalues():
-    with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_processtypevalues r order by r.label")
-        processtypevalues = cursor.fetchall()
-        return jsonify(processtypevalues)
 
 
 @management_endpoint.route('/api/management/lookups/responsibleauthorities', methods=['GET'])
@@ -167,33 +149,6 @@ def resultnaturevalues():
         cursor.execute("select r.label as label, r.id as value from eea_resultnaturevalues r order by r.label")
         resultnaturevalues = cursor.fetchall()
         return jsonify(resultnaturevalues)
-
-
-@management_endpoint.route('/api/management/lookups/samplingpoints', methods=['GET'])
-@jwt_required_with_management_claim()
-def samplingpoints():
-    with CursorFromPool() as cursor:
-        cursor.execute("select r.id as label, r.id as value from sampling_points r order by r.id")
-        samplingpoints = cursor.fetchall()
-        return jsonify(samplingpoints)
-
-
-@management_endpoint.route('/api/management/lookups/samples', methods=['GET'])
-@jwt_required_with_management_claim()
-def samples():
-    with CursorFromPool() as cursor:
-        cursor.execute("select r.id as label, r.id as value from samples r order by r.id")
-        samples = cursor.fetchall()
-        return jsonify(samples)
-
-
-@management_endpoint.route('/api/management/lookups/stations', methods=['GET'])
-@jwt_required_with_management_claim()
-def stations():
-    with CursorFromPool() as cursor:
-        cursor.execute("select r.name as label, r.id as value from stations r order by r.name")
-        stations = cursor.fetchall()
-        return jsonify(stations)
 
 
 @management_endpoint.route('/api/management/lookups/stationclassifications', methods=['GET'])
@@ -227,6 +182,24 @@ def timesteps():
         return jsonify(timesteps)
 
 
+@management_endpoint.route('/api/management/lookups/processes', methods=['GET'])
+@jwt_required_with_management_claim()
+def processes():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.id as label, r.id as value from processes r order by r.id")
+        processes = cursor.fetchall()
+        return jsonify(processes)
+
+
+@management_endpoint.route('/api/management/lookups/samples', methods=['GET'])
+@jwt_required_with_management_claim()
+def samples():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.id as label, r.id as value from samples r order by r.id")
+        samples = cursor.fetchall()
+        return jsonify(samples)
+
+
 @management_endpoint.route('/api/management/lookups/zones', methods=['GET'])
 @jwt_required_with_management_claim()
 def zones():
@@ -234,3 +207,42 @@ def zones():
         cursor.execute("select r.name as label, r.id as value from zones r order by r.name")
         zones = cursor.fetchall()
         return jsonify(zones)
+
+
+@management_endpoint.route('/api/management/lookups/networks', methods=['GET'])
+@jwt_required_with_management_claim()
+def networks():
+    with CursorFromPool() as cursor:
+        with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+        cursor.execute(f"""
+          {with_network_sql}
+          select n.name as label, n.id as value from networks n, network_access na where n.id = na.id order by n.name
+        """, n_param)
+        networks = cursor.fetchall()
+        return jsonify(networks)
+
+
+@management_endpoint.route('/api/management/lookups/samplingpoints', methods=['GET'])
+@jwt_required_with_management_claim()
+def samplingpoints():
+    with CursorFromPool() as cursor:
+        with_network_sql, n_param = Q.with_sampling_points_by_networks_access()
+        cursor.execute(f"""
+          {with_network_sql}
+          select r.id as label, r.id as value from sampling_points r, sampling_point_access spa where r.id = spa.id order by r.id
+        """, n_param)
+        samplingpoints = cursor.fetchall()
+        return jsonify(samplingpoints)
+
+
+@management_endpoint.route('/api/management/lookups/stations', methods=['GET'])
+@jwt_required_with_management_claim()
+def stations():
+    with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+    with CursorFromPool() as cursor:
+        cursor.execute(f"""
+          {with_network_sql}
+          select r.name as label, r.id as value from stations r, network_access na where r.network_id = na.id order by r.name
+        """, n_param)
+        stations = cursor.fetchall()
+        return jsonify(stations)

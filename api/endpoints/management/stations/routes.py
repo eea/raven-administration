@@ -1,10 +1,10 @@
 from flask import jsonify, Blueprint, request
-from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
 from api.endpoints.management.stations.models import StationModel, DeleteModel
 from api.core.jwt_ext_custom import jwt_required_with_management_claim
-
+from api.core.query_access import Access
+from api.core.query import Q
 
 stations_endpoint = Blueprint('stations', __name__)
 
@@ -13,8 +13,10 @@ stations_endpoint = Blueprint('stations', __name__)
 @jwt_required_with_management_claim()
 def stations():
     with CursorFromPool() as cursor:
-        cursor.execute("""
-          WITH refs as
+        with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+        cursor.execute(f"""
+          {with_network_sql},
+          refs as
           (
               SELECT a.id, count(b.id) as ref_count
               FROM stations a left join sampling_points b on b.station_id = a.id
@@ -48,14 +50,15 @@ def stations():
                 mr.label as      measurement_regime,
                 ac.label as      area_classification,
                 r.ref_count
-          FROM stations st, eea_mediavalues mv, eea_areaclassifications ac, eea_measurementregimevalues mr, networks n, refs r
+          FROM stations st, eea_mediavalues mv, eea_areaclassifications ac, eea_measurementregimevalues mr, networks n, refs r, network_access na
           WHERE st.network_id = n.id
           AND st.area_classification = ac.id
           AND st.media_monitored = mv.id
           AND st.measurement_regime = mr.id
           AND st.id = r.id
+          AND n.id = na.id
           ORDER BY st.name, st.id
-        """)
+        """, n_param)
         stations = cursor.fetchall()
         return jsonify(stations)
 
@@ -65,6 +68,10 @@ def stations():
 def stations_update():
     with CursorFromPool() as cursor:
         model = StationModel(**request.json)
+
+        if not Access.to_station(model.id):
+            raise BadRequest("Access denied for station")
+
         sql = """ 
             UPDATE stations
             SET 
@@ -100,6 +107,10 @@ def stations_update():
 def stations_insert():
     with CursorFromPool() as cursor:
         model = StationModel(**request.json)
+
+        if not Access.to_network(model.network_id):
+            raise BadRequest("Access denied for network")
+
         sql = """ 
             INSERT INTO stations (
               id, 
@@ -156,6 +167,10 @@ def stations_insert():
 def stations_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
+
+        if not Access.to_station(model.id):
+            raise BadRequest("Access denied for station")
+
         sql = "delete from stations where id = %(id)s"
         cursor.execute(sql, model)
         if cursor.rowcount == 0:

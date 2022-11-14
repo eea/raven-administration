@@ -1,9 +1,9 @@
 from flask import jsonify, Blueprint, request
-from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
 from api.endpoints.management.networks.models import NetworkModel, DeleteModel
 from api.core.query import Q
+from api.core.query_access import Access
 from api.core.jwt_ext_custom import jwt_required_with_management_claim
 
 
@@ -43,7 +43,7 @@ def networks_update():
     with CursorFromPool() as cursor:
         model = NetworkModel(**request.json)
 
-        if __has_no_access(model.id):
+        if not Access.to_network(model.id):
             raise BadRequest("Access denied for network")
 
         sql = """ 
@@ -70,8 +70,8 @@ def networks_insert():
     with CursorFromPool() as cursor:
         model = NetworkModel(**request.json)
 
-        if __has_no_access(model.id):
-            raise BadRequest("Access denied for network")
+        if not Access.to_all_networks():
+            raise BadRequest("Access denied for creating network")
 
         sql = """ 
             insert into networks (
@@ -108,7 +108,7 @@ def networks_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
 
-        if __has_no_access(model.id):
+        if not Access.to_network(model.id):
             raise BadRequest("Access denied for network")
 
         sql = "delete from networks where id = %(id)s"
@@ -117,16 +117,3 @@ def networks_delete():
             raise BadRequest("Could not delete for id " + model.id)
 
         return jsonify({"success": True})
-
-
-def __has_no_access(id):
-    with CursorFromPool() as cursor:
-        with_network_sql, n_param = Q.with_networks_by_access_as_sql()
-        sql = f""" 
-            {with_network_sql}
-            select 1 from networks n, network_access na
-            where n.id = na.id
-        """
-        cursor.execute(sql, {"id": id, "networkids": n_param["networkids"]})
-        row = cursor.fetchall()
-        return len(row) == 0
