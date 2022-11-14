@@ -15,7 +15,7 @@ class StationModel(BaseModel):
     latitude: float
     altitude: float
     epsg: int
-    begin_position: datetime
+    begin_position: str
     mobile: bool
 
     national_station_code: Optional[str] = None
@@ -26,7 +26,7 @@ class StationModel(BaseModel):
     traffic_volume: Optional[int] = None
     heavy_duty_fraction: Optional[float] = None
     height_facades: Optional[float] = None
-    end_position: Optional[datetime] = None
+    end_position: Optional[str] = None
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
