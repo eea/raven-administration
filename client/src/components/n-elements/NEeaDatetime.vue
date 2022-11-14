@@ -58,7 +58,7 @@ const utc = computed({
     }
 
     var t = p.modelValue.split("T")[1];
-    if (t.toLocaleLowerCase().endsWith("z")) return "+00::00";
+    if (t.toLocaleLowerCase().endsWith("z")) return "+00:00";
     return t.slice(-6);
   },
   set(value) {
