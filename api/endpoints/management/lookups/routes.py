@@ -1,8 +1,6 @@
 from flask import jsonify, Blueprint, request
-from flask_jwt_extended import jwt_required
-from werkzeug.exceptions import BadRequest
+from api.core.jwt_ext_custom import jwt_required_with_management_claim
 from api.core.database import CursorFromPool
-from api.endpoints.management.networks.models import NetworkModel, DeleteModel
 from api.core.query import Q
 
 management_endpoint = Blueprint('management', __name__)
@@ -10,7 +8,7 @@ management_endpoint = Blueprint('management', __name__)
 
 ## LOOKUPS ##
 @management_endpoint.route('/api/management/lookups/areaclassifications', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def areaclassifications():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_areaclassifications r order by r.label")
@@ -19,7 +17,7 @@ def areaclassifications():
 
 
 @management_endpoint.route('/api/management/lookups/assessmentexceedances', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def exceedances():
     with CursorFromPool() as cursor:
         cursor.execute("select r.id as label, r.id as value from eea_assessmentthresholdexceedances r order by r.id")
@@ -28,7 +26,7 @@ def exceedances():
 
 
 @management_endpoint.route('/api/management/lookups/assessmenttypes', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def assessmenttypes():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_assessmenttypes r order by r.label")
@@ -37,7 +35,7 @@ def assessmenttypes():
 
 
 @management_endpoint.route('/api/management/lookups/authorities', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def authorities():
     with CursorFromPool() as cursor:
         cursor.execute("select r.name as label, r.id as value from responsible_authorities r order by r.name")
@@ -46,7 +44,7 @@ def authorities():
 
 
 @management_endpoint.route('/api/management/lookups/concentrations', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def concentrations():
     with CursorFromPool() as cursor:
         cursor.execute("select r.notation as label, r.id as value from eea_concentrations r order by r.notation")
@@ -55,7 +53,7 @@ def concentrations():
 
 
 @management_endpoint.route('/api/management/lookups/equivdemonstrations', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def equivdemonstrations():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_equivalencedemonstrated r order by r.label")
@@ -64,7 +62,7 @@ def equivdemonstrations():
 
 
 @management_endpoint.route('/api/management/lookups/levels', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def levels():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_organisationallevels r order by r.label")
@@ -73,7 +71,7 @@ def levels():
 
 
 @management_endpoint.route('/api/management/lookups/media', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def media():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_mediavalues r order by r.label")
@@ -82,7 +80,7 @@ def media():
 
 
 @management_endpoint.route('/api/management/lookups/measurementequipment', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def measurementequipment():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_measurementequipments r order by r.label")
@@ -91,7 +89,7 @@ def measurementequipment():
 
 
 @management_endpoint.route('/api/management/lookups/measurementmethods', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def measurement_methods():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_measurementmethods r order by r.label")
@@ -100,7 +98,7 @@ def measurement_methods():
 
 
 @management_endpoint.route('/api/management/lookups/measurementregimes', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def measurementregimes():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_measurementregimevalues r order by r.label")
@@ -109,7 +107,7 @@ def measurementregimes():
 
 
 @management_endpoint.route('/api/management/lookups/measurementtypes', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def measurementtypes():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_measurementtypes r order by r.label")
@@ -118,7 +116,7 @@ def measurementtypes():
 
 
 @management_endpoint.route('/api/management/lookups/networks', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def networks():
     with CursorFromPool() as cursor:
         cursor.execute("select n.name as label, n.id as value from networks n order by n.name")
@@ -127,7 +125,7 @@ def networks():
 
 
 @management_endpoint.route('/api/management/lookups/pollutants', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def pollutants():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.uri as value from eea_pollutants r order by r.label")
@@ -136,7 +134,7 @@ def pollutants():
 
 
 @management_endpoint.route('/api/management/lookups/processes', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def processes():
     with CursorFromPool() as cursor:
         cursor.execute("select r.id as label, r.id as value from processes r order by r.id")
@@ -145,7 +143,7 @@ def processes():
 
 
 @management_endpoint.route('/api/management/lookups/processtypevalues', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def processtypevalues():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_processtypevalues r order by r.label")
@@ -154,7 +152,7 @@ def processtypevalues():
 
 
 @management_endpoint.route('/api/management/lookups/responsibleauthorities', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def responsibleauthorities():
     with CursorFromPool() as cursor:
         cursor.execute("select r.name as label, r.id as value from responsible_authorities r order by r.name")
@@ -163,7 +161,7 @@ def responsibleauthorities():
 
 
 @management_endpoint.route('/api/management/lookups/resultnaturevalues', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def resultnaturevalues():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_resultnaturevalues r order by r.label")
@@ -172,7 +170,7 @@ def resultnaturevalues():
 
 
 @management_endpoint.route('/api/management/lookups/samplingpoints', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def samplingpoints():
     with CursorFromPool() as cursor:
         cursor.execute("select r.id as label, r.id as value from sampling_points r order by r.id")
@@ -181,7 +179,7 @@ def samplingpoints():
 
 
 @management_endpoint.route('/api/management/lookups/samples', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def samples():
     with CursorFromPool() as cursor:
         cursor.execute("select r.id as label, r.id as value from samples r order by r.id")
@@ -190,7 +188,7 @@ def samples():
 
 
 @management_endpoint.route('/api/management/lookups/stations', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def stations():
     with CursorFromPool() as cursor:
         cursor.execute("select r.name as label, r.id as value from stations r order by r.name")
@@ -199,7 +197,7 @@ def stations():
 
 
 @management_endpoint.route('/api/management/lookups/stationclassifications', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def station_classifications():
     with CursorFromPool() as cursor:
         cursor.execute("select r.label as label, r.id as value from eea_stationclassifications r order by r.label")
@@ -208,14 +206,14 @@ def station_classifications():
 
 
 @management_endpoint.route('/api/management/lookups/timezones', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def timezones():
     timezones = Q.timezones()
     return jsonify(timezones)
 
 
 @management_endpoint.route('/api/management/lookups/timesteps', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def timesteps():
     type = request.args.get("type", default="aq", type=str)
     with CursorFromPool() as cursor:
@@ -230,7 +228,7 @@ def timesteps():
 
 
 @management_endpoint.route('/api/management/lookups/zones', methods=['GET'])
-@jwt_required()
+@jwt_required_with_management_claim()
 def zones():
     with CursorFromPool() as cursor:
         cursor.execute("select r.name as label, r.id as value from zones r order by r.name")
