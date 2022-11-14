@@ -103,9 +103,9 @@ const cls_usedby = (row) => {
         <tr>
           <th>Id</th>
           <th>Name</th>
-          <th>Network</th>
-          <th>Observations</th>
-          <th>Exporting</th>
+          <th>Management</th>
+          <th>Data</th>
+          <th>EEA dataflow</th>
           <th>Processing</th>
           <th>Quality control</th>
           <th>Users</th>
@@ -114,11 +114,10 @@ const cls_usedby = (row) => {
         </tr>
 
         <tr v-for="row in cmp_data" :key="row.id" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
-          <!-- <td>{{ row.network }}</td> -->
           <td>{{ row.id }}</td>
           <td>{{ row.name }}</td>
-          <td><n-checkbox class="align-middle" v-model="row.network" :disabled="true" /></td>
-          <td><n-checkbox class="align-middle" v-model="row.observations" :disabled="true" /></td>
+          <td><n-checkbox class="align-middle" v-model="row.management" :disabled="true" /></td>
+          <td><n-checkbox class="align-middle" v-model="row.data" :disabled="true" /></td>
           <td><n-checkbox class="align-middle" v-model="row.exporting" :disabled="true" /></td>
           <td><n-checkbox class="align-middle" v-model="row.processing" :disabled="true" /></td>
           <td><n-checkbox class="align-middle" v-model="row.qualitycontrol" :disabled="true" /></td>

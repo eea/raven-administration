@@ -28,15 +28,15 @@ const onSave = () => {
       <input class="n-input w-64" v-model="obj.name" placeholder="str: A unique group name" />
     </div>
     <div class="mt-2 flex cursor-pointer hover:bg-gray-50 p-1 select-none">
-      <div class="font-bold self-center flex-1" @click="obj.network = !obj.network">Network:</div>
-      <n-checkbox v-model="obj.network" class="self-center" />
+      <div class="font-bold self-center flex-1" @click="obj.management = !obj.management">Management:</div>
+      <n-checkbox v-model="obj.management" class="self-center" />
     </div>
     <div class="flex cursor-pointer hover:bg-gray-50 p-1 select-none">
-      <div class="font-bold self-center flex-1" @click="obj.observations = !obj.observations">Observations:</div>
-      <n-checkbox v-model="obj.observations" class="self-center" />
+      <div class="font-bold self-center flex-1" @click="obj.data = !obj.data">Data:</div>
+      <n-checkbox v-model="obj.data" class="self-center" />
     </div>
     <div class="flex cursor-pointer hover:bg-gray-50 p-1 select-none">
-      <div class="font-bold self-center flex-1" @click="obj.exporting = !obj.exporting">Exporting:</div>
+      <div class="font-bold self-center flex-1" @click="obj.exporting = !obj.exporting">EEA dataflow:</div>
       <n-checkbox v-model="obj.exporting" class="self-center" />
     </div>
     <div class="flex cursor-pointer hover:bg-gray-50 p-1 select-none">
