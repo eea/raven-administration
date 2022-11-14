@@ -39,5 +39,5 @@ export default {
 </script>
 
 <template>
-  <div class="n-checkbox" v-bind="$attrs" :class="cls" @click="onClick($el)"></div>
+  <div class="n-checkbox" v-bind="$attrs" :class="cls" @click.stop="onClick($el)"></div>
 </template>
