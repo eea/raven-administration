@@ -4,7 +4,7 @@ from api.core.database import CursorFromPool
 from api.endpoints.management.networks.models import NetworkModel, DeleteModel
 from api.core.query import Q
 from api.core.query_access import Access
-from api.core.jwt_ext_custom import jwt_required_with_management_claim
+from api.core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
 
 networks_endpoint = Blueprint('networks', __name__)
@@ -59,12 +59,10 @@ def networks_update():
 
 @networks_endpoint.route('/api/management/networks/insert', methods=['POST'])
 @jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
 def networks_insert():
     with CursorFromPool() as cursor:
         model = NetworkModel(**request.json)
-
-        if not Access.to_all_networks():
-            raise BadRequest("Access denied for creating network")
 
         sql = """ 
             insert into networks (

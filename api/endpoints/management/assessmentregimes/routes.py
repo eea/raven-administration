@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from api.core.database import CursorFromPool
 from api.endpoints.management.assessmentregimes.models import AssessmentRegimeModel, DeleteModel
-from api.core.jwt_ext_custom import jwt_required_with_management_claim
+from api.core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
 
 assessmentregimes_endpoint = Blueprint('assessmentregimes', __name__)
@@ -11,6 +11,7 @@ assessmentregimes_endpoint = Blueprint('assessmentregimes', __name__)
 
 @assessmentregimes_endpoint.route('/api/management/assessmentregimes', methods=['GET'])
 @jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
 def assessmentregimes():
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -79,6 +80,7 @@ def assessmentregimes():
 
 @assessmentregimes_endpoint.route('/api/management/assessmentregime/update', methods=['POST'])
 @jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
 def assessmentregimes_update():
     with CursorFromPool() as cursor:
         model = AssessmentRegimeModel(**request.json)
@@ -94,6 +96,7 @@ def assessmentregimes_update():
 
 @assessmentregimes_endpoint.route('/api/management/assessmentregime/insert', methods=['POST'])
 @jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
 def assessmentregimes_insert():
     with CursorFromPool() as cursor:
         model = AssessmentRegimeModel(**request.json)
@@ -108,6 +111,7 @@ def assessmentregimes_insert():
 
 @assessmentregimes_endpoint.route("/api/management/assessmentregime/delete", methods=['POST'])
 @jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
 def assessmentregimes_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
