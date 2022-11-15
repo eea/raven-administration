@@ -14,13 +14,7 @@ processes_endpoint = Blueprint('processes', __name__)
 @jwt_required_with_management_claim()
 def processes():
     with CursorFromPool() as cursor:
-        cursor.execute("""
-          WITH refs as
-          (
-              SELECT s.id, count(oc.id) as ref_count
-              FROM processes s left join observing_capabilities oc on oc.process_id = s.id
-              group by s.id
-          )
+        cursor.execute(""" 
           SELECT
               pr.id,
               pr.sampling_method,
@@ -57,9 +51,8 @@ def processes():
               tm_c.label as cadence_unit,
               ra.name as authority,
               ed.label as equiv_demonstration,
-              ct.notation as detection_limit_uom,
-              re.ref_count
-          FROM refs re, processes pr
+              ct.notation as detection_limit_uom 
+          FROM  processes pr
               LEFT OUTER JOIN eea_measurementtypes mt ON lower(pr.measurement_type) = lower(mt.id)
               LEFT OUTER JOIN eea_measurementmethods mm ON lower(pr.measurement_method) = lower(mm.id)
               LEFT OUTER JOIN eea_measurementequipments me ON lower(pr.measurement_equipment) = lower(me.id)
@@ -67,8 +60,7 @@ def processes():
               LEFT OUTER JOIN responsible_authorities ra ON lower(pr.responsible_authority_id) = lower(ra.id)
               LEFT OUTER JOIN eea_concentrations ct ON lower(pr.detection_limit_uom) = lower(ct.id)
               LEFT OUTER JOIN eea_times tm_d ON lower(pr.duration_unit) = lower(tm_d.id)
-              LEFT OUTER JOIN eea_times tm_c ON lower(pr.cadence_unit) = lower(tm_c.id)
-          WHERE re.id = pr.id
+              LEFT OUTER JOIN eea_times tm_c ON lower(pr.cadence_unit) = lower(tm_c.id) 
           ORDER BY pr.id
         """)
         processes = cursor.fetchall()

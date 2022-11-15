@@ -15,9 +15,8 @@ samples_endpoint = Blueprint('samples', __name__)
 def samples():
     with CursorFromPool() as cursor:
         cursor.execute("""
-          SELECT s.*, count(oc.id) as ref_count
-          FROM samples s left join observing_capabilities oc on oc.sample_id = s.id
-          GROUP BY s.id, s.inlet_height, s.building_distance,s.kerb_distance
+          SELECT s.* 
+          FROM samples s  
           ORDER BY s.id asc
         """)
         samples = cursor.fetchall()
