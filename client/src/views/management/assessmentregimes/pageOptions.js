@@ -23,7 +23,10 @@ const pageOptions = (lookups) => ({
       default: 0,
       showInGrid: true,
       cls_func: (row) => (row.ref_count == 0 ? "text-nord11" : "text-nord10")
-    }
+    },
+
+    // CUSTOM
+    { type: "custom", label: "Sampling points", prop: "data", lookup: "sampling_points", required: true, default: [], enableInEdit: true, showInGrid: false }
   ],
   lookups: lookups
 });

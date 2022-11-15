@@ -1,6 +1,6 @@
 <script setup>
 const props = defineProps({
-  show: Boolean,
+  show: Boolean
 });
 
 const cls = computed(() => {

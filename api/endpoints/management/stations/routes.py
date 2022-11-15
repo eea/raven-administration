@@ -15,14 +15,7 @@ def stations():
     with CursorFromPool() as cursor:
         with_network_sql, n_param = Q.with_networks_by_access_as_sql()
         cursor.execute(f"""
-          {with_network_sql},
-          refs as
-          (
-              SELECT a.id, count(b.id) as ref_count
-              FROM stations a left join sampling_points b on b.station_id = a.id
-              group by a.id
-
-          )
+          {with_network_sql} 
           SELECT st.id,
                 st.name,
                 st.begin_position,
@@ -48,14 +41,12 @@ def stations():
                 n.name   as      network,
                 mv.label as      media,
                 mr.label as      measurement_regime,
-                ac.label as      area_classification,
-                r.ref_count
-          FROM stations st, eea_mediavalues mv, eea_areaclassifications ac, eea_measurementregimevalues mr, networks n, refs r, network_access na
+                ac.label as      area_classification 
+          FROM stations st, eea_mediavalues mv, eea_areaclassifications ac, eea_measurementregimevalues mr, networks n, network_access na
           WHERE st.network_id = n.id
           AND st.area_classification = ac.id
           AND st.media_monitored = mv.id
-          AND st.measurement_regime = mr.id
-          AND st.id = r.id
+          AND st.measurement_regime = mr.id 
           AND n.id = na.id
           ORDER BY st.name, st.id
         """, n_param)

@@ -8,17 +8,7 @@ const pageOptions = (lookups) => ({
     { type: "lookup", label: "Authority", prop_id: "authority_id", prop: "authority", required: true, lookup: "authorities", default: null, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Timezone", prop_id: "timezone_id", prop: "timezone", required: true, lookup: "timezones", default: null, enableInEdit: true, showInGrid: false },
     { type: "eeaDatetime", label: "Begin", prop: "begin_position", required: true, default: null, enableInEdit: true, showInGrid: false },
-    { type: "eeaDatetime", label: "End", prop: "end_position", required: false, default: null, enableInEdit: true, showInGrid: false },
-
-    // OTHER
-    {
-      type: "gridOnly",
-      label: "Referenced by",
-      prop: "ref_count",
-      default: 0,
-      showInGrid: true,
-      cls_func: (row) => (row.ref_count == 0 ? "text-nord11" : "text-nord10")
-    }
+    { type: "eeaDatetime", label: "End", prop: "end_position", required: false, default: null, enableInEdit: true, showInGrid: false }
   ],
   lookups: lookups
 });

@@ -30,17 +30,7 @@ const pageOptions = (lookups) => ({
     { type: "number", label: "Traffic Volume", prop: "traffic_volume", placeholder: "int: Traffic Volume", required: false, default: null, enableInEdit: true, showInGrid: false },
     { type: "number", label: "Heavy Duty Fraction", prop: "heavy_duty_fraction", placeholder: "float: Heavy Duty Fraction", required: false, default: null, enableInEdit: true, showInGrid: false },
     { type: "number", label: "Height Facade", prop: "height_facade", placeholder: "float: Height Facade", required: false, default: null, enableInEdit: true, showInGrid: false },
-    { type: "eeaDatetime", label: "End", prop: "end_position", required: false, default: null, enableInEdit: true, showInGrid: false },
-
-    // OTHER
-    {
-      type: "gridOnly",
-      label: "Referenced by",
-      prop: "ref_count",
-      default: 0,
-      showInGrid: true,
-      cls_func: (row) => (row.ref_count == 0 ? "text-nord11" : "text-nord10")
-    }
+    { type: "eeaDatetime", label: "End", prop: "end_position", required: false, default: null, enableInEdit: true, showInGrid: false }
   ],
   lookups: lookups
 });

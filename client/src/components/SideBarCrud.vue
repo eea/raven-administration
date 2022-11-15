@@ -14,8 +14,8 @@ const props = defineProps({
 
 <template>
   <side-bar :show="show">
-    <div class="flex flex-col px-6 py-4 justify-between h-full">
-      <div class="flex flex-col h-full">
+    <div class="flex flex-col gap-4 px-6 py-4 justify-between h-full">
+      <div class="flex flex-col h-full overflow-y-auto">
         <slot />
       </div>
       <div class="flex justify-between">

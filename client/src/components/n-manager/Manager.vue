@@ -96,20 +96,24 @@ const close = () => {
 };
 
 const cmp_data = computed(() => filterList(q.value, data.value));
+const cmp_properties = computed(() => {
+  if (!props.options.properties) return [];
+  return props.options.properties.filter((p) => p.type != "custom");
+});
 </script>
 
 <template>
   <common-layout>
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete?" @close="close" @ok="saveDelete" />
     <contextmenu-crud :show="showContextmenu" :ev="ev" @click-outside="close" @on-edit="onEdit" @onDelete="onDelete" />
-    <column-picker :show="showColumnPicker" :ev="ev" :properties="options.properties" @click-outside="close" />
+    <column-picker :show="showColumnPicker" :ev="ev" :properties="cmp_properties" @click-outside="close" />
 
     <component :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" @close="close" @save="saveAdd" />
     <component :is="crudComponent" :is-edit="true" :show="showEdit" :options="options" :selected-value="selected" @close="close" @save="saveEdit" />
 
     <tool-bar :title="name" v-model:q="q" @add-click="showAdd = true" @download-click="onDownload" @column-picker-click="onColumnPicker" />
 
-    <grid :id="id" v-model:selected="selected" v-model:ev="ev" :properties="options.properties" :values="cmp_data" @on-right-click="showContextmenu = true" />
+    <grid :id="id" v-model:selected="selected" v-model:ev="ev" :properties="cmp_properties" :values="cmp_data" @on-right-click="showContextmenu = true" />
   </common-layout>
 </template>
 

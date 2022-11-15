@@ -16,86 +16,49 @@ def samplingpoints():
     with CursorFromPool() as cursor:
         with_samplingpoints_sql, n_param = Q.with_sampling_points_by_networks_access()
         cursor.execute(f"""        
-            {with_samplingpoints_sql},
-            refs as
-              (
-                SELECT id, sum(ref_count) as ref_count
-                FROM
-                (
-                    SELECT a.id, count(b.id) as ref_count
-                    FROM sampling_points a left join observing_capabilities b on b.sampling_point_id = a.id
-                    group by a.id
-                    union all
-                    SELECT a.id, count(b.id) as ref_count
-                    FROM sampling_points a left join calculated_series b on b.result = a.id
-                    group by a.id
-                    union all
-                    SELECT a.id, count(b.id) as ref_count
-                    FROM sampling_points a left join calculated_series b on b.secondary = a.id
-                    group by a.id
-                    union all
-                    SELECT a.id, count(b.id) as ref_count
-                    FROM sampling_points a left join calculated_series b on b.primary = a.id
-                    group by a.id
-                    union all
-                    SELECT a.id, count(b.id) as ref_count
-                    FROM sampling_points a left join converted_series b on b.sampling_point_id = a.id
-                    group by a.id
-                    union all
-                    SELECT a.id, count(b.id) as ref_count
-                    FROM sampling_points a left join scaling_points b on b.sampling_point_id = a.id
-                    group by a.id
-                    union all
-                    SELECT a.id, count(b.id) as ref_count
-                    FROM sampling_points a left join assessmentdata b on b.assessmentlocal_id = a.id
-                    group by a.id
-                ) x
-                GROUP BY id
-              )
-              SELECT
-                sp.id,
-                sp.station_classification as station_classification_id,
-                sp.assessment_type as assessment_type_id,
-                sp.media_monitored as media_id,
-                sp.station_id,
-                sp.measurement_regime as measurement_regime_id,
-                sp.end_position,
-                sp.begin_position,
-                sp.pollutant as pollutant_id,
-                sp.timestep as timestep_id,
-                sp.concentration as concentration_id,
-                sp.main_emission_sources,
-                sp.change_aei_stations,
-                sp.distance_source,
-                sp.industrial_emissions,
-                sp.logger_id,
-                sp.mobile,
-                sp.heating_emissions,
-                sp.traffic_emissions,
-                sp.used_aqd,
-                mv.label as media,
-                st.name as station,
-                mr.label as measurement_regime,
-                ast.label as assessment_type,
-                sc.label as station_classification,
-                p.notation as pollutant,
-                cn.notation as concentration,
-                tm.label as timestep,tm.label,cn.notation,
-                r.ref_count
-            FROM
-                sampling_points sp,eea_mediavalues mv, eea_measurementregimevalues mr, eea_assessmenttypes ast,
-                eea_stationclassifications sc, stations st, eea_pollutants p, eea_concentrations cn, eea_times tm,refs r, sampling_point_access spa
-            WHERE sp.station_id = st.id
-            AND sp.pollutant = p.uri
-            AND sp.concentration = cn.id
-            AND sp.timestep = tm.id
-            AND sp.media_monitored = mv.id
-            AND sp.measurement_regime = mr.id
-            AND sp.assessment_type = ast.id
-            AND sp.station_classification = sc.id
-            AND sp.id = r.id
-            AND sp.id = spa.id
-            ORDER BY st.name, p.notation
+            {with_samplingpoints_sql}
+            SELECT
+              sp.id,
+              sp.station_classification as station_classification_id,
+              sp.assessment_type as assessment_type_id,
+              sp.media_monitored as media_id,
+              sp.station_id,
+              sp.measurement_regime as measurement_regime_id,
+              sp.end_position,
+              sp.begin_position,
+              sp.pollutant as pollutant_id,
+              sp.timestep as timestep_id,
+              sp.concentration as concentration_id,
+              sp.main_emission_sources,
+              sp.change_aei_stations,
+              sp.distance_source,
+              sp.industrial_emissions,
+              sp.logger_id,
+              sp.mobile,
+              sp.heating_emissions,
+              sp.traffic_emissions,
+              sp.used_aqd,
+              mv.label as media,
+              st.name as station,
+              mr.label as measurement_regime,
+              ast.label as assessment_type,
+              sc.label as station_classification,
+              p.notation as pollutant,
+              cn.notation as concentration,
+              tm.label as timestep,tm.label,cn.notation 
+          FROM
+              sampling_points sp,eea_mediavalues mv, eea_measurementregimevalues mr, eea_assessmenttypes ast,
+              eea_stationclassifications sc, stations st, eea_pollutants p, eea_concentrations cn, eea_times tm, sampling_point_access spa
+          WHERE sp.station_id = st.id
+          AND sp.pollutant = p.uri
+          AND sp.concentration = cn.id
+          AND sp.timestep = tm.id
+          AND sp.media_monitored = mv.id
+          AND sp.measurement_regime = mr.id
+          AND sp.assessment_type = ast.id
+          AND sp.station_classification = sc.id 
+          AND sp.id = spa.id
+          ORDER BY st.name, p.notation
         """, n_param)
         samplingpoints = cursor.fetchall()
         return jsonify(samplingpoints)

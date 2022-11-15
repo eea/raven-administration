@@ -262,6 +262,13 @@ def samplingpoints():
         return jsonify(samplingpoints)
 
 
+@management_endpoint.route('/api/management/lookups/samplingpoints_extended', methods=['GET'])
+@jwt_required_with_management_claim()
+def samplingpoints_extended():
+    samplingpoints = Q.timeseries_by_access()
+    return jsonify(samplingpoints)
+
+
 @management_endpoint.route('/api/management/lookups/stations', methods=['GET'])
 @jwt_required_with_management_claim()
 def stations():

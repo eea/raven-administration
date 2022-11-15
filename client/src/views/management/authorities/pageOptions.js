@@ -10,16 +10,7 @@ const pageOptions = (lookups) => ({
     { type: "text", label: "Address", prop: "address", placeholder: "str: Address of authority", required: true, default: null, enableInEdit: true, showInGrid: false },
     { type: "text", label: "Phone", prop: "phone", placeholder: "str: Phone of authority", required: true, default: null, enableInEdit: true, showInGrid: false },
     { type: "text", label: "Website", prop: "website", placeholder: "str: Website of authority", required: true, default: null, enableInEdit: true, showInGrid: false },
-    { type: "checkbox", label: "Is main authority", prop: "is_responsible_reporter", required: true, default: false, enableInEdit: true, showInGrid: true },
-    // OTHER
-    {
-      type: "gridOnly",
-      label: "Referenced by",
-      prop: "ref_count",
-      default: 0,
-      showInGrid: true,
-      cls_func: (row) => (row.ref_count == 0 ? "text-nord11" : "text-nord10")
-    }
+    { type: "checkbox", label: "Is main authority", prop: "is_responsible_reporter", required: true, default: false, enableInEdit: true, showInGrid: true }
   ],
   lookups: lookups
 });

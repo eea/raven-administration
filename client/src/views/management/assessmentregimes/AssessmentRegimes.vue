@@ -13,8 +13,9 @@ onMounted(async () => {
   const reporting_metrics = await Service.reporting_metrics();
   const protection_targets = await Service.protection_targets();
   const exceedances = await Service.exceedances();
+  const sampling_points = await Service.sampling_points();
 
-  options.value = pageOptions({ zones, pollutants, assessment_types, object_types, reporting_metrics, protection_targets, exceedances });
+  options.value = pageOptions({ zones, pollutants, assessment_types, object_types, reporting_metrics, protection_targets, exceedances, sampling_points });
 });
 </script>
 
