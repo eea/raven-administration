@@ -115,6 +115,33 @@ def measurementtypes():
         return jsonify(measurementtypes)
 
 
+@management_endpoint.route("/api/management/lookups/objecttypes", methods=['GET'])
+@jwt_required_with_management_claim()
+def objecttypes():
+    with CursorFromPool() as cursor:
+        cursor.execute("select id as value, id as label FROM eea_objecttypes order by id")
+        rows = cursor.fetchall()
+        return jsonify(rows)
+
+
+@management_endpoint.route("/api/management/lookups/reportingmetrics", methods=['GET'])
+@jwt_required_with_management_claim()
+def reportingmetrics():
+    with CursorFromPool() as cursor:
+        cursor.execute("select id as value, id as label FROM eea_reportingmetrics order by id")
+        rows = cursor.fetchall()
+        return jsonify(rows)
+
+
+@management_endpoint.route("/api/management/lookups/protectiontargets", methods=['GET'])
+@jwt_required_with_management_claim()
+def protectiontargets():
+    with CursorFromPool() as cursor:
+        cursor.execute("select id as value, id as label FROM eea_protectiontargets order by id")
+        rows = cursor.fetchall()
+        return jsonify(rows)
+
+
 @management_endpoint.route('/api/management/lookups/processtypevalues', methods=['GET'])
 @jwt_required_with_management_claim()
 def processtypevalues():

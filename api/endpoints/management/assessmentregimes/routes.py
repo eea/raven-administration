@@ -15,14 +15,39 @@ def assessmentregimes():
     with CursorFromPool() as cursor:
         cursor.execute("""
           SELECT
-            ar.id, ar.name,
-            ar.objecttype, ar.reportingmetric, ar.protectiontarget,
-            ar.assessmentthresholdexceedance, ar.include, ar.thresholdclassificationyear, ar.thresholdclassificationreport,
-            z.id as zoneid, z.name as zone_name, ar.pollutant, po.notation as pollutant_name
-        FROM assessmentregimes ar
-            LEFT JOIN zones z ON ar.zoneid = z.id
-            LEFT JOIN eea_pollutants po on ar.pollutant = po.uri
-        ORDER BY ar.thresholdclassificationyear, z.name, po.notation, ar.objecttype, ar.reportingmetric, ar.protectiontarget
+              ar.id,
+              ar.name,
+              z.id as zone_id,
+              z.name as zone,
+              ar.pollutant as pollutant_id,
+              po.notation as pollutant,
+              ar.objecttype as object_type_id,
+              ot.id as object_type,
+              ar.reportingmetric as reporting_metric_id,
+              rm.id as reporting_metric,
+              ar.protectiontarget as protection_target_id,
+              pt.id as protection_target,
+              ar.assessmentthresholdexceedance as exceedance_id,
+              e.id as exceedance,
+              ar.thresholdclassificationyear as year,
+              ar.thresholdclassificationreport as report,
+              ar.include
+          FROM
+              assessmentregimes ar,
+              zones z,
+              eea_pollutants po,
+              eea_objecttypes ot,
+              eea_reportingmetrics rm,
+              eea_protectiontargets pt,
+              eea_assessmentthresholdexceedances e
+          WHERE 1=1
+          AND ar.zoneid = z.id
+          AND ar.pollutant = po.uri
+          AND ar.objecttype = ot.id
+          AND ar.reportingmetric = rm.id
+          AND ar.protectiontarget = pt.id
+          AND ar.assessmentthresholdexceedance = e.id
+          ORDER BY z.name, po.notation, ar.objecttype, ar.reportingmetric, ar.protectiontarget, ar.thresholdclassificationyear
         """)
 
         assessmentregimes = cursor.fetchall()
