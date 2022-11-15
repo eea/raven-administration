@@ -30,15 +30,15 @@ const getmodules = () => {
       group: "Management",
       show: jwt.management,
       items: [
-        { name: "Authorities", comp: "Authorities", show: jwt.management },
-        { name: "Zones", comp: "Zones", show: jwt.management },
+        { name: "Authorities", comp: "Authorities", show: jwt.management && jwt.allnetworks },
+        { name: "Zones", comp: "Zones", show: jwt.management && jwt.allnetworks },
         { name: "Networks", comp: "Networks", show: jwt.management },
         { name: "Stations", comp: "Stations", show: jwt.management },
         { name: "Sampling Points", comp: "SamplingPoints", show: jwt.management },
         { name: "Observing Capabilities", comp: "ObservingCapabilities", show: jwt.management },
         { name: "Processes", comp: "Processes", show: jwt.management },
         { name: "Samples", comp: "Samples", show: jwt.management },
-        { name: "Assessment Regimes", comp: "AssessmentRegimes", show: jwt.management }
+        { name: "Assessment Regimes", comp: "AssessmentRegimes", show: jwt.management && jwt.allnetworks }
       ]
     },
     {
