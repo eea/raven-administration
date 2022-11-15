@@ -72,6 +72,7 @@ def assessmentregimes():
         for r in assessmentregimes:
             d = list(filter(lambda p: p["assessmentregime_id"] == r["id"], data))
             r["data"] = d
+            r["spo_count"] = len(d)
 
         return jsonify(assessmentregimes)
 

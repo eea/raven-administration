@@ -13,7 +13,17 @@ const pageOptions = (lookups) => ({
     { type: "lookup", label: "Exceedance", prop_id: "exceedance_id", prop: "exceedance", required: true, lookup: "exceedances", default: null, enableInEdit: true, showInGrid: true },
 
     { type: "number", label: "Year", prop: "year", required: true, default: null, enableInEdit: true, showInGrid: true },
-    { type: "text", label: "Report", prop: "report", required: true, default: false, enableInEdit: true, showInGrid: false }
+    { type: "text", label: "Report", prop: "report", required: true, default: false, enableInEdit: true, showInGrid: false },
+
+    // OTHER
+    {
+      type: "gridOnly",
+      label: "Sampling points",
+      prop: "spo_count",
+      default: 0,
+      showInGrid: true,
+      cls_func: (row) => (row.ref_count == 0 ? "text-nord11" : "text-nord10")
+    }
   ],
   lookups: lookups
 });
