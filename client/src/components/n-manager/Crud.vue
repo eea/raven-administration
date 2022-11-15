@@ -40,7 +40,7 @@ const cmp_optional_properties = computed(() => {
         <div class="mb-4 font-bold text-base border-b">Required</div>
 
         <div class="mb-2" v-for="p in cmp_required_properties">
-          <div v-if="!p.enableInEdit && p.type != 'gridOnly'">
+          <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
             <div class="font-bold">{{ p.label }}:</div>
             <input class="n-input w-72" v-model="obj[p.prop]" :disabled="true" />
           </div>
@@ -72,7 +72,7 @@ const cmp_optional_properties = computed(() => {
         <div class="mb-4 font-bold text-base border-b" v-if="cmp_optional_properties.length > 0">Optional</div>
 
         <div class="mb-2" v-for="p in cmp_optional_properties">
-          <div v-if="!p.enableInEdit && p.type != 'gridOnly'">
+          <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
             <div class="font-bold">{{ p.label }}:</div>
             <input class="n-input w-72" v-model="obj[p.prop]" :disabled="true" />
           </div>
