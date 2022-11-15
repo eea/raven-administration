@@ -1,6 +1,7 @@
 <script setup>
 import Service from "./service";
 import pageOptions from "./pageOptions";
+import Crud from "./Crud.vue";
 
 const options = ref({});
 
@@ -18,5 +19,5 @@ onMounted(async () => {
 </script>
 
 <template>
-  <manager name="Assessment regimes" :options="options" :service="Service" />
+  <manager name="Assessment regimes" :options="options" :service="Service" :crud-component="Crud" />
 </template>

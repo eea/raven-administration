@@ -2,11 +2,16 @@
 import Eventy from "../../helpers/eventy";
 import { tblToCsv, filterList } from "../../helpers/utils";
 import ToolBar from "../ToolBar.vue";
+import Crud from "./Crud.vue";
 
 const props = defineProps({
   name: String,
   options: Object,
-  service: Object
+  service: Object,
+  crudComponent: {
+    type: [String, Object],
+    default: Crud
+  }
 });
 
 const q = ref("");
@@ -99,8 +104,8 @@ const cmp_data = computed(() => filterList(q.value, data.value));
     <contextmenu-crud :show="showContextmenu" :ev="ev" @click-outside="close" @on-edit="onEdit" @onDelete="onDelete" />
     <column-picker :show="showColumnPicker" :ev="ev" :properties="options.properties" @click-outside="close" />
 
-    <crud :is-edit="false" :show="showAdd" :options="options" @close="close" @save="saveAdd" />
-    <crud :is-edit="true" :show="showEdit" :options="options" :selected-value="selected" @close="close" @save="saveEdit" />
+    <component :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" @close="close" @save="saveAdd" />
+    <component :is="crudComponent" :is-edit="true" :show="showEdit" :options="options" :selected-value="selected" @close="close" @save="saveEdit" />
 
     <tool-bar :title="name" v-model:q="q" @add-click="showAdd = true" @download-click="onDownload" @column-picker-click="onColumnPicker" />
 

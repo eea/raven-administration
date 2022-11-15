@@ -24,12 +24,12 @@ watch(
 
 const cmp_required_properties = computed(() => {
   if (!props.options.properties) return [];
-  return props.options.properties.filter((p) => !!p.required && p.type != "gridOnly");
+  return props.options.properties.filter((p) => !!p.required);
 });
 
 const cmp_optional_properties = computed(() => {
   if (!props.options.properties) return [];
-  return props.options.properties.filter((p) => !p.required && p.type != "gridOnly");
+  return props.options.properties.filter((p) => !p.required);
 });
 </script>
 
@@ -37,7 +37,7 @@ const cmp_optional_properties = computed(() => {
   <side-bar-crud :show="show" @cancel="$emit('close')" @commit="$emit('save', Object.assign({}, obj))">
     <div class="flex gap-6" :class="options.showRequiredAndoptionalSideBySideInCrud ? 'flex-row' : 'flex-col'">
       <div>
-        <div class="mb-4 font-bold text-base border-b">Required</div>
+        <div class="mb-4 font-bold text-base border-b">AAARequired</div>
 
         <div class="mb-2" v-for="p in cmp_required_properties">
           <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
