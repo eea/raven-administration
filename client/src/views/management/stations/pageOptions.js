@@ -3,7 +3,7 @@ const pageOptions = (lookups) => ({
   properties: [
     // REQUIRED
     { type: "text", label: "Id", prop: "id", placeholder: "str: A unique id", required: true, default: null, showInEdit: false, showInGrid: true },
-    { type: "text", label: "Name", prop: "name", placeholder: "str: Name of authority", required: true, default: null, showInEdit: true, showInGrid: true },
+    { type: "text", label: "Name", prop: "name", placeholder: "str: Name of station", required: true, default: null, showInEdit: true, showInGrid: true },
 
     { type: "lookup", label: "Network", prop_id: "network_id", prop: "network", lookup: "networks", required: true, default: null, showInEdit: true, showInGrid: true },
     { type: "lookup", label: "Area classification", prop_id: "area_classification_id", prop: "area_classification", required: true, lookup: "areaclassifications", default: null, showInEdit: true, showInGrid: true },
