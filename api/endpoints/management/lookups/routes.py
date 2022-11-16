@@ -155,7 +155,7 @@ def processtypevalues():
 @jwt_required_with_management_claim()
 def pollutants():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.notation as label, r.uri as value from eea_pollutants r order by r.notation")
+        cursor.execute("select r.label as label, r.uri as value from eea_pollutants r order by r.label")
         pollutants = cursor.fetchall()
         return jsonify(pollutants)
 
