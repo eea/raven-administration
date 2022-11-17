@@ -41,7 +41,9 @@ const onClick = () => {
 <template>
   <div>
     <table :id="id" class="n-table">
-      <th v-for="header in properties" v-show="header.showInGrid">{{ header.label }}</th>
+      <tr>
+        <th v-for="header in properties" v-show="header.showInGrid">{{ header.label }}</th>
+      </tr>
       <tr v-for="row in values" :class="cls_rowClass(row)" @contextmenu.prevent="onRightClick(row, $event)" @click="onClick()">
         <td v-for="header in properties" v-show="header.showInGrid" :class="cls_cellClass(header, row)">
           <n-checkbox v-if="header.type == 'checkbox'" class="align-middle" v-model="row[header.prop]" :disabled="true" />
