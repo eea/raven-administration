@@ -7,11 +7,11 @@ class Endpoints:
         from api.endpoints.management.lookups.routes import management_endpoint
         app.register_blueprint(management_endpoint)
 
-        from api.endpoints.management.assessmentregimes.routes import assessmentregimes_endpoint
-        app.register_blueprint(assessmentregimes_endpoint)
-
         from api.endpoints.management.authorities.routes import authorities_endpoint
         app.register_blueprint(authorities_endpoint)
+
+        from api.endpoints.management.zones.routes import zones_endpoint
+        app.register_blueprint(zones_endpoint)
 
         from api.endpoints.management.networks.routes import networks_endpoint
         app.register_blueprint(networks_endpoint)
@@ -31,8 +31,11 @@ class Endpoints:
         from api.endpoints.management.observingcapabilities.routes import observingcapabilities_endpoint
         app.register_blueprint(observingcapabilities_endpoint)
 
-        from api.endpoints.management.zones.routes import zones_endpoint
-        app.register_blueprint(zones_endpoint)
+        from api.endpoints.management.assessmentregimes.routes import assessmentregimes_endpoint
+        app.register_blueprint(assessmentregimes_endpoint)
+
+        from api.endpoints.management.attainments.routes import attainments_endpoint
+        app.register_blueprint(attainments_endpoint)
 
         # PROCESSING
         from api.endpoints.processing.scale.routes import scale_endpoint

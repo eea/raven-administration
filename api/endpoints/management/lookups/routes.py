@@ -209,6 +209,15 @@ def timesteps():
         return jsonify(timesteps)
 
 
+@management_endpoint.route('/api/management/lookups/assessmentregimes', methods=['GET'])
+@jwt_required_with_management_claim()
+def assessmentregimes():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.name as label, r.id as value from assessmentregimes r order by r.name")
+        processes = cursor.fetchall()
+        return jsonify(processes)
+
+
 @management_endpoint.route('/api/management/lookups/processes', methods=['GET'])
 @jwt_required_with_management_claim()
 def processes():

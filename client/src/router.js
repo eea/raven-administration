@@ -5,6 +5,7 @@ import Eventy from "./helpers/eventy";
 const Login = () => import("./views/login/Login.vue");
 
 const Authorities = () => import("./views/management/authorities/Authorities.vue");
+const Zones = () => import("./views/management/zones/Zones.vue");
 const Networks = () => import("./views/management/networks/Networks.vue");
 const Stations = () => import("./views/management/stations/Stations.vue");
 const SamplingPoints = () => import("./views/management/samplingpoints/Samplingpoints.vue");
@@ -12,7 +13,7 @@ const Processes = () => import("./views/management/processes/Processes.vue");
 const Samples = () => import("./views/management/samples/Samples.vue");
 const ObservingCapabilities = () => import("./views/management/observingcapabilities/ObservingCapabilities.vue");
 const AssessmentRegimes = () => import("./views/management/assessmentregimes/AssessmentRegimes.vue");
-const Zones = () => import("./views/management/zones/Zones.vue");
+const Attainments = () => import("./views/management/attainments/Attainments.vue");
 
 const Calculate = () => import("./views/processing/calculate/Calculate.vue");
 const Convert = () => import("./views/processing/convert/Convert.vue");
@@ -35,7 +36,9 @@ const Notfound = () => import("./views/notfound/Notfound.vue");
 const routes = [
   { path: "/", component: Latest, name: "Home" },
   { path: "/login", component: Login, name: "Login" },
+
   { path: "/management/authorities", component: Authorities, name: "Authorities" },
+  { path: "/management/zones", component: Zones, name: "Zones" },
   { path: "/management/networks", component: Networks, name: "Networks" },
   { path: "/management/stations", component: Stations, name: "Stations" },
   { path: "/management/samplingpoints", component: SamplingPoints, name: "SamplingPoints" },
@@ -43,7 +46,7 @@ const routes = [
   { path: "/management/samples", component: Samples, name: "Samples" },
   { path: "/management/observingcapabilities", component: ObservingCapabilities, name: "ObservingCapabilities" },
   { path: "/management/assessmentregimes", component: AssessmentRegimes, name: "AssessmentRegimes" },
-  { path: "/management/zones", component: Zones, name: "Zones" },
+  { path: "/management/attainments", component: Attainments, name: "Attainments" },
 
   { path: "/processing/calculate", component: Calculate, name: "Calculate" },
   { path: "/processing/convert", component: Convert, name: "Convert" },
