@@ -6,7 +6,6 @@ const options = ref({});
 
 onMounted(async () => {
   const assessment_regimes = await Service.assessment_regimes();
-  console.log("AAA", assessment_regimes);
   options.value = pageOptions({ assessment_regimes });
 });
 </script>
