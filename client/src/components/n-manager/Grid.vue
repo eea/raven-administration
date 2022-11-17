@@ -21,6 +21,11 @@ const cls_cellClass = (cell, row) => {
   return "";
 };
 
+const fn_cellVal = (cell, row) => {
+  if (cell.val_func) return cell.val_func(Object.assign({}, row));
+  return "";
+};
+
 const onRightClick = (row, e) => {
   emit("update:selected", row);
   emit("update:ev", e);
@@ -40,6 +45,7 @@ const onClick = () => {
       <tr v-for="row in values" :class="cls_rowClass(row)" @contextmenu.prevent="onRightClick(row, $event)" @click="onClick()">
         <td v-for="header in properties" v-show="header.showInGrid" :class="cls_cellClass(header, row)">
           <n-checkbox v-if="header.type == 'checkbox'" class="align-middle" v-model="row[header.prop]" :disabled="true" />
+          <span v-else-if="header.type == 'gridOnly'">{{ fn_cellVal(header, row) }}</span>
           <span v-else>{{ row[header.prop] }}</span>
         </td>
       </tr>

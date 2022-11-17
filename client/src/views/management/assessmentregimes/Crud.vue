@@ -9,6 +9,7 @@ const props = defineProps({
   }
 });
 
+const emit = defineEmits(["save", "close"]);
 const obj = ref({});
 
 watch(
@@ -19,12 +20,46 @@ watch(
     } else {
       obj.value = Object.assign({}, props.selectedValue);
     }
+    onPollutantChange();
   }
 );
+
+const onSave = () => {
+  const o = Object.assign({}, obj.value);
+  const f = o.data.filter((p) => p.selected);
+  if (f.length > 0) {
+    const d = f.map((p) => Object.assign({}, p));
+    o.data = Object.assign([], d);
+  }
+  console.log("SAVE", o);
+  emit("save", o);
+};
+
+const onPollutantChange = () => {
+  if (!props.options.lookups) return;
+  const data = props.options.lookups["sampling_points"].filter((p) => p.pollutant_id == obj.value.pollutant_id);
+  data.forEach((d) => {
+    d.assessment_regime_id = obj.value.id;
+    var o = obj.value.data.find((o) => o.sampling_point_id == d.sampling_point_id);
+    if (o) {
+      d.selected = o.selected;
+      d.assessment_type_id = o.assessment_type_id;
+      d.description = o.description;
+    } else {
+      d.selected = false;
+      d.assessment_type_id = null;
+      d.description = null;
+    }
+  });
+
+  obj.value.data = data;
+};
+
+const onDataClick = () => {};
 </script>
 
 <template>
-  <side-bar-crud :show="show" @cancel="$emit('close')" @commit="$emit('save', Object.assign({}, obj))">
+  <side-bar-crud :show="show" @cancel="$emit('close')" @commit="onSave">
     <div class="flex gap-6 flex-col">
       <div>
         <div class="mb-4 font-bold text-base border-b">Required</div>
@@ -46,7 +81,7 @@ watch(
             </div>
             <div v-else-if="p.type == 'lookup'">
               <div class="font-bold">{{ p.label }}:</div>
-              <n-select v-model="obj[p.prop_id]" class="!w-[40rem]">
+              <n-select v-model="obj[p.prop_id]" class="!w-[40rem]" @change="onPollutantChange">
                 <n-option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value" :label="p.label" />
               </n-select>
             </div>
@@ -56,24 +91,25 @@ watch(
             </div>
             <div v-else-if="p.type == 'custom'" class="mt-4">
               <div class="font-bold">{{ p.label }}:</div>
-              <div class="overflow-auto">
-                <table class="n-table !bg-gray-50 !w-[40rem]">
-                  <tr v-for="s in options.lookups[p.lookup]">
-                    <td>
-                      <div class="flex gap-2">
-                        <n-checkbox class="self-center" />
-                        <span>{{ s.label }}</span>
+              <table class="n-table !bg-gray-50 !w-[40rem]">
+                <tr v-for="s in obj[p.prop]">
+                  <td class="w-1/3" @click="s.selected = !s.selected">
+                    <div class="flex gap-2">
+                      <n-checkbox class="self-center" v-model="s.selected" />
+                      <div class="flex flex-col">
+                        <div>{{ s.station }}</div>
+                        <div class="text-xs">{{ s.pollutant }} {{ s.timestep }} {{ s.concentration }}</div>
                       </div>
-                    </td>
-                    <td class="">
-                      <n-select v-model="obj[p.prop_id]" class="">
-                        <n-option label="oh" value="hey" />
-                      </n-select>
-                    </td>
-                    <td class=""><input class="n-input" /></td>
-                  </tr>
-                </table>
-              </div>
+                    </div>
+                  </td>
+                  <td class="w-1/3">
+                    <n-select class="" v-model="s.assessment_type_id">
+                      <n-option :label="at.label" :value="at.value" v-for="at in options.lookups['assessment_types']" />
+                    </n-select>
+                  </td>
+                  <td class="w-1/3"><input class="n-input" v-model="s.description" /></td>
+                </tr>
+              </table>
             </div>
           </div>
         </div>

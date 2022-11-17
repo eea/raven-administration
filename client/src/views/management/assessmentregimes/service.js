@@ -13,7 +13,7 @@ const Service = {
   reporting_metrics: async () => Get("/api/management/lookups/reportingmetrics"),
   protection_targets: async () => Get("/api/management/lookups/protectiontargets"),
   exceedances: async () => Get("/api/management/lookups/assessmentexceedances"),
-  sampling_points: async () => Get("/api/management/lookups/samplingpoints_extended")
+  sampling_points: async () => Get("/api/management/assessmentregime/samplingpoints")
 };
 
 export default Service;

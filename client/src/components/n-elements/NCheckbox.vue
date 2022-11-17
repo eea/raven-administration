@@ -19,11 +19,12 @@ watch(
   }
 );
 
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits(["update:modelValue", "change"]);
 
 const onClick = (el) => {
   internalValue.value = !internalValue.value;
   emit("update:modelValue", internalValue.value);
+  emit("change");
 };
 
 const cls = computed(() => {

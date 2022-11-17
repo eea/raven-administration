@@ -15,7 +15,36 @@ assessmentregimes_endpoint = Blueprint('assessmentregimes', __name__)
 def assessmentregimes():
     with CursorFromPool() as cursor:
         cursor.execute("""
+          WITH data as (
+              select
+                  true as selected,
+                  ad.id as id,
+                  ad.assessmenttype as assessment_type_id,
+                  ad.assessmentmethodedescription as description,
+                  ad.assessmentregime_id as assessment_regime_id,
+                  sp.id as sampling_point_id,
+                  s.name as station,
+                  po.notation as pollutant,
+                  po.uri as pollutant_id,
+                  t.label as timestep,
+                  u.notation as concentration
+              from
+                  stations s,
+                  eea_pollutants po,
+                  assessmentdata ad,
+                  sampling_points sp,
+                  eea_concentrations u,
+                  eea_times t
+              where 1=1
+              and sp.station_id = s.id
+              and sp.pollutant = po.uri
+              and sp.timestep = t.id
+              and sp.concentration = u.id
+              and sp.id = ad.assessmentlocal_id
+          )
           SELECT
+              case when count(d.sampling_point_id) = 0 then '[]' else json_agg(d) end as data,
+              count(d.sampling_point_id) spo_count, 
               ar.id,
               ar.name,
               z.id as zone_id,
@@ -34,13 +63,13 @@ def assessmentregimes():
               ar.thresholdclassificationreport as report,
               ar.include
           FROM
-              assessmentregimes ar,
               zones z,
               eea_pollutants po,
               eea_objecttypes ot,
               eea_reportingmetrics rm,
               eea_protectiontargets pt,
-              eea_assessmentthresholdexceedances e
+              eea_assessmentthresholdexceedances e,
+              assessmentregimes ar left outer join data d on ar.id = d.assessment_regime_id
           WHERE 1=1
           AND ar.zoneid = z.id
           AND ar.pollutant = po.uri
@@ -48,33 +77,64 @@ def assessmentregimes():
           AND ar.reportingmetric = rm.id
           AND ar.protectiontarget = pt.id
           AND ar.assessmentthresholdexceedance = e.id
+          GROUP BY
+              ar.id,
+              ar.name,
+              z.id  ,
+              z.name ,
+              ar.pollutant ,
+              po.notation ,
+              ar.objecttype ,
+              ot.id ,
+              ar.reportingmetric ,
+              rm.id ,
+              ar.protectiontarget,
+              pt.id,
+              ar.assessmentthresholdexceedance ,
+              e.id ,
+              ar.thresholdclassificationyear,
+              ar.thresholdclassificationreport ,
+              ar.include
           ORDER BY z.name, po.notation, ar.objecttype, ar.reportingmetric, ar.protectiontarget, ar.thresholdclassificationyear
         """)
 
         assessmentregimes = cursor.fetchall()
+        return jsonify(assessmentregimes)
 
+
+@assessmentregimes_endpoint.route('/api/management/assessmentregime/samplingpoints', methods=['GET'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def samplingpoints():
+    with CursorFromPool() as cursor:
         cursor.execute("""
-        select
-              d.assessmentregime_id,
-              d.assessmentlocal_id as samplingpoint_id,
-              s.name as station_name,
+          select
+              false as selected,
+              null as id,
+              null as assessment_type_id,
+              null as description,
+              null as assessment_regime_id,
+              sp.id as sampling_point_id,
+              s.name as station,
               po.notation as pollutant,
-              d.assessmenttype as "assessmenttype",
-              d.assessmentmethodedescription as "description",
-              true as "selected"
-          from assessmentdata d, stations s, sampling_points sp, eea_pollutants po
+              po.uri as pollutant_id,
+              t.label as timestep,
+              u.notation as concentration
+          from
+              stations s,
+              eea_pollutants po,
+              sampling_points sp,
+              eea_concentrations u,
+              eea_times t
           where 1=1
           and sp.station_id = s.id
-          and sp.pollutant = po.uri
-          and d.assessmentlocal_id = sp.id
+          and sp.pollutant = po.uri 
+          and sp.timestep = t.id
+          and sp.concentration = u.id
+          order by s.name, po.notation, t.label
         """)
-        data = cursor.fetchall()
 
-        for r in assessmentregimes:
-            d = list(filter(lambda p: p["assessmentregime_id"] == r["id"], data))
-            r["data"] = d
-            r["spo_count"] = len(d)
-
+        assessmentregimes = cursor.fetchall()
         return jsonify(assessmentregimes)
 
 
@@ -84,12 +144,46 @@ def assessmentregimes():
 def assessmentregimes_update():
     with CursorFromPool() as cursor:
         model = AssessmentRegimeModel(**request.json)
-        sql = """            
 
+        # Update assessment regime
+        sql_update = """            
+          UPDATE assessmentregimes 
+          SET 
+            name=%(name)s,
+            zoneid=%(zone_id)s,
+            pollutant=%(pollutant_id)s,
+            objecttype=%(object_type_id)s,
+            reportingmetric=%(reporting_metric_id)s,
+            protectiontarget=%(protection_target_id)s,
+            assessmentthresholdexceedance=%(exceedance_id)s, 
+            thresholdclassificationyear=%(year)s,
+            thresholdclassificationreport=%(report)s
+          WHERE id = %(id)s
         """
-        cursor.execute(sql, model)
+        cursor.execute(sql_update, model)
         if cursor.rowcount == 0:
             raise BadRequest("Could not update for id " + model.id)
+
+        # delete and add assessment regime data
+        cursor.execute("delete from assessmentdata where assessmentregime_id = %(id)s", model)
+
+        sql_insert = """
+            insert into assessmentdata (
+                id,
+                assessmentregime_id, 
+                assessmentlocal_id, 
+                assessmenttype, 
+                assessmentmethodedescription
+            )
+            values (
+                uuid_in(md5(random()::text || random()::text)::cstring), 
+                %(assessment_regime_id)s, 
+                %(sampling_point_id)s, 
+                %(assessment_type_id)s, 
+                %(description)s
+            )
+        """
+        cursor.executemany(sql_insert, model.data)
 
         return jsonify({"success": True})
 
@@ -101,11 +195,55 @@ def assessmentregimes_insert():
     with CursorFromPool() as cursor:
         model = AssessmentRegimeModel(**request.json)
         sql = """
-                
+            insert into assessmentregimes (
+                id, 
+                name, 
+                zoneid, 
+                pollutant, 
+                objecttype, 
+                reportingmetric, 
+                protectiontarget,
+                assessmentthresholdexceedance,
+                include, 
+                thresholdclassificationyear, 
+                thresholdclassificationreport
+            )
+            values (
+                %(id)s, 
+                %(name)s, 
+                %(zone_id)s, 
+                %(pollutant_id)s, 
+                %(object_type_id)s, 
+                %(reporting_metric_id)s, 
+                %(protection_target_id)s,
+                %(exceedance_id)s,
+                %(include)s,
+                %(year)s,
+                %(report)s
+            )             
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
             raise BadRequest("Could not insert for id " + model.id)
+
+        sql_insert = """
+            insert into assessmentdata (
+                id,
+                assessmentregime_id, 
+                assessmentlocal_id, 
+                assessmenttype, 
+                assessmentmethodedescription
+            )
+            values (
+                uuid_in(md5(random()::text || random()::text)::cstring), 
+                %(assessment_regime_id)s, 
+                %(sampling_point_id)s, 
+                %(assessment_type_id)s, 
+                %(description)s
+            )
+        """
+        cursor.executemany(sql_insert, model.data)
+
         return jsonify({"success": True})
 
 

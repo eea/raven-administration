@@ -13,7 +13,7 @@ var p = defineProps({
 });
 
 const id = "id" + Math.random().toString(16).slice(2);
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits(["update:modelValue", "change"]);
 
 const expand = ref(false);
 const options = ref(null);
@@ -55,6 +55,7 @@ watch(q, (nv) => {
 const onOptionClick = (v) => {
   closeOptions();
   emit("update:modelValue", v);
+  emit("change");
 };
 
 const setSelectedOnOptions = () => {
