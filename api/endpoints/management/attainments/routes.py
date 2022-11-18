@@ -20,9 +20,16 @@ def attainments():
             a.name,
             ar.name as assessment_regime,
             a.assessmentregime_id as assessment_regime_id,
-            a.comment 
-          from attainments a, assessmentregimes ar
-          where a.assessmentregime_id = ar.id 
+            a.comment ,
+            count(e.id) as ed_count
+          from assessmentregimes ar, attainments a left join exceedancedescriptions e on a.id = e.attainment_id
+          where a.assessmentregime_id = ar.id
+          group by
+            a.id,
+            a.name,
+            ar.name ,
+            a.assessmentregime_id ,
+            a.comment
           order by name
         """)
         assessmentregimes = cursor.fetchall()
