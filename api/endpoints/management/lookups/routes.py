@@ -16,6 +16,51 @@ def areaclassifications():
         return jsonify(areaclassifications)
 
 
+@management_endpoint.route('/api/management/lookups/exceedancedescriptions', methods=['GET'])
+@jwt_required_with_management_claim()
+def exceedancedescriptions():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.name as label, r.id::varchar as value from eea_exceedancedescription r order by r.name")
+        rows = cursor.fetchall()
+        return jsonify(rows)
+
+
+@management_endpoint.route('/api/management/lookups/exceedancetypes', methods=['GET'])
+@jwt_required_with_management_claim()
+def exceedancetypes():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.name as label, r.id::varchar as value from eea_exceedancetype r order by r.name")
+        rows = cursor.fetchall()
+        return jsonify(rows)
+
+
+@management_endpoint.route('/api/management/lookups/adjustmentsourcetypes', methods=['GET'])
+@jwt_required_with_management_claim()
+def adjustmentsourcetypes():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.label as label, r.id as value from eea_adjustmentsourcetype r order by r.label")
+        rows = cursor.fetchall()
+        return jsonify(rows)
+
+
+@management_endpoint.route('/api/management/lookups/adjustmenttypes', methods=['GET'])
+@jwt_required_with_management_claim()
+def adjustmenttypes():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.label as label, r.id as value from eea_adjustmenttypes r order by r.label")
+        rows = cursor.fetchall()
+        return jsonify(rows)
+
+
+@management_endpoint.route('/api/management/lookups/reasons', methods=['GET'])
+@jwt_required_with_management_claim()
+def reasons():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.label as label, r.id as value from eea_exceedancereason r order by r.label")
+        rows = cursor.fetchall()
+        return jsonify(rows)
+
+
 @management_endpoint.route('/api/management/lookups/assessmentexceedances', methods=['GET'])
 @jwt_required_with_management_claim()
 def exceedances():
@@ -207,6 +252,15 @@ def timesteps():
         """, {"type": "vocabulary/" + type})
         timesteps = cursor.fetchall()
         return jsonify(timesteps)
+
+
+@management_endpoint.route('/api/management/lookups/attainments', methods=['GET'])
+@jwt_required_with_management_claim()
+def attainments():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.name as label, r.id as value from attainments r order by r.name")
+        processes = cursor.fetchall()
+        return jsonify(processes)
 
 
 @management_endpoint.route('/api/management/lookups/assessmentregimes', methods=['GET'])

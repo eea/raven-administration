@@ -26,12 +26,16 @@ watch(
 
 const onSave = () => {
   const o = Object.assign({}, obj.value);
-  const f = o.data.filter((p) => p.selected);
-  if (f.length > 0) {
-    const d = f.map((p) => Object.assign({}, p));
-    o.data = Object.assign([], d);
-  }
-  console.log("SAVE", o);
+
+  var data = [];
+  o.data.forEach((p) => {
+    var d = Object.assign({}, p);
+    if (p.selected) {
+      d.assessment_regime_id = obj.value.id;
+      data.push(d);
+    }
+  });
+  o.data = data;
   emit("save", o);
 };
 

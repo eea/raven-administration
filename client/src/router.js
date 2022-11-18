@@ -14,6 +14,7 @@ const Samples = () => import("./views/management/samples/Samples.vue");
 const ObservingCapabilities = () => import("./views/management/observingcapabilities/ObservingCapabilities.vue");
 const AssessmentRegimes = () => import("./views/management/assessmentregimes/AssessmentRegimes.vue");
 const Attainments = () => import("./views/management/attainments/Attainments.vue");
+const Exceedances = () => import("./views/management/exceedances/Exceedances.vue");
 
 const Calculate = () => import("./views/processing/calculate/Calculate.vue");
 const Convert = () => import("./views/processing/convert/Convert.vue");
@@ -47,6 +48,7 @@ const routes = [
   { path: "/management/observingcapabilities", component: ObservingCapabilities, name: "ObservingCapabilities" },
   { path: "/management/assessmentregimes", component: AssessmentRegimes, name: "AssessmentRegimes" },
   { path: "/management/attainments", component: Attainments, name: "Attainments" },
+  { path: "/management/exceedances", component: Exceedances, name: "Exceedances" },
 
   { path: "/processing/calculate", component: Calculate, name: "Calculate" },
   { path: "/processing/convert", component: Convert, name: "Convert" },
