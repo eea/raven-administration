@@ -33,4 +33,14 @@ export const Post = async (url, data) => {
   return await Request(payload);
 };
 
+export const File = async (url, data) => {
+  const payload = {
+    method: "post",
+    url: url,
+    headers: { "Content-Type": "multipart/form-data" },
+    data: data
+  };
+  return await Request(payload);
+};
+
 export default Request;

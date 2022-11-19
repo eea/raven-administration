@@ -77,3 +77,6 @@ class Endpoints:
         # IMPORT
         from api.endpoints.imports.observations.routes import observations_endpoint
         app.register_blueprint(observations_endpoint)
+
+        from api.endpoints.imports.management.routes import import_management_endpoint
+        app.register_blueprint(import_management_endpoint)

@@ -10,5 +10,5 @@ onMounted(async () => {
 });
 </script>
 <template>
-  <manager name="Auto validate" :options="options" :service="Service" />
+  <manager name="Auto validate" :options="options" :service="Service" :show-upload-button="false" />
 </template>

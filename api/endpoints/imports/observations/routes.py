@@ -1,5 +1,4 @@
 from datetime import datetime
-from email.utils import parsedate_to_datetime
 from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest, InternalServerError
@@ -9,7 +8,7 @@ from api.core.data.processing.importing import Importing
 import io
 import pandas as pd
 import time
-from api.endpoints.imports.observations.model import LoggerValues, LoggerLastValue
+from api.endpoints.imports.observations.models import LoggerValues, LoggerLastValue
 from pandas import DataFrame
 
 observations_endpoint = Blueprint('observations', __name__)

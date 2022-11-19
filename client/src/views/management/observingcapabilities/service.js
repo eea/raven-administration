@@ -1,10 +1,11 @@
-import { Get, Post } from "../../../helpers/request";
+import { Get, Post, File } from "../../../helpers/request";
 
 const Service = {
   get: async () => Get("/api/management/observingcapabilities"),
   update: async (data) => Post("/api/management/observingcapabilities/update", data),
   insert: async (data) => Post("/api/management/observingcapabilities/insert", data),
   delete: async (data) => Post("/api/management/observingcapabilities/delete", data),
+  upload: async (data) => File("/api/imports/observing_capabilities", data),
 
   sampling_points: async () => Get("/api/management/lookups/samplingpoints"),
   samples: async () => Get("/api/management/lookups/samples"),
