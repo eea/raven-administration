@@ -36,9 +36,13 @@ const cls_rowClass = (row) => {
   var classes = "";
   if (row.validation_flag < 1) classes = " bg-nord11/10";
   if (compare(selected.value, row)) classes = classes + " selected";
-  // if (row.pollutant == "O3") return "bg-nord14/20"
-  // if (row.pollutant == "NO") return "bg-nord13/20"
   return classes;
+};
+
+const cls_cellClass = (row) => {
+  if (row.status == 1) return "text-nord12";
+  if (row.status == 2) return "text-nord11";
+  return "";
 };
 
 const onDownload = () => {
@@ -100,7 +104,7 @@ const onContextMenu = (row, e) => {
           <td>{{ row.pollutant }}</td>
           <td>{{ row.timestep }}</td>
           <td>{{ row.from_time }}</td>
-          <td class="font-bold">{{ row.to_time }}</td>
+          <td :class="cls_cellClass(row)">{{ row.to_time }}</td>
           <td>{{ row.value }}</td>
           <td>{{ row.validation_flag }}</td>
           <td>{{ row.verification_flag }}</td>
