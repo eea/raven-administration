@@ -13,15 +13,15 @@ class Filling:
         missing_values = []
         timeseries = df_values.groupby("sampling_point_id")
         for key, values in timeseries:
-            ts_from_epoch = values.ts_from_epoch[0]
-            ts_to_epoch = values.ts_to_epoch[0]
-            ts_timestep = values.ts_timestep[0]
+            ts_from_epoch = values.ts_from_epoch.iloc[0]
+            ts_to_epoch = values.ts_to_epoch.iloc[0]
+            ts_timestep = values.ts_timestep.iloc[0]
 
             if ts_timestep == -1:
                 continue
 
-            scaled_value = -9900 if values.scaled_value[0] != None else None
-            tz = values.end_position[0].strftime('%z')
+            scaled_value = -9900 if values.scaled_value.iloc[0] != None else None
+            tz = values.end_position.iloc[0].strftime('%z')
             tz = "{0}:{1}".format(tz[:-2], tz[-2:])
             dates = values.end_position.apply(lambda x: x.timestamp()).unique()
             from_time = dates.min() if ts_to_epoch == None else dates.min() if ts_to_epoch > dates.min() else ts_to_epoch
@@ -31,6 +31,7 @@ class Filling:
             date_range = [from_time+(d*ts_timestep) for d in range(0, int((to_time - from_time)/ts_timestep)+1)]
             dates_not_in_db = list(set(date_range) - set(existing_dates))
             missing_dates = list(set(dates_not_in_db) - set(dates))
+
             for m in missing_dates:
                 v = {
                     "sampling_point_id": key,
