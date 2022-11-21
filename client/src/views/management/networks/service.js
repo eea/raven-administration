@@ -1,11 +1,12 @@
-import { Get, Post, File } from "../../../helpers/request";
+import { Get, Post, Upload, Download } from "../../../helpers/request";
 
 const Service = {
   get: async () => Get("/api/management/networks"),
   update: async (data) => Post("/api/management/networks/update", data),
   insert: async (data) => Post("/api/management/networks/insert", data),
   delete: async (data) => Post("/api/management/networks/delete", data),
-  upload: async (data) => File("/api/imports/networks", data),
+  upload: async (data) => Upload("/api/imports/networks", data),
+  download: async () => Download("/api/exports/networks"),
 
   authorities: async () => Get("/api/management/lookups/authorities"),
   levels: async () => Get("/api/management/lookups/levels"),

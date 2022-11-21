@@ -1,11 +1,12 @@
-import { Get, Post, File } from "../../../helpers/request";
+import { Get, Post, Upload, Download } from "../../../helpers/request";
 
 const Service = {
   get: async () => Get("/api/management/processes"),
   update: async (data) => Post("/api/management/processes/update", data),
   insert: async (data) => Post("/api/management/processes/insert", data),
   delete: async (data) => Post("/api/management/processes/delete", data),
-  upload: async (data) => File("/api/imports/processes", data),
+  upload: async (data) => Upload("/api/imports/processes", data),
+  download: async () => Download("/api/exports/processes"),
 
   timesteps: async () => Get("/api/management/lookups/timesteps?type=uom"),
   authorities: async () => Get("/api/management/lookups/authorities"),

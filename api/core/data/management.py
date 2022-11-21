@@ -17,8 +17,20 @@ class Management:
         self.__get_db_schema()
 
     def parse_file(self, file):
-        self.df = pd.read_csv(io.StringIO(file.stream.read().decode("utf-8")))
+        self.df = pd.read_csv(io.StringIO(file.stream.read().decode("utf-8")), skipinitialspace=True)
         self.__validate()
+
+    def generic_select(self):
+        sql = f"""
+          select {','.join(self.df_schema.column_name)} from {self.table_name} order by {self.df_schema.column_name.iloc[0]}
+        """
+
+        self.sql_select(sql)
+
+    def sql_select(self, sql):
+        self.cursor.execute(sql)
+        rows = self.cursor.fetchall()
+        self.df = DataFrame(rows)
 
     def generic_insert(self):
         sql = f"""
@@ -38,7 +50,7 @@ class Management:
         self.cursor.executemany(sql, df2.to_dict('records'))
 
     def __get_db_schema(self):
-        self.cursor.execute("SELECT column_name, udt_name as data_type, case when is_nullable = 'YES' then true else false end optional FROM information_schema.columns WHERE table_name = %(table)s", {"table": self.table_name})
+        self.cursor.execute("SELECT column_name, udt_name as data_type, case when is_nullable = 'YES' then true else false end optional FROM information_schema.columns WHERE table_name = %(table)s order by ordinal_position", {"table": self.table_name})
         rows = self.cursor.fetchall()
         df_schema = pd.DataFrame.from_records(rows)
         # only works with point

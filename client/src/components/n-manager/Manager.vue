@@ -1,6 +1,6 @@
 <script setup>
 import Eventy from "../../helpers/eventy";
-import { tblToCsv, filterList } from "../../helpers/utils";
+import { filterList } from "../../helpers/utils";
 import ToolBar from "../ToolBar.vue";
 import Crud from "./Crud.vue";
 
@@ -53,8 +53,9 @@ const onDelete = () => {
   showContextmenu.value = false;
 };
 
-const onDownload = () => {
-  tblToCsv(id, props.name);
+const onDownload = async () => {
+  await props.service.download({ a: "a" });
+  //tblToCsvWithProperties(id, props.name, props.options.properties);
 };
 
 const onUpload = (e) => {

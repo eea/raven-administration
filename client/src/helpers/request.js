@@ -7,8 +7,9 @@ export const Request = async (payload) => {
     Eventy.showProgress();
     const response = await axios(payload);
     Eventy.hideProgress();
-    return response.data;
+    if (response) return response.data;
   } catch (error) {
+    console.log("ERR", error);
     const message = ErrorParser.asMessage(error);
     Eventy.failProgress();
     Eventy.showHideMessage(message, "error", 60000);
@@ -33,12 +34,21 @@ export const Post = async (url, data) => {
   return await Request(payload);
 };
 
-export const File = async (url, data) => {
+export const Upload = async (url, data) => {
   const payload = {
     method: "post",
     url: url,
     headers: { "Content-Type": "multipart/form-data" },
     data: data
+  };
+  return await Request(payload);
+};
+
+export const Download = async (url) => {
+  const payload = {
+    method: "get",
+    url: url,
+    responseType: "blob"
   };
   return await Request(payload);
 };

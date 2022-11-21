@@ -5,7 +5,19 @@ const Interceptor = {
   response: async function () {
     axios.interceptors.response.use(
       (response) => {
-        return response;
+        // is it a file?
+        if (response.data instanceof Blob) {
+          const filename = response.headers["content-disposition"].split("filename=")[1];
+          const href = URL.createObjectURL(response.data);
+
+          const link = document.createElement("a");
+          link.href = href;
+          link.setAttribute("download", filename);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(href);
+        } else return response;
       },
       (error) => {
         if (401 === error.response.status) {
