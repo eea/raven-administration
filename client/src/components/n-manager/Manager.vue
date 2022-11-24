@@ -15,6 +15,10 @@ const props = defineProps({
   showUploadButton: {
     type: Boolean,
     default: true
+  },
+  showAddButton: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -54,8 +58,7 @@ const onDelete = () => {
 };
 
 const onDownload = async () => {
-  await props.service.download({ a: "a" });
-  //tblToCsvWithProperties(id, props.name, props.options.properties);
+  await props.service.download();
 };
 
 const onUpload = (e) => {
@@ -72,7 +75,7 @@ const onUploadClick = async (file) => {
   Eventy.showMessage("Uploading file, Please wait!");
   close();
   let formData = new FormData();
-  formData.append("csv", file);
+  formData.append("file", file);
   await props.service.upload(formData);
   await loadData();
   Eventy.hideMessage();
@@ -136,10 +139,10 @@ const cmp_properties = computed(() => {
     <file-upload :show="showUpload" :ev="ev" @click-outside="close" @on-upload-click="onUploadClick" />
     <column-picker :show="showColumnPicker" :ev="ev" :properties="cmp_properties" @click-outside="close" />
 
-    <component :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" @close="close" @save="saveAdd" />
+    <component v-if="showAddButton" :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" @close="close" @save="saveAdd" />
     <component :is="crudComponent" :is-edit="true" :show="showEdit" :options="options" :selected-value="selected" @close="close" @save="saveEdit" />
 
-    <tool-bar :title="name" v-model:q="q" :show-upload="showUploadButton" @add-click="showAdd = true" @upload-click="onUpload" @download-click="onDownload" @column-picker-click="onColumnPicker" />
+    <tool-bar :title="name" v-model:q="q" :show-add="showAddButton" :show-upload="showUploadButton" @add-click="showAdd = true" @upload-click="onUpload" @download-click="onDownload" @column-picker-click="onColumnPicker" />
 
     <grid :id="id" v-model:selected="selected" v-model:ev="ev" :properties="cmp_properties" :values="cmp_data" @on-right-click="showContextmenu = true" />
   </common-layout>

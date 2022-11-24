@@ -1,6 +1,9 @@
 import pandas as pd
 from pandas import DataFrame
+from pandas import DataFrame as gDataFrame
+import geopandas as gp
 import io
+from shapely import wkt
 
 
 class Management:
@@ -16,59 +19,30 @@ class Management:
         self.exclude_list = exclude_list
         self.__get_db_schema()
 
-    def parse_file(self, file):
-        self.df = pd.read_csv(io.StringIO(file.stream.read().decode("utf-8")), skipinitialspace=True)
-        self.__validate()
-
-    def generic_select(self):
-        sql = f"""
-          select {','.join(self.df_schema.column_name)} from {self.table_name} order by {self.df_schema.column_name.iloc[0]}
-        """
-
-        self.sql_select(sql)
-
-    def sql_select(self, sql):
-        self.cursor.execute(sql)
-        rows = self.cursor.fetchall()
-        self.df = DataFrame(rows)
-
-    def generic_insert(self):
-        sql = f"""
-          insert into {self.table_name}
-          ({','.join(self.df_schema.column_name)})
-          values
-          ({'%('}{')s,%('.join(self.df_schema.column_name)}{')s'})
-        """
-
-        self.sql_insert(sql)
-
-    def sql_insert(self, sql):
-        # convert NaN to None so that insert works as expected. Type must be object for None to be set
-        self.df = self.df.astype(object)
-        df2 = self.df.where(pd.notnull(self.df), None)
-
-        self.cursor.executemany(sql, df2.to_dict('records'))
-
     def __get_db_schema(self):
-        self.cursor.execute("SELECT column_name, udt_name as data_type, case when is_nullable = 'YES' then true else false end optional FROM information_schema.columns WHERE table_name = %(table)s order by ordinal_position", {"table": self.table_name})
+        self.cursor.execute("SELECT case when udt_name = 'geometry' then 'st_astext('||column_name||') as ' || column_name else column_name end as prop_select, case when udt_name = 'geometry' then 'st_setsrid(ST_GeomFromText(%%('||column_name||')s),4326)' else '%%('||column_name||')s' end as prop_insert, column_name, udt_name as data_type, case when is_nullable = 'YES' then true else false end optional FROM information_schema.columns WHERE table_name = %(table)s order by ordinal_position", {"table": self.table_name})
+
         rows = self.cursor.fetchall()
         df_schema = pd.DataFrame.from_records(rows)
-        # only works with point
-        if "geometry" in df_schema.data_type.values:
-            cols = [
-                {"column_name": "latitude", "data_type": "numeric", "optional": False},
-                {"column_name": "longitude", "data_type": "numeric", "optional": False},
-                {"column_name": "altitude", "data_type": "numeric", "optional": False},
-                {"column_name": "epsg", "data_type": "integer", "optional": False}
-            ]
-            df_schema = df_schema[df_schema.data_type != "geometry"]
-            df_schema = pd.concat([pd.DataFrame.from_records(cols), df_schema], ignore_index=True)
 
         if len(self.exclude_list) > 0:
             for ex in self.exclude_list:
                 df_schema = df_schema[df_schema.column_name != ex]
 
         self.df_schema = df_schema
+
+    def parse_file(self, file):
+        if file.filename.endswith(".csv"):
+            self.df = pd.read_csv(io.StringIO(file.stream.read().decode("utf-8")), skipinitialspace=True)
+        elif file.filename.endswith(".gpkg"):
+            gdf = gp.read_file(file, driver="GPKG")
+            gdf["geom"] = gdf.geometry.to_wkt()
+            self.df = pd.DataFrame(gdf.drop(columns=['geometry']))  # Dont need geopandas geometry functionality anymore.
+
+        else:
+            raise Exception("File type is not supported")
+
+        self.__validate()
 
     def __validate(self):
         self.df = self.df.astype(object)
@@ -99,5 +73,35 @@ class Management:
                 if (not self.df[row.column_name].isin(bool_list).any()) and (self.df[row.column_name].notna().any()):
                     raise Exception("Column " + row.column_name + " must be boolean value")
 
+            elif row.data_type == "geometry":
+                self.df[self.df[row.column_name].notna()][row.column_name].apply(wkt.loads)
+
             else:
                 raise Exception("Not implemented check for type: " + row.data_type)
+
+    def generic_select(self):
+        sql = f"""
+          select {','.join(self.df_schema.prop_select)} from {self.table_name} order by {self.df_schema.column_name.iloc[0]}
+        """
+
+        self.sql_select(sql)
+
+    def sql_select(self, sql):
+        self.cursor.execute(sql)
+        rows = self.cursor.fetchall()
+        self.df = DataFrame(rows)
+
+    def generic_insert(self):
+        sql = f"""
+          insert into {self.table_name}
+          ({','.join(self.df_schema.column_name)})
+          values
+          ({','.join(self.df_schema.prop_insert)})
+        """
+
+        self.sql_insert(sql)
+
+    def sql_insert(self, sql):
+        # convert NaN to None so that insert works as expected. Type must be object for None to be set
+        df2 = self.df.where(pd.notnull(self.df), None)
+        self.cursor.executemany(sql, df2.to_dict('records'))

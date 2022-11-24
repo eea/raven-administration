@@ -232,6 +232,15 @@ def station_classifications():
         return jsonify(station_classifications)
 
 
+@management_endpoint.route('/api/management/lookups/zones_types', methods=['GET'])
+@jwt_required_with_management_claim()
+def zones_types():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.label as label, r.id as value from eea_zonetypes r order by r.label")
+        rows = cursor.fetchall()
+        return jsonify(rows)
+
+
 @management_endpoint.route('/api/management/lookups/timezones', methods=['GET'])
 @jwt_required_with_management_claim()
 def timezones():

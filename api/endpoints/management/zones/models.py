@@ -8,11 +8,10 @@ class ZoneModel(BaseModel):
     code: str
     year: int
     area: float
-    type_id: str
+    zone_type_id: str
     population: int
     population_year: int
     authority_id: str
-    geojson: str
 
     def __getitem__(self, key):
         return super().__getattribute__(key)

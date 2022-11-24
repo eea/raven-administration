@@ -11,4 +11,4 @@ PyJWT==2.3.0
 python-dotenv==0.19.2
 python-simplexml==0.1.5
 pandas==1.4.4
-pytz==2022.1
+pytz==2022.1 
