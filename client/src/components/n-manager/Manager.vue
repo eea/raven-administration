@@ -125,7 +125,8 @@ const close = () => {
   ev.value = {};
 };
 
-const cmp_data = computed(() => filterList(q.value, data.value));
+const cmp_data = computed(() => filterList(q.value, data.value, !props.options.properties ? [] : props.options.properties.filter((p) => !p.showInGrid).map((p) => p.prop)));
+
 const cmp_properties = computed(() => {
   if (!props.options.properties) return [];
   return props.options.properties.filter((p) => p.type != "custom");

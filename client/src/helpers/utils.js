@@ -93,11 +93,15 @@ export const month = (monthAsInt) => {
   return "Unknown";
 };
 
-export const filterList = (q, list) => {
+export const filterList = (q, list, exclude_list) => {
   if (!q) return list;
   return list.filter((row) => {
-    return Object.values(row).some((p) => String(p).toLowerCase().includes(q.toLowerCase()));
+    // dont search on excluded properties
+    const props = Object.entries(row).filter((p) => !exclude_list.includes(p[0]));
+    const showValues = Object.values(Object.fromEntries(props)).some((p) => String(p).toLowerCase().includes(q.toLowerCase()));
+
+    return showValues;
   });
 };
 
-export const version = "3.0.0-dev-1";
+export const version = "3.0.0-dev-2";
