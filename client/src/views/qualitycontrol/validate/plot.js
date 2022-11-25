@@ -26,6 +26,16 @@ const Plot = {
         scales: {
           x: {
             type: "time",
+            offset: true,
+            ticks: {
+              major: {
+                enabled: true
+              },
+              font: (ctx) => {
+                const boldedTicks = ctx.tick?.major ? "bold" : "";
+                return { weight: boldedTicks };
+              }
+            },
             time: {
               // Luxon format string
               tooltipFormat: "DD T"
