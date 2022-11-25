@@ -25,20 +25,24 @@ const Plot = {
         scales: {
           x: {
             type: "time",
-            time: {
-              // Luxon format string
-              tooltipFormat: "DD T"
+            ticks: {
+              major: {
+                enabled: true
+              },
+              font: (ctx) => {
+                const boldedTicks = ctx.tick?.major ? "bold" : "";
+                return { weight: boldedTicks };
+              }
             },
             title: {
-              display: false,
-              text: "Date"
+              display: false
             }
           },
           y: {
             title: {
-              display: false,
-              text: "value"
-            }
+              display: false
+            },
+            beginAtZero: false
           }
         },
         datasets: {
