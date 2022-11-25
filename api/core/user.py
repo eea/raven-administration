@@ -68,7 +68,9 @@ def get_claims(user: User):
 
 def remove_user(id):
     with CursorFromPool() as cursor:
-        sql = "delete from users where id = %(id)s"
+        if is_locked_user(cursor, id):
+            raise Exception("Cannot delete locked user")
+        sql = "delete from users where id = %(id)s and locked = false"
         cursor.execute(sql, {"id": id})
 
 
@@ -101,11 +103,6 @@ def update_user(id, name, username, password, groups, createdby):
         raise Exception("Groups cannot be empty")
 
     with CursorFromPool() as cursor:
-        sql = """update users set username=%(username)s, password=%(password)s, name=%(name)s, createdby=%(createdby)s, created=%(created)s where "id"=%(id)s"""
-
-        if password == "" or password == None:
-            sql = """update users set username=%(username)s, name=%(name)s, createdby=%(createdby)s, created=%(created)s where "id"=%(id)s"""
-
         o = {
             "username": username,
             "createdby": createdby,
@@ -113,15 +110,25 @@ def update_user(id, name, username, password, groups, createdby):
             "name": name,
             "id": id
         }
+
+        sql = """update users set username=%(username)s, name=%(name)s, createdby=%(createdby)s, created=%(created)s where "id"=%(id)s"""
         if not (password == "" or password == None):
             o["password"] = generate_password_hash(password)
+            sql = """update users set username=%(username)s, password=%(password)s, name=%(name)s, createdby=%(createdby)s, created=%(created)s where "id"=%(id)s"""
+
         cursor.execute(sql, o)
 
-        cursor.execute("delete from usergroup where userid = %(userid)s", {"userid": id})
+        if not is_locked_user(cursor, id):  # locked users cannot change group
+            cursor.execute("delete from usergroup where userid = %(userid)s", {"userid": id})
 
-        sql = "insert into usergroup (groupid, userid) values (%(groupid)s, %(userid)s)"
-        for g in groups:
-            cursor.execute(sql, {"groupid": g, "userid": id})
+            sql = "insert into usergroup (groupid, userid) values (%(groupid)s, %(userid)s)"
+            for g in groups:
+                cursor.execute(sql, {"groupid": g, "userid": id})
+
+
+def is_locked_user(cursor, id):
+    cursor.execute("select 1 from users where id = %(id)s and locked = true", {"id": id})
+    return cursor.rowcount > 0
 
 
 # GROUP
@@ -131,7 +138,7 @@ def add_group(name, management, data, exporting, processing, qualitycontrol, use
 
     with CursorFromPool() as cursor:
         sql = """
-            insert into "group" ("name", "network", "data", "exporting", "processing", "qualitycontrol", "users", "allnetworks") 
+            insert into "group" ("name", "management", "data", "exporting", "processing", "qualitycontrol", "users", "allnetworks") 
             values (%(name)s, %(management)s, %(data)s, %(exporting)s, %(processing)s, %(qualitycontrol)s, %(users)s, %(allnetworks)s)
             returning "id"
         """
@@ -155,10 +162,15 @@ def add_group(name, management, data, exporting, processing, qualitycontrol, use
 
 
 def update_group(id, name, management, data, exporting, processing, qualitycontrol, users, allnetworks, networks):
-    if allnetworks == False and len(networks) == 0:
-        raise Exception("Networks cannot be empty when allnetworks is false")
 
     with CursorFromPool() as cursor:
+
+        if is_locked_group(cursor, id):
+            raise Exception("Cannot update locked group")
+
+        if allnetworks == False and len(networks) == 0:
+            raise Exception("Networks cannot be empty when allnetworks is false")
+
         sql = """
             update "group" 
             set
@@ -197,5 +209,13 @@ def update_group(id, name, management, data, exporting, processing, qualitycontr
 
 def remove_group(id):
     with CursorFromPool() as cursor:
+        if is_locked_group(cursor, id):
+            raise Exception("Cannot delete locked group")
+
         sql = """delete from "group" where id = %(id)s"""
         cursor.execute(sql, {"id": id})
+
+
+def is_locked_group(cursor, id):
+    cursor.execute("""select 1 from "group" where id = %(id)s and locked = true""", {"id": id})
+    return cursor.rowcount > 0
