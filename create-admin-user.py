@@ -22,10 +22,9 @@ try:
     if len(name) == 0 or len(user) == 0 or len(password) == 0:
         raise Exception("Error: name, user and password must be provided (-n -u -p)")
 
-    sql = """
-        insert into users (username, password, createdby, created, name,locked) values (%(username)s, %(password)s, %(createdby)s, %(created)s, %(name)s,true)
-        returning "id"
-    """
+    conn = psycopg2.connect(Config.DB_URI)
+    cursor = conn.cursor()
+
     o = {
         "username": user,
         "password": generate_password_hash(password),
@@ -34,14 +33,28 @@ try:
         "name": name
     }
 
-    conn = psycopg2.connect(Config.DB_URI)
-    cursor = conn.cursor()
-    cursor.execute(sql, o)
+    # add user
+    sql_user = """
+        insert into users (username, password, createdby, created, name,locked) values (%(username)s, %(password)s, %(createdby)s, %(created)s, %(name)s,true)
+        returning "id"
+    """
+    cursor.execute(sql_user, o)
     userid = cursor.fetchone()
-    cursor.execute("insert into usergroup (groupid, userid) values (1, %(userid)s)", {"userid": userid})
+
+    # add group
+    sql_group = """
+        insert into "group" ("name", "management", "data", "exporting", "processing", "qualitycontrol", "users", "allnetworks") 
+        values ('admin', true, true, true, true, true, true, true)
+        returning "id"
+    """
+    cursor.execute(sql_group, o)
+    groupid = cursor.fetchone()
+
+    # connect user and group
+    cursor.execute("insert into usergroup (groupid, userid) values (%(groupid)s, %(userid)s)", {"groupid": groupid, "userid": userid})
     cursor.close()
     conn.commit()
-    print("User added")
+    print("Admin added")
 
 except Exception as err:
     print(str(err))

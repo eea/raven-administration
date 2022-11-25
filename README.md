@@ -46,6 +46,6 @@ JWT_SECRET_KEY = super-secret-key
 
 Create an admin user
 
-```
-python .\create-user.py -n "Some name"  -u username -p password
+```powershell
+python .\create-admin-user.py -n name  -u username -p password
 ```
