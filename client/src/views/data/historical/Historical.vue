@@ -18,6 +18,7 @@ const selectedIds = ref([]);
 const meantype = ref("0");
 const coverage = ref(75);
 const plotType = ref("line");
+const beginAtZero = ref(false);
 
 const showPlot = ref(false);
 
@@ -39,8 +40,8 @@ const plotData = async () => {
   showPlot.value = true;
   Eventy.showMessage("Plotting data. Please wait", "loading");
   if (chart) {
-    chart.data = [];
-    chart.update();
+    chart.destroy();
+    chart = null;
   }
 
   var meanvalues = await Service.get({
@@ -51,9 +52,7 @@ const plotData = async () => {
     coverage: coverage.value
   });
 
-  if (!chart) {
-    chart = new Chart("chart", Plot.config());
-  }
+  chart = new Chart("chart", Plot.config(beginAtZero.value));
 
   chart.data = formatValues(meanvalues);
   chart.update();
@@ -129,6 +128,11 @@ const cmp_timeseries = computed(() => {
             <n-option value="bar" label="Bar" />
           </n-select>
         </div>
+      </div>
+
+      <div class="flex gap-2" @click="beginAtZero = !beginAtZero">
+        <label class="self-center cursor-pointer font-bold">Start Y-axis at zero:</label>
+        <n-checkbox class="self-center" v-model="beginAtZero" />
       </div>
 
       <div>

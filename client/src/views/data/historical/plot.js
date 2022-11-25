@@ -1,9 +1,9 @@
 import autocolors from "chartjs-plugin-autocolors";
 const Plot = {
-  config: (data = []) => {
+  config: (beginAtZero = false) => {
     return {
       type: "line",
-      data: data,
+      data: [],
       plugins: [autocolors],
       options: {
         animation: false,
@@ -43,7 +43,7 @@ const Plot = {
             title: {
               display: false
             },
-            beginAtZero: false
+            beginAtZero: beginAtZero
           }
         },
         datasets: {
