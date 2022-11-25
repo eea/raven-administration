@@ -25,6 +25,7 @@ const Plot = {
         scales: {
           x: {
             type: "time",
+            offset: true,
             ticks: {
               major: {
                 enabled: true
