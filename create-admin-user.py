@@ -43,8 +43,8 @@ try:
 
     # add group
     sql_group = """
-        insert into "group" ("name", "management", "data", "exporting", "processing", "qualitycontrol", "users", "allnetworks") 
-        values ('admin', true, true, true, true, true, true, true)
+        insert into "group" ("name", "management", "data", "exporting", "processing", "qualitycontrol", "users", "allnetworks","locked") 
+        values ('admin', true, true, true, true, true, true, true,true)
         returning "id"
     """
     cursor.execute(sql_group, o)
