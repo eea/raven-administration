@@ -30,7 +30,7 @@ JWT_SECRET_KEY = make-up-a-secure-key
 
 #### **Create a virtual environment and activate it**
 
-```sh
+```powershell
 # create
 python -m venv venv
 # activate
@@ -39,13 +39,13 @@ python -m venv venv
 
 #### **Install required python packages**
 
-```sh
+```powershell
 pip install -r requirements.txt
 ```
 
 #### **In the _client_ folder install the required js packages**
 
-```sh
+```powershell
 # Chose either yarn or npm
 yarn install
 npm install
@@ -53,14 +53,15 @@ npm install
 
 #### **Create the administartor**
 
-```sh
+```powershell
 python .\create-admin-user.py -n name  -u username -p password
 ```
 
 ## Run Raven (not production)
 
-```sh
+```powershell
 # start backend server
+$env:FLASK_APP = "raven.py"
 flask run
 # from inside the client folder start the frontend
 yarn dev
