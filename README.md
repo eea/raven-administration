@@ -3,10 +3,10 @@
 ## Requirements
 
 Python version `3.9.12`  
-Node version 14.18+  
-Postgres version 12+
-Postgis extension
-yarn or npm (mixing is not recommended)
+Node version `14.18+`  
+Postgres version `12+`  
+Postgis extension  
+Yarn or NPM (mixing is not recommended)
 
 ## Installation
 
