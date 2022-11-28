@@ -9,6 +9,7 @@ import Plot from "./plot";
 import { format, sub, isAfter, isBefore } from "date-fns";
 import { groupBy, sortBy } from "../../../helpers/utils";
 import Eventy from "../../../helpers/eventy";
+import IconCalendar from "~icons/ic/round-access-time";
 
 const timeseries = ref([]);
 
@@ -95,6 +96,13 @@ const cmp_timeseries = computed(() => {
           <div class="font-bold">To</div>
           <n-datetime v-model="totime" class="" />
         </div>
+        <div>
+          <br />
+          <button class="n-button flex gap-2">
+            <icon-calendar class="self-center text-nord10 text-lg !p-0" />
+            <div class="self-center">Presets</div>
+          </button>
+        </div>
       </div>
 
       <div class="flex gap-2">
@@ -130,8 +138,8 @@ const cmp_timeseries = computed(() => {
         </div>
       </div>
 
-      <div class="flex gap-2" @click="beginAtZero = !beginAtZero">
-        <label class="self-center cursor-pointer font-bold">Start Y-axis at zero:</label>
+      <div class="flex gap-2">
+        <label class="self-center cursor-pointer font-bold" @click="beginAtZero = !beginAtZero">Start Y-axis at zero:</label>
         <n-checkbox class="self-center" v-model="beginAtZero" />
       </div>
 

@@ -25,7 +25,7 @@
 /* -------------------------------------------------------------------------------- */
 
 .n-button {
-  @apply px-2 py-1 rounded inline-block bg-nord6 text-nord3 cursor-pointer border border-nord4 select-none;
+  @apply px-2 py-1 rounded  bg-nord6 text-nord3 cursor-pointer border border-nord4 select-none; /*inline-block*/
   @apply focus:outline-none hover:bg-nord5/40;
 }
 
