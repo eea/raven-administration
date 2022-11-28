@@ -6,11 +6,12 @@ import Chart from "chart.js/auto";
 import "chartjs-adapter-luxon";
 import Plot from "./plot";
 
-import { format, sub, isAfter, isBefore } from "date-fns";
+import { format, sub, isAfter, isBefore, startOfWeek } from "date-fns";
 import { groupBy, sortBy } from "../../../helpers/utils";
 import Eventy from "../../../helpers/eventy";
 import IconCalendar from "~icons/ic/round-access-time";
 
+const ev_preset = ref();
 const timeseries = ref([]);
 
 const fromtime = ref("");
@@ -29,6 +30,7 @@ var chart;
 
 onMounted(async () => {
   fromtime.value = format(sub(new Date(), { days: 14 }), "yyy-MM-dd 00:00");
+  totime.value = format(new Date(), "yyy-MM-dd HH:00");
   timeseries.value = await Service.timeseries();
 
   if (route.query.ids) selectedIds.value = route.query.ids.split(";");
@@ -60,6 +62,27 @@ const plotData = async () => {
   Eventy.hideMessage();
 };
 
+const changeDates = (s) => {
+  const d = new Date();
+  if (s == "This week") {
+    fromtime.value = format(startOfWeek(d, { weekStartsOn: 1 }), "yyy-MM-dd 00:00");
+    totime.value = format(d, "yyy-MM-dd HH:00");
+  } else if (s == "Last week") {
+    fromtime.value = format(sub(startOfWeek(d, { weekStartsOn: 1 }), { days: 7 }), "yyy-MM-dd 00:00");
+    totime.value = format(startOfWeek(d, { weekStartsOn: 1 }), "yyy-MM-dd 00:00");
+  } else if (s == "Last month") {
+    fromtime.value = format(new Date(d.getFullYear(), d.getMonth() - 1, 1), "yyy-MM-dd 00:00");
+    totime.value = format(new Date(d.getFullYear(), new Date().getMonth(), 0), "yyy-MM-dd 00:00");
+  } else if (s == "This year") {
+    fromtime.value = format(new Date(d.getFullYear(), 0, 1), "yyy-MM-dd 00:00");
+    totime.value = format(d, "yyy-MM-dd HH:00");
+  } else if (s == "Last year") {
+    fromtime.value = format(new Date(d.getFullYear() - 1, 0, 1), "yyy-MM-dd 00:00");
+    totime.value = format(new Date(d.getFullYear(), 0, 1), "yyy-MM-dd 00:00");
+  }
+  ev_preset.value = null;
+};
+
 const formatValues = (meanvalues) => {
   var grouped_values = groupBy(meanvalues, (p) => p.sampling_point_id);
   const series = [];
@@ -84,6 +107,14 @@ const cmp_timeseries = computed(() => {
 
 <template>
   <common-layout>
+    <contextmenu :evt="ev_preset" :show="!!ev_preset" @click-outside="ev_preset = null" class="">
+      <div class="px-2 font-bold">Presets:</div>
+      <div class="border-l-2 border-nord14 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('This week')">This week</div>
+      <div class="border-l-2 border-nord14 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('Last week')">Last week</div>
+      <div class="border-l-2 border-nord11 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('Last month')">Last month</div>
+      <div class="border-l-2 border-nord15 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('This year')">This year</div>
+      <div class="border-l-2 border-nord15 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('Last year')">Last year</div>
+    </contextmenu>
     <tool-bar title="Historical data" :show-column-picker="false" :show-add="false" :show-filter="false" />
 
     <container>
@@ -98,7 +129,7 @@ const cmp_timeseries = computed(() => {
         </div>
         <div>
           <br />
-          <button class="n-button flex gap-2">
+          <button class="n-button flex gap-2" @click="ev_preset = $event">
             <icon-calendar class="self-center text-nord10 text-lg !p-0" />
             <div class="self-center">Presets</div>
           </button>
