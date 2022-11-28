@@ -8,14 +8,16 @@ from api.core.data.processing.importing import Importing
 import io
 import pandas as pd
 import time
-from api.endpoints.imports.observations.models import LoggerValues, LoggerLastValue
+from api.endpoints.imports.observations.models import LoggerLastValue
 from pandas import DataFrame
+from api.core.jwt_ext_custom import jwt_required_with_allnetworks_claim, jwt_required_with_management_claim
 
 observations_endpoint = Blueprint('observations', __name__)
 
 
 @observations_endpoint.route('/api/imports/observations', methods=['POST'])
-# @jwt_required()
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
 def import_obs():
     with CursorFromPool() as cursor:
         bench = time.perf_counter()
@@ -32,7 +34,8 @@ def import_obs():
 
 
 @observations_endpoint.route('/api/imports/logger', methods=['POST'])
-# @jwt_required()
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
 def import_logger():
     with CursorFromPool() as cursor:
         bench = time.perf_counter()
@@ -75,7 +78,8 @@ def import_logger():
 
 
 @observations_endpoint.route('/api/imports/logger', methods=['GET'])
-# @jwt_required()
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
 def last_entry():
     with CursorFromPool() as cursor:
         m = LoggerLastValue(**request.args.to_dict())
