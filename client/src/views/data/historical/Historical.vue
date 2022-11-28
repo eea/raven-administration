@@ -69,6 +69,9 @@ const changeDates = (s) => {
   } else if (s == "Last week") {
     fromtime.value = format(sub(startOfWeek(d, { weekStartsOn: 1 }), { days: 7 }), "yyy-MM-dd 00:00");
     totime.value = format(startOfWeek(d, { weekStartsOn: 1 }), "yyy-MM-dd 00:00");
+  } else if (s == "This month") {
+    fromtime.value = format(new Date(d.getFullYear(), d.getMonth(), 1), "yyy-MM-dd 00:00");
+    totime.value = format(d, "yyy-MM-dd HH:00");
   } else if (s == "Last month") {
     fromtime.value = format(new Date(d.getFullYear(), d.getMonth() - 1, 1), "yyy-MM-dd 00:00");
     totime.value = format(new Date(d.getFullYear(), new Date().getMonth(), 0), "yyy-MM-dd 00:00");
@@ -110,6 +113,7 @@ const cmp_timeseries = computed(() => {
       <div class="px-2 font-bold">Presets:</div>
       <div class="border-l-2 border-nord14 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('This week')">This week</div>
       <div class="border-l-2 border-nord14 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('Last week')">Last week</div>
+      <div class="border-l-2 border-nord11 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('This month')">This month</div>
       <div class="border-l-2 border-nord11 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('Last month')">Last month</div>
       <div class="border-l-2 border-nord15 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('This year')">This year</div>
       <div class="border-l-2 border-nord15 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('Last year')">Last year</div>
