@@ -46,6 +46,7 @@ pip install -r requirements.txt
 #### **In the _client_ folder install the required js packages**
 
 ```sh
+# Chose either yarn or npm
 yarn install
 npm install
 ```
