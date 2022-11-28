@@ -30,7 +30,7 @@ JWT_SECRET_KEY = make-up-a-secure-key
 
 #### **Create a virtual environment and activate it**
 
-```zsh
+```sh
 # create
 python -m venv venv
 # activate
@@ -39,7 +39,7 @@ python -m venv venv
 
 #### **Install required python packages**
 
-```zsh
+```sh
 pip install -r requirements.txt
 ```
 
