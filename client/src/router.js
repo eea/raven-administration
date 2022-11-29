@@ -16,14 +16,15 @@ const AssessmentRegimes = () => import("./views/management/assessmentregimes/Ass
 const Attainments = () => import("./views/management/attainments/Attainments.vue");
 const Exceedances = () => import("./views/management/exceedances/Exceedances.vue");
 
+const Latest = () => import("./views/data/latest/Latest.vue");
+const Historical = () => import("./views/data/historical/Historical.vue");
+const Dataflow = () => import("./views/data/dataflow/Dataflow.vue");
+
+const Import = () => import("./views/processing/import/Import.vue");
 const Calculate = () => import("./views/processing/calculate/Calculate.vue");
 const Convert = () => import("./views/processing/convert/Convert.vue");
 const AutoValidate = () => import("./views/processing/autovalidate/Autovalidate.vue");
 const Scale = () => import("./views/processing/scale/Scale.vue");
-
-const Latest = () => import("./views/data/latest/Latest.vue");
-const Historical = () => import("./views/data/historical/Historical.vue");
-const Dataflow = () => import("./views/data/dataflow/Dataflow.vue");
 
 const Validate = () => import("./views/qualitycontrol/validate/Validate.vue");
 const Verify = () => import("./views/qualitycontrol/verify/Verify.vue");
@@ -50,14 +51,15 @@ const routes = [
   { path: "/management/attainments", component: Attainments, name: "Attainments" },
   { path: "/management/exceedances", component: Exceedances, name: "Exceedances" },
 
+  { path: "/data/latest", component: Latest, name: "Latest" },
+  { path: "/data/historical", component: Historical, name: "Historical" },
+  { path: "/data/dataflow", component: Dataflow, name: "Dataflow" },
+
+  { path: "/processing/import", component: Import, name: "Import" },
   { path: "/processing/calculate", component: Calculate, name: "Calculate" },
   { path: "/processing/convert", component: Convert, name: "Convert" },
   { path: "/processing/autovalidate", component: AutoValidate, name: "AutoValidate" },
   { path: "/processing/scale", component: Scale, name: "Scale" },
-
-  { path: "/data/latest", component: Latest, name: "Latest" },
-  { path: "/data/historical", component: Historical, name: "Historical" },
-  { path: "/data/dataflow", component: Dataflow, name: "Dataflow" },
 
   { path: "/qualitycontrol/validate", component: Validate, name: "Validate" },
   { path: "/qualitycontrol/verify", component: Verify, name: "Verify" },

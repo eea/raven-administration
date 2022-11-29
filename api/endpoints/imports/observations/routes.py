@@ -22,8 +22,11 @@ def import_obs():
     with CursorFromPool() as cursor:
         bench = time.perf_counter()
 
+        if "file" not in request.files:
+            raise BadRequest("File form does not contain the key 'file'")
+
         # Read csv into a pandas DataFrame
-        f = request.files["csv"]
+        f = request.files["file"]
         df = pd.read_csv(io.StringIO(f.stream.read().decode("utf-8")))
 
         # Import values

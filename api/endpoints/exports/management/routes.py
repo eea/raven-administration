@@ -7,7 +7,7 @@ from api.core.utils import U
 export_management_endpoint = Blueprint('export_management', __name__)
 
 
-@export_management_endpoint.route('/api/exports/authorities', methods=['GET'])
+@export_management_endpoint.route('/api/exports/authorities', methods=['POST'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def export_authorities():
@@ -17,7 +17,7 @@ def export_authorities():
         return U.dataframe_to_csv_response(m.df, "authorities.csv")
 
 
-@export_management_endpoint.route('/api/exports/zones', methods=['GET'])
+@export_management_endpoint.route('/api/exports/zones', methods=['POST'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def export_zones():
@@ -27,7 +27,7 @@ def export_zones():
         return U.dataframe_to_csv_response(m.df, "zones.csv")
 
 
-@export_management_endpoint.route('/api/exports/networks', methods=['GET'])
+@export_management_endpoint.route('/api/exports/networks', methods=['POST'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def export_networks():
@@ -37,7 +37,7 @@ def export_networks():
         return U.dataframe_to_csv_response(m.df, "networks.csv")
 
 
-@export_management_endpoint.route('/api/exports/stations', methods=['GET'])
+@export_management_endpoint.route('/api/exports/stations', methods=['POST'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def export_stations():
@@ -47,7 +47,7 @@ def export_stations():
         return U.dataframe_to_csv_response(m.df, "stations.csv")
 
 
-@export_management_endpoint.route('/api/exports/sampling_points', methods=['GET'])
+@export_management_endpoint.route('/api/exports/sampling_points', methods=['POST'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def export_sampling_points():
@@ -57,7 +57,7 @@ def export_sampling_points():
         return U.dataframe_to_csv_response(m.df, "sampling_points.csv")
 
 
-@export_management_endpoint.route('/api/exports/observing_capabilities', methods=['GET'])
+@export_management_endpoint.route('/api/exports/observing_capabilities', methods=['POST'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def export_observing_capabilities():
@@ -67,7 +67,7 @@ def export_observing_capabilities():
         return U.dataframe_to_csv_response(m.df, "observing_capabilities.csv")
 
 
-@export_management_endpoint.route('/api/exports/samples', methods=['GET'])
+@export_management_endpoint.route('/api/exports/samples', methods=['POST'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def export_samples():
@@ -77,7 +77,7 @@ def export_samples():
         return U.dataframe_to_csv_response(m.df, "samples.csv")
 
 
-@export_management_endpoint.route('/api/exports/processes', methods=['GET'])
+@export_management_endpoint.route('/api/exports/processes', methods=['POST'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def import_processes():

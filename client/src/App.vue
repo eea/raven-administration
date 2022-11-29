@@ -40,7 +40,7 @@ body {
 }
 
 a {
-  text-decoration-line: underline;
+  @apply !underline !text-nord0;
 }
 
 a:hover {
