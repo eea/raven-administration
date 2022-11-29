@@ -1,7 +1,7 @@
 # RAVEN Administration
 
 **RAVEN** is an open source web based Air Quality data validation and e-reporting system, with the aim to control the flow, metadata inventory, the quality of the monitoring data and producing the XML files required for the Air Quality B-G, except from D1b (Information on the assessment methods - for models and objective estimation) and E1b (Information on primary validated assessment data – modelled).  
-The system is managed and developed by **_NILU_**, with support from **_4sFera_**, on the behalf of the **_European Environmental Agency_**.
+The system is managed and developed by `NILU`, with support from `4sFera`, on the behalf of the `European Environmental Agency`.
 
 ## Requirements
 
