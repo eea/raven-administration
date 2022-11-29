@@ -44,11 +44,12 @@ export const Upload = async (url, data) => {
   return await Request(payload);
 };
 
-export const Download = async (url) => {
+export const Download = async (url, data) => {
   const payload = {
-    method: "get",
+    method: "post",
     url: url,
-    responseType: "blob"
+    responseType: "blob",
+    data: data
   };
   return await Request(payload);
 };

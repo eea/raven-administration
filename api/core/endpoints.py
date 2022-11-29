@@ -84,3 +84,6 @@ class Endpoints:
         # EXPORT
         from api.endpoints.exports.management.routes import export_management_endpoint
         app.register_blueprint(export_management_endpoint)
+
+        from api.endpoints.exports.observations.routes import export_observations_endpoint
+        app.register_blueprint(export_observations_endpoint)

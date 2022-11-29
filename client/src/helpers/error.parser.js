@@ -4,6 +4,7 @@ const ErrorParser = {
     if (error.response.status == 404) message = "Route not found";
     else if (error.response.status == 400) {
       let errMsg = error.response.data.msg;
+      if (error.response.data instanceof Blob) errMsg = "File error: Could not parse input data";
       message = JSON.stringify(errMsg);
     } else {
       console.log("Error response: ", error.response);

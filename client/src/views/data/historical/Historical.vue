@@ -61,6 +61,17 @@ const plotData = async () => {
   Eventy.hideMessage();
 };
 
+const onDownload = async () => {
+  Eventy.showMessage("Downloading data. Please wait", "loading");
+  await Service.download({
+    sampling_point_ids: selectedIds.value,
+    from_dt: fromtime.value,
+    to_dt: totime.value,
+    meantype: meantype.value,
+    coverage: coverage.value
+  });
+  Eventy.hideMessage();
+};
 const changeDates = (s) => {
   const d = new Date();
   if (s == "This week") {
@@ -118,7 +129,8 @@ const cmp_timeseries = computed(() => {
       <div class="border-l-2 border-nord15 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('This year')">This year</div>
       <div class="border-l-2 border-nord15 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('Last year')">Last year</div>
     </contextmenu>
-    <tool-bar title="Historical data" :show-column-picker="false" :show-add="false" :show-filter="false" />
+
+    <tool-bar title="Historical data" :show-column-picker="false" :show-add="false" :show-filter="false" @download-click="onDownload" />
 
     <container>
       <div class="flex gap-2">

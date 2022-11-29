@@ -1,8 +1,9 @@
 from simplexml import dumps
-from flask import make_response
+from flask import make_response, Response
 import xml.etree.cElementTree as ET
 from datetime import timedelta, datetime
 import calendar
+import csv
 
 
 class U:
@@ -26,6 +27,18 @@ class U:
             resp.headers.extend(headers or {})
             resp.mimetype = "application/xml"
             return resp
+
+    @staticmethod
+    def dataframe_to_csv_response(df, name):
+        return U.csv_response(df.to_csv(index=False, quoting=csv.QUOTE_ALL), name)
+
+    @staticmethod
+    def csv_response(csv_file, name):
+        return Response(
+            csv_file,
+            mimetype="text/csv",
+            headers={"Content-disposition":
+                     "attachment; filename="+name})
 
     @staticmethod
     def to_epoch_ignore_tz(val):
