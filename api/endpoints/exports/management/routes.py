@@ -85,3 +85,69 @@ def import_processes():
         m = Management(cursor, "processes")
         m.generic_select()
         return U.dataframe_to_csv_response(m.df, "processes.csv")
+
+
+@export_management_endpoint.route('/api/exports/attainments', methods=['POST'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def import_attainments():
+    with CursorFromPool() as cursor:
+        m = Management(cursor, "attainments")
+        m.generic_select()
+        return U.dataframe_to_csv_response(m.df, "attainments.csv")
+
+
+@export_management_endpoint.route('/api/exports/assessmentregime', methods=['POST'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def import_assessmentregime():
+    with CursorFromPool() as cursor:
+        m = Management(cursor, "assessmentregime")
+        sql = """
+          select ar.*, json_agg(ad.*) as assessmentdata
+          from assessmentregimes ar, assessmentdata ad
+          where ar.id = ad.assessmentregime_id
+          group by
+            ar.id,
+            ar.name,
+            ar.zoneid,
+            ar.pollutant,
+            ar.objecttype,
+            ar.reportingmetric,
+            ar.protectiontarget,
+            ar.assessmentthresholdexceedance,
+            ar.include,
+            ar.thresholdclassificationyear,
+            ar.thresholdclassificationreport
+        """
+        m.sql_select(sql)
+        return U.dataframe_to_csv_response(m.df, "assessmentregime.csv")
+
+
+@export_management_endpoint.route('/api/exports/exceedances', methods=['POST'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def import_exceedances():
+    with CursorFromPool() as cursor:
+        m = Management(cursor, "exceedances")
+        sql = """
+          select ed.*, json_agg(em.*) as exceedingmethods
+          from exceedancedescriptions ed, exceedingmethods em
+          where ed.id = em.exceedancedescription_id
+          group by
+              ed.id,
+              ed.exceedances,
+              ed.max_value,
+              ed.surface_area,
+              ed.exposed_population,
+              ed.population_reference_year,
+              ed.vegetation_area,
+              ed.other_exceedance_reason,
+              ed.modelassessmentmetadata,
+              ed.adjustment_type,
+              ed.area_classification,
+              ed.exceedance_reason ,
+              ed.adjustment_source
+        """
+        m.sql_select(sql)
+        return U.dataframe_to_csv_response(m.df, "exceedances.csv")

@@ -1,6 +1,5 @@
 import pandas as pd
 from pandas import DataFrame
-from pandas import DataFrame as gDataFrame
 import geopandas as gp
 import io
 from shapely import wkt
@@ -31,9 +30,15 @@ class Management:
 
         self.df_schema = df_schema
 
+    def parse_list(self, lst):
+        self.df = pd.DataFrame.from_records(lst)
+
+        self.__validate()
+
     def parse_file(self, file):
+        na_values = ['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A', 'n/a',  '', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', '']
         if file.filename.endswith(".csv"):
-            self.df = pd.read_csv(io.StringIO(file.stream.read().decode("utf-8")), skipinitialspace=True)
+            self.df = pd.read_csv(io.StringIO(file.stream.read().decode("utf-8")), skipinitialspace=True, keep_default_na=False, na_values=na_values)
         elif file.filename.endswith(".gpkg"):
             gdf = gp.read_file(file, driver="GPKG")
             gdf["geom"] = gdf.geometry.to_wkt()

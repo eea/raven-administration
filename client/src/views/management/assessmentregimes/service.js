@@ -1,10 +1,12 @@
-import { Get, Post } from "../../../helpers/request";
+import { Get, Post, Upload, Download } from "../../../helpers/request";
 
 const Service = {
   get: async () => Get("/api/management/assessmentregimes"),
   update: async (data) => Post("/api/management/assessmentregime/update", data),
   insert: async (data) => Post("/api/management/assessmentregime/insert", data),
   delete: async (data) => Post("/api/management/assessmentregime/delete", data),
+  upload: async (data) => Upload("/api/imports/assessmentregime", data),
+  download: async () => Download("/api/exports/assessmentregime"),
 
   zones: async () => Get("/api/management/lookups/zones"),
   pollutants: async () => Get("/api/management/lookups/pollutants"),
