@@ -16,6 +16,7 @@ const pageOptions = (lookups) => ({
     { type: "eeaDatetime", label: "Begin", prop: "begin_position", required: true, default: null, enableInEdit: true, showInGrid: false },
 
     { type: "checkbox", label: "Mobile", prop: "mobile", required: true, default: false, enableInEdit: true, showInGrid: false },
+    { type: "checkbox", label: "Private", prop: "private", required: true, default: false, enableInEdit: true, showInGrid: true },
 
     // OPTIONAL
     { type: "text", label: "Logger id", prop: "logger_id", placeholder: "str: Logger id for push functionality", required: false, default: null, enableInEdit: true, showInGrid: false },

@@ -270,6 +270,7 @@ class Dataflows:
                     st.network_id
                 from sampling_points sp, stations st
                 where sp.station_id = st.id
+                and sp.private = false 
               """)
             rows = cursor.fetchall()
             return Dataflows.map_list_of_dict(rows, SamplingPoint)
@@ -282,6 +283,7 @@ class Dataflows:
                 from observing_capabilities oc, sampling_points sp
                 where oc.sampling_point_id = sp.id
                 and sp.id =   %(sampling_point_id)s
+                and sp.private = false
               """, {"sampling_point_id": sampling_point_id})
             rows = cursor.fetchall()
             return Dataflows.map_list_of_dict(rows, ObservingCapabilities)
@@ -300,6 +302,7 @@ class Dataflows:
                 where sp.station_id = st.id            
                 and sp.id = oc.sampling_point_id
                 and oc.sample_id = sa.id
+                and sp.private = false
                 group by (sa.id, sa.inlet_height,sa.building_distance,sa.kerb_distance,longitude, latitude, epsg)
               """)
             rows = cursor.fetchall()
@@ -319,6 +322,7 @@ class Dataflows:
                 and (o.end_position >= c.begin_position)
                 and o.end_position < COALESCE(c.end_position, '9999-01-01T00:00:00+01:00' )
                 and EXTRACT(YEAR FROM to_date(o.begin_position,'yyyy-mm-dd')) = %(year)s
+                and s.private = false
                 group by c.begin_position, c.process_id,s.assessment_type,s.pollutant, c.sample_id, o.sampling_point_id, s.concentration, s.timestep
               """, {"year": year})
             rows = cursor.fetchall()
@@ -338,6 +342,7 @@ class Dataflows:
                 and (o.end_position >= c.begin_position)
                 and o.end_position < COALESCE(c.end_position, '9999-01-01T00:00:00+01:00' )
                 and o.touched > %(last_request)s
+                and s.private = false
                 group by c.begin_position, c.process_id,s.assessment_type,s.pollutant, c.sample_id, o.sampling_point_id, s.concentration, s.timestep
               """, {"last_request": last_request})
             rows = cursor.fetchall()

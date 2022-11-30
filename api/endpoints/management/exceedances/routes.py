@@ -42,6 +42,7 @@ def exceedances():
               AND sp.id = ad.assessmentlocal_id
               AND ad.id = m.assessmentdata_id
               AND ad.assessmentregime_id = ar.id
+              and sp.private = false
           )
           SELECT
               case when count(m.id) = 0 then '[]' else json_agg(m) end as data,
@@ -150,6 +151,7 @@ def samplingpoints():
           and sp.concentration = u.id
           and sp.id = ad.assessmentlocal_id
           and ad.assessmentregime_id = ar.id
+          and sp.private = false
           order by ar.name, s.name, po.notation, t.label
         """)
 

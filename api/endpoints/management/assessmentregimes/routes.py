@@ -41,6 +41,7 @@ def assessmentregimes():
               and sp.timestep = t.id
               and sp.concentration = u.id
               and sp.id = ad.assessmentlocal_id
+              and sp.private = false
           )
           SELECT
               case when count(d.sampling_point_id) = 0 then '[]' else json_agg(d) end as data,
@@ -131,6 +132,7 @@ def samplingpoints():
           and sp.pollutant = po.uri 
           and sp.timestep = t.id
           and sp.concentration = u.id
+          and sp.private = false
           order by s.name, po.notation, t.label
         """)
 

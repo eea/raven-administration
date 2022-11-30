@@ -38,6 +38,7 @@ def samplingpoints():
               sp.heating_emissions,
               sp.traffic_emissions,
               sp.used_aqd,
+              sp.private,
               mv.label as media,
               st.name as station,
               mr.label as measurement_regime,
@@ -94,7 +95,8 @@ def samplingpoints_update():
             logger_id=%(logger_id)s,
             pollutant=%(pollutant_id)s,
             concentration=%(concentration_id)s,
-            timestep=%(timestep_id)s
+            timestep=%(timestep_id)s,
+            private=%(private)s
           WHERE id = %(id)s
         """
 
@@ -134,7 +136,8 @@ def samplingpoints_insert():
             logger_id, 
             pollutant, 
             concentration, 
-            timestep
+            timestep,
+            private
           )
           VALUES (
             %(id)s, 
@@ -156,7 +159,8 @@ def samplingpoints_insert():
             %(logger_id)s,
             %(pollutant_id)s, 
             %(concentration_id)s, 
-            %(timestep_id)s
+            %(timestep_id)s,
+            %(private)s
           )           
         """
 

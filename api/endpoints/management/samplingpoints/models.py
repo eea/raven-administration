@@ -15,6 +15,7 @@ class SamplingPointsModel(BaseModel):
     assessment_type_id: str
     begin_position: str
     mobile: bool
+    private: bool
 
     main_emission_sources: Optional[str] = None
     traffic_emissions: Optional[str] = None
