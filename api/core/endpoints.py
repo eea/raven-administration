@@ -40,6 +40,9 @@ class Endpoints:
         from api.endpoints.management.exceedances.routes import exceedances_endpoint
         app.register_blueprint(exceedances_endpoint)
 
+        from api.endpoints.management.settings.routes import settings_endpoint
+        app.register_blueprint(settings_endpoint)
+
         # PROCESSING
         from api.endpoints.processing.scale.routes import scale_endpoint
         app.register_blueprint(scale_endpoint)

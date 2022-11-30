@@ -16,6 +16,10 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  showDownloadButton: {
+    type: Boolean,
+    default: true
+  },
   showAddButton: {
     type: Boolean,
     default: true
@@ -143,7 +147,7 @@ const cmp_properties = computed(() => {
     <component v-if="showAddButton" :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" @close="close" @save="saveAdd" />
     <component :is="crudComponent" :is-edit="true" :show="showEdit" :options="options" :selected-value="selected" @close="close" @save="saveEdit" />
 
-    <tool-bar :title="name" v-model:q="q" :show-add="showAddButton" :show-upload="showUploadButton" @add-click="showAdd = true" @upload-click="onUpload" @download-click="onDownload" @column-picker-click="onColumnPicker" />
+    <tool-bar :title="name" v-model:q="q" :show-add="showAddButton" :show-download="showDownloadButton" :show-upload="showUploadButton" @add-click="showAdd = true" @upload-click="onUpload" @download-click="onDownload" @column-picker-click="onColumnPicker" />
 
     <grid :id="id" v-model:selected="selected" v-model:ev="ev" :properties="cmp_properties" :values="cmp_data" @on-right-click="showContextmenu = true" />
   </common-layout>
