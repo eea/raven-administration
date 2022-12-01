@@ -1,10 +1,12 @@
 <script setup>
 import Service from "./service";
 import pageOptions from "./pageOptions";
+import Eventy from "../../../helpers/eventy";
 
 const options = ref({});
 
 onMounted(async () => {
+  Eventy.showMessage("Loading metadata", "loading");
   const media = await Service.media();
   const stations = await Service.stations();
   const pollutants = await Service.pollutants();
@@ -13,6 +15,7 @@ onMounted(async () => {
   const stationclassifications = await Service.stationclassifications();
   const concentrations = await Service.concentrations();
   const measurementregimes = await Service.measurementregimes();
+  Eventy.hideMessage();
 
   options.value = pageOptions({ stations, pollutants, media, timesteps, assessmenttypes, stationclassifications, concentrations, measurementregimes });
 });

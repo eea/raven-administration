@@ -76,7 +76,7 @@ const onUploadClick = async (file) => {
     close();
     return;
   }
-  Eventy.showMessage("Uploading file, Please wait!");
+  Eventy.showMessage("Uploading file, Please wait!", "loading");
   close();
   let formData = new FormData();
   formData.append("file", file);
@@ -91,6 +91,7 @@ const onColumnPicker = (e) => {
 };
 
 const saveEdit = async (o) => {
+  Eventy.showMessage("Updating data, Please wait!", "loading");
   for (const key in o) {
     o[key] = o[key]?.length == 0 ? null : o[key];
   }
@@ -101,6 +102,7 @@ const saveEdit = async (o) => {
 };
 
 const saveAdd = async (o) => {
+  Eventy.showMessage("Inserting data, Please wait!", "loading");
   for (const key in o) {
     o[key] = o[key]?.length == 0 ? null : o[key];
   }
@@ -111,6 +113,7 @@ const saveAdd = async (o) => {
 };
 
 const saveDelete = async (o) => {
+  Eventy.showMessage("Deleting data, Please wait!", "loading");
   showConfirm.value = false;
   await props.service.delete(selected.value);
   await loadData();
