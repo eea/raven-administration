@@ -97,7 +97,7 @@ const cmp_version = computed(() => version);
 
 <template>
   <div class="border border-nord4 flex flex-col justify-between bg-gray-50 select-none" v-show="show">
-    <div>
+    <div class="overflow-y-auto">
       <div class="mt-1 flex flex-col border-b" v-for="m in modules" :key="m.group" v-show="m.show">
         <div class="font-bold select-none px-2 mt-2 mb-1">{{ m.group }}</div>
         <div class="hover:bg-gray-100 hover:cursor-pointer" v-for="i in m.items" :key="i.name" @click="goto(i.comp)" v-show="i.show">
