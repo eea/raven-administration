@@ -152,14 +152,10 @@ def assessmentregimes_update():
           UPDATE assessmentregimes 
           SET 
             name=%(name)s,
-            zoneid=%(zone_id)s,
-            pollutant=%(pollutant_id)s,
-            objecttype=%(object_type_id)s,
-            reportingmetric=%(reporting_metric_id)s,
-            protectiontarget=%(protection_target_id)s,
             assessmentthresholdexceedance=%(exceedance_id)s, 
             thresholdclassificationyear=%(year)s,
-            thresholdclassificationreport=%(report)s
+            thresholdclassificationreport=%(report)s,
+            include=%(include)s
           WHERE id = %(id)s
         """
         cursor.execute(sql_update, model)
