@@ -576,4 +576,35 @@ INSERT INTO public.eea_pollutants (id, uri, label, notation) VALUES (656, 'http:
 INSERT INTO public.eea_pollutants (id, uri, label, notation) VALUES (7419, 'http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7419', 'Dibenzo(ah)anthracene (precip+dry_dep)', 'Dibenzo(ah)anthracene');
 INSERT INTO public.eea_pollutants (id, uri, label, notation) VALUES (7013, 'http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7013', 'Mercury (precip+dry_dep)', 'Hg');
 
+INSERT INTO public.eea_times (id, label, notation, timestep) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/time/month', 'Month', 'month', 1);
+INSERT INTO public.eea_times (id, label, notation, timestep) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/time/variable', 'Variable', 'variable', 1);
+INSERT INTO public.eea_times (id, label, notation, timestep) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/time/second', 'Second', 's', 1);
+INSERT INTO public.eea_times (id, label, notation, timestep) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/primaryObservation/var', 'Variable', 'variable', 1);
+INSERT INTO public.eea_times (id, label, notation, timestep) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/time/other', 'Other', 'other', 1);
+INSERT INTO public.eea_times (id, label, notation, timestep) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/time/day', 'Day', 'd', 86400);
+INSERT INTO public.eea_times (id, label, notation, timestep) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/time/week', 'Week', 'wk', 604800);
+INSERT INTO public.eea_times (id, label, notation, timestep) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/time/hour', 'Hour', 'h', 3600);
+INSERT INTO public.eea_times (id, label, notation, timestep) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/primaryObservation/hour', 'Hour', 'h', 3600);
+INSERT INTO public.eea_times (id, label, notation, timestep) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/primaryObservation/day', 'Day', 'd', 86400);
+INSERT INTO public.eea_times (id, label, notation, timestep) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/time/year', 'Year', 'y or a', 31536000);
+INSERT INTO public.eea_times (id, label, notation, timestep) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/time/minute', 'Minute', 'm', 60);
+INSERT INTO public.eea_times (id, label, notation, timestep) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/primaryObservation/week', 'Weekly average/mean', 'week', 604800);
+
+INSERT INTO public.eea_timezones (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/timezone/UTC', 'Coordinated Universal Time', 'UTC');
+INSERT INTO public.eea_timezones (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/timezone/UTC+01', 'UTC+01', 'UTC+01');
+INSERT INTO public.eea_timezones (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/timezone/UTC+02', 'UTC+02', 'UTC+02');
+INSERT INTO public.eea_timezones (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/timezone/UTC+03', 'UTC+03', 'UTC+03');
+INSERT INTO public.eea_timezones (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/timezone/UTC+04', 'UTC+04', 'UTC+04');
+INSERT INTO public.eea_timezones (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/timezone/UTC+05', 'UTC+05', 'UTC+05');
+INSERT INTO public.eea_timezones (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/timezone/UTC+06', 'UTC+06', 'UTC+06');
+INSERT INTO public.eea_timezones (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/timezone/UTC-01', 'UTC-01', 'UTC-01');
+INSERT INTO public.eea_timezones (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/timezone/UTC-02', 'UTC-02', 'UTC-02');
+INSERT INTO public.eea_timezones (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/timezone/UTC-03', 'UTC-03', 'UTC-03');
+INSERT INTO public.eea_timezones (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/timezone/UTC-04', 'UTC-04', 'UTC-04');
+INSERT INTO public.eea_timezones (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/timezone/UTC-05', 'UTC-05', 'UTC-05');
+INSERT INTO public.eea_timezones (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/timezone/UTC-06', 'UTC-06', 'UTC-06');
+
+INSERT INTO public.eea_zonetypes (id, label, uri) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/zonetype/agg', 'Agglomeration', 'agg');
+INSERT INTO public.eea_zonetypes (id, label, uri) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/zonetype/noagg', 'Non-agglomeration', 'noagg');
+
 INSERT INTO public.settings (namespace, uom_m, observation_prefix, language_code) VALUES ('To-be-defined', 'http://dd.eionet.europa.eu/vocabulary/uom/length/m', 'OBS', 'eng');
