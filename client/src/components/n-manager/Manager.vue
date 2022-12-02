@@ -82,7 +82,7 @@ const onUploadClick = async (file) => {
   formData.append("file", file);
   await props.service.upload(formData);
   await loadData();
-  Eventy.hideMessage();
+  Eventy.showHideMessage(`${props.name} uploaded`, "success", 5000);
 };
 
 const onColumnPicker = (e) => {
