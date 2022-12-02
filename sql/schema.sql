@@ -457,7 +457,7 @@ create table if not exists stations
 create table if not exists sampling_points
 (
     id                     varchar(100)               not null,
-    media_monitored        varchar(255) default 'http://inspire.ec.europa.eu/codelist/MediaValue/air'::character varying,
+    media_monitored        varchar(255) default 'http://inspire.ec.europa.eu/codelist/MediaValue/air'::character varying not null,
     station_id             varchar(100)               not null,
     measurement_regime     varchar(255) default 'http://inspire.ec.europa.eu/codelist/measurementregimevalue/continuousdatacollection'::character varying,
     mobile                 boolean                    not null,
@@ -976,5 +976,3 @@ create trigger raven_timeserie_update_time_trigger
     on observations
     for each row
 execute procedure raven_timeserie_update_time();
-
-
