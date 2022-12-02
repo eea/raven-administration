@@ -21,7 +21,10 @@ git clone https://git.nilu.no/raven/raven-administration
 
 #### **Run db scripts to create the database**
 
-TBD
+1. Create a postgres database, ie `ravendb`
+2. Install Postgis (https://postgis.net/install/) and enable it on the database `CREATE EXTENSION postgis;`
+3. Run the `sql\schema.sql` script
+4. Run the `sql\data.sql` script
 
 #### **Create a .env file and set the variables**
 
