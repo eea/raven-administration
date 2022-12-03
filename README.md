@@ -5,8 +5,8 @@ The system is managed and developed by `NILU`, with support from `4sFera`, on th
 
 ## Requirements
 
-Python version `3.9.12`  
-Node version `14.18+`  
+Python version `3.10.8`  
+Node version `18.12.1`  
 Postgres version `12+`  
 Postgis extension  
 Yarn or NPM (mixing is not recommended)

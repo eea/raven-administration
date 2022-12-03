@@ -38,14 +38,14 @@ const Interceptor = {
       (config) => {
         const token = Auth.getToken();
         const auth = token ? `Bearer ${token}` : "";
-        config.headers.common["Authorization"] = auth;
+        config.headers["Authorization"] = auth;
         return config;
       },
       (error) => Promise.reject(error)
     );
   },
   default: async function () {
-    axios.defaults.headers.common = {
+    axios.defaults.headers = {
       Accept: "application/json"
     };
   }
