@@ -44,7 +44,7 @@ python .\create-admin-user.py -n name  -u username -p password
 
 ## Docker
 
-Make sure you have Docker engine installed.  
+Make sure you have Docker engine installed. (https://www.docker.com/)  
 Then build and run the `docker-compose` file.
 
 ```powershell
