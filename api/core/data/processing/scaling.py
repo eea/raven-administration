@@ -2,8 +2,8 @@ from pandas import DataFrame
 import pandas as pd
 import time
 import numpy as np
-from api.core.printcol import printcol
-from api.core.data.processing.common import Common
+from core.printcol import printcol
+from core.data.processing.common import Common
 
 
 class Scaling:

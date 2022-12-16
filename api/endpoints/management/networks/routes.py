@@ -1,10 +1,10 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
-from api.core.database import CursorFromPool
-from api.endpoints.management.networks.models import NetworkModel, DeleteModel
-from api.core.query import Q
-from api.core.query_access import Access
-from api.core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
+from core.database import CursorFromPool
+from endpoints.management.networks.models import NetworkModel, DeleteModel
+from core.query import Q
+from core.query_access import Access
+from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
 
 networks_endpoint = Blueprint('networks', __name__)

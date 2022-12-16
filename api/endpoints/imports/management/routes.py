@@ -1,7 +1,7 @@
 from flask import jsonify, Blueprint, request
-from api.core.database import CursorFromPool
-from api.core.data.management import Management
-from api.core.jwt_ext_custom import jwt_required_with_allnetworks_claim, jwt_required_with_management_claim
+from core.database import CursorFromPool
+from core.data.management import Management
+from core.jwt_ext_custom import jwt_required_with_allnetworks_claim, jwt_required_with_management_claim
 import pandas as pd
 import json
 import ast

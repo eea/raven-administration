@@ -1,7 +1,7 @@
 from pandas import DataFrame
 import pandas as pd
 import time
-from api.core.printcol import printcol
+from core.printcol import printcol
 
 
 class Calculating:

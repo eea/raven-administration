@@ -1,0 +1,34 @@
+version: "3"
+
+services:
+  reverse-proxy:
+    image: reverse-proxy
+    container_name: reverse-proxy
+    build:
+      context: ./apache
+    depends_on:
+      - client
+      - api
+    ports:
+      - 80:80
+    restart: on-failure
+
+  client:
+    image: client
+    container_name: client
+    build:
+      context: ./client
+    depends_on:
+      - api
+    ports:
+      - 8080:80
+    restart: on-failure
+
+  api:
+    image: api
+    container_name: api
+    build:
+      context: ./api
+    ports:
+      - 5000:5000
+    restart: on-failure

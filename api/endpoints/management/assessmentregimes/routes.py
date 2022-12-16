@@ -1,9 +1,9 @@
 from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
-from api.core.database import CursorFromPool
-from api.endpoints.management.assessmentregimes.models import AssessmentRegimeModel, DeleteModel
-from api.core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
+from core.database import CursorFromPool
+from endpoints.management.assessmentregimes.models import AssessmentRegimeModel, DeleteModel
+from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
 
 assessmentregimes_endpoint = Blueprint('assessmentregimes', __name__)

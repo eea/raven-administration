@@ -1,7 +1,7 @@
 from flask import jsonify, Blueprint, request
-from api.core.jwt_ext_custom import jwt_required_with_management_claim
-from api.core.database import CursorFromPool
-from api.core.query import Q
+from core.jwt_ext_custom import jwt_required_with_management_claim
+from core.database import CursorFromPool
+from core.query import Q
 
 management_endpoint = Blueprint('management', __name__)
 

@@ -1,9 +1,9 @@
 from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
-from api.core.database import CursorFromPool
-from api.endpoints.processing.autovalidate.models import InsertModel, UpdateModel, DeleteModel
-from api.core.jwt_ext_custom import jwt_required_with_processing_claim
+from core.database import CursorFromPool
+from endpoints.processing.autovalidate.models import InsertModel, UpdateModel, DeleteModel
+from core.jwt_ext_custom import jwt_required_with_processing_claim
 
 autovalidate_endpoint = Blueprint("autovalidate", __name__)
 

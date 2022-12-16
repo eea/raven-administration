@@ -1,7 +1,7 @@
 from flask import jsonify, Blueprint
-from api.core.database import CursorFromPool
-from api.core.jwt_ext_custom import jwt_required_with_data_claim
-from api.core.query import Q
+from core.database import CursorFromPool
+from core.jwt_ext_custom import jwt_required_with_data_claim
+from core.query import Q
 latest_endpoint = Blueprint('latest', __name__)
 
 

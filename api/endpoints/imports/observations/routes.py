@@ -2,15 +2,15 @@ from datetime import datetime
 from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest, InternalServerError
-from api.core.database import CursorFromPool
-from api.core.printcol import printcol
-from api.core.data.processing.importing import Importing
+from core.database import CursorFromPool
+from core.printcol import printcol
+from core.data.processing.importing import Importing
 import io
 import pandas as pd
 import time
-from api.endpoints.imports.observations.models import LoggerLastValue
+from endpoints.imports.observations.models import LoggerLastValue
 from pandas import DataFrame
-from api.core.jwt_ext_custom import jwt_required_with_allnetworks_claim, jwt_required_with_management_claim
+from core.jwt_ext_custom import jwt_required_with_allnetworks_claim, jwt_required_with_management_claim
 
 observations_endpoint = Blueprint('observations', __name__)
 

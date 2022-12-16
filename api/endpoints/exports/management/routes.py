@@ -1,8 +1,8 @@
 from flask import jsonify, Blueprint, request, Response
-from api.core.database import CursorFromPool
-from api.core.data.management import Management
-from api.core.jwt_ext_custom import jwt_required_with_allnetworks_claim, jwt_required_with_management_claim
-from api.core.utils import U
+from core.database import CursorFromPool
+from core.data.management import Management
+from core.jwt_ext_custom import jwt_required_with_allnetworks_claim, jwt_required_with_management_claim
+from core.utils import U
 
 export_management_endpoint = Blueprint('export_management', __name__)
 

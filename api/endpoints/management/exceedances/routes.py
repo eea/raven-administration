@@ -1,8 +1,8 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
-from api.core.database import CursorFromPool
-from api.endpoints.management.exceedances.models import ExceedanceModel, DeleteModel
-from api.core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
+from core.database import CursorFromPool
+from endpoints.management.exceedances.models import ExceedanceModel, DeleteModel
+from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
 
 exceedances_endpoint = Blueprint('exceedances', __name__)

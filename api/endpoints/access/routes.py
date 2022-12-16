@@ -1,8 +1,8 @@
 from flask import jsonify, Blueprint, request
-from api.core.database import CursorFromPool
-from api.core.user import add_user, update_user, remove_user, add_group, update_group, remove_group
-from api.endpoints.access.models import InsertModel, UpdateModel, DeleteModel, InsertGroupModel, UpdateGroupModel
-from api.core.jwt_ext_custom import jwt_required_with_users_claim, get_name
+from core.database import CursorFromPool
+from core.user import add_user, update_user, remove_user, add_group, update_group, remove_group
+from endpoints.access.models import InsertModel, UpdateModel, DeleteModel, InsertGroupModel, UpdateGroupModel
+from core.jwt_ext_custom import jwt_required_with_users_claim, get_name
 
 access_endpoint = Blueprint('access', __name__)
 

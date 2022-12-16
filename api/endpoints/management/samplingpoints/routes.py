@@ -1,10 +1,10 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
-from api.core.database import CursorFromPool
-from api.endpoints.management.samplingpoints.models import SamplingPointsModel, DeleteModel
-from api.core.jwt_ext_custom import jwt_required_with_management_claim
-from api.core.query import Q
-from api.core.query_access import Access
+from core.database import CursorFromPool
+from endpoints.management.samplingpoints.models import SamplingPointsModel, DeleteModel
+from core.jwt_ext_custom import jwt_required_with_management_claim
+from core.query import Q
+from core.query_access import Access
 
 
 samplingpoints_endpoint = Blueprint('samplingpoints', __name__)

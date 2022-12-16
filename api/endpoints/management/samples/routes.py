@@ -1,9 +1,9 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
-from api.core.database import CursorFromPool
-from api.core.query_access import Access
-from api.endpoints.management.samples.models import SampleModel, DeleteModel
-from api.core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
+from core.database import CursorFromPool
+from core.query_access import Access
+from endpoints.management.samples.models import SampleModel, DeleteModel
+from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
 
 samples_endpoint = Blueprint('samples', __name__)

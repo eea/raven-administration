@@ -1,9 +1,9 @@
 from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
-from api.core.database import CursorFromPool
-from api.endpoints.management.attainments.models import AttainmentModel, DeleteModel
-from api.core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
+from core.database import CursorFromPool
+from endpoints.management.attainments.models import AttainmentModel, DeleteModel
+from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
 
 attainments_endpoint = Blueprint('attainments', __name__)

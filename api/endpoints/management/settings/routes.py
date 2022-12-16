@@ -1,9 +1,9 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
-from api.core.database import CursorFromPool
-from api.core.query_access import Access
-from api.endpoints.management.settings.models import SettingsModel
-from api.core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
+from core.database import CursorFromPool
+from core.query_access import Access
+from endpoints.management.settings.models import SettingsModel
+from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
 
 settings_endpoint = Blueprint('settings', __name__)

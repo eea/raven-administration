@@ -1,5 +1,5 @@
 from datetime import datetime
-from api.core.database import CursorFromPool
+from core.database import CursorFromPool
 from pydantic import BaseModel, conlist
 from werkzeug.security import check_password_hash, generate_password_hash
 from typing import List, Optional

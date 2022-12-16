@@ -1,11 +1,11 @@
 from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
-from api.core.data.management import Management
-from api.core.database import CursorFromPool
-from api.core.printcol import printcol
-from api.endpoints.management.zones.models import ZoneModel, DeleteModel
-from api.core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
+from core.data.management import Management
+from core.database import CursorFromPool
+from core.printcol import printcol
+from endpoints.management.zones.models import ZoneModel, DeleteModel
+from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 import time
 import geopandas as gp
 

@@ -1,9 +1,9 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
-from api.core.database import CursorFromPool
-from api.endpoints.processing.calculate.models import InsertModel, UpdateModel, DeleteModel
-from api.core.query import Q
-from api.core.jwt_ext_custom import jwt_required_with_processing_claim
+from core.database import CursorFromPool
+from endpoints.processing.calculate.models import InsertModel, UpdateModel, DeleteModel
+from core.query import Q
+from core.jwt_ext_custom import jwt_required_with_processing_claim
 
 
 calculate_endpoint = Blueprint("calculate", __name__)

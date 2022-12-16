@@ -1,11 +1,11 @@
 from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
-from api.core.query import Q
-from api.core.utils import U
-from api.endpoints.data.dataflow.models import DataflowModel, DataflowModelE2a
-from api.core.eea.dataflows import Dataflows
-from api.core.jwt_ext_custom import jwt_required_with_exporting_claim
+from core.query import Q
+from core.utils import U
+from endpoints.data.dataflow.models import DataflowModel, DataflowModelE2a
+from core.eea.dataflows import Dataflows
+from core.jwt_ext_custom import jwt_required_with_exporting_claim
 
 dataflow_endpoint = Blueprint('dataflow', __name__)
 

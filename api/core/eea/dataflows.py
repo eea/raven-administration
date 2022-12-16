@@ -1,20 +1,20 @@
-from api.core.database import CursorFromPool
-from api.core.eea.attainment import Attainment
-from api.core.eea.exceedance_description import Exceedancedescription
-from api.core.eea.exceeding_method import Exceedingmethod
-from api.core.eea.network import Network
-from api.core.eea.observation import Observation
-from api.core.eea.station import Station
-from api.core.eea.process import Process
-from api.core.eea.observing_capabilities import ObservingCapabilities
-from api.core.eea.sampling_point import SamplingPoint
-from api.core.eea.responsible_reporter import ResponsibleReporter
-from api.core.eea.sample import Sample
-from api.core.eea.zone import Zone
-from api.core.eea.pollutant import Pollutant
-from api.core.eea.assessment_regime import Assessmentregime
-from api.core.eea.assessment_method import Assessmentmethod
-from api.core.eea.schema import Schema
+from core.database import CursorFromPool
+from core.eea.attainment import Attainment
+from core.eea.exceedance_description import Exceedancedescription
+from core.eea.exceeding_method import Exceedingmethod
+from core.eea.network import Network
+from core.eea.observation import Observation
+from core.eea.station import Station
+from core.eea.process import Process
+from core.eea.observing_capabilities import ObservingCapabilities
+from core.eea.sampling_point import SamplingPoint
+from core.eea.responsible_reporter import ResponsibleReporter
+from core.eea.sample import Sample
+from core.eea.zone import Zone
+from core.eea.pollutant import Pollutant
+from core.eea.assessment_regime import Assessmentregime
+from core.eea.assessment_method import Assessmentmethod
+from core.eea.schema import Schema
 
 
 class Dataflows:

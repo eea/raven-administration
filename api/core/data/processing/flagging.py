@@ -1,7 +1,7 @@
-from api.core.utils import U
+from core.utils import U
 from pandas import DataFrame
 import time
-from api.core.printcol import printcol
+from core.printcol import printcol
 import pandas as pd
 
 

@@ -2,8 +2,8 @@ from datetime import datetime
 from pandas import DataFrame
 import pandas as pd
 import time
-from api.core.printcol import printcol
-from api.core.utils import U
+from core.printcol import printcol
+from core.utils import U
 
 
 class Filling:

@@ -1,5 +1,5 @@
-from api.core.database import CursorFromPool
-from api.core.jwt_ext_custom import can_see_all_networks, get_networks
+from core.database import CursorFromPool
+from core.jwt_ext_custom import can_see_all_networks, get_networks
 
 
 class Access:

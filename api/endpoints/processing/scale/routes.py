@@ -1,13 +1,13 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
-from api.core.database import CursorFromPool
-from api.core.query import Q
-from api.endpoints.processing.scale.helper import Helper
-from api.endpoints.processing.scale.models import ScalingpointModel, UpdateModel, InsertModel, DeleteModel, PreviewModel
-from api.core.data.processing.scaling import Scaling
-from api.core.data.processing.importing import Importing
-from api.core.jwt_ext_custom import jwt_required_with_processing_claim
-from api.core.jwt_ext_custom import get_name
+from core.database import CursorFromPool
+from core.query import Q
+from endpoints.processing.scale.helper import Helper
+from endpoints.processing.scale.models import ScalingpointModel, UpdateModel, InsertModel, DeleteModel, PreviewModel
+from core.data.processing.scaling import Scaling
+from core.data.processing.importing import Importing
+from core.jwt_ext_custom import jwt_required_with_processing_claim
+from core.jwt_ext_custom import get_name
 
 
 scale_endpoint = Blueprint('scale', __name__)

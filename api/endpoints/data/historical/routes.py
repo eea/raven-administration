@@ -1,11 +1,11 @@
 from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
-from api.core.database import CursorFromPool
-from api.endpoints.data.historical.models import HistoricalModel
-from api.core.data.mean import Mean, MeanType
-from api.core.jwt_ext_custom import jwt_required_with_data_claim
-from api.core.query import Q
+from core.database import CursorFromPool
+from endpoints.data.historical.models import HistoricalModel
+from core.data.mean import Mean, MeanType
+from core.jwt_ext_custom import jwt_required_with_data_claim
+from core.query import Q
 
 historical_endpoint = Blueprint('historical', __name__)
 

@@ -9,8 +9,9 @@
       "type": "python",
       "request": "launch",
       "module": "flask",
+      "cwd": "${workspaceFolder}\\api",
       "env": {
-        "FLASK_APP": "raven.py",
+        "FLASK_APP": "app.py",
         "FLASK_DEBUG": "true"
       },
       "args": ["run", "--no-debugger"],

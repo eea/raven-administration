@@ -1,10 +1,10 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
 from flask_jwt_extended import jwt_required
-from api.core.database import CursorFromPool
-from api.core.query import Q
-from api.endpoints.qualitycontrol.validate.models import TimevalueModel, FlagModel
-from api.core.jwt_ext_custom import jwt_required_with_qualitycontrol_claim
+from core.database import CursorFromPool
+from core.query import Q
+from endpoints.qualitycontrol.validate.models import TimevalueModel, FlagModel
+from core.jwt_ext_custom import jwt_required_with_qualitycontrol_claim
 
 validate_endpoint = Blueprint('validate', __name__)
 

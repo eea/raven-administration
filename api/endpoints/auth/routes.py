@@ -1,7 +1,7 @@
 from flask import jsonify, Blueprint, request
 from flask_jwt_extended import create_access_token
 from werkzeug.exceptions import BadRequest
-from api.core.user import get_user, get_claims
+from core.user import get_user, get_claims
 
 auth_endpoint = Blueprint('auth', __name__)
 

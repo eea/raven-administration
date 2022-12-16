@@ -1,6 +1,6 @@
 from pandas import DataFrame
 import time
-from api.core.printcol import printcol
+from core.printcol import printcol
 
 
 class Converting:
