@@ -19,21 +19,22 @@ class Management:
         self.__get_db_schema()
 
     def __get_db_schema(self):
-        self.cursor.execute("SELECT case when udt_name = 'geometry' then 'st_astext('||column_name||') as ' || column_name else column_name end as prop_select, case when udt_name = 'geometry' then 'st_setsrid(ST_GeomFromText(%%('||column_name||')s),4326)' else '%%('||column_name||')s' end as prop_insert, column_name, udt_name as data_type, case when is_nullable = 'YES' then true else false end optional FROM information_schema.columns WHERE table_name = %(table)s order by ordinal_position", {"table": self.table_name})
+        self.cursor.execute("SELECT case when udt_name = 'geometry' then 'st_astext('||column_name||') as ' || column_name else column_name end as prop_select, case when udt_name = 'geometry' then 'st_setsrid(ST_GeomFromText(%%('||column_name||')s),4326)' else '%%('||column_name||')s' end as prop_insert, column_name, udt_name as data_type, case when is_nullable = 'YES' then true else false end optional, case when column_default is null then false else true end has_default FROM information_schema.columns WHERE table_name = %(table)s order by ordinal_position", {"table": self.table_name})
 
         rows = self.cursor.fetchall()
         df_schema = pd.DataFrame.from_records(rows)
-
-        if len(self.exclude_list) > 0:
-            for ex in self.exclude_list:
-                df_schema = df_schema[df_schema.column_name != ex]
-
-        self.df_schema = df_schema
+        self.exclude_column_names(df_schema, self.exclude_list)
 
     def parse_list(self, lst):
         self.df = pd.DataFrame.from_records(lst)
 
         self.__validate()
+
+    def exclude_column_names(self, df_schema, exclude_list):
+        if len(exclude_list) > 0:
+            for ex in exclude_list:
+                df_schema = df_schema[df_schema.column_name != ex]
+        self.df_schema = df_schema
 
     def parse_file(self, file):
         na_values = ['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A', 'n/a',  '', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', '']
@@ -51,7 +52,13 @@ class Management:
 
     def __validate(self):
         self.df = self.df.astype(object)
+        exclude_list = []
         for index, row in self.df_schema.iterrows():
+            # If no column, but there is a default value in db
+            if not row.column_name in self.df.columns and row.has_default:
+                exclude_list.append(row.column_name)
+                continue
+
             # Does it contain all required columns
             if not row.column_name in self.df.columns:
                 raise Exception("Header " + row.column_name + " was not found")
@@ -83,6 +90,8 @@ class Management:
 
             else:
                 raise Exception("Not implemented check for type: " + row.data_type)
+
+        self.exclude_column_names(self.df_schema, exclude_list)
 
     def generic_select(self):
         sql = f"""
