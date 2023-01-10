@@ -36,12 +36,6 @@ JWT_ACCESS_TOKEN_EXPIRES_SECONDS = 3600
 JWT_SECRET_KEY = make-up-a-secure-key
 ```
 
-## Create the administartor
-
-```powershell
-python .\create-admin-user.py -n name  -u username -p password
-```
-
 ## Docker
 
 Make sure you have Docker engine installed. (https://www.docker.com/)  

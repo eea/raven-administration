@@ -1,4 +1,4 @@
-import { Post } from "./request";
+import { Post, Get } from "./request";
 
 const Auth = {
   isAuth() {
@@ -23,6 +23,13 @@ const Auth = {
       url: "/api/auth/me"
     };
     return await Request(payload);
+  },
+  async canCreateAdmin() {
+    const resp = await Get("/api/auth/cancreateadmin");
+    return resp.cancreateadmin;
+  },
+  async create(password) {
+    await Post("/api/auth/create", { password });
   }
 };
 

@@ -74,6 +74,53 @@ def remove_user(id):
         cursor.execute(sql, {"id": id})
 
 
+def are_user_and_group_table_empty():
+    with CursorFromPool() as cursor:
+        cursor.execute("select 1 from users")
+        if cursor.rowcount > 0:
+            return False
+        cursor.execute("""
+          select 1 from "group"
+        """)
+        if cursor.rowcount > 0:
+            return False
+    return True
+
+
+def add_admin(password):
+    if not are_user_and_group_table_empty():
+        raise Exception("User and group table are not empty")
+
+    with CursorFromPool() as cursor:
+        o = {
+            "username": "admin",
+            "password": generate_password_hash(password),
+            "createdby": "",
+            "created": datetime.now(tz=None),
+            "name": "Administrator"
+        }
+
+        # add user
+        sql_user = """
+          insert into users (username, password, createdby, created, name,locked) values (%(username)s, %(password)s, %(createdby)s, %(created)s, %(name)s,true)
+          returning "id"
+      """
+        cursor.execute(sql_user, o)
+        userid = cursor.fetchone()
+
+        # add group
+        sql_group = """
+          insert into "group" ("name", "management", "data", "exporting", "processing", "qualitycontrol", "users", "allnetworks","locked") 
+          values ('admin', true, true, true, true, true, true, true,true)
+          returning "id"
+      """
+        cursor.execute(sql_group, o)
+        groupid = cursor.fetchone()
+
+        # connect user and group
+        cursor.execute("insert into usergroup (groupid, userid) values (%(groupid)s, %(userid)s)", {"groupid": groupid["id"], "userid": userid["id"]})
+
+
 def add_user(name, username, password, groups, createdby):
     if len(groups) == 0:
         raise Exception("Groups cannot be empty")
