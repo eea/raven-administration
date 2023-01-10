@@ -27,7 +27,7 @@ def latest():
             and sp.timestep = t.id
             and o.to_time = sp.to_time
             and sp.concentration = u.id
-            order by to_time desc, network, station, pollutant, timestep
+            order by to_time desc, station, pollutant, timestep
         """
         cursor.execute(sql, n_param)
         values = cursor.fetchall()
