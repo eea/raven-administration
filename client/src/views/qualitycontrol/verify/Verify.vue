@@ -147,7 +147,7 @@ const onDownload = () => {
           <th>Pre verified</th>
           <th>Not verified</th>
         </tr>
-        <tr v-for="row in cmp_datasets" :key="row.month" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
+        <tr v-for="row in cmp_datasets" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}" :class="cls_rowClass(row)">
           <td>{{ row.id }}</td>
           <td>{{ row.station }}</td>
           <td>{{ row.pollutant }}</td>

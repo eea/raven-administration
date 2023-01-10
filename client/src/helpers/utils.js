@@ -97,7 +97,9 @@ export const filterList = (q, list, exclude_list) => {
   if (!q) return list;
   return list.filter((row) => {
     // dont search on excluded properties
-    const props = Object.entries(row).filter((p) => !exclude_list.includes(p[0]));
+    const props = Object.entries(row);
+    if (exclude_list) props = props.filter((p) => !exclude_list.includes(p[0]));
+
     const showValues = Object.values(Object.fromEntries(props)).some((p) => String(p).toLowerCase().includes(q.toLowerCase()));
 
     return showValues;
