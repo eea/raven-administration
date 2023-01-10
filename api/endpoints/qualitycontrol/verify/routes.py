@@ -58,7 +58,7 @@ def stations():
     with CursorFromPool() as cursor:
         cursor.execute(f"""
             {with_network_sql}
-            select st.id, st.name, min(extract(year from sp.from_time)) from_year, max(extract(year from sp.from_time)) to_year
+            select st.id, st.name, min(extract(year from sp.from_time)) from_year, max(extract(year from sp.to_time)) to_year
             from stations st, sampling_points sp, network_access n
             where sp.station_id = st.id
             and n.id = st.network_id
