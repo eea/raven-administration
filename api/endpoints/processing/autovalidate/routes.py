@@ -72,7 +72,7 @@ def autovalidate_update():
 def autovalidate_pollutants():
     with CursorFromPool() as cursor:
         cursor.execute("""
-            select p.notation as label, p.uri as value
+            select p.notation || ' - ' || p.label as label, p.uri as value
             from eea_pollutants p
             where p.uri not in (select a.pollutant from autovalidated_series a)
             order by p.notation
