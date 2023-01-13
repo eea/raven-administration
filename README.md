@@ -45,7 +45,7 @@ Then build and run the `docker-compose` file.
 # build and run
 docker-compose build
 docker-compose up
-Open web browse enter: http://localhost/
+Access RAVEN at: http://localhost/
 ```
 
 ## Development
