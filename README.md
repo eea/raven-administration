@@ -31,7 +31,7 @@ git clone https://git.nilu.no/raven/raven-administration
 **Create an `.env` file in the `api` folder and set the variables**
 
 ```
-DB_URI = postgresql://postgres:password@localhost:5432/database
+DB_URI = postgresql://postgres:password@host.docker.internal:5432/database
 JWT_ACCESS_TOKEN_EXPIRES_SECONDS = 3600
 JWT_SECRET_KEY = make-up-a-secure-key
 ```
