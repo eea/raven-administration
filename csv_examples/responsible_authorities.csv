@@ -1,0 +1,5 @@
+id,name,organisation,address,locator,postcode,email,phone,website,is_responsible_reporter
+418094be-9e1a-48a7-ab0e-e8bf07786e71,Lillestrøm kommune,Lillestrøm kommune,Postboks 313,Lillestrøm,2001,postmottak@lillestrom.kommune.no,66938000,https://www.lillestrom.kommune.no/,false
+{7925118C-7F31-48B9-846D-21A44344861D},Miljødirektoratet v/Line Merete Karlsøen,Miljødirektoratet,"Miljødirektoratet, Postboks 5672 Sluppen, 7485 Trondheim",Trondheim,7485,luft@miljodir.no,+4773580500,http://www.miljodirektoratet.no/,true
+{de77b0d4-19fe-4e4d-8061-4aa56be29139},Bodø kommune,Bodø kommune,Havnegata 9,Bodø,8006,postmottak@bodo.kommune.no,75555000,https://bodo.kommune.no,false
+{87d59083-78e6-4f7f-9784-ea8c06d5cf3a},Oslo kommune,"Oslo kommune, Bymiljøetaten",Postboks 636 Løren,OSLO,507,postmottak@bym.oslo.kommune.no,23482030,http://www.oslo.kommune.no,false
