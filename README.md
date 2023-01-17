@@ -59,7 +59,7 @@ docker-compose up
 python -m venv venv
 # activate on Windows
 .\venv\Scripts\activate
-# activate on Mac
+# activate on Mac and Linux
 source venv/bin/activate
 ```
 
@@ -79,8 +79,14 @@ npm install
 
 ```powershell
 # from inside the api folder start backend server
+# on Windows
 $env:FLASK_APP = "app.py"
 flask run
+
+# on Mac and Linux
+export FLASK_APP=app.py
+flask run
+
 # from inside the client folder start the frontend
 nmp run dev
 ```
