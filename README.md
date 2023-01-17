@@ -88,5 +88,5 @@ export FLASK_APP=app.py
 flask run
 
 # from inside the client folder start the frontend
-nmp run dev
+npm run dev
 ```
