@@ -63,7 +63,7 @@ python -m venv venv
 source venv/bin/activate
 ```
 
-****In the `api` folder install the required python packages**
+**In the `api` folder install the required python packages**
 
 ```powershell
 pip install -r requirements.txt
