@@ -57,8 +57,10 @@ docker-compose up
 ```powershell
 # create
 python -m venv venv
-# activate
+# activate on Windows
 .\venv\Scripts\activate
+# activate on Mac
+source venv/bin/activate
 ```
 
 **Install required python packages**
