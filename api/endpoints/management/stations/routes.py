@@ -1,10 +1,10 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
 from core.database import CursorFromPool
-from endpoints.management.stations.models import StationModel, DeleteModel
+from endpoints.management.stations.models import StationModel
 from core.jwt_ext_custom import jwt_required_with_management_claim
 from core.query_access import Access
-from core.query import Q
+from core.query import Q, DeleteModel
 
 stations_endpoint = Blueprint('stations', __name__)
 
@@ -159,12 +159,11 @@ def stations_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
 
-        if not Access.to_station(model.id):
+        if not Access.to_stations(model.ids):
             raise BadRequest("Access denied for station")
 
-        sql = "delete from stations where id = %(id)s"
-        cursor.execute(sql, model)
-        if cursor.rowcount == 0:
-            raise BadRequest("Could not delete for id " + model.id)
+        rows = Q.delete("stations", model)
+        if rows == 0:
+            raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
 
         return jsonify({"success": True})

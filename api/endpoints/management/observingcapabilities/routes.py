@@ -1,9 +1,9 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
 from core.database import CursorFromPool
-from endpoints.management.observingcapabilities.models import ObservingCapabilityModel, DeleteModel
+from endpoints.management.observingcapabilities.models import ObservingCapabilityModel
 from core.jwt_ext_custom import jwt_required_with_management_claim
-from core.query import Q
+from core.query import Q, DeleteModel
 from core.query_access import Access
 
 
@@ -113,12 +113,11 @@ def observingcapabilities_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
 
-        if not Access.to_observing_capability(model.id):
+        if not Access.to_observing_capabilities(model.ids):
             raise BadRequest("Access denied for observing capability")
 
-        sql = "delete from observing_capabilities where id = %(id)s"
-        cursor.execute(sql, model)
-        if cursor.rowcount == 0:
-            raise BadRequest("Could not update for id " + model.id)
+        rows = Q.delete("observing_capabilities", model)
+        if rows == 0:
+            raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
 
         return jsonify({"success": True})

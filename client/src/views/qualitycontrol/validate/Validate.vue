@@ -108,6 +108,7 @@ const onRowClick = (row, e, rightClick) => {
   var model = selectedRows.value.map((o) => Object.assign({}, o));
   var rows = timevalues.value.map((o) => Object.assign({}, o));
   var isSelected = e.target.parentElement.classList.contains("selected");
+  console.log("arr", e.target.parentElement);
   var arr = multiRowClick(model, r, rows, shiftKey, ctrlKey, rightClick, isSelected);
   selectedRows.value = arr;
 

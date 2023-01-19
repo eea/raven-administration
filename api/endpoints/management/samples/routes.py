@@ -2,7 +2,8 @@ from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
 from core.database import CursorFromPool
 from core.query_access import Access
-from endpoints.management.samples.models import SampleModel, DeleteModel
+from endpoints.management.samples.models import SampleModel
+from core.query import Q, DeleteModel
 from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
 
@@ -62,15 +63,9 @@ def samples_insert():
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def samples_delete():
+    model = DeleteModel(**request.json)
+    rows = Q.delete("samples", model)
+    if rows == 0:
+        raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
 
-    with CursorFromPool() as cursor:
-        model = DeleteModel(**request.json)
-        sql = """
-          delete from samples where id = %(id)s 
-        """
-
-        cursor.execute(sql, model)
-        if cursor.rowcount == 0:
-            raise BadRequest("Could not update for id " + model.id)
-
-        return jsonify({"success": True})
+    return jsonify({"success": True})

@@ -32,10 +32,3 @@ class ProcessModel(BaseModel):
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
-
-
-class DeleteModel(BaseModel):
-    id: str
-
-    def __getitem__(self, key):
-        return super().__getattribute__(key)

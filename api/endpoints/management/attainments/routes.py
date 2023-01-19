@@ -2,7 +2,8 @@ from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from core.database import CursorFromPool
-from endpoints.management.attainments.models import AttainmentModel, DeleteModel
+from endpoints.management.attainments.models import AttainmentModel
+from core.query import Q, DeleteModel
 from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
 
@@ -90,11 +91,8 @@ def attainments_insert():
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def attainments_delete():
-    with CursorFromPool() as cursor:
-        model = DeleteModel(**request.json)
-        sql = "delete from attainments where id = %(id)s"
-        cursor.execute(sql, model)
-        if cursor.rowcount == 0:
-            raise BadRequest("Could not delete for id " + model.id)
-
-        return jsonify({"success": True})
+    model = DeleteModel(**request.json)
+    rows = Q.delete("attainments", model)
+    if rows == 0:
+        raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
+    return jsonify({"success": True})

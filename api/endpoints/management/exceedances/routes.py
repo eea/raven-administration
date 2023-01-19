@@ -1,7 +1,8 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
 from core.database import CursorFromPool
-from endpoints.management.exceedances.models import ExceedanceModel, DeleteModel
+from endpoints.management.exceedances.models import ExceedanceModel
+from core.query import Q, DeleteModel
 from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
 
@@ -277,11 +278,8 @@ def exceedances_insert():
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def exceedances_delete():
-    with CursorFromPool() as cursor:
-        model = DeleteModel(**request.json)
-        sql = "delete from exceedancedescriptions where id = %(id)s"
-        cursor.execute(sql, model)
-        if cursor.rowcount == 0:
-            raise BadRequest("Could not delete for id " + model.id)
-
-        return jsonify({"success": True})
+    model = DeleteModel(**request.json)
+    rows = Q.delete("exceedancedescriptions", model)
+    if rows == 0:
+        raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
+    return jsonify({"success": True})

@@ -1,9 +1,9 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
 from core.database import CursorFromPool
-from endpoints.management.samplingpoints.models import SamplingPointsModel, DeleteModel
+from endpoints.management.samplingpoints.models import SamplingPointsModel
 from core.jwt_ext_custom import jwt_required_with_management_claim
-from core.query import Q
+from core.query import Q, DeleteModel
 from core.query_access import Access
 
 
@@ -177,12 +177,11 @@ def samplingpoints_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
 
-        if not Access.to_sampling_point(model.id):
+        if not Access.to_sampling_points(model.ids):
             raise BadRequest("Access denied for samplingpoint")
 
-        sql = "delete from sampling_points where id = %(id)s"
-        cursor.execute(sql, model)
-        if cursor.rowcount == 0:
-            raise BadRequest("Could not update for id " + model.id)
+        rows = Q.delete("sampling_points", model)
+        if rows == 0:
+            raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
 
         return jsonify({"success": True})

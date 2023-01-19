@@ -1,13 +1,9 @@
 from flask import jsonify, Blueprint, request
-from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
-from core.data.management import Management
+from core.query import Q, DeleteModel
 from core.database import CursorFromPool
-from core.printcol import printcol
-from endpoints.management.zones.models import ZoneModel, DeleteModel
+from endpoints.management.zones.models import ZoneModel
 from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
-import time
-import geopandas as gp
 
 
 zones_endpoint = Blueprint('zones', __name__)
@@ -56,11 +52,9 @@ def zones_update():
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def zones_delete():
-    with CursorFromPool() as cursor:
-        model = DeleteModel(**request.json)
-        sql = "delete from zones where id = %(id)s"
-        cursor.execute(sql, model)
-        if cursor.rowcount == 0:
-            raise BadRequest("Could not delete for id " + model.id)
+    model = DeleteModel(**request.json)
+    rows = Q.delete("zones", model)
+    if rows == 0:
+        raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
 
-        return jsonify({"success": True})
+    return jsonify({"success": True})

@@ -2,7 +2,8 @@ from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from core.database import CursorFromPool
-from endpoints.management.assessmentregimes.models import AssessmentRegimeModel, DeleteModel
+from endpoints.management.assessmentregimes.models import AssessmentRegimeModel
+from core.query import Q, DeleteModel
 from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
 
@@ -45,7 +46,7 @@ def assessmentregimes():
           )
           SELECT
               case when count(d.sampling_point_id) = 0 then '[]' else json_agg(d) end as data,
-              count(d.sampling_point_id) spo_count, 
+              count(d.sampling_point_id) spo_count,
               ar.id,
               ar.name,
               z.id as zone_id,
@@ -129,7 +130,7 @@ def samplingpoints():
               eea_times t
           where 1=1
           and sp.station_id = s.id
-          and sp.pollutant = po.uri 
+          and sp.pollutant = po.uri
           and sp.timestep = t.id
           and sp.concentration = u.id
           and sp.private = false
@@ -148,11 +149,11 @@ def assessmentregimes_update():
         model = AssessmentRegimeModel(**request.json)
 
         # Update assessment regime
-        sql_update = """            
-          UPDATE assessmentregimes 
-          SET 
+        sql_update = """
+          UPDATE assessmentregimes
+          SET
             name=%(name)s,
-            assessmentthresholdexceedance=%(exceedance_id)s, 
+            assessmentthresholdexceedance=%(exceedance_id)s,
             thresholdclassificationyear=%(year)s,
             thresholdclassificationreport=%(report)s,
             include=%(include)s
@@ -168,16 +169,16 @@ def assessmentregimes_update():
         sql_insert = """
             insert into assessmentdata (
                 id,
-                assessmentregime_id, 
-                assessmentlocal_id, 
-                assessmenttype, 
+                assessmentregime_id,
+                assessmentlocal_id,
+                assessmenttype,
                 assessmentmethodedescription
             )
             values (
-                uuid_in(md5(random()::text || random()::text)::cstring), 
-                %(assessment_regime_id)s, 
-                %(sampling_point_id)s, 
-                %(assessment_type_id)s, 
+                uuid_in(md5(random()::text || random()::text)::cstring),
+                %(assessment_regime_id)s,
+                %(sampling_point_id)s,
+                %(assessment_type_id)s,
                 %(description)s
             )
         """
@@ -194,31 +195,31 @@ def assessmentregimes_insert():
         model = AssessmentRegimeModel(**request.json)
         sql = """
             insert into assessmentregimes (
-                id, 
-                name, 
-                zoneid, 
-                pollutant, 
-                objecttype, 
-                reportingmetric, 
+                id,
+                name,
+                zoneid,
+                pollutant,
+                objecttype,
+                reportingmetric,
                 protectiontarget,
                 assessmentthresholdexceedance,
-                include, 
-                thresholdclassificationyear, 
+                include,
+                thresholdclassificationyear,
                 thresholdclassificationreport
             )
             values (
-                %(id)s, 
-                %(name)s, 
-                %(zone_id)s, 
-                %(pollutant_id)s, 
-                %(object_type_id)s, 
-                %(reporting_metric_id)s, 
+                %(id)s,
+                %(name)s,
+                %(zone_id)s,
+                %(pollutant_id)s,
+                %(object_type_id)s,
+                %(reporting_metric_id)s,
                 %(protection_target_id)s,
                 %(exceedance_id)s,
                 %(include)s,
                 %(year)s,
                 %(report)s
-            )             
+            )
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
@@ -227,16 +228,16 @@ def assessmentregimes_insert():
         sql_insert = """
             insert into assessmentdata (
                 id,
-                assessmentregime_id, 
-                assessmentlocal_id, 
-                assessmenttype, 
+                assessmentregime_id,
+                assessmentlocal_id,
+                assessmenttype,
                 assessmentmethodedescription
             )
             values (
-                uuid_in(md5(random()::text || random()::text)::cstring), 
-                %(assessment_regime_id)s, 
-                %(sampling_point_id)s, 
-                %(assessment_type_id)s, 
+                uuid_in(md5(random()::text || random()::text)::cstring),
+                %(assessment_regime_id)s,
+                %(sampling_point_id)s,
+                %(assessment_type_id)s,
                 %(description)s
             )
         """
@@ -249,11 +250,8 @@ def assessmentregimes_insert():
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def assessmentregimes_delete():
-    with CursorFromPool() as cursor:
-        model = DeleteModel(**request.json)
-        sql = "delete from assessmentregimes where id = %(id)s"
-        cursor.execute(sql, model)
-        if cursor.rowcount == 0:
-            raise BadRequest("Could not delete for id " + model.id)
-
-        return jsonify({"success": True})
+    model = DeleteModel(**request.json)
+    rows = Q.delete("assessmentregimes", model)
+    if rows == 0:
+        raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
+    return jsonify({"success": True})

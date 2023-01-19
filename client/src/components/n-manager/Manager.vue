@@ -34,7 +34,8 @@ const showAdd = ref(false);
 const showUpload = ref(false);
 const showColumnPicker = ref(false);
 
-const selected = ref({});
+const selected = ref([]);
+
 const ev = ref({});
 const showContextmenu = ref(false);
 const showConfirm = ref(false);
@@ -50,13 +51,13 @@ const loadData = async () => {
 };
 
 const onEdit = () => {
-  if (showEdit.value) selected.value = {};
+  if (showEdit.value) selected.value = [];
   showEdit.value = !showEdit.value;
   showContextmenu.value = false;
 };
 
 const onDelete = () => {
-  if (showConfirm.value) selected.value = {};
+  if (showConfirm.value) selected.value = [];
   showConfirm.value = !showConfirm.value;
   showContextmenu.value = false;
 };
@@ -113,9 +114,11 @@ const saveAdd = async (o) => {
 };
 
 const saveDelete = async (o) => {
+  if (selected.value?.length == 0) return;
+
   Eventy.showMessage("Deleting data, Please wait!", "loading");
   showConfirm.value = false;
-  await props.service.delete(selected.value);
+  await props.service.delete({ ids: selected.value.map((p) => p.id) });
   await loadData();
   Eventy.showHideMessage(`${props.name} deleted`, "success", 5000);
   close();
@@ -128,7 +131,7 @@ const close = () => {
   showColumnPicker.value = false;
   showContextmenu.value = false;
   showConfirm.value = false;
-  selected.value = {};
+  selected.value = [];
   ev.value = {};
 };
 
@@ -143,12 +146,12 @@ const cmp_properties = computed(() => {
 <template>
   <common-layout>
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete?" @close="close" @ok="saveDelete" />
-    <contextmenu-crud :show="showContextmenu" :ev="ev" @click-outside="close" @on-edit="onEdit" @onDelete="onDelete" />
+    <contextmenu-crud :show="showContextmenu" :ev="ev" @click-outside="close" @on-edit="onEdit" @onDelete="onDelete" :is-multi-select="selected.length > 1" />
     <file-upload :show="showUpload" :ev="ev" @click-outside="close" @on-upload-click="onUploadClick" />
     <column-picker :show="showColumnPicker" :ev="ev" :properties="cmp_properties" @click-outside="close" />
 
     <component v-if="showAddButton" :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" @close="close" @save="saveAdd" />
-    <component :is="crudComponent" :is-edit="true" :show="showEdit" :options="options" :selected-value="selected" @close="close" @save="saveEdit" />
+    <component :is="crudComponent" :is-edit="true" :show="showEdit" :options="options" :selected-value="selected[0]" @close="close" @save="saveEdit" />
 
     <tool-bar :title="name" v-model:q="q" :show-add="showAddButton" :show-download="showDownloadButton" :show-upload="showUploadButton" @add-click="showAdd = true" @upload-click="onUpload" @download-click="onDownload" @column-picker-click="onColumnPicker" />
 

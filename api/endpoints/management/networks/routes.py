@@ -1,8 +1,8 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
 from core.database import CursorFromPool
-from endpoints.management.networks.models import NetworkModel, DeleteModel
-from core.query import Q
+from endpoints.management.networks.models import NetworkModel
+from core.query import Q, DeleteModel
 from core.query_access import Access
 from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
@@ -99,12 +99,11 @@ def networks_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
 
-        if not Access.to_network(model.id):
+        if not Access.to_networks(model.ids):
             raise BadRequest("Access denied for network")
 
-        sql = "delete from networks where id = %(id)s"
-        cursor.execute(sql, model)
-        if cursor.rowcount == 0:
-            raise BadRequest("Could not delete for id " + model.id)
+        rows = Q.delete("networks", model)
+        if rows == 0:
+            raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
 
         return jsonify({"success": True})

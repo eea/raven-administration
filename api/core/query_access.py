@@ -1,3 +1,4 @@
+from typing import List
 from core.database import CursorFromPool
 from core.jwt_ext_custom import can_see_all_networks, get_networks
 
@@ -12,6 +13,17 @@ class Access:
         return True if can_see_all_networks() else network_id in get_networks()
 
     @staticmethod
+    def to_networks(network_ids: List) -> bool:
+        if can_see_all_networks():
+            return True
+
+        for network_id in network_ids:
+            if network_id not in get_networks():
+                return False
+
+        return True
+
+    @staticmethod
     def to_station(station_id: str) -> bool:
         with CursorFromPool() as cursor:
             sql = f"""
@@ -22,6 +34,20 @@ class Access:
               {"" if can_see_all_networks() else "and n.id in %(networkids)s"}      
             """
             cursor.execute(sql, {"station_id": station_id, "networkids": tuple(get_networks())})
+            row = cursor.fetchone()
+            return row != None
+
+    @staticmethod
+    def to_stations(station_ids: List) -> bool:
+        with CursorFromPool() as cursor:
+            sql = f"""
+              select 1
+              from stations s, networks n
+              where s.network_id = n.id
+              and s.id in %(station_ids)s
+              {"" if can_see_all_networks() else "and n.id in %(networkids)s"}      
+            """
+            cursor.execute(sql, {"station_ids": tuple(station_ids), "networkids": tuple(get_networks())})
             row = cursor.fetchone()
             return row != None
 
@@ -47,6 +73,22 @@ class Access:
               {"" if can_see_all_networks() else "and n.id in %(networkids)s"}      
             """
             cursor.execute(sql, {"observing_capability_id": observing_capability_id, "networkids": tuple(get_networks())})
+            row = cursor.fetchone()
+            return row != None
+
+    @staticmethod
+    def to_observing_capabilities(observing_capability_ids: List) -> bool:
+        with CursorFromPool() as cursor:
+            sql = f"""
+              select 1
+              from stations s, networks n, sampling_points p, observing_capabilities o
+              where s.network_id = n.id
+              and s.id = p.station_id
+              and p.id = o.sampling_point_id
+              and o.id in %(observing_capability_ids)s
+              {"" if can_see_all_networks() else "and n.id in %(networkids)s"}      
+            """
+            cursor.execute(sql, {"observing_capability_ids": tuple(observing_capability_ids), "networkids": tuple(get_networks())})
             row = cursor.fetchone()
             return row != None
 

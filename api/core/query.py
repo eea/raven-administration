@@ -1,5 +1,14 @@
 from core.database import CursorFromPool
 from core.jwt_ext_custom import can_see_all_networks, get_networks
+from pydantic import BaseModel
+from typing import List
+
+
+class DeleteModel(BaseModel):
+    ids: List[str]
+
+    def __getitem__(self, key):
+        return super().__getattribute__(key)
 
 
 class Q:
@@ -144,3 +153,14 @@ class Q:
     @staticmethod
     def any_has_no_access(sampling_point_ids):
         return len(Q.sampling_point_ids_by_networks_access(sampling_point_ids)) != len(sampling_point_ids)
+
+    @staticmethod
+    def delete(table: str, model: DeleteModel):
+        with CursorFromPool() as cursor:
+            return Q.delete_with_cursor(cursor, table, model)
+
+    @staticmethod
+    def delete_with_cursor(cursor: CursorFromPool, table: str, model: DeleteModel):
+        sql = f"""delete from {table} where id in %(ids)s"""
+        cursor.execute(sql, {"ids": tuple(model.ids)})
+        return cursor.rowcount

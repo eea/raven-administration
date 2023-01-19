@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from typing import Optional
 
 
 class ZoneModel(BaseModel):
@@ -12,13 +11,6 @@ class ZoneModel(BaseModel):
     population: int
     population_year: int
     authority_id: str
-
-    def __getitem__(self, key):
-        return super().__getattribute__(key)
-
-
-class DeleteModel(BaseModel):
-    id: str
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
