@@ -37,6 +37,10 @@ class CursorFromPool:
         if ex_value is not None:
             self.connection.rollback()
         else:
-            self.cursor.close()
-            self.connection.commit()
+            try:
+                self.cursor.close()
+                self.connection.commit()
+            except:
+                self.connection.rollback()
+
         Database.return_connection(self.connection)
