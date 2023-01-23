@@ -34,10 +34,13 @@ class CursorFromPool:
         return self.cursor
 
     def __exit__(self, ex_type, ex_value, ex_traceback):
-        if ex_value is not None:
-            self.connection.rollback()
-        else:
-            self.cursor.close()
-            self.connection.commit()
+        try:
+            if ex_value is not None:
+                self.connection.rollback()
+            else:
+                self.cursor.close()
+                self.connection.commit()
 
-        Database.return_connection(self.connection)
+            Database.return_connection(self.connection)
+        except:
+            pass

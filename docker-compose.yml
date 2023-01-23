@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile.api
     image: raven-api
     container_name: raven-api
+    sysctls:
+      - net.ipv4.tcp_keepalive_time=200
     ports:
       - 5000:5000
   client:
