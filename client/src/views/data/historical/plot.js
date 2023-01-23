@@ -30,6 +30,10 @@ const Plot = {
               major: {
                 enabled: true
               },
+              autoSkip: true,
+              maxTicksLimit: 20,
+              maxRotation: 0,
+              minRotation: 0,
               font: (ctx) => {
                 const boldedTicks = ctx.tick?.major ? "bold" : "";
                 return { weight: boldedTicks };
