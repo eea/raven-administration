@@ -1,6 +1,6 @@
 import autocolors from "chartjs-plugin-autocolors";
 const Plot = {
-  config: (beginAtZero = false) => {
+  config: (axes, beginAtZero = false) => {
     return {
       type: "line",
       data: [],
@@ -22,34 +22,7 @@ const Plot = {
             titleColor: "#2E3440"
           }
         },
-        scales: {
-          x: {
-            type: "time",
-            offset: true,
-            ticks: {
-              major: {
-                enabled: true
-              },
-              autoSkip: true,
-              maxTicksLimit: 20,
-              maxRotation: 0,
-              minRotation: 0,
-              font: (ctx) => {
-                const boldedTicks = ctx.tick?.major ? "bold" : "";
-                return { weight: boldedTicks };
-              }
-            },
-            title: {
-              display: false
-            }
-          },
-          y: {
-            title: {
-              display: false
-            },
-            beginAtZero: beginAtZero
-          }
-        },
+        scales: Plot.multiscales(axes, beginAtZero),
         datasets: {
           line: {
             pointRadius: 1,
@@ -59,9 +32,41 @@ const Plot = {
       }
     };
   },
-  dataset: (label, data, color, type = "line") => {
+  multiscales: (axes, beginAtZero) => {
+    var s = {};
+    s.x = {
+      type: "time",
+      offset: true,
+      ticks: {
+        major: {
+          enabled: true
+        },
+        autoSkip: true,
+        maxTicksLimit: 20,
+        maxRotation: 0,
+        minRotation: 0,
+        font: (ctx) => {
+          const boldedTicks = ctx.tick?.major ? "bold" : "";
+          return { weight: boldedTicks };
+        }
+      },
+      title: {
+        display: true
+      }
+    };
+    axes.forEach((y, i) => {
+      s[y] = {
+        position: i == 0 ? "left" : "right",
+        display: true,
+        title: { display: true, text: y },
+        beginAtZero: beginAtZero
+      };
+    });
+    return s;
+  },
+  dataset: (label, data, color, type = "line", axis = "y") => {
     //if(!color)
-    let d = { label, data, type };
+    let d = { label, data, type, yAxisID: axis };
     return d;
   }
 };

@@ -53,10 +53,11 @@ const plotData = async () => {
     meantype: meantype.value,
     coverage: coverage.value
   });
+  var axes = getAxes(meanvalues);
+  let config = Plot.config(axes, beginAtZero.value);
+  chart = new Chart("chart", config);
 
-  chart = new Chart("chart", Plot.config(beginAtZero.value));
-
-  chart.data = formatValues(meanvalues);
+  chart.data = formatValues(meanvalues, axes);
   chart.update();
   Eventy.hideMessage();
 };
@@ -96,7 +97,7 @@ const changeDates = (s) => {
   ev_preset.value = null;
 };
 
-const formatValues = (meanvalues) => {
+const formatValues = (meanvalues, axes) => {
   var grouped_values = groupBy(meanvalues, (p) => p.sampling_point_id);
   const series = [];
   grouped_values.forEach((p) => {
@@ -104,10 +105,15 @@ const formatValues = (meanvalues) => {
     const data = values.map((o) => {
       return { x: o.datetime.replace(" ", "T"), y: o.value };
     });
-    let serie = Plot.dataset(p[1][0].station + " - " + p[1][0].component, data, "#A3BE8C", plotType.value);
+    var axis = axes.find((a) => a == values[0].unit);
+    let serie = Plot.dataset(p[1][0].station + " - " + p[1][0].component + " - " + p[1][0].unit, data, "#A3BE8C", plotType.value, axis);
     series.push(serie);
   });
   return { datasets: series };
+};
+
+const getAxes = (meanvalues) => {
+  return groupBy(meanvalues, (p) => p.unit).map((p) => p[0]);
 };
 
 const cmp_timeseries = computed(() => {
