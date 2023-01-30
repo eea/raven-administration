@@ -4,12 +4,15 @@ import Service from "./service";
 
 import Chart from "chart.js/auto";
 import "chartjs-adapter-luxon";
+import zoomPlugin from "chartjs-plugin-zoom";
 import Plot from "./plot";
 
 import { format, sub, isAfter, isBefore, startOfWeek } from "date-fns";
 import { groupBy, sortBy } from "../../../helpers/utils";
 import Eventy from "../../../helpers/eventy";
 import IconCalendar from "~icons/ic/round-access-time";
+
+Chart.register(zoomPlugin);
 
 const ev_preset = ref();
 const timeseries = ref([]);
@@ -116,6 +119,10 @@ const getAxes = (meanvalues) => {
   return groupBy(meanvalues, (p) => p.unit).map((p) => p[0]);
 };
 
+const onResetZoom = () => {
+  if (chart) chart.resetZoom();
+};
+
 const cmp_timeseries = computed(() => {
   return timeseries.value.filter((t) => {
     if (!t.fromtime && !t.totime) return true;
@@ -208,7 +215,12 @@ const cmp_timeseries = computed(() => {
       </div>
     </container>
 
-    <container v-show="showPlot" class="mt-4 !p-4 h-96 w-full"><canvas id="chart"></canvas></container>
+    <container v-show="showPlot" class="mt-4 !p-4 w-full">
+      <div class="self-end"><button class="n-button" @click="onResetZoom">Reset zoom</button></div>
+      <div class="h-96 w-full">
+        <canvas id="chart"></canvas>
+      </div>
+    </container>
   </common-layout>
 </template>
 

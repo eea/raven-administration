@@ -20,6 +20,25 @@ const Plot = {
             borderWidth: 1,
             bodyColor: "#2E3440",
             titleColor: "#2E3440"
+          },
+          zoom: {
+            zoom: {
+              drag: {
+                enabled: true
+              },
+              pinch: {
+                enabled: true
+              },
+              mode: "x",
+              onZoomComplete({ chart }) {
+                chart.update("none");
+              }
+            },
+            pan: {
+              enabled: true,
+              mode: "x",
+              modifierKey: "ctrl"
+            }
           }
         },
         scales: Plot.multiscales(axes, beginAtZero),
