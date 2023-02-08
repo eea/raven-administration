@@ -41,6 +41,7 @@ class CursorFromPool:
                 self.cursor.close()
                 self.connection.commit()
 
-            Database.return_connection(self.connection)
+            if Database.return_connection(self.connection):
+                self.connection.close()
         except:
             pass
