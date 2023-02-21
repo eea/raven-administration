@@ -13,8 +13,8 @@ class Filling:
         missing_values = []
         timeseries = df_values.groupby("sampling_point_id")
         for key, values in timeseries:
-            ts_from_epoch = values.ts_from_epoch.iloc[0]
-            ts_to_epoch = values.ts_to_epoch.iloc[0]
+            ts_from_epoch = values.ts_from_epoch.iloc[0] if pd.notna(values.ts_from_epoch.iloc[0]) else None
+            ts_to_epoch = values.ts_to_epoch.iloc[0] if pd.notna(values.ts_to_epoch.iloc[0]) else None
             ts_timestep = values.ts_timestep.iloc[0]
 
             if ts_timestep == -1:

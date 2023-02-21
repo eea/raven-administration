@@ -1,6 +1,7 @@
 from pandas import DataFrame
 import pandas as pd
 import time
+from core.data.processing.common import Common
 from core.printcol import printcol
 
 
@@ -55,7 +56,9 @@ class Calculating:
                         calculated_values.append(calculated_value)
 
         printcol(f"- Calculating took {time.perf_counter() - bench} seconds")
-        df_values = pd.concat([df_values, pd.DataFrame(calculated_values)], axis=0)
+
+        df_calculated_values = Common.add_timeserie_info(cursor, pd.DataFrame(calculated_values))
+        df_values = pd.concat([df_values, df_calculated_values], axis=0)
         return df_values.reset_index(drop=True)
 
     @staticmethod
