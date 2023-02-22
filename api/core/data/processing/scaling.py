@@ -18,15 +18,15 @@ class Scaling:
                 for sp in scaling_points:
                     filtered_values = []
                     if sp["f_sampling_point_id"] is not None and sp["t_sampling_point_id"] is not None:
-                        filtered_values = group[(group["end_position"].apply(lambda t: t.timestamp()) >= sp["f_timestamp_number"]) & (group["end_position"].apply(lambda t: t.timestamp()) < sp["t_timestamp_number"])]
+                        filtered_values = group[(group["end_position"].apply(lambda t: t.timestamp()) >= sp["f_timestamp"].timestamp()) & (group["end_position"].apply(lambda t: t.timestamp()) < sp["t_timestamp"].timestamp())]
 
                         for row in filtered_values.itertuples():
-                            scaled_value = Scaling.__scale__(sp["f_zero_point"], sp["f_span_value"], sp["f_gas_concentration"], sp["f_timestamp_number"], sp["t_zero_point"], sp["t_span_value"], sp["t_gas_concentration"], sp["t_timestamp_number"], row.value, row.end_position.timestamp())
+                            scaled_value = Scaling.__scale__(sp["f_zero_point"], sp["f_span_value"], sp["f_gas_concentration"], sp["f_timestamp"].timestamp(), sp["t_zero_point"], sp["t_span_value"], sp["t_gas_concentration"], sp["t_timestamp"].timestamp(), row.value, row.end_position.timestamp())
                             df_values.at[row.Index,  "value"] = scaled_value
                             df_values.at[row.Index,  "scaled_value"] = scaled_value
 
                     elif sp["f_sampling_point_id"] is not None:
-                        filtered_values = group[(group["end_position"].apply(lambda t: t.timestamp()) >= sp["f_timestamp_number"])]
+                        filtered_values = group[(group["end_position"].apply(lambda t: t.timestamp()) >= sp["f_timestamp"].timestamp())]
 
                         for row in filtered_values.itertuples():
                             scaled_value = Scaling.__scalevalue__(sp["f_zero_point"], sp["f_span_value"], sp["f_gas_concentration"], row.value)
@@ -34,7 +34,7 @@ class Scaling:
                             df_values.at[row.Index,  "scaled_value"] = scaled_value
 
                     elif sp["t_sampling_point_id"] is not None:
-                        filtered_values = group[(group["end_position"].apply(lambda t: t.timestamp()) < sp["t_timestamp_number"])]
+                        filtered_values = group[(group["end_position"].apply(lambda t: t.timestamp()) < sp["t_timestamp"].timestamp())]
 
                         for row in filtered_values.itertuples():
                             scaled_value = Scaling.__scalevalue__(sp["t_zero_point"], sp["t_span_value"], sp["t_gas_concentration"], row.value)
@@ -148,13 +148,13 @@ class Scaling:
                 f.span_value as f_span_value,
                 f.gas_concentration as f_gas_concentration,
                 f.timestamp as f_timestamp,
-                extract(epoch from f.timestamp) as f_timestamp_number,
+                --extract(epoch from f.timestamp) as f_timestamp_number,
                 t.sampling_point_id as t_sampling_point_id,
                 t.zero_point as t_zero_point,
                 t.span_value as t_span_value,
                 t.gas_concentration as t_gas_concentration,
-                t.timestamp as t_timestamp,
-                extract(epoch from t.timestamp) as t_timestamp_number
+                t.timestamp as t_timestamp--,
+                --extract(epoch from t.timestamp) as t_timestamp_number
 
             from
             (
