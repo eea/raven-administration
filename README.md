@@ -28,7 +28,7 @@ git clone https://git.nilu.no/raven/raven-administration
 
 ## Set environment varables
 
-**Create an `.env` file in the `api` folder and set the variables**
+**Create a file called `.env` in the `api` folder and set the variables**
 
 ```
 DB_URI = postgresql://postgres:password@host:5432/database
