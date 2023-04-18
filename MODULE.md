@@ -62,9 +62,35 @@ export default Service;
 File: client/views/data/test/Map.vue
 
 ```vue
-<script setup></script>
+<script setup>
+import { featureGroup, map, tileLayer, marker } from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { onMounted } from "vue";
+import Service from "./service";
+var mymap;
+let url = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 
-<template><div>AAA</div></template>
+onMounted(async () => {
+  const stations = await Service.get();
+  var layers = [];
+  stations.forEach((station) => {
+    layers.push(marker([station.lon, station.lat]).bindPopup("<b>" + station.name + "</b>"));
+  });
+
+  var group = featureGroup(layers);
+  mymap = map("map", {
+    layers: [tileLayer(url, {}), group]
+  }).setView([0, 0], 3);
+  mymap.fitBounds(group.getBounds());
+});
+</script>
+
+<template>
+  <common-layout>
+    <tool-bar title="Map" :show-column-picker="false" :show-add="false" :show-download="false" :show-filter="false" />
+    <div class="border border-nord4 h-full w-full flex-1" id="map"></div>
+  </common-layout>
+</template>
 
 <style></style>
 ```
