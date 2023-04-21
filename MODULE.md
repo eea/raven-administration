@@ -45,7 +45,7 @@ app.register_blueprint(test_endpoint)
 
 ### Create the map service file
 
-File: client/views/data/test/service.js
+File: client/src/views/data/test/service.js
 
 ```javascript
 import { Get } from "../../../helpers/request";
@@ -59,12 +59,11 @@ export default Service;
 
 ### Create the map module
 
-File: client/views/data/test/Map.vue
+File: client/src/views/data/test/Map.vue
 
 ```vue
 <script setup>
 import { featureGroup, map, tileLayer, marker } from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { onMounted } from "vue";
 import Service from "./service";
 var mymap;
