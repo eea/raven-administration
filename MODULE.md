@@ -111,7 +111,7 @@ const routes = [
 
 ### Add to menu
 
-File: client/components/MenuBar.vue
+File: client/src/components/MenuBar.vue
 
 ```javascript
 ...
