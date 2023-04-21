@@ -96,7 +96,7 @@ onMounted(async () => {
 
 ### Register route
 
-File: client/router.js
+File: client/src/router.js
 
 ```javascript
 ...
