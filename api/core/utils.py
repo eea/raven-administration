@@ -17,7 +17,7 @@ class U:
     def xmlify(data, code=200, headers=None):
         if isinstance(data, type(ET.Element(None))):
             xml_declaration = '<?xml version="1.0" encoding="UTF-8"?>'
-            xml_data = ET.tostring(data, encoding='utf-8', method="xml").decode('utf-8')
+            xml_data = ET.tostring(data, encoding="utf-8", method="xml").decode("utf-8")
             resp = make_response(xml_declaration + xml_data, code)
             resp.headers.extend(headers or {})
             resp.mimetype = "application/xml"
@@ -37,18 +37,26 @@ class U:
         return Response(
             csv_file,
             mimetype="text/csv",
-            headers={"Content-disposition":
-                     "attachment; filename="+name})
+            headers={"Content-disposition": "attachment; filename=" + name},
+        )
+
+    @staticmethod
+    def zip_response(zip_file, name):
+        return Response(
+            zip_file,
+            mimetype="application/zip",
+            headers={"Content-disposition": "attachment; filename=" + name},
+        )
 
     @staticmethod
     def to_epoch_ignore_tz(val):
         dt = val.split("+")
         epoch = datetime(1970, 1, 1)
-        return (datetime.strptime(dt[0], '%Y-%m-%dT%H:%M:%S') - epoch).total_seconds()
+        return (datetime.strptime(dt[0], "%Y-%m-%dT%H:%M:%S") - epoch).total_seconds()
 
     @staticmethod
     def from_epoch_to_string(val):
-        return datetime.utcfromtimestamp(val).strftime('%Y-%m-%dT%H:%M:%S')
+        return datetime.utcfromtimestamp(val).strftime("%Y-%m-%dT%H:%M:%S")
 
     @staticmethod
     def tz_in_seconds(dt):

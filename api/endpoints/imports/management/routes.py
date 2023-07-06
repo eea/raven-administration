@@ -1,15 +1,18 @@
 from flask import jsonify, Blueprint, request
 from core.database import CursorFromPool
 from core.data.management import Management
-from core.jwt_ext_custom import jwt_required_with_allnetworks_claim, jwt_required_with_management_claim
+from core.jwt_ext_custom import (
+    jwt_required_with_allnetworks_claim,
+    jwt_required_with_management_claim,
+)
 import pandas as pd
 import json
 import ast
 
-import_management_endpoint = Blueprint('import_management', __name__)
+import_management_endpoint = Blueprint("import_management", __name__)
 
 
-@import_management_endpoint.route('/api/imports/authorities', methods=['POST'])
+@import_management_endpoint.route("/api/imports/authorities", methods=["POST"])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def import_authorities():
@@ -20,7 +23,7 @@ def import_authorities():
         return jsonify({"success": True})
 
 
-@import_management_endpoint.route('/api/imports/zones', methods=['POST'])
+@import_management_endpoint.route("/api/imports/zones", methods=["POST"])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def zones_test():
@@ -31,7 +34,7 @@ def zones_test():
     return jsonify({"success": True})
 
 
-@import_management_endpoint.route('/api/imports/networks', methods=['POST'])
+@import_management_endpoint.route("/api/imports/networks", methods=["POST"])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def import_networks():
@@ -42,7 +45,7 @@ def import_networks():
         return jsonify({"success": True})
 
 
-@import_management_endpoint.route('/api/imports/stations', methods=['POST'])
+@import_management_endpoint.route("/api/imports/stations", methods=["POST"])
 def import_stations():
     with CursorFromPool() as cursor:
         m = Management(cursor, "stations")
@@ -51,7 +54,7 @@ def import_stations():
         return jsonify({"success": True})
 
 
-@import_management_endpoint.route('/api/imports/sampling_points', methods=['POST'])
+@import_management_endpoint.route("/api/imports/sampling_points", methods=["POST"])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def import_sampling_points():
@@ -62,7 +65,9 @@ def import_sampling_points():
         return jsonify({"success": True})
 
 
-@import_management_endpoint.route('/api/imports/observing_capabilities', methods=['POST'])
+@import_management_endpoint.route(
+    "/api/imports/observing_capabilities", methods=["POST"]
+)
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def import_observing_capabilities():
@@ -73,7 +78,7 @@ def import_observing_capabilities():
         return jsonify({"success": True})
 
 
-@import_management_endpoint.route('/api/imports/samples', methods=['POST'])
+@import_management_endpoint.route("/api/imports/samples", methods=["POST"])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def import_samples():
@@ -84,7 +89,7 @@ def import_samples():
         return jsonify({"success": True})
 
 
-@import_management_endpoint.route('/api/imports/processes', methods=['POST'])
+@import_management_endpoint.route("/api/imports/processes", methods=["POST"])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def import_processes():
@@ -95,7 +100,7 @@ def import_processes():
         return jsonify({"success": True})
 
 
-@import_management_endpoint.route('/api/imports/attainments', methods=['POST'])
+@import_management_endpoint.route("/api/imports/attainments", methods=["POST"])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def import_attainments():
@@ -106,25 +111,29 @@ def import_attainments():
         return jsonify({"success": True})
 
 
-@import_management_endpoint.route('/api/imports/assessmentregime', methods=['POST'])
+@import_management_endpoint.route("/api/imports/assessmentregime", methods=["POST"])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def import_assessmentregime():
+    # Expecting two files
     with CursorFromPool() as cursor:
         m = Management(cursor, "assessmentregimes")
-        m.parse_file(request.files["file"])
+        m.parse_file(request.files["file1"])
 
-        col_lst = m.df.assessmentdata.values.tolist()
-        lst = [item for sublist in col_lst for item in ast.literal_eval(sublist)]
         md = Management(cursor, "assessmentdata")
-        md.parse_list(lst)
+        md.parse_file(request.files["file2"])
+
+        # col_lst = m.df.assessmentdata.values.tolist()
+        # lst = [item for sublist in col_lst for item in ast.literal_eval(sublist)]
+        # md = Management(cursor, "assessmentdata")
+        # md.parse_list(lst)
 
         m.generic_insert()
         md.generic_insert()
         return jsonify({"success": True})
 
 
-@import_management_endpoint.route('/api/imports/exceedances', methods=['POST'])
+@import_management_endpoint.route("/api/imports/exceedances", methods=["POST"])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def import_exceedances():

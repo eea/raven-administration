@@ -23,5 +23,5 @@ onMounted(async () => {
 </script>
 
 <template>
-  <manager name="Assessment regimes" :options="options" :service="Service" :crud-component="Crud" />
+  <manager name="Assessment regimes" :options="options" :service="Service" :crud-component="Crud" :is-two-file-upload="true" />
 </template>

@@ -16,6 +16,10 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  isTwoFileUpload: {
+    type: Boolean,
+    default: false
+  },
   showDownloadButton: {
     type: Boolean,
     default: true
@@ -80,7 +84,13 @@ const onUploadClick = async (file) => {
   Eventy.showMessage("Uploading file, Please wait!", "loading");
   close();
   let formData = new FormData();
-  formData.append("file", file);
+  if (props.isTwoFileUpload) {
+    formData.append("file1", file.file1);
+    formData.append("file2", file.file2);
+  } else {
+    formData.append("file", file);
+  }
+
   await props.service.upload(formData);
   await loadData();
   Eventy.showHideMessage(`${props.name} uploaded`, "success", 5000);
@@ -147,7 +157,8 @@ const cmp_properties = computed(() => {
   <common-layout>
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete?" @close="close" @ok="saveDelete" />
     <contextmenu-crud :show="showContextmenu" :ev="ev" @click-outside="close" @on-edit="onEdit" @onDelete="onDelete" :is-multi-select="selected.length > 1" />
-    <file-upload :show="showUpload" :ev="ev" @click-outside="close" @on-upload-click="onUploadClick" />
+    <file-upload :show="showUpload && !isTwoFileUpload" :ev="ev" @click-outside="close" @on-upload-click="onUploadClick" />
+    <two-file-upload :show="showUpload && isTwoFileUpload" :ev="ev" @click-outside="close" @on-upload-click="onUploadClick" />
     <column-picker :show="showColumnPicker" :ev="ev" :properties="cmp_properties" @click-outside="close" />
 
     <component v-if="showAddButton" :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" @close="close" @save="saveAdd" />
