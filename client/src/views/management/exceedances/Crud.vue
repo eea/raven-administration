@@ -19,37 +19,27 @@ watch(
     } else {
       obj.value = Object.assign({}, props.selectedValue);
     }
-    init();
   }
 );
-
-const init = () => {
-  if (!props.options.lookups) return;
-  if (!obj.value.data) return;
-
-  const data = props.options.lookups["sampling_points"];
-  if (data.length == 0) return;
-  console.log("AA", obj.value);
-  data.forEach((d) => {
-    var o = obj.value.data.find((o) => o.assessment_data_id == d.assessment_data_id);
-    d.selected = !!o;
-  });
-  obj.value.data = data;
-};
 
 const onSave = () => {
   const o = Object.assign({}, obj.value);
   var data = [];
-  o.data.forEach((p) => {
-    var d = Object.assign({}, p);
-    if (p.selected) {
-      d.exceedance_description_id = obj.value.id;
-      data.push(d);
-    }
-  });
-  o.data = data;
+  // o.data.forEach((p) => {
+  //   var d = Object.assign({}, p);
+  //   if (p.selected) {
+  //     d.exceedance_description_id = obj.value.id;
+  //     data.push(d);
+  //   }
+  // });
+  // o.data = data;
   emit("save", o);
 };
+
+const cmp_data = computed(() => {
+  if (!props.options.lookups) return [];
+  return props.options.lookups["sampling_points"].filter((p) => p.attainment_id == obj.value.attainment_id);
+});
 
 const cmp_required_properties = computed(() => {
   if (!props.options.properties) return [];
@@ -132,10 +122,9 @@ const cmp_optional_properties = computed(() => {
     <div class="mt-4">
       <div class="font-bold">Sampling points:</div>
       <table class="n-table !bg-gray-50">
-        <tr v-for="s in obj.data" @click="s.selected = !s.selected">
+        <tr v-for="s in cmp_data" @click="s.selected = !s.selected">
           <td>
             <div class="flex gap-2">
-              <n-checkbox class="self-center" v-model="s.selected" />
               <div class="flex flex-col">
                 <div>{{ s.station }}</div>
                 <div class="text-xs">{{ s.pollutant }} {{ s.timestep }} {{ s.concentration }}</div>

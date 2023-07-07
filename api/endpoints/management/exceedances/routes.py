@@ -16,38 +16,19 @@ def exceedances():
     with CursorFromPool() as cursor:
         cursor.execute("""
           WITH data as (
-              SELECT
-                true as selected,
-                m.id,
-                m.assessmentdata_id as assessment_data_id,
-                m.exceedancedescription_id as exceedance_description_id,
-                s.name as station,
-                po.notation as pollutant,
-                t.label as timestep,
-                u.notation as concentration,
-                ar.name as assessment_regime
+              SELECT ed.id as exceedance_description_id
               FROM
-                stations s,
-                eea_pollutants po,
-                sampling_points sp,
-                eea_concentrations u,
-                eea_times t,
-                exceedingmethods m,
                 assessmentdata ad,
-                assessmentregimes ar
+                assessmentregimes ar,
+                attainments at,
+                exceedancedescriptions ed
               WHERE 1=1
-              AND sp.station_id = s.id
-              AND sp.pollutant = po.uri
-              AND sp.timestep = t.id
-              AND sp.concentration = u.id
-              AND sp.id = ad.assessmentlocal_id
-              AND ad.id = m.assessmentdata_id
               AND ad.assessmentregime_id = ar.id
-              and sp.private = false
+              AND ar.id = at.assessmentregime_id
+              AND at.id = ed.attainment_id
           )
-          SELECT
-              case when count(m.id) = 0 then '[]' else json_agg(m) end as data,
-              count(m.id) spo_count,
+          SELECT              
+              count(m.exceedance_description_id) spo_count,
               ed.id,
               ed.exceedances as has_exceedance,
               ed.max_value as exceedance_value,
@@ -57,8 +38,6 @@ def exceedances():
               ed.vegetation_area,
               ed.other_exceedance_reason as other_reason,
               ed.modelassessmentmetadata as model_assessment_metadata,
-
-
               a.id as attainment_id,
               a.name as attainment,
               et.id::varchar as exceedance_type_id,
@@ -128,10 +107,7 @@ def samplingpoints():
     with CursorFromPool() as cursor:
         cursor.execute("""
           select
-              false as selected,
-              null as id,
-              null as exceedance_description_id,
-              ad.id as assessment_data_id,
+              at.id as attainment_id,
               s.name as station,
               po.notation as pollutant,
               t.label as timestep,
@@ -144,7 +120,8 @@ def samplingpoints():
               eea_concentrations u,
               eea_times t,
               assessmentdata ad,
-              assessmentregimes ar
+              assessmentregimes ar,
+              attainments at
           where 1=1
           and sp.station_id = s.id
           and sp.pollutant = po.uri
@@ -152,6 +129,7 @@ def samplingpoints():
           and sp.concentration = u.id
           and sp.id = ad.assessmentlocal_id
           and ad.assessmentregime_id = ar.id
+          and at.assessmentregime_id = ar.id
           and sp.private = false
           order by ar.name, s.name, po.notation, t.label
         """)
@@ -190,23 +168,6 @@ def exceedances_update():
         cursor.execute(sql_update, model)
         if cursor.rowcount == 0:
             raise BadRequest("Could not update for id " + model.id)
-
-        # delete and add data
-        cursor.execute("delete from exceedingmethods where exceedancedescription_id = %(id)s", model)
-
-        sql_insert = """
-            insert into exceedingmethods (
-                id,
-                assessmentdata_id, 
-                exceedancedescription_id
-            )
-            values (
-                uuid_in(md5(random()::text || random()::text)::cstring), 
-                %(assessment_data_id)s, 
-                %(exceedance_description_id)s
-            )
-        """
-        cursor.executemany(sql_insert, model.data)
 
         return jsonify({"success": True})
 
@@ -256,20 +217,6 @@ def exceedances_insert():
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
             raise BadRequest("Could not insert for id " + model.id)
-
-        sql_insert = """
-            insert into exceedingmethods (
-                id,
-                assessmentdata_id,
-                exceedancedescription_id
-            )
-            values (
-                uuid_in(md5(random()::text || random()::text)::cstring),
-                %(assessment_data_id)s,
-                %(exceedance_description_id)s
-            )
-        """
-        cursor.executemany(sql_insert, model.data)
 
         return jsonify({"success": True})
 
