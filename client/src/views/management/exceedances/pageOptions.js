@@ -30,10 +30,10 @@ const pageOptions = (lookups) => ({
       showInGrid: true,
       val_func: (row) => row.spo_count,
       cls_func: (row) => (row.spo_count == 0 ? "text-nord11" : "text-nord10")
-    },
+    }
 
     // CUSTOM
-    { type: "custom", label: "Methods", prop: "data", default: [], enableInEdit: true, showInGrid: false }
+    // { type: "custom", label: "Methods", prop: "data", default: [], enableInEdit: true, showInGrid: false }
   ],
   lookups: lookups
 });

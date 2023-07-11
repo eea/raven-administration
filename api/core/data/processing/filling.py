@@ -24,8 +24,8 @@ class Filling:
             tz = values.end_position.iloc[0].strftime('%z')
             tz = "{0}:{1}".format(tz[:-2], tz[-2:])
             dates = values.end_position.apply(lambda x: x.timestamp()).unique()
-            from_time = dates.min() if ts_to_epoch == None else dates.min() if ts_to_epoch > dates.min() else ts_to_epoch
-            to_time = dates.max() if ts_to_epoch == None else dates.max() if ts_to_epoch < dates.max() else ts_from_epoch if ts_from_epoch > dates.max() else dates.max()
+            from_time = int(dates.min() if ts_to_epoch == None else dates.min() if ts_to_epoch > dates.min() else ts_to_epoch)
+            to_time = int(dates.max() if ts_to_epoch == None else dates.max() if ts_to_epoch < dates.max() else ts_from_epoch if ts_from_epoch > dates.max() else dates.max())
 
             existing_dates = Filling.__existing_dates__(cursor, key, from_time, to_time)
             date_range = [from_time+(d*ts_timestep) for d in range(0, int((to_time - from_time)/ts_timestep)+1)]

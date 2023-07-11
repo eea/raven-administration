@@ -102,7 +102,7 @@ const onDataClick = () => {};
                       <n-checkbox class="self-center" v-model="s.selected" />
                       <div class="flex flex-col">
                         <div>{{ s.station }}</div>
-                        <div class="text-xs">{{ s.pollutant }} {{ s.timestep }} {{ s.concentration }}</div>
+                        <div class="text-xs">{{ s.pollutant }} {{ s.timestep }} {{ s.concentration }} {{ s.sampling_point_id }}</div>
                       </div>
                     </div>
                   </td>
