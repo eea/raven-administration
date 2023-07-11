@@ -16,7 +16,7 @@ assessmentregimes_endpoint = Blueprint('assessmentregimes', __name__)
 def assessmentregimes():
     with CursorFromPool() as cursor:
         cursor.execute("""
-          WITH data as (
+           WITH data as (
               select
                   true as selected,
                   ad.id as id,
@@ -42,7 +42,6 @@ def assessmentregimes():
               and sp.timestep = t.id
               and sp.concentration = u.id
               and sp.id = ad.assessmentlocal_id
-              and sp.private = false
           )
           SELECT
               case when count(d.sampling_point_id) = 0 then '[]' else json_agg(d) end as data,
@@ -50,7 +49,10 @@ def assessmentregimes():
               ar.id,
               ar.name,
               z.id as zone_id,
-              z.name as zone,
+              CASE
+                 WHEN ar.zoneid is null THEN null
+                 ELSE z.name
+              END AS zone,
               ar.pollutant as pollutant_id,
               po.notation as pollutant,
               ar.objecttype as object_type_id,
@@ -65,15 +67,15 @@ def assessmentregimes():
               ar.thresholdclassificationreport as report,
               ar.include
           FROM
-              zones z,
               eea_pollutants po,
               eea_objecttypes ot,
               eea_reportingmetrics rm,
               eea_protectiontargets pt,
               eea_assessmentthresholdexceedances e,
-              assessmentregimes ar left outer join data d on ar.id = d.assessment_regime_id
+              assessmentregimes ar
+                  left outer join data d on ar.id = d.assessment_regime_id
+                  left outer join zones z on ar.zoneid = z.id
           WHERE 1=1
-          AND ar.zoneid = z.id
           AND ar.pollutant = po.uri
           AND ar.objecttype = ot.id
           AND ar.reportingmetric = rm.id
@@ -98,7 +100,8 @@ def assessmentregimes():
               ar.thresholdclassificationreport ,
               ar.include
           ORDER BY z.name, po.notation, ar.objecttype, ar.reportingmetric, ar.protectiontarget, ar.thresholdclassificationyear
-        """)
+        """
+        )
 
         assessmentregimes = cursor.fetchall()
         return jsonify(assessmentregimes)
@@ -133,7 +136,6 @@ def samplingpoints():
           and sp.pollutant = po.uri
           and sp.timestep = t.id
           and sp.concentration = u.id
-          and sp.private = false
           order by s.name, po.notation, t.label
         """)
 

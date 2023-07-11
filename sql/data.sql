@@ -395,6 +395,10 @@ INSERT INTO public.eea_measurementequipments (id, label, notation) VALUES ('http
 INSERT INTO public.eea_measurementequipments (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/measurementequipment/unknown', 'Unknown', 'Unknown');
 INSERT INTO public.eea_measurementequipments (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/measurementequipment/unor6N', 'Maihak Unor 6N', 'Maihak Unor 6N');
 INSERT INTO public.eea_measurementequipments (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/measurementequipment/ML2040', 'Monitor Labs model 2040 SO2 analyser', 'Monitor Labs model 2040 SO2 analyser');
+INSERT INTO public.eea_measurementequipments (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/measurementequipment/aerisAE2041U', 'Aeris AE2041U', 'aerisAE2041U');
+INSERT INTO public.eea_measurementequipments (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/measurementequipment/aerisAE2030U', 'Aeris AE2030U', 'aerisAE2030U');
+INSERT INTO public.eea_measurementequipments (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/measurementequipment/aerisAE2050U', 'Aeris AE2050U', 'aerisAE2050U');
+INSERT INTO public.eea_measurementequipments (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/measurementequipment/aerisAE2010U', 'Aeris AE2010U', 'aerisAE2010U');
 
 INSERT INTO public.eea_measurementmethods (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/measurementmethod/BETA', 'Beta ray attenuation', 'Beta ray attenuation');
 INSERT INTO public.eea_measurementmethods (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/measurementmethod/CAPS', 'CAPS', 'CAPS');

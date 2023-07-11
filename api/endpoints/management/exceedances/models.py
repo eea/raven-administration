@@ -28,8 +28,6 @@ class ExceedanceModel(BaseModel):
     vegetation_area: Optional[float] = None
     other_reason: Optional[str] = None
     adjustment_source_id: Optional[str] = None
-
-    # data: List[ExceedanceMethodDataModel]
-
+   
     def __getitem__(self, key):
         return super().__getattribute__(key)

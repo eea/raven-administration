@@ -25,14 +25,6 @@ watch(
 const onSave = () => {
   const o = Object.assign({}, obj.value);
   var data = [];
-  // o.data.forEach((p) => {
-  //   var d = Object.assign({}, p);
-  //   if (p.selected) {
-  //     d.exceedance_description_id = obj.value.id;
-  //     data.push(d);
-  //   }
-  // });
-  // o.data = data;
   emit("save", o);
 };
 
@@ -127,7 +119,7 @@ const cmp_optional_properties = computed(() => {
             <div class="flex gap-2">
               <div class="flex flex-col">
                 <div>{{ s.station }}</div>
-                <div class="text-xs">{{ s.pollutant }} {{ s.timestep }} {{ s.concentration }}</div>
+                <div class="text-xs">{{ s.pollutant }} {{ s.timestep }} {{ s.concentration }} {{ s.sampling_point_id }}</div>
               </div>
             </div>
           </td>

@@ -123,11 +123,6 @@ def import_assessmentregime():
         md = Management(cursor, "assessmentdata")
         md.parse_file(request.files["file2"])
 
-        # col_lst = m.df.assessmentdata.values.tolist()
-        # lst = [item for sublist in col_lst for item in ast.literal_eval(sublist)]
-        # md = Management(cursor, "assessmentdata")
-        # md.parse_list(lst)
-
         m.generic_insert()
         md.generic_insert()
         return jsonify({"success": True})
@@ -141,11 +136,5 @@ def import_exceedances():
         m = Management(cursor, "exceedancedescriptions")
         m.parse_file(request.files["file"])
 
-        col_lst = m.df.exceedingmethods.values.tolist()
-        lst = [item for sublist in col_lst for item in ast.literal_eval(sublist)]
-        md = Management(cursor, "exceedingmethods")
-        md.parse_list(lst)
-
         m.generic_insert()
-        md.generic_insert()
         return jsonify({"success": True})
