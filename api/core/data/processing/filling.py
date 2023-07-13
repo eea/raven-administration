@@ -35,8 +35,8 @@ class Filling:
             for m in missing_dates:
                 v = {
                     "sampling_point_id": key,
-                    "begin_position": pd.to_datetime(datetime.fromtimestamp(m-ts_timestep).strftime('%Y-%m-%dT%H:%M:%S')+tz, format="%Y-%m-%dT%H:%M:%S%Z"),
-                    "end_position": pd.to_datetime(datetime.fromtimestamp(m).strftime('%Y-%m-%dT%H:%M:%S')+tz, format="%Y-%m-%dT%H:%M:%S%Z"),
+                    "begin_position": pd.to_datetime(datetime.utcfromtimestamp(m).strftime('%Y-%m-%dT%H:%M:%S')+tz, format="%Y-%m-%dT%H:%M:%S%Z"), 
+                    "end_position": pd.to_datetime(datetime.utcfromtimestamp(m+ts_timestep).strftime('%Y-%m-%dT%H:%M:%S')+tz, format="%Y-%m-%dT%H:%M:%S%Z"),
                     "value": -9900,
                     "verification_flag": 3,
                     "validation_flag": -1,
