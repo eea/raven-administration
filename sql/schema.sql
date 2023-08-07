@@ -793,7 +793,6 @@ create table if not exists exceedancedescriptions
     other_exceedance_reason       varchar(500),
     exceedancedescription_element integer      not null,
     adjustment_source             varchar(255),
-    modelassessmentmetadata       varchar(255),
     constraint exceedancedescriptions_pkey
         primary key (id),
     constraint exceedancedescriptions_adjustmenttype_fkey
@@ -843,23 +842,6 @@ alter table exceedancedescriptions
 alter table exceedancedescriptions
     add constraint if_exceedances_then_surface_area_is_not_null
         check ((NOT exceedances) OR (surface_area IS NOT NULL));
-
-create table if not exists exceedingmethods
-(
-    exceedancedescription_id varchar(100) not null,
-    id                       varchar(100) not null,
-    assessmentdata_id        varchar(100) not null,
-    constraint exceedingmethods_pkey
-        primary key (id),
-    constraint exceedingmethods_unique
-        unique (exceedancedescription_id, assessmentdata_id),
-    constraint exceedingmethods_assessmentdata_id_fkey
-        foreign key (assessmentdata_id) references assessmentdata
-            on update cascade on delete cascade,
-    constraint exceedingmethods_exceedancedescription_id_fkey
-        foreign key (exceedancedescription_id) references exceedancedescriptions
-            on update cascade on delete cascade
-);
 
 create or replace function raven_observations_check_verification() returns trigger
     language plpgsql

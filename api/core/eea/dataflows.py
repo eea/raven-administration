@@ -233,14 +233,47 @@ class Dataflows:
     def get_stations():
         with CursorFromPool() as cursor:
             cursor.execute("""
-                select id,name,begin_position,end_position,
-                    network_id,municipality,eoi_code,national_station_code,
-                    media_monitored,mobile,measurement_regime,
-                    area_classification,distance_junction,
-                    traffic_volume,heavy_duty_fraction,
-                    street_width,height_facades,
-                    ST_X(geom) longitude,ST_Y(geom) latitude, ST_Z(geom) altitude, ST_SRID(geom) epsg
-                from stations
+                SELECT st.id,
+                      st.name,
+                      st.begin_position,
+                      st.end_position,
+                      st.network_id,
+                      st.municipality,
+                      st.eoi_code,
+                      st.national_station_code,
+                      st.media_monitored,
+                      st.mobile,
+                      st.measurement_regime,
+                      st.area_classification,distance_junction,
+                      st.traffic_volume,heavy_duty_fraction,
+                      st.street_width,height_facades,
+                      ST_X(st.geom) longitude,
+                      ST_Y(st.geom) latitude,
+                      ST_Z(st.geom) altitude,
+                      ST_SRID(st.geom) epsg
+                  FROM stations st
+                      LEFT OUTER JOIN sampling_points sp ON st.id = sp.station_id
+                  WHERE 
+                      sp.private = false
+                  GROUP BY
+                      st.id,  
+                      st.name,
+                      st.begin_position,
+                      st.end_position,
+                      st.network_id,
+                      st.municipality,
+                      st.eoi_code,
+                      st.national_station_code,
+                      st.media_monitored,
+                      st.mobile,
+                      st.measurement_regime,
+                      st.area_classification,distance_junction,
+                      st.traffic_volume,heavy_duty_fraction,
+                      st.street_width,height_facades,
+                      ST_X(st.geom),
+                      ST_Y(st.geom),
+                      ST_Z(st.geom),
+                      ST_SRID(st.geom)
               """)
             rows = cursor.fetchall()
             return Dataflows.map_list_of_dict(rows, Station)
@@ -383,7 +416,6 @@ class Dataflows:
                   ex.area_classification, 
                   ex.exceedancedescription_element,
                   er.exceedance_reason, 
-                            ex.modelassessmentmetadata,
                   ex.other_exceedance_reason FROM
                       (
                     SELECT 
@@ -401,7 +433,6 @@ class Dataflows:
                                 e.area_classification, 
                                 e.exceedance_reason,
                                 e.other_exceedance_reason, 
-                                e.modelassessmentmetadata,
                                 ex.id as exceedancedescription_element_id,
                       ex.name as exceedancedescription_element
                     FROM exceedancedescriptions e, attainments at, assessmentregimes a, eea_exceedancetype et, eea_exceedancedescription ex
@@ -423,14 +454,18 @@ class Dataflows:
     def get_exceedingmethods():
         with CursorFromPool() as cursor:
             cursor.execute("""
-                SELECT 
-                  e.exceedancedescription_id, 
-                ad.assessmentlocal_id
-                FROM exceedingmethods e, assessmentdata ad, assessmentregimes a
-                WHERE a.include = true
-                AND e.assessmentdata_id = ad.id
-                AND ad.assessmentregime_id = a.id
-              """)
+                SELECT ed.id as exceedancedescription_id, ass.assessmentlocal_id
+                FROM exceedancedescriptions ed,
+                  attainments at,
+                  assessmentregimes ar,
+                  assessmentdata ass
+              WHERE 1=1
+                AND ar.include = true
+                AND ed.attainment_id = at.id
+                AND at.assessmentregime_id = ar.id
+                AND ass.assessmentregime_id = ar.id
+              """
+              )
             rows = cursor.fetchall()
             return Dataflows.map_list_of_dict(rows, Exceedingmethod)
 

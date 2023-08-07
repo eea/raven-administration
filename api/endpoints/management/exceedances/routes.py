@@ -5,9 +5,7 @@ from endpoints.management.exceedances.models import ExceedanceModel
 from core.query import Q, DeleteModel
 from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
-
 exceedances_endpoint = Blueprint('exceedances', __name__)
-
 
 @exceedances_endpoint.route('/api/management/exceedances', methods=['GET'])
 @jwt_required_with_management_claim()
@@ -15,7 +13,7 @@ exceedances_endpoint = Blueprint('exceedances', __name__)
 def exceedances():
     with CursorFromPool() as cursor:
         cursor.execute("""
-          WITH data as (
+            WITH data as (
               SELECT ed.id as exceedance_description_id
               FROM
                 assessmentdata ad,
@@ -27,7 +25,7 @@ def exceedances():
               AND ar.id = at.assessmentregime_id
               AND at.id = ed.attainment_id
           )
-          SELECT              
+          SELECT
               count(m.exceedance_description_id) spo_count,
               ed.id,
               ed.exceedances as has_exceedance,
@@ -37,7 +35,6 @@ def exceedances():
               ed.population_reference_year as population_year,
               ed.vegetation_area,
               ed.other_exceedance_reason as other_reason,
-              ed.modelassessmentmetadata as model_assessment_metadata,
               a.id as attainment_id,
               a.name as attainment,
               et.id::varchar as exceedance_type_id,
@@ -56,19 +53,16 @@ def exceedances():
               attainments a,
               eea_exceedancetype et,
               eea_exceedancedescription ee,
-              eea_adjustmenttypes at,
-              eea_areaclassifications ac,
-              eea_exceedancereason er,
               exceedancedescriptions ed
                 LEFT OUTER JOIN data m ON ed.id = m.exceedance_description_id
                 LEFT OUTER JOIN eea_adjustmentsourcetype es ON ed.adjustment_source = es.id
+                LEFT OUTER JOIN eea_adjustmenttypes at ON ed.adjustment_type = at.id
+                LEFT OUTER JOIN eea_areaclassifications ac ON ed.area_classification = ac.id
+                LEFT OUTER JOIN eea_exceedancereason er ON ed.exceedance_reason = er.id
           WHERE 1=1
           AND ed.attainment_id =  a.id
           AND ed.excedance_type =  et.id
           AND ed.exceedancedescription_element = ee.id
-          AND ed.adjustment_type = at.id
-          AND ed.area_classification = ac.id
-          AND ed.exceedance_reason = er.id 
           GROUP BY
               ed.id,
               ed.exceedances,
@@ -78,26 +72,25 @@ def exceedances():
               ed.population_reference_year,
               ed.vegetation_area,
               ed.other_exceedance_reason,
-              ed.modelassessmentmetadata,
               a.id ,
               a.name,
-              et.id::varchar ,
-              et.name ,
-              ee.id::varchar ,
-              ee.name ,
+              et.id::varchar,
+              et.name,
+              ee.id::varchar,
+              ee.name,
               ed.adjustment_type,
               at.label ,
               ed.area_classification,
               ac.notation,
-              ed.exceedance_reason ,
+              ed.exceedance_reason,
               er.label,
-              ed.adjustment_source ,
+              ed.adjustment_source,
               es.label
           ORDER BY a.name
         """)
 
-        assessmentregimes = cursor.fetchall()
-        return jsonify(assessmentregimes)
+        exceedances = cursor.fetchall()
+        return jsonify(exceedances)
 
 
 @exceedances_endpoint.route('/api/management/exceedances/samplingpoints', methods=['GET'])
@@ -109,6 +102,7 @@ def samplingpoints():
           select
               at.id as attainment_id,
               s.name as station,
+              sp.id as sampling_point_id,
               po.notation as pollutant,
               t.label as timestep,
               u.notation as concentration,
@@ -130,12 +124,11 @@ def samplingpoints():
           and sp.id = ad.assessmentlocal_id
           and ad.assessmentregime_id = ar.id
           and at.assessmentregime_id = ar.id
-          and sp.private = false
           order by ar.name, s.name, po.notation, t.label
         """)
 
-        assessmentregimes = cursor.fetchall()
-        return jsonify(assessmentregimes)
+        samplingpoints = cursor.fetchall()
+        return jsonify(samplingpoints)
 
 
 @exceedances_endpoint.route('/api/management/exceedances/update', methods=['POST'])

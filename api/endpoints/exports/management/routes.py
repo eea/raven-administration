@@ -110,23 +110,6 @@ def import_attainments():
 @jwt_required_with_allnetworks_claim()
 def import_assessmentregime():
     with CursorFromPool() as cursor:
-        # sql = """
-        #   select ar.* --, json_agg(ad.*) as assessmentdata
-        #   from assessmentregimes ar, assessmentdata ad
-        #   where ar.id = ad.assessmentregime_id
-        #   group by
-        #     ar.id,
-        #     ar.name,
-        #     ar.zoneid,
-        #     ar.pollutant,
-        #     ar.objecttype,
-        #     ar.reportingmetric,
-        #     ar.protectiontarget,
-        #     ar.assessmentthresholdexceedance,
-        #     ar.include,
-        #     ar.thresholdclassificationyear,
-        #     ar.thresholdclassificationreport
-        # """
 
         m = Management(cursor, "assessmentregime")
         m.sql_select("select * from assessmentregimes")
@@ -141,8 +124,6 @@ def import_assessmentregime():
 
         zip_buffer.seek(0)
         return U.zip_response(zip_buffer, "assessmentregimes.zip")
-        # m.df.to_csv(index=False, quoting=csv.QUOTE_ALL)
-        # return U.dataframe_to_csv_response(m.df, "assessmentregime.csv")
 
 
 @export_management_endpoint.route("/api/exports/exceedances", methods=["POST"])
@@ -150,25 +131,29 @@ def import_assessmentregime():
 @jwt_required_with_allnetworks_claim()
 def import_exceedances():
     with CursorFromPool() as cursor:
-        m = Management(cursor, "exceedances")
-        sql = """
-          select ed.*, json_agg(em.*) as exceedingmethods
-          from exceedancedescriptions ed, exceedingmethods em
-          where ed.id = em.exceedancedescription_id
-          group by
-              ed.id,
-              ed.exceedances,
-              ed.max_value,
-              ed.surface_area,
-              ed.exposed_population,
-              ed.population_reference_year,
-              ed.vegetation_area,
-              ed.other_exceedance_reason,
-              ed.modelassessmentmetadata,
-              ed.adjustment_type,
-              ed.area_classification,
-              ed.exceedance_reason ,
-              ed.adjustment_source
-        """
-        m.sql_select(sql)
-        return U.dataframe_to_csv_response(m.df, "exceedances.csv")
+      
+        m = Management(cursor, "exceedancedescriptions")
+        m.sql_select("select * from exceedancedescriptions")
+
+        md = Management(cursor, "exceedingmethods")
+        md.sql_select(
+          """
+            SELECT ass.*
+              FROM exceedancedescriptions ed,
+                attainments at,
+                assessmentregimes ar,
+                assessmentdata ass
+              WHERE 1=1
+                AND ed.attainment_id = at.id
+                AND at.assessmentregime_id = ar.id
+                AND ass.assessmentregime_id = ar.id
+          """
+        )
+        
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+              zip_file.writestr("exceedancedescriptions.csv", m.df.to_csv(index=False, quoting=csv.QUOTE_ALL))
+              zip_file.writestr("exceedingmethods.csv", md.df.to_csv(index=False, quoting=csv.QUOTE_ALL))
+
+        zip_buffer.seek(0)
+        return U.zip_response(zip_buffer, "exceedancedescriptions.zip")
