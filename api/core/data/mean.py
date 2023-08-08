@@ -133,15 +133,15 @@ class Mean:
         sql = """
             SELECT
                 to_char (o.to_time, 'YYYY-MM-DD HH24:MI:SS') as "datetime", 
-                o.sampling_point_id as "sampling_point_id",
                 CASE
                     WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) 
                     THEN  ROUND(o.value,%(fraction)s)::double PRECISION
                     ELSE NULL
                 END as "value",
-                0 "meantype",                    
-                1 as "count",
-                100 as "coverage"
+                100 as "coverage",                   
+                1 as "cnt",                 
+                o.sampling_point_id as "sampling_point_id",   
+                0 "meantype"             
             FROM
                 observations o
             WHERE 1=1

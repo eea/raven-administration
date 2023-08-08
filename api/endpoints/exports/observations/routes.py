@@ -19,4 +19,5 @@ def historical():
         sampling_point_ids = Q.sampling_point_ids_by_networks_access(m.sampling_point_ids)
         meanvalues = Mean.Aggregate(cursor, MeanType(m.meantype), sampling_point_ids, m.from_dt, m.to_dt, m.coverage, 3, 3, True)
         df = pd.DataFrame.from_records(meanvalues)
-        return U.dataframe_to_csv_response(df, "observations.csv")
+        df_sorted = df.sort_values(["sampling_point_id", "datetime"])
+        return U.dataframe_to_csv_response(df_sorted, "observations.csv")
