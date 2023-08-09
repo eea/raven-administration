@@ -77,7 +77,8 @@ class Dataflows:
     def get_dataflowE2A(last_request: str):
         schema = Dataflows.get_schema()
         observations = Dataflows.get_observations_e2a(last_request)
-
+        if len(observations) == 0:
+            raise Exception("No data available to create xml")
         reporter = Dataflows.get_responsible_reporter_simple()
         reporter.change = True
         reporter.begin = min([x.min_end_position for x in observations])
@@ -465,7 +466,7 @@ class Dataflows:
                 AND at.assessmentregime_id = ar.id
                 AND ass.assessmentregime_id = ar.id
               """
-              )
+                           )
             rows = cursor.fetchall()
             return Dataflows.map_list_of_dict(rows, Exceedingmethod)
 
