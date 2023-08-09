@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List
 
 
 class InsertModel(BaseModel):
@@ -6,13 +7,6 @@ class InsertModel(BaseModel):
     max: float
     rep: int
     pollutant_id: str
-
-    def __getitem__(self, key):
-        return super().__getattribute__(key)
-
-
-class DeleteModel(BaseModel):
-    id: int
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
