@@ -56,9 +56,9 @@ class Mean:
     Params = None
 
     @staticmethod
-    def Aggregate(cursor: any, meanType: MeanType, ids: tuple, fromTime: str, toTime: str, coverage: int = 75, verificationFlag: int = 3, fraction: int = 10, addMetadata: bool = False):
+    def Aggregate(cursor: any, meanType: MeanType, ids: tuple, fromTime: str, toTime: str, coverage: int = 75, verificationFlag: int = 3, fraction: int = 10, addMetadata: bool = False, useInvalidValues: bool = True):
         sql = ""
-        params = {"ids": ids, "fromTime": fromTime, "toTime": toTime, "verificationFlag": verificationFlag, "coverage": coverage, "fraction": fraction}
+        params = {"ids": ids, "fromTime": fromTime, "toTime": toTime, "verificationFlag": verificationFlag, "coverage": coverage, "fraction": fraction, "useInvalidValues": useInvalidValues}
 
         if meanType == MeanType.Original:
             sql = Mean.Original()
@@ -134,7 +134,7 @@ class Mean:
             SELECT
                 to_char (o.to_time, 'YYYY-MM-DD HH24:MI:SS') as "datetime", 
                 CASE
-                    WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) 
+                    WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s)
                     THEN  ROUND(o.value,%(fraction)s)::double PRECISION
                     ELSE NULL
                 END as "value",
@@ -159,7 +159,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) THEN  o.value
+                        WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -206,7 +206,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) THEN  o.value
+                        WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -253,7 +253,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) THEN  o.value
+                        WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -298,7 +298,7 @@ class Mean:
                     SELECT 
                         o.from_time, o.to_time, o.sampling_point_id,
                         CASE 
-                            WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) THEN  o.value
+                            WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s) THEN  o.value
                             ELSE NULL 
                         END val
                     FROM
@@ -351,7 +351,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) THEN  o.value
+                        WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -402,7 +402,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) THEN  o.value
+                        WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -447,7 +447,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) THEN  o.value
+                        WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -494,7 +494,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) THEN  o.value
+                        WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -549,7 +549,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) THEN  o.value
+                        WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -630,7 +630,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) THEN  o.value
+                        WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -717,7 +717,7 @@ class Mean:
                     END from_time,
                     o.sampling_point_id,
                     CASE 
-                        WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) THEN  o.value
+                        WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -774,7 +774,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) THEN  o.value
+                        WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -829,7 +829,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.verification_flag <= %(verificationFlag)s AND o.validation_flag in (1,2,3) THEN  o.value
+                        WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM

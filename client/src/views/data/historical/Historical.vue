@@ -24,6 +24,8 @@ const meantype = ref("0");
 const coverage = ref(75);
 const plotType = ref("line");
 const beginAtZero = ref(false);
+const verifiedOnly = ref(false);
+const useInvalidValues = ref(false);
 
 const showPlot = ref(false);
 
@@ -54,7 +56,9 @@ const plotData = async () => {
     from_dt: fromtime.value,
     to_dt: totime.value,
     meantype: meantype.value,
-    coverage: coverage.value
+    coverage: coverage.value,
+    verifiedOnly: verifiedOnly.value,
+    useInvalidValues: useInvalidValues.value
   });
   var axes = getAxes(meanvalues);
   let config = Plot.config(axes, beginAtZero.value);
@@ -72,7 +76,9 @@ const onDownload = async () => {
     from_dt: fromtime.value,
     to_dt: totime.value,
     meantype: meantype.value,
-    coverage: coverage.value
+    coverage: coverage.value,
+    verifiedOnly: verifiedOnly.value,
+    useInvalidValues: useInvalidValues.value
   });
   Eventy.hideMessage();
 };
@@ -197,9 +203,19 @@ const cmp_timeseries = computed(() => {
         </div>
       </div>
 
-      <div class="flex gap-2">
-        <label class="self-center cursor-pointer font-bold" @click="beginAtZero = !beginAtZero">Start Y-axis at zero:</label>
-        <n-checkbox class="self-center" v-model="beginAtZero" />
+      <div class="flex gap-6 bg-white border border-nord4 rounded p-2 self-start">
+        <div class="flex gap-2">
+          <label class="self-center cursor-pointer font-bold" @click="beginAtZero = !beginAtZero">Start Y-axis at zero:</label>
+          <n-checkbox class="self-center" v-model="beginAtZero" />
+        </div>
+        <div class="flex gap-2">
+          <label class="self-center cursor-pointer font-bold" @click="useInvalidValues = !useInvalidValues">Include invalid values:</label>
+          <n-checkbox class="self-center" v-model="useInvalidValues" />
+        </div>
+        <div class="flex gap-2">
+          <label class="self-center cursor-pointer font-bold" @click="verifiedOnly = !verifiedOnly">Use only verified values:</label>
+          <n-checkbox class="self-center" v-model="verifiedOnly" />
+        </div>
       </div>
 
       <div>

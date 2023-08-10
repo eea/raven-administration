@@ -9,6 +9,8 @@ class HistoricalModel(BaseModel):
     to_dt: datetime
     meantype: int
     coverage: int
+    verifiedOnly: bool
+    useInvalidValues: bool
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
