@@ -16,7 +16,7 @@ def historical():
     with CursorFromPool() as cursor:
         m = HistoricalModel(**request.json)
         sampling_point_ids = Q.sampling_point_ids_by_networks_access(m.sampling_point_ids)
-        meanvalues = Mean.Aggregate(cursor, MeanType(m.meantype), sampling_point_ids, m.from_dt, m.to_dt, m.coverage, 3, 3, True)
+        meanvalues = Mean.Aggregate(cursor, MeanType(m.meantype), sampling_point_ids, m.from_dt, m.to_dt, m.coverage, 1 if m.verifiedOnly else 3, 3, True, m.useInvalidValues)
         return jsonify(meanvalues)
 
 
