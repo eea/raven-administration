@@ -120,7 +120,7 @@ class Importing:
             )
         """
 
-        #tic = time.perf_counter()
+        # tic = time.perf_counter()
         d = Importing.__data2io__(df_values)
         cols = ('sampling_point_id', 'begin_position', 'end_position', 'value', 'verification_flag', 'validation_flag', 'import_value', 'scaled_value')
         cursor.execute('CREATE TEMP TABLE source(sampling_point_id varchar(100), begin_position varchar(25), end_position varchar(25),value numeric(255,5), verification_flag integer,validation_flag integer, import_value numeric(255,5), scaled_value numeric(255,5)) ON COMMIT DROP;')
@@ -135,6 +135,6 @@ class Importing:
         data = df_values.to_dict("records")
         si = io.StringIO()
         for row in data:
-            si.write(f"{row['sampling_point_id']}\t{row['begin_position']}\t{row['end_position']}\t{row['value']}\t{row['verification_flag']}\t{row['validation_flag']}\t{row['import_value']}\t{row['scaled_value']}\n")
+            si.write(f"{row['sampling_point_id']}\t{row['begin_position'].isoformat()}\t{row['end_position'].isoformat()}\t{row['value']}\t{row['verification_flag']}\t{row['validation_flag']}\t{row['import_value']}\t{row['scaled_value']}\n")
         si.seek(0)
         return si
