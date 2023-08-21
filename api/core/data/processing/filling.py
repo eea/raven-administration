@@ -21,8 +21,7 @@ class Filling:
                 continue
 
             scaled_value = -9900 if values.scaled_value.iloc[0] != None else None
-            tz = values.end_position.iloc[0].strftime('%z')
-            tz = "{0}:{1}".format(tz[:-2], tz[-2:])
+            tz = values.end_position.iloc[0].tz
             dates = values.end_position.apply(lambda x: x.timestamp()).unique()
             from_time = int(dates.min() if ts_to_epoch == None else dates.min() if ts_to_epoch > dates.min() else ts_to_epoch)
             to_time = int(dates.max() if ts_to_epoch == None else dates.max() if ts_to_epoch < dates.max() else ts_from_epoch if ts_from_epoch > dates.max() else dates.max())
@@ -35,8 +34,8 @@ class Filling:
             for m in missing_dates:
                 v = {
                     "sampling_point_id": key,
-                    "begin_position": pd.to_datetime(datetime.utcfromtimestamp(m).strftime('%Y-%m-%dT%H:%M:%S')+tz, format="%Y-%m-%dT%H:%M:%S%Z"), 
-                    "end_position": pd.to_datetime(datetime.utcfromtimestamp(m+ts_timestep).strftime('%Y-%m-%dT%H:%M:%S')+tz, format="%Y-%m-%dT%H:%M:%S%Z"),
+                    "begin_position": pd.to_datetime(datetime.fromtimestamp(m-ts_timestep, tz=tz)),
+                    "end_position": pd.to_datetime(datetime.fromtimestamp(m, tz=tz)),
                     "value": -9900,
                     "verification_flag": 3,
                     "validation_flag": -1,

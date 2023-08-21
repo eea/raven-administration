@@ -106,4 +106,4 @@ export const filterList = (q, list, exclude_list) => {
   });
 };
 
-export const version = "3.0.5";
+export const version = "3.0.7";
