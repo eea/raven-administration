@@ -56,7 +56,7 @@ class Mean:
     Params = None
 
     @staticmethod
-    def Aggregate(cursor: any, meanType: MeanType, ids: tuple, fromTime: str, toTime: str, coverage: int = 75, verificationFlag: int = 3, fraction: int = 10, addMetadata: bool = False, useInvalidValues: bool = True):
+    def Aggregate(cursor: any, meanType: MeanType, ids: tuple, fromTime: str, toTime: str, coverage: int = 75, verificationFlag: int = 3, fraction: int = 10, addMetadata: bool = False, useInvalidValues: bool = False):
         sql = ""
         params = {"ids": ids, "fromTime": fromTime, "toTime": toTime, "verificationFlag": verificationFlag, "coverage": coverage, "fraction": fraction, "useInvalidValues": useInvalidValues}
 
