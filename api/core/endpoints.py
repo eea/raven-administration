@@ -90,3 +90,7 @@ class Endpoints:
 
         from endpoints.exports.observations.routes import export_observations_endpoint
         app.register_blueprint(export_observations_endpoint)
+
+        # VERSION
+        from endpoints.version.routes import version_endpoint
+        app.register_blueprint(version_endpoint)

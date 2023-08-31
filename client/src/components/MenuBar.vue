@@ -2,11 +2,13 @@
 import { useRouter } from "vue-router";
 import Auth from "../helpers/auth";
 import IconLogout from "~icons/ic/outline-logout";
-import { version } from "../helpers/utils";
+import IconNewVersion from "~icons/material-symbols/download-for-offline-rounded";
 import jwt_decode from "jwt-decode";
+import Version from "../helpers/version";
 
 const router = useRouter();
 const modules = ref([]);
+const version = ref("");
 
 const props = defineProps({
   show: Boolean
@@ -17,8 +19,9 @@ watch(
   () => (modules.value = getmodules())
 );
 
-onMounted(() => {
+onMounted(async () => {
   modules.value = getmodules();
+  version.value = await Version.get();
 });
 
 const getmodules = () => {
@@ -91,8 +94,6 @@ const signout = async () => {
   Auth.signout();
   router.push({ name: "Login" });
 };
-
-const cmp_version = computed(() => version);
 </script>
 
 <template>
@@ -106,7 +107,10 @@ const cmp_version = computed(() => version);
       </div>
     </div>
     <div class="">
-      <div class="px-1 text-xs font-bold border-b">v.{{ cmp_version }}</div>
+      <div class="flex px-1 text-xs font-bold border-b gap-1">
+        <icon-new-version class="self-center text-nord11 hover:text-nord12" v-if="!version.isLatest" />
+        <div class="self-center">v.{{ version.current }}</div>
+      </div>
       <div class="flex py-2 px-2 hover:cursor-pointer hover:bg-nord8/20 hover:text-nord10" @click="signout">
         <icon-logout class="self-center" />
         <div class="self-center ml-1">Sign out</div>
