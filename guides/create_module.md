@@ -73,7 +73,7 @@ onMounted(async () => {
   const stations = await Service.get();
   var layers = [];
   stations.forEach((station) => {
-    layers.push(marker([station.lon, station.lat]).bindPopup("<b>" + station.name + "</b>"));
+    layers.push(marker([station.lat, station.lon]).bindPopup("<b>" + station.name + "</b>"));
   });
 
   var group = featureGroup(layers);
