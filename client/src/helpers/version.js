@@ -17,7 +17,7 @@ const Version = {
   },
   async get() {
     try {
-      var result = await Get("api/version");
+      var result = await Get("/api/version");
       var compared = Version.compare(result.latest, result.current);
       return { current: result.current, isLatest: compared != 1 };
     } catch (error) {
