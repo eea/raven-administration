@@ -66,6 +66,9 @@ class Endpoints:
         from endpoints.data.dataflow.routes import dataflow_endpoint
         app.register_blueprint(dataflow_endpoint)
 
+        from endpoints.data.map.routes import map_endpoint
+        app.register_blueprint(map_endpoint)
+
         # QUALITY CONTROL
         from endpoints.qualitycontrol.validate.routes import validate_endpoint
         app.register_blueprint(validate_endpoint)

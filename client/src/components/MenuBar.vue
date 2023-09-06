@@ -53,7 +53,8 @@ const getmodules = () => {
       items: [
         { name: "Latest data", comp: "Latest", show: jwt.data },
         { name: "Historical data", comp: "Historical", show: jwt.data },
-        { name: "Dataflow", comp: "Dataflow", show: jwt.exporting }
+        { name: "Dataflow", comp: "Dataflow", show: jwt.exporting },
+        { name: "Map", comp: "Map", show: jwt.data }
       ]
     },
     {

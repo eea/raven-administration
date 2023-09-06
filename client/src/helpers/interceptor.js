@@ -21,9 +21,8 @@ const Interceptor = {
       },
       (error) => {
         if (401 === error.response.status) {
-          console.log("iiik", error);
-          // Auth.signout();
-          // window.location.href = "/login";
+          Auth.signout();
+          window.location.href = "/login";
         } else if (403 === error.response.status) {
           window.location.href = "/forbidden";
         } else if (404 === error.response.status && !error.response.request.responseURL.toLowerCase().includes("api")) {

@@ -20,6 +20,7 @@ const Settings = () => import("./views/management/settings/Settings.vue");
 const Latest = () => import("./views/data/latest/Latest.vue");
 const Historical = () => import("./views/data/historical/Historical.vue");
 const Dataflow = () => import("./views/data/dataflow/Dataflow.vue");
+const Map = () => import("./views/data/map/Map.vue");
 
 const Import = () => import("./views/processing/import/Import.vue");
 const Calculate = () => import("./views/processing/calculate/Calculate.vue");
@@ -56,6 +57,7 @@ const routes = [
   { path: "/data/latest", component: Latest, name: "Latest" },
   { path: "/data/historical", component: Historical, name: "Historical" },
   { path: "/data/dataflow", component: Dataflow, name: "Dataflow" },
+  { path: "/data/map", component: Map, name: "Map" },
 
   { path: "/processing/import", component: Import, name: "Import" },
   { path: "/processing/calculate", component: Calculate, name: "Calculate" },
