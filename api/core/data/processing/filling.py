@@ -13,6 +13,9 @@ class Filling:
         missing_values = []
         timeseries = df_values.groupby("sampling_point_id")
         for key, values in timeseries:
+            scaled_value = -9900 if values.scaled_value.iloc[0] != None else None
+            tz = values.end_position.iloc[0].tz
+
             ts_from_epoch = values.ts_from_epoch.iloc[0] if pd.notna(values.ts_from_epoch.iloc[0]) else None
             ts_to_epoch = values.ts_to_epoch.iloc[0] if pd.notna(values.ts_to_epoch.iloc[0]) else None
             ts_timestep = values.ts_timestep.iloc[0]
@@ -20,22 +23,20 @@ class Filling:
             if ts_timestep == -1:
                 continue
 
-            scaled_value = -9900 if values.scaled_value.iloc[0] != None else None
-            tz = values.end_position.iloc[0].tz
-            dates = values.end_position.apply(lambda x: x.timestamp()).unique()
+            dates = values.end_position.apply(lambda x: x.timestamp()+tz._offset.seconds).unique()
             from_time = int(dates.min() if ts_to_epoch == None else dates.min() if ts_to_epoch > dates.min() else ts_to_epoch)
             to_time = int(dates.max() if ts_to_epoch == None else dates.max() if ts_to_epoch < dates.max() else ts_from_epoch if ts_from_epoch > dates.max() else dates.max())
 
             existing_dates = Filling.__existing_dates__(cursor, key, from_time, to_time)
-            date_range = [from_time+(d*ts_timestep) for d in range(0, int((to_time - from_time)/ts_timestep)+1)]
+            date_range = [from_time+(d*ts_timestep) for d in range(1, int((to_time - from_time)/ts_timestep)+1)]
             dates_not_in_db = list(set(date_range) - set(existing_dates))
             missing_dates = list(set(dates_not_in_db) - set(dates))
 
             for m in missing_dates:
                 v = {
                     "sampling_point_id": key,
-                    "begin_position": pd.to_datetime(datetime.fromtimestamp(m-ts_timestep, tz=tz)),
-                    "end_position": pd.to_datetime(datetime.fromtimestamp(m, tz=tz)),
+                    "begin_position": pd.to_datetime(datetime.fromtimestamp(m-ts_timestep-tz._offset.seconds, tz=tz)),  # pd.to_datetime(datetime.fromtimestamp(m-ts_timestep, tz=tz)),
+                    "end_position": pd.to_datetime(datetime.fromtimestamp(m-tz._offset.seconds, tz=tz)),
                     "value": -9900,
                     "verification_flag": 3,
                     "validation_flag": -1,
@@ -61,11 +62,11 @@ class Filling:
 
     def __existing_dates__(cursor: any, sampling_point_id, epoch_from, epoch_to):
         sql = """
-            select extract(epoch from from_time) as begin_position
+            select extract(epoch from to_time) as end_position
             from observations o
             where o.sampling_point_id = %(sp)s
             and  extract(epoch from o.from_time) >= %(epoch_from)s
             and  extract(epoch from o.from_time) <= %(epoch_to)s  
         """
         cursor.execute(sql, {"sp": sampling_point_id, "epoch_from": epoch_from, "epoch_to": epoch_to})
-        return list(map(lambda x: x["begin_position"], cursor.fetchall()))
+        return list(map(lambda x: x["end_position"], cursor.fetchall()))
