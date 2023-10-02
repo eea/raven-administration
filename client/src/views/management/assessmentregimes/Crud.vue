@@ -86,6 +86,7 @@ const onDataClick = () => {};
             <div v-else-if="p.type == 'lookup'">
               <div class="font-bold">{{ p.label }}:</div>
               <n-select v-model="obj[p.prop_id]" class="!w-[40rem]" @change="onPollutantChange">
+                <n-option v-if="p.prop_id == 'zone_id'" value="" label="No zone" />
                 <n-option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value" :label="p.label" />
               </n-select>
             </div>
