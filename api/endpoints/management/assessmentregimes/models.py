@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List
+from typing import Optional
 
 
 class AssessmentRegimeDataModel(BaseModel):
@@ -21,7 +22,7 @@ class AssessmentRegimeModel(BaseModel):
     include: bool
     year: int
     report: str
-    zone_id: str
+    zone_id: Optional[str] = None
     pollutant_id: str
     exceedance_id: str
     data: List[AssessmentRegimeDataModel]
