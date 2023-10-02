@@ -37,7 +37,7 @@ class Exceedancedescription:
 
         # Exceedances
         (ET.SubElement(exceedanceDescription_subelm, "{" + Namespaces.aqd + "}exceedance")).text = str(self.exceedances).lower()
-        (ET.SubElement(exceedanceDescription_subelm, "{" + Namespaces.aqd + "}" + self.excedance_type)).text = str(self.max_value)
+        (ET.SubElement(exceedanceDescription_subelm, "{" + Namespaces.aqd + "}" + self.excedance_type)).text = str(int(self.max_value)) if self.excedance_type == 'numberExceedances' else str(self.max_value)
 
         if self.exceedancedescription_element == "Adjustment":
             deductionAssessmentMethod_elm = ET.SubElement(exceedanceDescription_subelm, "{" + Namespaces.aqd + "}deductionAssessmentMethod")

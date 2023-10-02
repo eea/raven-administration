@@ -11,7 +11,7 @@ const pageOptions = (lookups) => ({
     { type: "lookup", label: "Adjustment type", prop_id: "adjustment_type_id", prop: "adjustment_type", required: true, lookup: "adjustment_types", default: null, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Reason", prop_id: "reason_id", prop: "reason", required: true, lookup: "reasons", default: null, enableInEdit: true, showInGrid: true },
 
-    { type: "number", label: "Value", prop: "exceedance_value", placeholder: "float: The highest exceedance", required: true, default: null, enableInEdit: true, showInGrid: true },
+    { type: "number", label: "Value", prop: "exceedance_value", placeholder: "int if type numberExceednace else float", required: true, default: null, enableInEdit: true, showInGrid: true },
 
     { type: "checkbox", label: "Has exceedance", prop: "has_exceedance", required: true, default: false, enableInEdit: true, showInGrid: true },
 
