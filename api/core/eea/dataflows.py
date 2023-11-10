@@ -253,9 +253,6 @@ class Dataflows:
                       ST_Z(st.geom) altitude,
                       ST_SRID(st.geom) epsg
                   FROM stations st
-                      LEFT OUTER JOIN sampling_points sp ON st.id = sp.station_id
-                  WHERE 
-                      sp.private = false
                   GROUP BY
                       st.id,  
                       st.name,
