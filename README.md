@@ -28,9 +28,11 @@ git clone https://git.nilu.no/raven/raven-administration
 
 ## Set environment varables
 
-**Create a file called `.env` in the `api` folder and set the variables**
+**Create a file called `.env` in the `root` folder and set the variables**
 
 ```
+API_PORT=5000
+CLIENT_PORT=80
 DB_URI = postgresql://postgres:password@host:5432/database
 JWT_ACCESS_TOKEN_EXPIRES_SECONDS = 3600
 JWT_SECRET_KEY = make-up-a-secure-key
@@ -89,4 +91,20 @@ flask run
 
 # from inside the client folder start the frontend
 npm run dev
+```
+
+## Pre aggregations
+
+Aggregating data can be triggered manually in the raven app.  
+However, it is recommended to set up a schedule to trigger the aggregation on a daily basis.  
+The sql command that needs to run is `select raven_refresh_aggregates()`  
+One ways is to use the postgres extension `pgagent`. This will enable a schedular within postgres.  
+Another way is to set up a `cron` job in linux or a `schtasks` in windows
+
+The `cron` folder has a python script that can be used together with a schedular.  
+It does require `psycopg2-binary==2.9.5`, so make sure this is available for the scheduled task.
+
+```powershell
+# Example of how to set up a scheduled task in Windows
+schtasks /create /SC DAILY /TN raven-refresh-views /TR "<path_to_python> <path_to_raven>\cron\refresh_views.py" /ST 00:10
 ```

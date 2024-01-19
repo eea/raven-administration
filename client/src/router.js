@@ -16,6 +16,7 @@ const AssessmentRegimes = () => import("./views/management/assessmentregimes/Ass
 const Attainments = () => import("./views/management/attainments/Attainments.vue");
 const Exceedances = () => import("./views/management/exceedances/Exceedances.vue");
 const Settings = () => import("./views/management/settings/Settings.vue");
+const PreAggregation = () => import("./views/management/preaggregation/PreAggregation.vue");
 
 const Latest = () => import("./views/data/latest/Latest.vue");
 const Historical = () => import("./views/data/historical/Historical.vue");
@@ -53,6 +54,7 @@ const routes = [
   { path: "/management/attainments", component: Attainments, name: "Attainments" },
   { path: "/management/exceedances", component: Exceedances, name: "Exceedances" },
   { path: "/management/settings", component: Settings, name: "Settings" },
+  { path: "/management/preaggregation", component: PreAggregation, name: "PreAggregation" },
 
   { path: "/data/latest", component: Latest, name: "Latest" },
   { path: "/data/historical", component: Historical, name: "Historical" },
