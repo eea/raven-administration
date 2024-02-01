@@ -57,7 +57,7 @@ Change the api port if needed
 
 ### Install and build api
 
-Inside the `api`folder, create a virtual environment, activate it and istall packages
+Inside the `api`folder, create a virtual environment, activate it and install packages
 
 ```powershell
 python -m venv venv
