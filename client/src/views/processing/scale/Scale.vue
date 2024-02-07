@@ -87,6 +87,7 @@ const onShowAdd = () => {
 
 const onSaveAdd = async (o) => {
   Eventy.showMessage("Inserting scaling point. Please wait", "loading");
+  console.log("onSaveAdd", o);
   await Service.insert(o);
   await onShowScalingpoints();
   Eventy.showHideMessage("Scaling point added", "success", 5000);
