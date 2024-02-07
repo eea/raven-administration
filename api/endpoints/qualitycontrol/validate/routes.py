@@ -26,7 +26,7 @@ def timevalues():
               o.sampling_point_id as "sampling_point_id",
               o.validation_flag,
               o.verification_flag,
-              o.value::double PRECISION
+              case when o.value = -9900 then null else o.value::double PRECISION end as "value"
             FROM observations o
             WHERE 1=1
             AND o.from_time >= %(from_dt)s
