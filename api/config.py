@@ -4,7 +4,13 @@ from datetime import datetime
 from datetime import timedelta
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-load_dotenv(os.path.join(basedir, '../.env'))
+
+env_in_api = os.path.isfile(os.path.join(basedir, '.env'))
+env_in_root = os.path.isfile(os.path.join(basedir, '../.env'))
+path = os.path.join(basedir, '.env') if env_in_api else os.path.join(basedir, '../.env')
+
+
+load_dotenv(path)
 
 
 class Config(object):
