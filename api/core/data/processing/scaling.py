@@ -98,7 +98,7 @@ class Scaling:
               o.validation_flag, 
               o.import_value::DOUBLE PRECISION, 
               o.import_value::DOUBLE PRECISION as value, 
-              o.scaled_value::DOUBLE PRECISION,
+              null as scaled_value,
               o.from_time, o.to_time, 
               extract(epoch from o.to_time)*1000 as to_epoch, 
               extract(epoch from o.from_time)*1000 as from_epoch
