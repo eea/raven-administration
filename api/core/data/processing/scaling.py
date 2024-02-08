@@ -188,4 +188,6 @@ class Scaling:
 
     @staticmethod
     def __scalevalue__(zero, span, gas, value):
+        if value == -9900:
+            return value
         return (float(gas) / (float(span) - float(zero))) * (float(value) - float(zero))
