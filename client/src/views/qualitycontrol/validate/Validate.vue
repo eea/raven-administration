@@ -16,6 +16,7 @@ import Plot from "./plot";
 
 import IconLink from "~icons/ph/link-simple-duotone";
 import Container from "../../../components/Container.vue";
+import { watch } from "vue";
 
 const timeseries = ref([]);
 
@@ -27,6 +28,7 @@ const timevalues = ref([]);
 const ev = ref({});
 const showContextmenu = ref(false);
 const selectedRows = ref([]);
+const showValidOnly = ref(false);
 
 const showPlotAndTable = ref(false);
 
@@ -43,6 +45,13 @@ onMounted(async () => {
   if (route.query.to) totime.value = route.query.to;
   if (route.query.ids || route.query.from || route.query.to) showData();
 });
+
+watch(
+  () => showValidOnly.value,
+  () => {
+    formatAndLoad();
+  }
+);
 
 const cmp_timeseries = computed(() => {
   return timeseries.value.filter((t) => {
@@ -72,6 +81,10 @@ const load = async () => {
   if (!chart) {
     chart = new Chart("chart", Plot.config(onDatapointSelection));
   }
+  formatAndLoad();
+};
+const formatAndLoad = () => {
+  console.log("formatAndLoad");
   chart.data = formatValues();
   chart.update();
 };
@@ -127,11 +140,12 @@ const formatValues = () => {
   let colors = [];
   let data = [];
   timevalues.value.forEach((o) => {
-    var v = o.value == -9900 ? null : o.value;
+    var value_to_use = showValidOnly.value ? o.valid_value_only : o.value;
+    var v = value_to_use == -9900 ? null : value_to_use;
     var c = o.validation_flag < 1 ? "#BF616A" : "#A3BE8C";
     const n = Object.assign({}, o);
     colors.push(c);
-    data.push({ x: o.totime.replace(" ", "T"), y: o.value, obj: n });
+    data.push({ x: o.totime.replace(" ", "T"), y: v, obj: n });
   });
   return { datasets: [Plot.dataset("Value", data, colors)] };
 };
@@ -201,7 +215,13 @@ const onDatapointSelection = (event, sel, chart) => {
     </container>
 
     <div v-show="showPlotAndTable">
-      <container class="mt-4 !p-4 h-72"><canvas id="chart"></canvas></container>
+      <container class="mt-4 !p-4 h-72">
+        <div class="px-2 flex w-fit gap-2">
+          <div class="font-bold self-center flex-1 cursor-pointer" @click="showValidOnly = !showValidOnly">Show only valid values</div>
+          <n-checkbox v-model="showValidOnly" class="self-center" />
+        </div>
+        <canvas id="chart"></canvas>
+      </container>
 
       <div class="mt-4">
         <table id="validationId" class="n-table">
