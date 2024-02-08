@@ -84,7 +84,6 @@ const load = async () => {
   formatAndLoad();
 };
 const formatAndLoad = () => {
-  console.log("formatAndLoad");
   chart.data = formatValues();
   chart.update();
 };
