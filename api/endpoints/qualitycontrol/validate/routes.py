@@ -26,7 +26,9 @@ def timevalues():
               o.sampling_point_id as "sampling_point_id",
               o.validation_flag,
               o.verification_flag,
-              o.value::double PRECISION
+              o.value::double PRECISION ,
+              case when o.validation_flag not in (1,2,3) then null else o.value::double PRECISION end as "valid_value_only",
+              o.import_value::double PRECISION
             FROM observations o
             WHERE 1=1
             AND o.from_time >= %(from_dt)s

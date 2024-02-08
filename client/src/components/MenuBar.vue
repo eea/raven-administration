@@ -44,7 +44,8 @@ const getmodules = () => {
         { name: "Assessment Regimes", comp: "AssessmentRegimes", show: jwt.management && jwt.allnetworks },
         { name: "Attainments", comp: "Attainments", show: jwt.management && jwt.allnetworks },
         { name: "Exceedances", comp: "Exceedances", show: jwt.management && jwt.allnetworks },
-        { name: "Settings", comp: "Settings", show: jwt.management && jwt.allnetworks }
+        { name: "Settings", comp: "Settings", show: jwt.management && jwt.allnetworks },
+        { name: "Pre aggregation", comp: "PreAggregation", show: jwt.data }
       ]
     },
     {

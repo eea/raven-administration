@@ -53,7 +53,7 @@ const reset = () => {
 
 <template>
   <div class="flex justify-center mt-10 w-full">
-    <container class="m-auto w-80 !gap-0" v-if="!canCreateAdmin">
+    <container class="m-auto !w-80 !gap-0" v-if="!canCreateAdmin">
       <div class="p-2 flex flex-col">
         <div class="mb-1">Username:</div>
         <input type="text" placeholder="Username" class="n-input w-full" v-model="username" @keyup.enter="login" />

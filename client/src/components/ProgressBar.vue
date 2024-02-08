@@ -1,5 +1,5 @@
 <template>
-  <div class="transition-position duration-500 ease-in-out absolute top-0 left-0 right-0 h-1 z-[999]" :class="cls"></div>
+  <div class="transition-position duration-500 ease-in-out absolute left-0 right-0 h-1 z-[999]" :class="cls"></div>
 </template>
 
 <script setup>
@@ -24,7 +24,7 @@ onMounted(async () => {
 });
 
 const cls = computed(() => {
-  var s = show.value ? "top-0" : "-top-10";
+  var s = show.value ? "!top-0" : "!-top-10";
   s = s + (fail.value ? " bg-nord11" : " bg-nord7 animate-pulse");
   return s;
 });
