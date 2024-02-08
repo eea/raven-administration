@@ -215,12 +215,12 @@ const onDatapointSelection = (event, sel, chart) => {
     </container>
 
     <div v-show="showPlotAndTable">
-      <container class="mt-4 !p-4 h-72">
+      <container class="mt-4 !p-4 h-80">
         <div class="px-2 flex w-fit gap-2">
           <div class="font-bold self-center flex-1 cursor-pointer" @click="showValidOnly = !showValidOnly">Show only valid values</div>
           <n-checkbox v-model="showValidOnly" class="self-center" />
         </div>
-        <canvas id="chart"></canvas>
+        <canvas id="chart" class="!h-64"></canvas>
       </container>
 
       <div class="mt-4">
@@ -229,6 +229,7 @@ const onDatapointSelection = (event, sel, chart) => {
             <th>From</th>
             <th>To</th>
             <th>Value</th>
+            <th>Import value</th>
             <th>Validation</th>
             <th>Verification</th>
           </tr>
@@ -236,6 +237,7 @@ const onDatapointSelection = (event, sel, chart) => {
             <td>{{ row.fromtime }}</td>
             <td>{{ row.totime }}</td>
             <td>{{ row.value }}</td>
+            <td>{{ row.import_value }}</td>
             <td>{{ row.validation_flag }}</td>
             <td class="flex gap-1">
               <div class="self-center">{{ row.verification_flag }}</div>
