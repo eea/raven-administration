@@ -20,7 +20,7 @@ const Interceptor = {
         } else return response;
       },
       (error) => {
-        if (401 === error.response.status) {
+        if (401 === error.response.status || 422 === error.response.status) {
           Auth.signout();
           window.location.href = "/login";
         } else if (403 === error.response.status) {
