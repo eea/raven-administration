@@ -226,6 +226,7 @@ class Dataflows:
                     r.phone rphone, r.website rwebsite
                 from networks n, responsible_authorities r
                 where n.responsible_authority_id = r.id 
+                and (select count(*) from sampling_points s_sp, stations s_s where s_sp.station_id = s_s.id and s_s.network_id = n.id and s_sp.private = false) > 0
               """)
             rows = cursor.fetchall()
             return Dataflows.map_list_of_dict(rows, Network)
@@ -253,6 +254,7 @@ class Dataflows:
                       ST_Z(st.geom) altitude,
                       ST_SRID(st.geom) epsg
                   FROM stations st
+                  WHERE (select count(*) from sampling_points s_sp, stations s_s where s_sp.station_id = st.id and s_sp.private = false) > 0
                   GROUP BY
                       st.id,  
                       st.name,
