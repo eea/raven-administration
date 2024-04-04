@@ -33,7 +33,7 @@ git clone https://git.nilu.no/raven/raven-administration
 ```
 API_PORT=5000
 CLIENT_PORT=80
-DB_URI = postgresql://postgres:password@host:5432/database
+DB_URI = postgresql://dbuser:password@host:5432/database
 JWT_ACCESS_TOKEN_EXPIRES_SECONDS = 3600
 JWT_SECRET_KEY = make-up-a-secure-key
 ```
