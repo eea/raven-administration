@@ -4,7 +4,8 @@ import xml.etree.cElementTree as ET
 from datetime import timedelta, datetime
 import calendar
 import csv
-
+import pandas as pd
+from collections import OrderedDict
 
 class U:
     # Function is needed to make dictionary hashable/comparable
@@ -30,8 +31,12 @@ class U:
             return resp
 
     @staticmethod
-    def dataframe_to_csv_response(df, name):
-        return U.csv_response(df.to_csv(index=False, quoting=csv.QUOTE_ALL), name)
+    def dataframe_to_csv_response(data, name):
+        if isinstance(data, list):
+          data = pd.DataFrame(data)
+        elif isinstance(data, OrderedDict):
+          data = pd.DataFrame([data])
+        return U.csv_response(data.to_csv(index=False, quoting=csv.QUOTE_ALL), name)
 
     @staticmethod
     def csv_response(csv_file, name):
