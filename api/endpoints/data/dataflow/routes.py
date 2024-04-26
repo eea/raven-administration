@@ -36,7 +36,7 @@ def dataflows_e2a():
     return U.xmlify(xml)
 
 
-@dataflow_endpoint.route('/api/dataflow/reportnet3', methods=['GET'])
+@dataflow_endpoint.route('/api/dataflow/reportnet3/csv', methods=['GET'])
 @jwt_required_with_exporting_claim()
 def dataflows_reportnet3():
     if not current_app.config['SHOWREPORTNET3']:
@@ -82,3 +82,39 @@ def dataflows_reportnet3():
 @jwt_required()
 def show_reportnet3():
     return jsonify({"showreportnet3": current_app.config['SHOWREPORTNET3']})
+
+@dataflow_endpoint.route('/api/dataflow/reportnet3/b', methods=['GET'])
+@jwt_required_with_exporting_claim()
+def dataflows_reportnet3_b():
+    if not current_app.config['SHOWREPORTNET3']:
+        return jsonify({"error": "Reportnet3 dataflow is not enabled"}), 403
+    
+    data = Dataflows_reportnet3.get_dataflowB()
+    if not data:
+        raise BadRequest("No data for dataflow B found")
+
+    return jsonify(data)
+
+@dataflow_endpoint.route('/api/dataflow/reportnet3/d/processes', methods=['GET'])
+@jwt_required_with_exporting_claim()
+def dataflows_reportnet3_d_processes():
+    if not current_app.config['SHOWREPORTNET3']:
+        return jsonify({"error": "Reportnet3 dataflow is not enabled"}), 403
+    
+    data = Dataflows_reportnet3.get_processes()
+    if not data:
+        raise BadRequest("No data for dataflow D Processes found")
+
+    return jsonify(data)
+
+@dataflow_endpoint.route('/api/dataflow/reportnet3/d/samplingpoints', methods=['GET'])
+@jwt_required_with_exporting_claim()
+def dataflows_reportnet3_d_samplingpoints():
+    if not current_app.config['SHOWREPORTNET3']:
+        return jsonify({"error": "Reportnet3 dataflow is not enabled"}), 403
+    
+    data = Dataflows_reportnet3.get_samplingpoints()
+    if not data:
+        raise BadRequest("No data for dataflow D Samplingpoints found")
+
+    return jsonify(data)

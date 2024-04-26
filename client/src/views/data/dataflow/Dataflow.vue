@@ -134,10 +134,10 @@ const getShowReportnet3 = async () => {
          -->
         <div class="flex gap-4">
           <button class="n-button" @click="downloadReportnet3Dataflow('B')" :disabled="false">Dataflow B</button>
-          <button class="n-button" disabled @click="downloadReportnet3Dataflow('C')" :disabled="false">Dataflow C</button>
+          <button class="n-button" @click="downloadReportnet3Dataflow('C')" :disabled="true">Dataflow C</button>
           <button class="n-button" @click="downloadReportnet3Dataflow('D')" :disabled="false">Dataflow D</button>
-          <button class="n-button" disabled @click="downloadReportnet3Dataflow('E1A')" :disabled="false">Dataflow E1A</button>
-          <button class="n-button" disabled @click="downloadReportnet3Dataflow('G')" :disabled="false">Dataflow G</button>
+          <button class="n-button" @click="downloadReportnet3Dataflow('E1A')" :disabled="true">Dataflow E1A</button>
+          <button class="n-button" @click="downloadReportnet3Dataflow('G')" :disabled="true">Dataflow G</button>
         </div>
       </div>
     </div>

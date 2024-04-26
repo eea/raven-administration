@@ -32,3 +32,4 @@ class Config(object):
     JWT_ACCESS_TOKEN_EXPIRES_SECONDS = int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES_SECONDS')) or 3600
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(seconds=JWT_ACCESS_TOKEN_EXPIRES_SECONDS)
     SHOWREPORTNET3 = get_variable('SHOWREPORTNET3', False)
+    SWAGGER_URL = os.environ.get('SWAGGER_URL') or 'http://localhost:5000/'
