@@ -15,3 +15,4 @@ pandas==1.5.2
 pytz==2022.6 
 requests==2.31.0
 Werkzeug==2.3.6
+Flask-Swagger-UI==4.11.1

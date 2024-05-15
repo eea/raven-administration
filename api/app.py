@@ -6,12 +6,14 @@ from core.error import Error
 from core.endpoints import Endpoints
 from flask_jwt_extended import JWTManager
 from config import Config
+from core.swagger import RavenSwagger
 
 compress = Compress()
 cors = CORS()
 error = Error()
 endpoints = Endpoints()
 jwt = JWTManager()
+ravenswagger = RavenSwagger()
 
 
 app = Flask(__name__)
@@ -23,3 +25,4 @@ compress.init_app(app)
 jwt.init_app(app)
 error.init_app(app)
 endpoints.init_app(app)
+ravenswagger.init_app(app)
