@@ -16,6 +16,7 @@ class SamplingPointsModel(BaseModel):
     begin_position: str
     mobile: bool
     private: bool
+    use_in_public_api: bool
 
     main_emission_sources: Optional[str] = None
     traffic_emissions: Optional[str] = None

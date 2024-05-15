@@ -17,6 +17,7 @@ const pageOptions = (lookups) => ({
 
     { type: "checkbox", label: "Mobile", prop: "mobile", required: true, default: false, enableInEdit: true, showInGrid: false },
     { type: "checkbox", label: "Private", prop: "private", required: true, default: false, enableInEdit: true, showInGrid: true },
+    { type: "checkbox", label: "Public api", prop: "use_in_public_api", required: true, default: false, enableInEdit: true, showInGrid: true },
 
     // OPTIONAL
     { type: "text", label: "Logger id", prop: "logger_id", placeholder: "str: Logger id for push functionality", required: false, default: null, enableInEdit: true, showInGrid: false },

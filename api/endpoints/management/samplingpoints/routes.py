@@ -46,7 +46,8 @@ def samplingpoints():
               sc.label as station_classification,
               p.notation as pollutant,
               cn.notation as concentration,
-              tm.label as timestep,tm.label,cn.notation 
+              tm.label as timestep,tm.label,cn.notation,
+              sp.use_in_public_api 
           FROM
               sampling_points sp,eea_mediavalues mv, eea_measurementregimevalues mr, eea_assessmenttypes ast,
               eea_stationclassifications sc, stations st, eea_pollutants p, eea_concentrations cn, eea_times tm, sampling_point_access spa
@@ -96,7 +97,8 @@ def samplingpoints_update():
             pollutant=%(pollutant_id)s,
             concentration=%(concentration_id)s,
             timestep=%(timestep_id)s,
-            private=%(private)s
+            private=%(private)s,
+            use_in_public_api=%(use_in_public_api)s
           WHERE id = %(id)s
         """
 
@@ -137,7 +139,8 @@ def samplingpoints_insert():
             pollutant, 
             concentration, 
             timestep,
-            private
+            private,
+            use_in_public_api
           )
           VALUES (
             %(id)s, 
@@ -160,7 +163,8 @@ def samplingpoints_insert():
             %(pollutant_id)s, 
             %(concentration_id)s, 
             %(timestep_id)s,
-            %(private)s
+            %(private)s,
+            %(use_in_public_api)s
           )           
         """
 
