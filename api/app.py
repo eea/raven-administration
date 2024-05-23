@@ -16,7 +16,7 @@ jwt = JWTManager()
 ravenswagger = RavenSwagger()
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/api/static')
 app.config.from_object(Config)
 
 Database.init_app(app)
