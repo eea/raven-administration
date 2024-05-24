@@ -12,13 +12,13 @@ POST api/auth/signin
 BODY {"username":"username", "password":"password"}
 ```
 
-Keep in mind, that the user needs to have access to _**management**_ and _**all networks**_  
+Keep in mind, that the user needs to have access to `management` and `all networks`  
 This can configured within the Raven website
 
 # Importing
 
 Set the bearer token as authorization  
-Attach the csv file as _**form-data**_ with the key _**file**_
+Attach the csv file as `form-data` with the key `file`
 
 ### Authorities
 
