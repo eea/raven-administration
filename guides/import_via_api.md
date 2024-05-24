@@ -20,10 +20,20 @@ This can configured within the Raven website
 Set the bearer token as authorization  
 Attach the csv file as `form-data` with the key `file`
 
-**Curl example**
+**Curl syntax**
 
 ```bash
-curl -i -X POST -H "Authorization: Bearer <MY_TOKEN>" -F 'file=@<MY_FILE_CSV>' <MY_DOMAIN>
+curl -i -X POST -H "Authorization: Bearer <MY_TOKEN>" -F 'file=@<MY_FILE_CSV>' <MY_URL>
+```
+
+**Python code**
+
+```python
+import requests
+
+headers = {'Authorization': f'Bearer {<MY_TOKEN>}'}
+files = {'file': open("<MY_FILE_CSV>", 'rb')}
+response = requests.post(<MY_URL>, files=files, headers=headers)
 ```
 
 ### Authorities
