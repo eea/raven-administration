@@ -20,9 +20,15 @@ This can configured within the Raven website
 Set the bearer token as authorization  
 Attach the csv file as `form-data` with the key `file`
 
+**Curl example**
+
+```bash
+curl -i -X POST -H "Authorization: Bearer <MY_TOKEN>" -F 'file=@<MY_FILE_CSV>' <MY_DOMAIN>
+```
+
 ### Authorities
 
-[Example](/csv_examples/responsible_authorities.csv)
+[CSV Example](/csv_examples/responsible_authorities.csv)
 
 ```yaml
 # Endpoint
@@ -33,7 +39,7 @@ id,name,organisation,address,locator,postcode,email,phone,website,is_responsible
 
 ### Networks
 
-[Example](/csv_examples/networks.csv)
+[CSV Example](/csv_examples/networks.csv)
 
 ```yaml
 # Endpoint
@@ -44,7 +50,7 @@ id,name,media_monitored,responsible_authority_id,organisational,begin_position,e
 
 ### Stations
 
-[Example](/csv_examples/stations.csv)
+[CSV Example](/csv_examples/stations.csv)
 
 ```yaml
 # Endpoint
@@ -55,7 +61,7 @@ id,national_station_code,name,network_id,measurement_regime,city,eoi_code,munici
 
 ### Sampling points
 
-[Example](/csv_examples/sampling_points.csv)
+[CSV Example](/csv_examples/sampling_points.csv)
 
 ```yaml
 # Endpoint
@@ -66,7 +72,7 @@ id,station_id,assessment_type,station_classification,industrial_emissions,distan
 
 ### Observing capabilities
 
-[Example](/csv_examples/observation_capability.csv)
+[CSV Example](/csv_examples/observation_capability.csv)
 
 ```yaml
 # Endpoint
@@ -77,7 +83,7 @@ id,sampling_point_id,sample_id,process_id,begin_position,end_position,process_ty
 
 ### Samples
 
-[Example](/csv_examples/samples.csv)
+[CSV Example](/csv_examples/samples.csv)
 
 ```yaml
 # Endpoint
@@ -88,7 +94,7 @@ id,kerb_distance,inlet_height,building_distance
 
 ### Processes
 
-[Example](/csv_examples/processes.csv)
+[CSV Example](/csv_examples/processes.csv)
 
 ```yaml
 # Endpoint
@@ -99,7 +105,7 @@ id,responsible_authority_id,measurement_type,measurement_method,measurement_equi
 
 ### Observations
 
-[Example](/csv_examples/obs-2019.csv)
+[CSV Example](/csv_examples/obs-2019.csv)
 
 Values that already exists in the database will be updated, unless the verification_flag is 1
 
@@ -112,7 +118,7 @@ sampling_point_id,begin_position,end_position,value,validation_flag,verification
 
 ### Zones
 
-[Example](/csv_examples/zones.gpkg)
+[CSV Example](/csv_examples/zones.gpkg)
 
 The zones file must be a geopackage file
 
