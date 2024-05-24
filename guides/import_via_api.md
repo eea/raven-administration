@@ -96,3 +96,16 @@ POST api/imports/processes
 # CSV headers
 id,responsible_authority_id,measurement_type,measurement_method,measurement_equipment,detection_limit,detection_limit_uom,equiv_demonstration,equiv_demonstration_report,documentation,qa_report,duration_unit,duration_number,cadence_unit,cadence_number,uncertainty_estimate,sampling_method,other_sampling_method,analytical_tech,other_analytical_tech,other_measurement_method,sampling_equipment,other_sampling_equipment,other_measurement_equipment
 ```
+
+### Observations
+
+[Example](/csv_examples/obs-2019.csv)
+
+Values that already exists in the database will be updated, unless the verification_flag is 1
+
+```yaml
+# Endpoint
+POST api/imports/observations
+# CSV headers
+sampling_point_id,begin_position,end_position,value,validation_flag,verification_flag
+```
