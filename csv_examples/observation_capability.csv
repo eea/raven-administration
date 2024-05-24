@@ -1,6 +1,6 @@
-co_name,id,sampling_point_id,sample_id,process_id,begin_position,end_position,process_type,result_nature
-NOx,OC_NO0057A_9_42,SPO_NO0057A_9_42,SAM_NO0057A_9_42,SPP_NO0057A_9_42,2001-01-01T00:00:00+01:00,,http://inspire.ec.europa.eu/codelist/processtypevalue/process,http://inspire.ec.europa.eu/codelist/resultnaturevalue/primary
-NO,OC_NO0057A_38_43,SPO_NO0057A_38_43,SAM_NO0057A_38_43,SPP_NO0057A_38_43,2001-01-01T00:00:00+01:00,,http://inspire.ec.europa.eu/codelist/processtypevalue/process,http://inspire.ec.europa.eu/codelist/resultnaturevalue/primary
-NO2,OC_NO0057A_8_44,SPO_NO0057A_8_44,SAM_NO0057A_8_44,SPP_NO0057A_8_44,2001-01-01T00:00:00+01:00,,http://inspire.ec.europa.eu/codelist/processtypevalue/process,http://inspire.ec.europa.eu/codelist/resultnaturevalue/primary
-PM10,OC_NO0126A_5_2991,SPO_NO0126A_5_2991,SAM_NO0126A_5_2991,SPP_NO0126A_5_2991,2018-02-06T08:00:00+01:00,,http://inspire.ec.europa.eu/codelist/processtypevalue/process,http://inspire.ec.europa.eu/codelist/resultnaturevalue/primary
-PM2.5,OC_NO0126A_6001_2992,SPO_NO0126A_6001_2992,SAM_NO0126A_6001_2992,SPP_NO0126A_6001_2992,2018-02-06T08:00:00+01:00,,http://inspire.ec.europa.eu/codelist/processtypevalue/process,http://inspire.ec.europa.eu/codelist/resultnaturevalue/primary
+id,sampling_point_id,sample_id,process_id,begin_position,end_position,process_type,result_nature
+OC_NO0057A_9_42,SPO_NO0057A_9_42,SAM_NO0057A_9_42,SPP_NO0057A_9_42,2001-01-01T00:00:00+01:00,,http://inspire.ec.europa.eu/codelist/processtypevalue/process,http://inspire.ec.europa.eu/codelist/resultnaturevalue/primary
+OC_NO0057A_38_43,SPO_NO0057A_38_43,SAM_NO0057A_38_43,SPP_NO0057A_38_43,2001-01-01T00:00:00+01:00,,http://inspire.ec.europa.eu/codelist/processtypevalue/process,http://inspire.ec.europa.eu/codelist/resultnaturevalue/primary
+OC_NO0057A_8_44,SPO_NO0057A_8_44,SAM_NO0057A_8_44,SPP_NO0057A_8_44,2001-01-01T00:00:00+01:00,,http://inspire.ec.europa.eu/codelist/processtypevalue/process,http://inspire.ec.europa.eu/codelist/resultnaturevalue/primary
+OC_NO0126A_5_2991,SPO_NO0126A_5_2991,SAM_NO0126A_5_2991,SPP_NO0126A_5_2991,2018-02-06T08:00:00+01:00,,http://inspire.ec.europa.eu/codelist/processtypevalue/process,http://inspire.ec.europa.eu/codelist/resultnaturevalue/primary
+OC_NO0126A_6001_2992,SPO_NO0126A_6001_2992,SAM_NO0126A_6001_2992,SPP_NO0126A_6001_2992,2018-02-06T08:00:00+01:00,,http://inspire.ec.europa.eu/codelist/processtypevalue/process,http://inspire.ec.europa.eu/codelist/resultnaturevalue/primary
