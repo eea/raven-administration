@@ -109,3 +109,16 @@ POST api/imports/observations
 # CSV headers
 sampling_point_id,begin_position,end_position,value,validation_flag,verification_flag
 ```
+
+### Zones
+
+[Example](/csv_examples/zones.gpkg)
+
+The zones file must be a geopackage file
+
+```yaml
+# Endpoint
+POST api/imports/zones
+# GEOPACKAGE attributes
+id,area,code,population,population_year,type,year,responsible_authority
+```
