@@ -63,3 +63,36 @@ POST api/imports/sampling_points
 # CSV headers
 id,station_id,assessment_type,station_classification,industrial_emissions,distance_source,mobile,used_aqd,media_monitored,measurement_regime,main_emission_sources,traffic_emissions,heating_emissions,industrial_emissions,change_aei_stations,logger_id,pollutant,begin_position,end_position,concentration,timestep
 ```
+
+### Observing capabilities
+
+[Example](/csv_examples/observation_capability.csv)
+
+```yaml
+# Endpoint
+POST api/imports/observing_capabilities
+# CSV headers
+id,sampling_point_id,sample_id,process_id,begin_position,end_position,process_type,result_nature
+```
+
+### Samples
+
+[Example](/csv_examples/samples.csv)
+
+```yaml
+# Endpoint
+POST api/imports/samples
+# CSV headers
+id,kerb_distance,inlet_height,building_distance
+```
+
+### Processes
+
+[Example](/csv_examples/processes.csv)
+
+```yaml
+# Endpoint
+POST api/imports/processes
+# CSV headers
+id,responsible_authority_id,measurement_type,measurement_method,measurement_equipment,detection_limit,detection_limit_uom,equiv_demonstration,equiv_demonstration_report,documentation,qa_report,duration_unit,duration_number,cadence_unit,cadence_number,uncertainty_estimate,sampling_method,other_sampling_method,analytical_tech,other_analytical_tech,other_measurement_method,sampling_equipment,other_sampling_equipment,other_measurement_equipment
+```
