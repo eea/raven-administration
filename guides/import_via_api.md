@@ -118,7 +118,7 @@ sampling_point_id,begin_position,end_position,value,validation_flag,verification
 
 ### Zones
 
-[CSV Example](/csv_examples/zones.gpkg)
+[GPKG Example](/csv_examples/zones.gpkg)
 
 The zones file must be a geopackage file
 
