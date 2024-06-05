@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------------
 
-create index idx_obs_spoid_day on public.observations (sampling_point_id, date_trunc('year'::text, from_time));
+create index idx_obs_spoid_year on public.observations (sampling_point_id, date_trunc('year'::text, from_time));
 create index idx_obs_spoid_day on public.observations (sampling_point_id, date_trunc('day'::text, from_time));
 VACUUM FULL ANALYZE observations;
 
