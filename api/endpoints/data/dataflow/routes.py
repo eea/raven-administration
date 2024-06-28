@@ -18,7 +18,7 @@ dataflow_endpoint = Blueprint('dataflow', __name__)
 @jwt_required_with_exporting_claim()
 def dataflows():
     m = DataflowModel(**request.args.to_dict())
-    xml = Dataflows.get_dataflow(m.type, m.year, m.timezone, m.description)
+    xml = Dataflows.get_xml(m.type, m.year, m.timezone, m.description)
     if xml == None:
         raise BadRequest("Could not create xml for dataflow " + m.type)
 
@@ -41,7 +41,7 @@ def dataflows_e2a():
 def dataflows_reportnet3():
     if not current_app.config['SHOWREPORTNET3']:
         return jsonify({"error": "Reportnet3 dataflow is not enabled"}), 403
-    
+
     m = DataflowModel(**request.args.to_dict())
     data = Dataflows_reportnet3.get_dataflow(m.type, m.year, m.timezone, m.description)
     if not data:
@@ -50,23 +50,23 @@ def dataflows_reportnet3():
     # Create a zip file in memory
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-      if isinstance(data, list):
-          # Convert data to a DataFrame and write it to a single CSV file
-          df = pd.DataFrame(data)
-          csv_buffer = BytesIO()
-          df.to_csv(csv_buffer, index=False)
-          csv_buffer.seek(0)
-          zip_file.writestr("reportnet3_dataflow.csv", csv_buffer.getvalue())
-      else:
-          for filename, df in data.items():
-              # Convert df to a DataFrame if it's a list
-              if isinstance(df, list):
-                  df = pd.DataFrame(df)
-              # Convert each DataFrame to a CSV and add it to the zip file
-              csv_buffer = BytesIO()
-              df.to_csv(csv_buffer, index=False)
-              csv_buffer.seek(0)
-              zip_file.writestr(filename, csv_buffer.getvalue())
+        if isinstance(data, list):
+            # Convert data to a DataFrame and write it to a single CSV file
+            df = pd.DataFrame(data)
+            csv_buffer = BytesIO()
+            df.to_csv(csv_buffer, index=False)
+            csv_buffer.seek(0)
+            zip_file.writestr("reportnet3_dataflow.csv", csv_buffer.getvalue())
+        else:
+            for filename, df in data.items():
+                # Convert df to a DataFrame if it's a list
+                if isinstance(df, list):
+                    df = pd.DataFrame(df)
+                # Convert each DataFrame to a CSV and add it to the zip file
+                csv_buffer = BytesIO()
+                df.to_csv(csv_buffer, index=False)
+                csv_buffer.seek(0)
+                zip_file.writestr(filename, csv_buffer.getvalue())
 
     # Get the bytes of the zip file
     zip_buffer.seek(0)
@@ -78,41 +78,45 @@ def dataflows_reportnet3():
 
     return response
 
+
 @dataflow_endpoint.route('/api/dataflow/showreportnet3', methods=['GET'])
 @jwt_required()
 def show_reportnet3():
     return jsonify({"showreportnet3": current_app.config['SHOWREPORTNET3']})
+
 
 @dataflow_endpoint.route('/api/dataflow/reportnet3/b', methods=['GET'])
 @jwt_required_with_exporting_claim()
 def dataflows_reportnet3_b():
     if not current_app.config['SHOWREPORTNET3']:
         return jsonify({"error": "Reportnet3 dataflow is not enabled"}), 403
-    
+
     data = Dataflows_reportnet3.get_dataflowB()
     if not data:
         raise BadRequest("No data for dataflow B found")
 
     return jsonify(data)
 
+
 @dataflow_endpoint.route('/api/dataflow/reportnet3/d/processes', methods=['GET'])
 @jwt_required_with_exporting_claim()
 def dataflows_reportnet3_d_processes():
     if not current_app.config['SHOWREPORTNET3']:
         return jsonify({"error": "Reportnet3 dataflow is not enabled"}), 403
-    
+
     data = Dataflows_reportnet3.get_processes()
     if not data:
         raise BadRequest("No data for dataflow D Processes found")
 
     return jsonify(data)
 
+
 @dataflow_endpoint.route('/api/dataflow/reportnet3/d/samplingpoints', methods=['GET'])
 @jwt_required_with_exporting_claim()
 def dataflows_reportnet3_d_samplingpoints():
     if not current_app.config['SHOWREPORTNET3']:
         return jsonify({"error": "Reportnet3 dataflow is not enabled"}), 403
-    
+
     data = Dataflows_reportnet3.get_samplingpoints()
     if not data:
         raise BadRequest("No data for dataflow D Samplingpoints found")

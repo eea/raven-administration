@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.1.1] - 2024-06-28
+
+### Fixed
+
+- The call to Dataflows.get_dataflows() is replaced with Dataflows.get_xml()
+
 ## [3.1.0] - 2024-05-15
 
 ### Added
