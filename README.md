@@ -40,7 +40,7 @@ JWT_ACCESS_TOKEN_EXPIRES_SECONDS = 3600
 JWT_SECRET_KEY = make-up-a-secure-key
 ```
 
-`Hint: Use host.docker.internal if database is local`
+`Hint: Use host.docker.internal if database is local. Ip 172.17.0.1 for Linux`
 
 ## Docker
 
