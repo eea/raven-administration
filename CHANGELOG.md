@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [latest commits]
+
+- Added variable for container name in docker-compose file
+
 ## [3.1.1] - 2024-06-28
 
 ### Fixed
