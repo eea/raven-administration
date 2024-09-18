@@ -3,8 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
-    image: raven-api
-    container_name: raven-api
+    image: ${CONTAINER_NAME_API:-raven-api}
+    container_name: ${CONTAINER_NAME_API:-raven-api}
     sysctls:
       - net.ipv4.tcp_keepalive_time=200
     ports:
@@ -14,8 +14,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.client
-    image: raven-client
-    container_name: raven-client
+    image: ${CONTAINER_NAME_CLIENT:-raven-client}
+    container_name: ${CONTAINER_NAME_CLIENT:-raven-client}
     depends_on:
       - api
     ports:
