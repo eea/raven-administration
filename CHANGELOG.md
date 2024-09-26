@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [latest commits]
+
+- Added a new guide explaing how to get E2a dataflow
+
 ## [3.1.2] - 2024-09-26
 
 - Added variable for container name in docker-compose file
