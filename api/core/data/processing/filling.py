@@ -62,7 +62,7 @@ class Filling:
 
     def __existing_dates__(cursor: any, sampling_point_id, epoch_from, epoch_to):
         sql = """
-            select extract(epoch from to_time) as end_position
+            select extract(epoch from to_time)::int as end_position
             from observations o
             where o.sampling_point_id = %(sp)s
             and  extract(epoch from o.from_time) >= %(epoch_from)s

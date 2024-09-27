@@ -3,11 +3,19 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
-## [latest commits]
+## [3.1.3] - 2024-09-27
+
+### Added
 
 - Added a new guide explaing how to get E2a dataflow
 
+### Fixed
+
+- Make sure epoch dates from "fill in missing" is int not float. It sometimes causes an error on import.
+
 ## [3.1.2] - 2024-09-26
+
+### Added
 
 - Added variable for container name in docker-compose file
 - Exclude -9900 values, even if "include invalid values" is enabled in "historical data" module. The change is in Mean class, so it may affect others
