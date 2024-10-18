@@ -32,7 +32,9 @@ def settings_update():
               namespace = %(namespace)s,
               uom_m = %(uom_m)s,
   			      observation_prefix = %(observation_prefix)s,
-	      		  language_code = %(language_code)s
+	      		  language_code = %(language_code)s,
+	      		  country = %(country)s,
+	      		  country_code = %(country_code)s
             WHERE id = %(id)s
         """
         cursor.execute(sql, model)
