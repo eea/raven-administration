@@ -25,6 +25,7 @@ const pageOptions = (lookups) => ({
     { type: "text", label: "National Station Code", prop: "national_station_code", placeholder: "str: National station code", required: false, default: null, enableInEdit: true, showInGrid: false },
     { type: "text", label: "Municipality", prop: "municipality", placeholder: "str: Municipality", required: false, default: null, enableInEdit: true, showInGrid: false },
     { type: "text", label: "City", prop: "city", placeholder: "str: City", required: false, default: null, enableInEdit: true, showInGrid: false },
+    { type: "text", label: "City code", prop: "city_code", placeholder: "str: City code", required: false, default: null, enableInEdit: true, showInGrid: false },
     { type: "number", label: "Street Width", prop: "street_Width", placeholder: "int: Street Width", required: false, default: null, enableInEdit: true, showInGrid: false },
     { type: "number", label: "Distance Junction", prop: "distance_junction", placeholder: "int: Distance Junction", required: false, default: null, enableInEdit: true, showInGrid: false },
     { type: "number", label: "Traffic Volume", prop: "traffic_volume", placeholder: "int: Traffic Volume", required: false, default: null, enableInEdit: true, showInGrid: false },

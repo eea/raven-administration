@@ -27,7 +27,7 @@ git clone https://git.nilu.no/raven/raven-administration
 4. Run the `sql\data.sql` script
 5. Run the `sql\pre_aggregates.sql` script
 6. Run the `sql\use_in_public_api.sql` script
-7. Run the `sql\country_settings.sql` script
+7. Run the `sql\country_city_metadata.sql` script
 
 ## Set environment varables
 

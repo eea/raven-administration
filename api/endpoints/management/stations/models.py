@@ -21,6 +21,7 @@ class StationModel(BaseModel):
     national_station_code: Optional[str] = None
     municipality: Optional[str] = None
     city: Optional[str] = None
+    city_code: Optional[str] = None
     street_width: Optional[int] = None
     distance_junction: Optional[int] = None
     traffic_volume: Optional[int] = None
