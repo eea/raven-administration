@@ -140,7 +140,7 @@ const onDownload = () => {
         <tr>
           <th>Id</th>
           <th>Station</th>
-          <th>Pollutant</th>
+          <th>Pollutant/Meteo</th>
           <th>Timestep</th>
           <th>Month</th>
           <th>Verified</th>

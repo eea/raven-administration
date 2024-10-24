@@ -101,7 +101,7 @@ const onDownload = () => {
       <table id="convertionsId" class="n-table">
         <tr>
           <th>Station</th>
-          <th>Pollutant</th>
+          <th>Pollutant/Meteo</th>
           <th>Timestep</th>
           <th>Source</th>
           <th>Target</th>

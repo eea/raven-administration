@@ -89,7 +89,7 @@ const onContextMenu = (row, e) => {
         <tr>
           <!-- <th>Network</th> -->
           <th>Station</th>
-          <th>Pollutant</th>
+          <th>Pollutant/Meteo</th>
           <th>Timestep</th>
           <th>First date</th>
           <th>Latest date</th>
