@@ -5,7 +5,7 @@ const pageOptions = (lookups) => ({
     { type: "text", label: "Id", prop: "id", placeholder: "str: A unique id", required: true, default: null, enableInEdit: false, showInGrid: true },
 
     { type: "lookup", label: "Station", prop_id: "station_id", prop: "station", lookup: "stations", required: true, default: null, enableInEdit: true, showInGrid: true },
-    { type: "lookup", label: "Pollutant", prop_id: "pollutant_id", prop: "pollutant", required: true, lookup: "pollutants", default: null, enableInEdit: true, showInGrid: true },
+    { type: "lookup", label: "Pollutant/Meteo", prop_id: "pollutant_id", prop: "pollutant", required: true, lookup: "pollutants", default: null, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Timestep", prop_id: "timestep_id", prop: "timestep", required: true, lookup: "timesteps", default: null, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Concentration", prop_id: "concentration_id", prop: "concentration", required: true, lookup: "concentrations", default: null, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Station classification", prop_id: "station_classification_id", prop: "station_classification", required: true, lookup: "stationclassifications", default: null, enableInEdit: true, showInGrid: true },

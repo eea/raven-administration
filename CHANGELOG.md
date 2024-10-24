@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.1.4] - 2024-10-24
+
+### Added
+
+- A technical overview. See [file here](guides/technical_overview.md)
+- Meteo components to the eea_pollutants table.
+- A [sql file](sql/meteo.sql) required to be run in order for meteo components to be available.
+
 ## [3.1.3] - 2024-09-27
 
 ### Added
