@@ -8,7 +8,7 @@ import Version from "../helpers/version";
 
 const router = useRouter();
 const modules = ref([]);
-const version = ref("");
+const version = ref({ current: "-", isLatest: true });
 
 const props = defineProps({
   show: Boolean
@@ -88,6 +88,11 @@ const getmodules = () => {
   ];
 };
 
+const goto_git_changelog = () => {
+  // window.location.href = "https://git.nilu.no/raven/raven-administration/-/blob/master/CHANGELOG.md?ref_type=heads";
+  window.open("https://git.nilu.no/raven/raven-administration/-/blob/master/CHANGELOG.md?ref_type=heads", "_blank");
+};
+
 const goto = (comp) => {
   router.push({ name: comp });
 };
@@ -101,6 +106,13 @@ const signout = async () => {
 <template>
   <div class="border border-nord4 flex flex-col justify-between bg-gray-50 select-none" v-show="show">
     <div class="overflow-y-auto">
+      <!-- NEW VERSION ALERT -->
+      <div v-if="!version.isLatest" class="pt-2 px-1">
+        <div class="border py-2 pl-1 pr-2 text-sm bg-nord11/10 flex gap-1 border-nord4 hover:bg-nord11/20 cursor-pointer" @click="goto_git_changelog">
+          <icon-new-version class="self-center text-nord11 hover:text-nord12" />
+          <div class="font-bold">New version available</div>
+        </div>
+      </div>
       <div class="mt-1 flex flex-col border-b" v-for="m in modules" :key="m.group" v-show="m.show">
         <div class="font-bold select-none px-2 mt-2 mb-1">{{ m.group }}</div>
         <div class="hover:bg-gray-100 hover:cursor-pointer" v-for="i in m.items" :key="i.name" @click="goto(i.comp)" v-show="i.show">
