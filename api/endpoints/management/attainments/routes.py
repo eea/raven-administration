@@ -2,9 +2,10 @@ from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from core.database import CursorFromPool
-from endpoints.management.attainments.models import AttainmentModel
+from endpoints.management.attainments.models import AttainmentModel, GenerateModel
 from core.query import Q, DeleteModel
 from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
+from core.eea.generate_attainment.g import generate
 
 
 attainments_endpoint = Blueprint('attainments', __name__)
@@ -95,4 +96,13 @@ def attainments_delete():
     rows = Q.delete("attainments", model)
     if rows == 0:
         raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
+    return jsonify({"success": True})
+
+
+@attainments_endpoint.route('/api/management/attainments/generate', methods=['POST'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def attainments_generate():
+    model = GenerateModel(**request.json)
+    generate(model["year"], model["deleteExistingAttainments"])
     return jsonify({"success": True})

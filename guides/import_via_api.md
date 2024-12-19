@@ -12,6 +12,12 @@ POST api/auth/signin
 BODY {"username":"username", "password":"password"}
 ```
 
+**Curl syntax**
+
+```bash
+curl -H "Content-Type: application/json" -X POST -d '{"username":"username", "password":"password"}' <MY_URL>/api/auth/signin
+```
+
 Keep in mind, that the user needs to have access to `management` and `all networks`  
 This can configured within the Raven website
 

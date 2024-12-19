@@ -3,9 +3,10 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
-## [Latest commit] - 2024-10-25
+## [Latest commit]
 
-- Added a notification at the top of the menu when a new version is available
+- [2024-12-19] Added experimental generation of G. To enable it, add `?experimental=true` to `attainments` url
+- [2024-10-25] Added a notification at the top of the menu when a new version is available
 
 ## [3.1.4] - 2024-10-24
 

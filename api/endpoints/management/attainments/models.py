@@ -10,3 +10,11 @@ class AttainmentModel(BaseModel):
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
+
+
+class GenerateModel(BaseModel):
+    year: int
+    deleteExistingAttainments: bool
+
+    def __getitem__(self, key):
+        return super().__getattribute__(key)

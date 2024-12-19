@@ -11,7 +11,7 @@ import { onClickOutside } from "@vueuse/core";
 
 const p = defineProps({
   show: Boolean,
-  evt: Object,
+  evt: Object
 });
 const emit = defineEmits(["click-outside"]);
 
@@ -33,9 +33,15 @@ const cls = computed(() => {
     if (top > h) top = h;
     if (left > w) left = w;
 
+    console.log({
+      b: top > h,
+      top: top - oh + "px",
+      left: left - ow + "px"
+    });
+
     return {
       top: top - oh + "px",
-      left: left - ow + "px",
+      left: left - ow + "px"
     };
   }
 });

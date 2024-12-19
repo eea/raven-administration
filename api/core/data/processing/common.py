@@ -9,8 +9,8 @@ class Common:
     def validate_dataframe(df_values: DataFrame):
         bench = time.perf_counter()
         # Validations raises an exception if it fails
-        df_values["begin_position"] = pd.to_datetime(df_values["begin_position"], format="%Y-%m-%dT%H:%M:%S%Z")
-        df_values["end_position"] = pd.to_datetime(df_values["end_position"], format="%Y-%m-%dT%H:%M:%S%Z")
+        df_values["begin_position"] = pd.to_datetime(df_values["begin_position"], format="%Y-%m-%dT%H:%M:%S%z")
+        df_values["end_position"] = pd.to_datetime(df_values["end_position"], format="%Y-%m-%dT%H:%M:%S%z")
         df_values.sampling_point_id.astype(str)
         df_values.value = df_values.value.astype(float)
         df_values.verification_flag.astype(int)
