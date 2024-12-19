@@ -60,6 +60,7 @@ const emit = defineEmits(["update:q", "add-click", "download-click", "upload-cli
         <circle-hover class="ml-1 self-center" @click="$emit('column-picker-click', $event)" v-if="showColumnPicker">
           <icon-column-picker class="text-nord15 text-sm self-center" />
         </circle-hover>
+        <slot />
       </div>
       <div v-if="showFilter" class="flex">
         <input :placeholder="filterText" class="n-input" type="search" :value="q" @input="$emit('update:q', $event.target.value)" v-bind="$attrs" />

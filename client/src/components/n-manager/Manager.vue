@@ -53,6 +53,7 @@ onMounted(async () => {
 const loadData = async () => {
   data.value = await props.service.get();
 };
+defineExpose({ loadData }); // lets parent component call this function
 
 const onEdit = () => {
   if (showEdit.value) selected.value = [];
@@ -164,7 +165,9 @@ const cmp_properties = computed(() => {
     <component v-if="showAddButton" :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" @close="close" @save="saveAdd" />
     <component :is="crudComponent" :is-edit="true" :show="showEdit" :options="options" :selected-value="selected[0]" @close="close" @save="saveEdit" />
 
-    <tool-bar :title="name" v-model:q="q" :show-add="showAddButton" :show-download="showDownloadButton" :show-upload="showUploadButton" @add-click="showAdd = true" @upload-click="onUpload" @download-click="onDownload" @column-picker-click="onColumnPicker" />
+    <tool-bar :title="name" v-model:q="q" :show-add="showAddButton" :show-download="showDownloadButton" :show-upload="showUploadButton" @add-click="showAdd = true" @upload-click="onUpload" @download-click="onDownload" @column-picker-click="onColumnPicker">
+      <slot name="custom-toolbar" />
+    </tool-bar>
 
     <grid :id="id" v-model:selected="selected" v-model:ev="ev" :properties="cmp_properties" :values="cmp_data" @on-right-click="showContextmenu = true" />
   </common-layout>

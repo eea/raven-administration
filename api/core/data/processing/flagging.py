@@ -57,8 +57,8 @@ class Flagging:
         cursor.execute(sql, {"id": sampling_point_id, "dt_from": dt_from, "value": value})
         row = cursor.fetchone()
         if row != None:
-            row["begin_position"] = pd.to_datetime(row["begin_position"], format="%Y-%m-%dT%H:%M:%S%Z")
-            row["end_position"] = pd.to_datetime(row["end_position"], format="%Y-%m-%dT%H:%M:%S%Z")
+            row["begin_position"] = pd.to_datetime(row["begin_position"], format="%Y-%m-%dT%H:%M:%S%z")
+            row["end_position"] = pd.to_datetime(row["end_position"], format="%Y-%m-%dT%H:%M:%S%z")
         return row
 
     @staticmethod

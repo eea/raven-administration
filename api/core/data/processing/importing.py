@@ -70,9 +70,13 @@ class Importing:
         if len(df_values[df_values["ts_is_calculated"] == True]) > 0:
             raise Exception("Calculated values cannot be imported")
 
-        # Check to see if timestep matches with the imported values. Ignore if timestep is 1
-        if not (((df_values.end_position - df_values.begin_position) / pd.Timedelta(seconds=1) == (df_values.apply(lambda x: U.actual_timestep(x.begin_position, x.ts_timestep), axis=1)))).all() and not (df_values.ts_timestep == -1).all():
-            raise Exception("The difference between end_position and begin_position must be the same as the samplingpoint timestep")
+        # Check to see if timestep matches with the imported values. Ignore if timestep is -1
+        df_errors = df_values[(((df_values.end_position - df_values.begin_position) / pd.Timedelta(seconds=1)).astype('int64') - ((df_values.apply(lambda x: U.actual_timestep(x.begin_position, x.ts_timestep), axis=1))).astype('int64')) > 0]
+        df_errors = df_errors[df_errors.ts_timestep != -1]
+        if len(df_errors) > 0:
+            l = len(df_errors)
+            f = df_errors.iloc[0]
+            raise Exception(f"Imported values does not match timestep. First error is at {f.sampling_point_id} {f.begin_position} {f.end_position} {f.ts_timestep}")
 
         # Check if any are verified values
         # if len(df_values[df_values["verification_flag"] == 1]) > 0:

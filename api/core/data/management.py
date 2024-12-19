@@ -69,7 +69,7 @@ class Management:
 
             # Validations raises an exception if it fails
             if row.column_name.upper() == "BEGIN_POSITION" or row.column_name.upper() == "END_POSITION":
-                pd.to_datetime(self.df[self.df[row.column_name].notna()][row.column_name], format="%Y-%m-%dT%H:%M:%S%Z")
+                pd.to_datetime(self.df[self.df[row.column_name].notna()][row.column_name], format="%Y-%m-%dT%H:%M:%S%z")
 
             elif row.data_type.startswith("int"):
                 self.df[self.df[row.column_name].notna()][row.column_name].astype(int)

@@ -7,6 +7,7 @@ const Service = {
   delete: async (data) => Post("/api/management/attainments/delete", data),
   upload: async (data) => Upload("/api/imports/attainments", data),
   download: async () => Download("/api/exports/attainments"),
+  generate: async (data) => Post("/api/management/attainments/generate", data),
 
   assessment_regimes: async () => Get("/api/management/lookups/assessmentregimes")
 };
