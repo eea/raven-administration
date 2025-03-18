@@ -50,21 +50,6 @@ erDiagram
         TIMESTAMP to_time
     }
 
-    USERGROUP {
-        INTEGER userid PK
-        INTEGER groupid PK
-    }
-    USER {
-        INTEGER id PK
-    }
-    GROUP {
-        INTEGER id PK
-    }
-
-    USER ||--o{ USERGROUP : "has"
-    GROUP ||--o{ USERGROUP : "includes"
-
-
     eea_adjustmenttypes {
         VARCHAR id PK "PRIMARY KEY"
         VARCHAR label
