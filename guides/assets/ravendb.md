@@ -1,5 +1,4 @@
 ```mermaid
-graph TD
 erDiagram
     converted_series {
         BIGINT id PK "PRIMARY KEY"
