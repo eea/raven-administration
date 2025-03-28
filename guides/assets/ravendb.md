@@ -48,22 +48,6 @@ erDiagram
         NUMERIC value
         TIMESTAMP from_time
         TIMESTAMP to_time
-        VARCHAR qc_status FK "FOREIGN KEY"
-    }
-
-    qc_status {
-        VARCHAR id PK "PRIMARY KEY"
-        VARCHAR status
-        VARCHAR description
-        TIMESTAMP qc_date
-        VARCHAR qc_performed_by
-    }
-
-    observation_time_qc {
-        BIGINT id PK "PRIMARY KEY"
-        BIGINT observation_id FK "FOREIGN KEY"
-        BOOLEAN valid_time_range
-        TIMESTAMP checked_date
     }
 
     eea_adjustmenttypes {
@@ -125,7 +109,6 @@ erDiagram
         VARCHAR area_classification FK "FOREIGN KEY"
         VARCHAR exceedance_reason FK "FOREIGN KEY"
         INTEGER exceedancedescription_element FK "FOREIGN KEY"
-        VARCHAR qc_status FK "FOREIGN KEY"
     }
 
     converted_series ||--|{ sampling_points : "sampling_point_id"
@@ -133,12 +116,11 @@ erDiagram
     stations ||--|{ networks : "network_id"
     networks ||--|{ responsible_authorities : "responsible_authority_id"
     observations ||--|{ sampling_points : "sampling_point_id"
-    observations ||--|| qc_status : "qc_status"
-    observation_time_qc ||--|| observations : "observation_id"
+    users ||--|{ usergroup : "id"
+    group_table ||--|{ usergroup : "id"
     exceedancedescriptions ||--|{ eea_exceedancetype : "exceedance_type"
     exceedancedescriptions ||--|{ eea_adjustmenttypes : "adjustment_type"
     exceedancedescriptions ||--|{ eea_areaclassifications : "area_classification"
     exceedancedescriptions ||--|{ eea_exceedancereason : "exceedance_reason"
     exceedancedescriptions ||--|{ eea_exceedancedescription : "exceedancedescription_element"
-    exceedancedescriptions ||--|| qc_status : "qc_status"
 ```
