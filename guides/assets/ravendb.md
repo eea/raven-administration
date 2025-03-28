@@ -59,6 +59,13 @@ erDiagram
         VARCHAR qc_performed_by
     }
 
+    observation_time_qc {
+        BIGINT id PK "PRIMARY KEY"
+        BIGINT observation_id FK "FOREIGN KEY"
+        BOOLEAN valid_time_range
+        TIMESTAMP checked_date
+    }
+
     eea_adjustmenttypes {
         VARCHAR id PK "PRIMARY KEY"
         VARCHAR label
@@ -127,6 +134,7 @@ erDiagram
     networks ||--|{ responsible_authorities : "responsible_authority_id"
     observations ||--|{ sampling_points : "sampling_point_id"
     observations ||--|| qc_status : "qc_status"
+    observation_time_qc ||--|| observations : "observation_id"
     exceedancedescriptions ||--|{ eea_exceedancetype : "exceedance_type"
     exceedancedescriptions ||--|{ eea_adjustmenttypes : "adjustment_type"
     exceedancedescriptions ||--|{ eea_areaclassifications : "area_classification"
