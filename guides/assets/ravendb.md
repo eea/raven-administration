@@ -6,6 +6,7 @@ erDiagram
         VARCHAR source FK "FOREIGN KEY"
         VARCHAR target FK "FOREIGN KEY"
         NUMERIC factor
+        NUMERIC test
         VARCHAR createdby
     }
 
