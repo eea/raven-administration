@@ -1,4 +1,4 @@
-::: mermaid
+'''mermaid
 erDiagram
     reference_Adjustment {
     nvarchar CountryCode PK
@@ -386,4 +386,4 @@ erDiagram
     }
     reference_Zone ||--o{ reference_AssessmentRegime : "CountryCode + ZoneId"
     reference_Zone ||--o{ reference_GridZone : "CountryCode + ZoneId"
-:::
+'''
