@@ -14,42 +14,42 @@
     reference_Adjustment }o--o{ reference_ComplianceAssessmentMethod : "CountryCode + ComplianceId + DeductionAssessmentMethodId"
     reference_Adjustment }o--o{ reference_Model : "CountryCode + ComplianceId + DeductionAssessmentMethodId"
 
-    %% reference_AdminBoundaryGrid {
-    %% smallint adm_id
-    %% bigint GridNum100m
-    %% bigint GridNum10km
-    %% bigint GridNum1km
-    %% int Year
-    %% int Population
-    %% }
-    %% reference_AdminBoundaryLookup_adm_eea39_2021 {
-    %% smallint adm_id
-    %% nvarchar ICC
-    %% nvarchar adm_country
-    %% nvarchar level3_name
-    %% nvarchar level2_name
-    %% nvarchar level1_name
-    %% nvarchar level0_name
-    %% nvarchar level3_code
-    %% nvarchar level2_code
-    %% nvarchar level1_code
-    %% nvarchar level0_code
-    %% bit EEA32_2020
-    %% bit EEA38_2020
-    %% bit EEA39
-    %% bit EEA33
-    %% bit eea32
-    %% bit eu27_nouk
-    %% bit EU28
-    %% bit eu27
-    %% bit EU25
-    %% bit EU15
-    %% bit EU12
-    %% bit EU10
-    %% tinyint EFTA4
-    %% nvarchar NUTS_EU
-    %% nvarchar TAA
-    %% }
+     reference_AdminBoundaryGrid {
+     smallint adm_id
+     bigint GridNum100m
+     bigint GridNum10km
+     bigint GridNum1km
+     int Year
+     int Population
+     }
+     reference_AdminBoundaryLookup_adm_eea39_2021 {
+     smallint adm_id
+     nvarchar ICC
+     nvarchar adm_country
+     nvarchar level3_name
+     nvarchar level2_name
+     nvarchar level1_name
+     nvarchar level0_name
+     nvarchar level3_code
+     nvarchar level2_code
+     nvarchar level1_code
+     nvarchar level0_code
+     bit EEA32_2020
+     bit EEA38_2020
+     bit EEA39
+     bit EEA33
+     bit eea32
+     bit eu27_nouk
+     bit EU28
+     bit eu27
+     bit EU25
+     bit EU15
+     bit EU12
+     bit EU10
+     tinyint EFTA4
+     nvarchar NUTS_EU
+     nvarchar TAA
+     }
     reference_AssessmentRegime {
     varchar DataAggregationProcessId PK
     varchar CountryCode PK
@@ -130,7 +130,7 @@
     float EEA_estimationOfMQI
     }
     reference_ComplianceAssessmentMethod ||--o{ reference_SamplingPoint_SRA : "CountryCode + AssessmentRegimeId + DataAggregationProcessId + AssessmentMethodId + AttainmentId"
-    %% Ambiguity: The document mentions a relation to "PLAN", but no table named "PLAN" exists. It might refer to "reference_PlanScenario" or another table. This needs clarification before adding the relationship.
+     Ambiguity: The document mentions a relation to "PLAN", but no table named "PLAN" exists. It might refer to "reference_PlanScenario" or another table. This needs clarification before adding the relationship.
     reference_CompliancePlanLink {
     varchar CountryCode PK
     varchar ComplianceId PK
@@ -343,7 +343,7 @@
     float Contribution
     }
     reference_SourceApportionment ||--o{ reference_ComplianceAssessmentMethod : "via CompliancePlanLink (CountryCode + SourceAppId to AttainmentId)"
-    %% Note: The relationship is mediated through the CompliancePlanLink table. Each SourceApportionment may apply to several AttainmentIds, but each AttainmentId should only have one SourceApportionment.
+     Note: The relationship is mediated through the CompliancePlanLink table. Each SourceApportionment may apply to several AttainmentIds, but each AttainmentId should only have one SourceApportionment.
     reference_Station {
     varchar Country
     varchar CountryCode PK
@@ -360,24 +360,24 @@
     datetime ReportingTime
     }
     reference_Station ||--o{ reference_SamplingPoint : "CountryCode"
-    %% reference_Vocabulary {
-    %% varchar vocabulary
-    %% varchar Notation
-    %% varchar URI
-    %% varchar Label
-    %% varchar Definition
-    %% varchar Note
-    %% varchar Status
-    %% date StatusModifiedDate
-    %% date AcceptedDate
-    %% date NotAcceptedDate
-    %% }
-    %% reference_VocabularyRelations {
-    %% varchar Vocabulary
-    %% varchar RelatedVocabulary
-    %% varchar Concept_notation
-    %% varchar Related_notation
-    %% }
+     reference_Vocabulary {
+     varchar vocabulary
+     varchar Notation
+     varchar URI
+     varchar Label
+     varchar Definition
+     varchar Note
+     varchar Status
+     date StatusModifiedDate
+     date AcceptedDate
+     date NotAcceptedDate
+     }
+     reference_VocabularyRelations {
+     varchar Vocabulary
+     varchar RelatedVocabulary
+     varchar Concept_notation
+     varchar Related_notation
+     }
     reference_Zone {
     char CountryCode PK
     char ZoneId PK
