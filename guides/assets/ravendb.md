@@ -1,4 +1,5 @@
 ```mermaid
+erDiagram
  reference_Adjustment {
     nvarchar CountryCode PK
     varchar ComplianceId PK
