@@ -174,6 +174,7 @@ const cmp_timeseries = computed(() => {
         <div>
           <div class="font-bold">Aggregation</div>
           <n-select class="!w-48" v-model="meantype">
+            <n-option value="1000" label="Raw" />
             <n-option value="0" label="Original" />
             <n-option value="1" label="Hour" />
             <n-option value="2" label="Day" />
