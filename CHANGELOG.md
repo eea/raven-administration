@@ -3,10 +3,11 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
-## [Latest commit]
+## [3.2.0]
 
-- [2024-12-19] Added experimental generation of G. To enable it, add `?experimental=true` to `attainments` url
-- [2024-10-25] Added a notification at the top of the menu when a new version is available
+- Added option to see raw data in historical data module
+- Added experimental generation of G. To enable it, add `?experimental=true` to `attainments` url
+- Added a notification at the top of the menu when a new version is available
 
 ## [3.1.4] - 2024-10-24
 

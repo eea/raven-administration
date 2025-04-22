@@ -44,7 +44,8 @@ class MeanType(IntEnum):
     Aot40ForestProtection = 10,
     WinterSeason = 11,
     SummerYear = 12,
-    Period = 999
+    Period = 999,
+    Raw = 1000
 
 
 class Mean:
@@ -88,6 +89,8 @@ class Mean:
             sql = Mean.SummerYear()
         elif meanType == MeanType.Period:
             sql = Mean.Period()
+        elif meanType == MeanType.Raw:
+            sql = Mean.Raw()
         else:
             raise Exception("Meantype not found")
 
@@ -109,7 +112,7 @@ class Mean:
         return rows
         # return MeanValues(meanvalues=rows)
 
-    @ staticmethod
+    @staticmethod
     def GetTimeseries(ids: tuple, cursor: any):
         sql = """
             select spo.id "sampling_point_id", sta.name "station", po.notation "component", ti.timestep "timestep", con.notation "unit", st_x(sta.geom) "lng", st_y(sta.geom) "lat"
@@ -128,7 +131,30 @@ class Mean:
     ## SQLS ##
     ##########
 
-    @ staticmethod
+    @staticmethod
+    def Raw():
+        sql = """
+            SELECT
+                to_char (o.to_time, 'YYYY-MM-DD HH24:MI:SS') as "datetime", 
+                CASE
+                    WHEN o.verification_flag <= %(verificationFlag)s AND (o.validation_flag in (1,2,3) or %(useInvalidValues)s) AND (o.import_value != -9900)
+                    THEN  ROUND(o.import_value,%(fraction)s)::double PRECISION
+                    ELSE NULL
+                END as "value",
+                100 as "coverage",                   
+                1 as "cnt",                 
+                o.sampling_point_id as "sampling_point_id",   
+                0 "meantype"             
+            FROM
+                observations o
+            WHERE 1=1
+            AND o.from_time >= %(fromTime)s
+            AND o.from_time < %(toTime)s
+            AND  o.sampling_point_id IN %(ids)s
+        """
+        return sql
+
+    @staticmethod
     def Original():
         sql = """
             SELECT
@@ -151,7 +177,7 @@ class Mean:
         """
         return sql
 
-    @ staticmethod
+    @staticmethod
     def Hour():
         sql = """
             WITH timevalues as 
@@ -198,7 +224,7 @@ class Mean:
         """
         return sql
 
-    @ staticmethod
+    @staticmethod
     def Day():
         sql = """
             WITH timevalues as 
@@ -245,7 +271,7 @@ class Mean:
         """
         return sql
 
-    @ staticmethod
+    @staticmethod
     def MovingEightHour():
         sql = """
             WITH timevalues as 
@@ -290,7 +316,7 @@ class Mean:
         """
         return sql
 
-    @ staticmethod
+    @staticmethod
     def Year():
         sql = """
             WITH timevalues as 
@@ -343,7 +369,7 @@ class Mean:
         """
         return sql
 
-    @ staticmethod
+    @staticmethod
     def MovingEightHourMax():
         sql = """
             WITH timevalues as 
@@ -394,7 +420,7 @@ class Mean:
         """
         return sql
 
-    @ staticmethod
+    @staticmethod
     def MovingDay():
         sql = """
             WITH timevalues as 
@@ -439,7 +465,7 @@ class Mean:
         """
         return sql
 
-    @ staticmethod
+    @staticmethod
     def Month():
         sql = """
             WITH timevalues as 
@@ -486,7 +512,7 @@ class Mean:
         """
         return sql
 
-    @ staticmethod
+    @staticmethod
     def WinterYear():
         sql = """
             WITH timevalues as 
@@ -541,7 +567,7 @@ class Mean:
         """
         return sql
 
-    @ staticmethod
+    @staticmethod
     def Aot40Vegetation():
         sql = """
             WITH timevalues as 
@@ -622,7 +648,7 @@ class Mean:
         """
         return sql
 
-    @ staticmethod
+    @staticmethod
     def Aot40ForestProtection():
         sql = """
             WITH timevalues as 
@@ -703,7 +729,7 @@ class Mean:
         """
         return sql
 
-    @ staticmethod
+    @staticmethod
     def WinterSeason():
         sql = """
             WITH timevalues as
@@ -766,7 +792,7 @@ class Mean:
         """
         return sql
 
-    @ staticmethod
+    @staticmethod
     def SummerYear():
         sql = """
             WITH timevalues as 
@@ -821,7 +847,7 @@ class Mean:
         """
         return sql
 
-    @ staticmethod
+    @staticmethod
     def Period():
         sql = """
             WITH timevalues as 
