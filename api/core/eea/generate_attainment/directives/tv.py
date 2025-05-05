@@ -64,7 +64,12 @@ def get_coverages_and_count_and_max(cursor, year, df, limitvalue, factor, direct
 
     spos = list(df["sampling_point_id"].unique())
 
-    counts = df.groupby(['sampling_point_id', 'year'])['value'].apply(lambda x: (round(x, factor) > limitvalue).sum()).reset_index(name='count')
+    # Counts how many non-NaN values exceed limitvalue (after rounding) for each (sampling_point_id, year) group.
+    counts = (
+        df.groupby(['sampling_point_id', 'year'])['value']
+        .apply(lambda x: (x.dropna().round(factor) > limitvalue).sum())
+        .reset_index(name='count')
+    )
     values = df.groupby(['sampling_point_id', 'year'])["value"].max().reset_index(name='max_value')
 
     if directive["pollutant"] == "O3" and directive["reportingmetric"] == "daysAbove-3yr":

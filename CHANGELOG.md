@@ -3,11 +3,12 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
-## [3.2.1] - 2025-05-05
+## [3.2.2] - 2025-05-05
 
 ### Fixed
 
 - Handling empty dataset when generating attainment
+- Rounding issue on None values
 
 ## [3.2.0]
 

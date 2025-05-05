@@ -43,7 +43,12 @@ def get_coverages_and_count_and_max(cursor,  year, df, limitvalue, factor):
         return pd.DataFrame()
     spos = list(df["sampling_point_id"].unique())
 
-    counts = df.groupby('sampling_point_id')['value'].apply(lambda x: (round(x, factor) > limitvalue).sum()).reset_index(name='count')
+    # Counts how many non-NaN values exceed limitvalue (after rounding) for each (sampling_point_id, year) group.
+    counts = (
+        df.groupby('sampling_point_id')['value']
+        .apply(lambda x: (x.fillna(float('-inf')).round(factor) > limitvalue).sum())
+        .reset_index(name='count')
+    )
     values = df.groupby("sampling_point_id")["value"].max().reset_index(name='max_value')
 
     df = get_annual_coverage(cursor, tuple(spos), year)
