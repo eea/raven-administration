@@ -57,6 +57,9 @@ def get_tv(directive, regime, year):
 
 
 def get_coverages_and_count_and_max(cursor, year, df, limitvalue, factor, directive):
+    if df.empty:
+        return pd.DataFrame()
+
     df["year"] = df.datetime.str[:4].astype(int)
 
     spos = list(df["sampling_point_id"].unique())
@@ -89,6 +92,9 @@ def get_coverages_and_count_and_max(cursor, year, df, limitvalue, factor, direct
 
 def convert_aot40(meanvalues):
     df_meanvalues = pd.DataFrame(meanvalues)
+    if df_meanvalues.empty:
+        return meanvalues
+
     g = df_meanvalues.groupby(["sampling_point_id", "unit", "station", "component", "timestep", "lng", "lat", "meantype"])
     n = g.agg(
         {

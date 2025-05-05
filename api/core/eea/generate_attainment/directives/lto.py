@@ -48,6 +48,8 @@ def get_lto(directive, regime, year):
 
 
 def get_coverages_and_count_and_max(cursor, year, df, limitvalue, factor, directive):
+    if df.empty:
+        return pd.DataFrame()
     df["year"] = df.datetime.str[:4].astype(int)
 
     spos = list(df["sampling_point_id"].unique())

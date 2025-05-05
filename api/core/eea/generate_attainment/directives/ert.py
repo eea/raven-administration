@@ -40,6 +40,9 @@ def get_ert(directive, regime, year):
 
 
 def get_coverages_and_count_and_max(cursor,  year, df, limitvalue, factor):
+    if df.empty:
+        return pd.DataFrame()
+
     spos = list(df["sampling_point_id"].unique())
 
     counts = df.groupby('sampling_point_id')['value'].apply(lambda x: (round(x, factor) > limitvalue).sum()).reset_index(name='count')
