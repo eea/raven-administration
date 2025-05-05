@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.2.1] - 2025-05-05
+
+### Fixed
+
+- Handling empty dataset when generating attainment
+
 ## [3.2.0]
 
 - Added option to see raw data in historical data module
