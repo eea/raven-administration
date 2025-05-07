@@ -27,8 +27,8 @@ def get_int(directive, regime, year):
 
             regime["used_samplingpoints"] = list(df_with_coverage_or_count["sampling_point_id"].unique())
 
-            cnt = df_with_coverage_or_count["count"].max().item()
-            mx = df_with_coverage["max_value"].max().item()
+            cnt = df_with_coverage_or_count["count"].max()
+            mx = df_with_coverage["max_value"].max()
             has_exceedances = cnt > directive["count"] if directive["count"] != None else False
 
             value = cnt

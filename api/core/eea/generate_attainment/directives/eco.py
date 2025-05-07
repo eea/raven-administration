@@ -28,8 +28,8 @@ def get_eco(directive, regime, year):
 
             regime["used_samplingpoints"] = list(df_with_coverage_or_count["sampling_point_id"].unique())
 
-            cnt = df_with_coverage_or_count["count"].max().item()
-            mx = df_with_coverage["max_value"].max().item()
+            cnt = df_with_coverage_or_count["count"].max()
+            mx = df_with_coverage["max_value"].max()
             has_exceedances = mx > limitvalue
 
             value = mx

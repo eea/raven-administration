@@ -10,6 +10,7 @@ from core.eea.generate_attainment.directives.ert import get_ert
 from core.eea.generate_attainment.directives.lto import get_lto
 from core.eea.generate_attainment.directives.limitvalues import limitvalues
 import time
+import math
 
 start = time.time()
 
@@ -142,8 +143,8 @@ def generate(year, deleteExistingAttainments):
             "attainment_id": att_id,
             "exceedancedescription_element": 3,
             "exceedance_type": exceedance["exceedance_type"],
-            "max_value": exceedance["value"],
-            "exceedances": exceedance["has_exceedances"],
+            "max_value": exceedance["value"].item() if hasattr(exceedance["value"], "item") else (0 if exceedance["value"] is None or (isinstance(exceedance["value"], float) and math.isnan(exceedance["value"])) else exceedance["value"]),
+            "exceedances": bool(exceedance["has_exceedances"]) if "has_exceedances" in exceedance else False,
             "adjustment_type": "noneApplicable" if exceedance["has_exceedances"] else None,
             "area_classification": "http://dd.eionet.europa.eu/vocabulary/aq/areaclassification/rural" if exceedance["has_exceedances"] else None,
             "exceedance_reason": "S1" if exceedance["has_exceedances"] else None,

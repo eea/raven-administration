@@ -36,8 +36,8 @@ def get_lto(directive, regime, year):
 
             use_count = directive["count"] != None
 
-            cnt = df_with_coverage_or_count["count"].max().item()
-            mx = df_with_coverage["max_value"].max().item()
+            cnt = df_with_coverage_or_count["count"].max()
+            mx = df_with_coverage["max_value"].max()
             has_exceedances = cnt > directive["count"] if use_count else mx > limitvalue
 
             value = cnt if use_count else mx
