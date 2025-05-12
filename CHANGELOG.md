@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.2.4] - 2025-05-07
+
+### Fixed
+
+- Version mixup fix
+- Convertions between numby and native types
+
 ## [3.2.2] - 2025-05-05
 
 ### Fixed
