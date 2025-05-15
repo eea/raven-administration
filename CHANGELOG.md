@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.3.0] - 2025-05-15
+
+### Added
+
+- Convertion: Do not convert data if validation flag is below (invalid) 0 and values are -9900,-990 or -999
+
 ## [3.2.4] - 2025-05-07
 
 ### Fixed
