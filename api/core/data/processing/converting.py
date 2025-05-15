@@ -16,7 +16,11 @@ class Converting:
         for row in filtered_values.itertuples():
             converted_timeserie = next(filter(lambda x: x["sampling_point_id"] == row.sampling_point_id, converted_timeseries), None)
             if converted_timeserie is not None:
-                df_values.at[row.Index,  "value"] = row.value * float(converted_timeserie["factor"])
+                # if validation_flag < 0 and value is -9900 or -990 or -999 then don't convert
+                if row.validation_flag < 0 and (row.value == -9900 or row.value == -990 or row.value == -999):
+                    df_values.at[row.Index,  "value"] = row.value
+                else:
+                    df_values.at[row.Index,  "value"] = row.value * float(converted_timeserie["factor"])
 
         printcol(f"- Converting took {time.perf_counter() - bench} seconds")
         # return df_values.reset_index(drop=True)
