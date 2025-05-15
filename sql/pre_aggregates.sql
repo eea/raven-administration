@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------------
 
-create index idx_obs_spoid_year on public.observations (sampling_point_id, date_trunc('year'::text, from_time));
-create index idx_obs_spoid_day on public.observations (sampling_point_id, date_trunc('day'::text, from_time));
+create index IF NOT EXISTS idx_obs_spoid_year on public.observations (sampling_point_id, date_trunc('year'::text, from_time));
+create index IF NOT EXISTS idx_obs_spoid_day on public.observations (sampling_point_id, date_trunc('day'::text, from_time));
 VACUUM FULL ANALYZE observations;
 
 ------------------------------------------------------------------------------------
@@ -38,6 +38,10 @@ begin
         seconds := 86400;
     end if;
 
+    if timestep > seconds then
+        return 0;
+    end if;
+
     return round((count::numeric*100) / (seconds/timestep),10);
 end
 $$ language plpgsql;
@@ -62,7 +66,7 @@ $$ language plpgsql;
 
 
 ------------------------------------------------------------------------------------
-
+DROP MATERIALIZED VIEW IF EXISTS observations_year;
 create materialized view observations_year as
 with timeseries as (select s.id as sampling_point_id, t.timestep from sampling_points s, eea_times t WHERE s.timestep = t.id)
 select
@@ -71,11 +75,11 @@ select
     now() as created
 from (select sampling_point_id,
              date_trunc('year', from_time)                                     as time,
-             round(avg(value) FILTER (WHERE validation_flag in (1, 2, 3)), 10) as val,
-             round(min(value) FILTER (WHERE validation_flag in (1, 2, 3)), 10) as min,
-             round(max(value) FILTER (WHERE validation_flag in (1, 2, 3)), 10) as max,
+             round(avg(value) FILTER (WHERE validation_flag >= 1), 10) as val,
+             round(min(value) FILTER (WHERE validation_flag >= 1), 10) as min,
+             round(max(value) FILTER (WHERE validation_flag >= 1), 10) as max,
              count(value)          ::int                                            AS count_all,
-             count(value) FILTER (WHERE validation_flag in (1, 2, 3)) ::int         AS count_valid,
+             count(value) FILTER (WHERE validation_flag >= 1) ::int         AS count_valid,
              count(*) FILTER (WHERE verification_flag = 1)  ::int                   as count_verified
       from observations
       group by sampling_point_id, time
@@ -92,7 +96,7 @@ on observations_year (sampling_point_id,time);
 VACUUM FULL ANALYZE observations_year;
 
 ------------------------------------------------------------------------------------
-
+DROP MATERIALIZED VIEW IF EXISTS observations_winter_year;
 create materialized view observations_winter_year as
 with timeseries as (select s.id as sampling_point_id, t.timestep from sampling_points s, eea_times t WHERE s.timestep = t.id)
 select
@@ -103,11 +107,11 @@ from (
     select
         sampling_point_id,
         date_trunc('year', from_time)                                     as time,
-        round(avg(value) FILTER (WHERE validation_flag in (1, 2, 3)), 10) as val,
-        round(min(value) FILTER (WHERE validation_flag in (1, 2, 3)), 10) as min,
-        round(max(value) FILTER (WHERE validation_flag in (1, 2, 3)), 10) as max,
+        round(avg(value) FILTER (WHERE validation_flag >= 1), 10) as val,
+        round(min(value) FILTER (WHERE validation_flag >= 1), 10) as min,
+        round(max(value) FILTER (WHERE validation_flag >= 1), 10) as max,
         count(value)          ::int                                            AS count_all,
-        count(value) FILTER (WHERE validation_flag in (1, 2, 3)) ::int         AS count_valid,
+        count(value) FILTER (WHERE validation_flag >= 1) ::int         AS count_valid,
         count(*) FILTER (WHERE verification_flag = 1)  ::int                   as count_verified
     from observations
     where 1 = 1
@@ -126,7 +130,7 @@ on observations_winter_year (sampling_point_id,time);
 VACUUM FULL ANALYZE observations_winter_year;
 
 ------------------------------------------------------------------------------------
-
+DROP MATERIALIZED VIEW IF EXISTS observations_winter_season;
 create materialized view observations_winter_season as
 with
     timeseries as (select s.id as sampling_point_id, t.timestep from sampling_points s, eea_times t WHERE s.timestep = t.id),
@@ -173,6 +177,7 @@ VACUUM FULL ANALYZE observations_winter_season;
 
 ------------------------------------------------------------------------------------
 
+DROP MATERIALIZED VIEW IF EXISTS observations_summer_year;
 create materialized view observations_summer_year as
 with timeseries as (select s.id as sampling_point_id, t.timestep from sampling_points s, eea_times t WHERE s.timestep = t.id)
 select
@@ -183,11 +188,11 @@ from (
     select
         sampling_point_id,
         date_trunc('year', from_time)                                     as time,
-        round(avg(value) FILTER (WHERE validation_flag in (1, 2, 3)), 10) as val,
-        round(min(value) FILTER (WHERE validation_flag in (1, 2, 3)), 10) as min,
-        round(max(value) FILTER (WHERE validation_flag in (1, 2, 3)), 10) as max,
+        round(avg(value) FILTER (WHERE validation_flag >= 1), 10) as val,
+        round(min(value) FILTER (WHERE validation_flag >= 1), 10) as min,
+        round(max(value) FILTER (WHERE validation_flag >= 1), 10) as max,
         count(value)          ::int                                            AS count_all,
-        count(value) FILTER (WHERE validation_flag in (1, 2, 3)) ::int         AS count_valid,
+        count(value) FILTER (WHERE validation_flag >= 1) ::int         AS count_valid,
         count(*) FILTER (WHERE verification_flag = 1)  ::int                   as count_verified
     from observations
     where 1 = 1
@@ -207,6 +212,7 @@ VACUUM FULL ANALYZE observations_summer_year;
 
 ------------------------------------------------------------------------------------
 
+DROP MATERIALIZED VIEW IF EXISTS observations_day;
 create materialized view observations_day as
 with timeseries as (select s.id as sampling_point_id, t.timestep from sampling_points s, eea_times t WHERE s.timestep = t.id)
 select
@@ -218,11 +224,11 @@ from
     select
         sampling_point_id,
         date_trunc('day', from_time) as time,
-        round(avg(value) FILTER (WHERE validation_flag in (1, 2, 3)), 10) as val,
-        round(min(value) FILTER (WHERE validation_flag in (1, 2, 3)), 10) as min,
-        round(max(value) FILTER (WHERE validation_flag in (1, 2, 3)), 10) as max,
+        round(avg(value) FILTER (WHERE validation_flag >= 1), 10) as val,
+        round(min(value) FILTER (WHERE validation_flag >= 1), 10) as min,
+        round(max(value) FILTER (WHERE validation_flag >= 1), 10) as max,
         count(value)::int AS count_all,
-        count(value) FILTER (WHERE validation_flag in (1, 2, 3)) ::int AS count_valid,
+        count(value) FILTER (WHERE validation_flag >= 1) ::int AS count_valid,
         count(*) FILTER (WHERE verification_flag = 1)  ::int as count_verified
       from observations
       group by sampling_point_id, time
@@ -240,6 +246,7 @@ VACUUM FULL ANALYZE observations_day;
 
 ------------------------------------------------------------------------------------
 
+DROP MATERIALIZED VIEW IF EXISTS observations_aot40v;
 create materialized view observations_aot40v as
 with timeseries as (select s.id as sampling_point_id, t.timestep from sampling_points s, eea_times t WHERE s.timestep = t.id)
 select
@@ -257,11 +264,11 @@ from (
     select
         sampling_point_id,
         date_trunc('year', from_time)                                                             as time,
-        round(sum(value - 80) FILTER (WHERE validation_flag in (1, 2, 3) AND value - 80 > 0), 10) as val,
-        round(min(value) FILTER (WHERE validation_flag in (1, 2, 3) AND value - 80 > 0), 10)      as min,
-        round(max(value) FILTER (WHERE validation_flag in (1, 2, 3) AND value - 80 > 0), 10)      as max,
+        round(sum(value - 80) FILTER (WHERE validation_flag >= 1 AND value - 80 > 0), 10) as val,
+        round(min(value) FILTER (WHERE validation_flag >= 1 AND value - 80 > 0), 10)      as min,
+        round(max(value) FILTER (WHERE validation_flag >= 1 AND value - 80 > 0), 10)      as max,
         count(value)::int                                                                              AS count_all,
-        count(value) FILTER (WHERE validation_flag in (1, 2, 3))::int               AS count_valid,
+        count(value) FILTER (WHERE validation_flag >= 1)::int               AS count_valid,
         count(*) FILTER (WHERE verification_flag = 1)::int                                             as count_verified
     from observations
     where 1 = 1
@@ -282,6 +289,7 @@ VACUUM FULL ANALYZE observations_aot40v;
 
 ------------------------------------------------------------------------------------
 
+DROP MATERIALIZED VIEW IF EXISTS observations_aot40f;
 create materialized view observations_aot40f as
 with timeseries as (select s.id as sampling_point_id, t.timestep from sampling_points s, eea_times t WHERE s.timestep = t.id)
 select
@@ -299,11 +307,11 @@ from (
     select
         sampling_point_id,
         date_trunc('year', from_time)                                                             as time,
-        round(sum(value - 80) FILTER (WHERE validation_flag in (1, 2, 3) AND value - 80 > 0), 10) as val,
-        round(min(value) FILTER (WHERE validation_flag in (1, 2, 3) AND value - 80 > 0), 10)      as min,
-        round(max(value) FILTER (WHERE validation_flag in (1, 2, 3) AND value - 80 > 0), 10)      as max,
+        round(sum(value - 80) FILTER (WHERE validation_flag >= 1 AND value - 80 > 0), 10) as val,
+        round(min(value) FILTER (WHERE validation_flag >= 1 AND value - 80 > 0), 10)      as min,
+        round(max(value) FILTER (WHERE validation_flag >= 1 AND value - 80 > 0), 10)      as max,
         count(value)::int                                                                              AS count_all,
-        count(value) FILTER (WHERE validation_flag in (1, 2, 3))::int               AS count_valid,
+        count(value) FILTER (WHERE validation_flag >= 1)::int               AS count_valid,
         count(*) FILTER (WHERE verification_flag = 1)::int                                             as count_verified
     from observations
     where 1 = 1
