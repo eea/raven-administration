@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.3.1] - 2025-05-15
+
+### Fixes
+
+- A bug in calculating coverage when pre generating aggregations. Specifically, when timestep is bigger than the number of seconds in an aggregation. ie hourly aggregation with daily values.
+- A [sql file](sql/pre_aggregates.sql) required to be rerun to fix the issue.
+
 ## [3.3.0] - 2025-05-15
 
 ### Added

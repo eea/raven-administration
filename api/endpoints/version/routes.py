@@ -3,7 +3,7 @@ from flask_jwt_extended import create_access_token
 import requests
 
 version_endpoint = Blueprint('version', __name__)
-current_version = "3.3.0"
+current_version = "3.3.1"
 
 
 @version_endpoint.route('/api/version', methods=['GET'])
