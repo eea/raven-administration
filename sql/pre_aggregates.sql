@@ -2,7 +2,6 @@
 
 create index IF NOT EXISTS idx_obs_spoid_year on public.observations (sampling_point_id, date_trunc('year'::text, from_time));
 create index IF NOT EXISTS idx_obs_spoid_day on public.observations (sampling_point_id, date_trunc('day'::text, from_time));
-VACUUM FULL ANALYZE observations;
 
 ------------------------------------------------------------------------------------
 
@@ -93,8 +92,6 @@ on observations_year (sampling_point_id,time);
 CREATE UNIQUE INDEX un_obs_year_id_time
 on observations_year (sampling_point_id,time);
 
-VACUUM FULL ANALYZE observations_year;
-
 ------------------------------------------------------------------------------------
 DROP MATERIALIZED VIEW IF EXISTS observations_winter_year;
 create materialized view observations_winter_year as
@@ -127,7 +124,6 @@ on observations_winter_year (sampling_point_id,time);
 CREATE UNIQUE INDEX un_obs_winter_year_id_time
 on observations_winter_year (sampling_point_id,time);
 
-VACUUM FULL ANALYZE observations_winter_year;
 
 ------------------------------------------------------------------------------------
 DROP MATERIALIZED VIEW IF EXISTS observations_winter_season;
@@ -173,7 +169,6 @@ on observations_winter_season (sampling_point_id,time);
 CREATE UNIQUE INDEX un_obs_winter_season_id_time
 on observations_winter_season (sampling_point_id,time);
 
-VACUUM FULL ANALYZE observations_winter_season;
 
 ------------------------------------------------------------------------------------
 
@@ -208,7 +203,6 @@ on observations_summer_year(sampling_point_id,time);
 CREATE UNIQUE INDEX un_obs_summer_year_id_time
 on observations_summer_year (sampling_point_id,time);
 
-VACUUM FULL ANALYZE observations_summer_year;
 
 ------------------------------------------------------------------------------------
 
@@ -241,7 +235,6 @@ on observations_day (sampling_point_id,time);
 CREATE UNIQUE INDEX un_obs_day_id_time
 on observations_day (sampling_point_id,time);
 
-VACUUM FULL ANALYZE observations_day;
 
 
 ------------------------------------------------------------------------------------
@@ -285,7 +278,6 @@ on observations_aot40v (sampling_point_id,time);
 CREATE UNIQUE INDEX un_obs_aot40v_id_time
 on observations_aot40v (sampling_point_id,time);
 
-VACUUM FULL ANALYZE observations_aot40v;
 
 ------------------------------------------------------------------------------------
 
@@ -328,6 +320,5 @@ on observations_aot40f (sampling_point_id,time);
 CREATE UNIQUE INDEX un_obs_aot40f_id_time
 on observations_aot40f (sampling_point_id,time);
 
-VACUUM FULL ANALYZE observations_aot40f;
 
 ------------------------------------------------------------------------------------
