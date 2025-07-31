@@ -2,6 +2,7 @@ from flask import jsonify, Blueprint
 from core.database import CursorFromPool
 from core.jwt_ext_custom import jwt_required_with_data_claim
 from core.query import Q
+from core.aqi import get_aqi
 latest_endpoint = Blueprint('latest', __name__)
 
 
@@ -12,7 +13,7 @@ def latest():
         with_network_sql, n_param = Q.with_networks_by_access_as_sql()
         sql = f"""
             {with_network_sql}
-			      select sp.id as id, to_char(sp.from_time,'yyyy-mm-dd HH24:mi') as from_time, to_char(sp.to_time,'yyyy-mm-dd HH24:mi') as to_time, o.value::double PRECISION, o.validation_flag, o.verification_flag, p.notation as pollutant, t.label as timestep, s.name as station, n.name as network, u.notation as unit,
+                  select sp.id as id, to_char(sp.from_time,'yyyy-mm-dd HH24:mi') as from_time, to_char(sp.to_time,'yyyy-mm-dd HH24:mi') as to_time, o.value::double PRECISION, o.validation_flag, o.verification_flag, p.notation as pollutant, t.label as timestep, s.name as station, n.name as network, u.notation as unit,
             case
                 when sp.to_time > NOW() - INTERVAL '3 hours' then 0
                 when sp.to_time > NOW() - INTERVAL '6 months' then 1
@@ -31,4 +32,11 @@ def latest():
         """
         cursor.execute(sql, n_param)
         values = cursor.fetchall()
+
+        for v in values:
+            aqi_info = get_aqi(v["pollutant"], v["value"], v["timestep"])
+            v["aqi"] = aqi_info["index"]
+            v["aqi_description"] = aqi_info["description"]
+            v["aqi_color"] = aqi_info["color"]
+
         return jsonify(values)
