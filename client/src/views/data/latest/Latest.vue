@@ -106,7 +106,7 @@ const onContextMenu = (row, e) => {
           <td>{{ row.timestep }}</td>
           <td>{{ row.from_time }}</td>
           <td :class="cls_cellClass(row)">{{ row.to_time }}</td>
-          <td><div v-if="row.aqi > 0" class="w-4 h-4 rounded-full flex items-center justify-center" v-tooltip="row.aqi_description" :style="{ backgroundColor: row.aqi_color + '77', borderColor: row.aqi_color, borderStyle: 'solid', borderWidth: '1px' }"></div></td>
+          <td><div v-if="row.aqi > 0" class="w-4 h-4 rounded-full flex items-center justify-center" v-tooltip="row.aqi_description" :style="{ backgroundColor: row.aqi_color + 'BB', borderColor: row.aqi_color, borderStyle: 'solid', borderWidth: '1px' }"></div></td>
           <td>{{ row.value }}</td>
           <td>{{ row.validation_flag }}</td>
           <td>{{ row.verification_flag }}</td>

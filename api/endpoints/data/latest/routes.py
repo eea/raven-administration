@@ -1,3 +1,4 @@
+import math
 from flask import jsonify, Blueprint
 from core.database import CursorFromPool
 from core.jwt_ext_custom import jwt_required_with_data_claim
@@ -13,12 +14,13 @@ def latest():
         with_network_sql, n_param = Q.with_networks_by_access_as_sql()
         sql = f"""
             {with_network_sql}
-                  select sp.id as id, to_char(sp.from_time,'yyyy-mm-dd HH24:mi') as from_time, to_char(sp.to_time,'yyyy-mm-dd HH24:mi') as to_time, o.value::double PRECISION, o.validation_flag, o.verification_flag, p.notation as pollutant, t.label as timestep, s.name as station, n.name as network, u.notation as unit,
+                  select sp.id as id, to_char(sp.from_time,'yyyy-mm-dd HH24:mi') as from_time, to_char(sp.to_time,'yyyy-mm-dd HH24:mi') as to_time, o.validation_flag, o.verification_flag, p.notation as pollutant, t.label as timestep, s.name as station, n.name as network, u.notation as unit,
             case
                 when sp.to_time > NOW() - INTERVAL '3 hours' then 0
                 when sp.to_time > NOW() - INTERVAL '6 months' then 1
                 else 2
-            end status
+            end status,
+            nullif(o.value, 'NaN')::double precision as value
             from observations o, sampling_points sp, eea_pollutants p, eea_times t, stations s, network_access n, eea_concentrations u
             where 1=1
             and n.id = s.network_id
@@ -32,6 +34,8 @@ def latest():
         """
         cursor.execute(sql, n_param)
         values = cursor.fetchall()
+
+        rows_with_nan = [v for v in values if isinstance(v["value"], float) and math.isnan(v["value"])]
 
         for v in values:
             aqi_info = get_aqi(v["pollutant"], v["value"], v["timestep"])

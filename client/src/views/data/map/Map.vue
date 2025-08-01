@@ -53,7 +53,7 @@ const rectByAqi = (aqi) => {
       <LMap ref="map" :zoom="2" :center="[0, 0]" :options="{ zoomControl: false, attributionControl: false }" class="relative">
         <LTileLayer :url="url" attribution="" layer-type="base" />
 
-        <LCircleMarker :name="station.name" :radius="12" v-for="station in stations" :lat-lng="[station.y, station.x]" :color="hexByAqi(station.aqi)" :fill-opacity="0.4" :weight="2" ref="markerRefs">
+        <LCircleMarker :name="station.name" :radius="6 + station.aqi" v-for="station in stations" :lat-lng="[station.y, station.x]" :color="hexByAqi(station.aqi)" :fill-opacity="0.7" :weight="2" ref="markerRefs">
           <l-tooltip :options="{ interactive: true, offset: [15, 0], className: 'map-tooltip' }">
             <div class="font-bold text-xl">{{ station.name }}</div>
             <div class="text-base">{{ station.network }}</div>

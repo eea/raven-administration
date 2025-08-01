@@ -25,7 +25,7 @@ def map():
             st_y(geom) as y,
             to_char(sp.from_time,'yyyy-mm-dd HH24:mi') as from_time,
             to_char(sp.to_time,'yyyy-mm-dd HH24:mi') as to_time,
-            o.value::double precision as value,
+            nullif(o.value, 'NaN')::double precision as value,
             o.validation_flag,
             o.verification_flag,
             p.notation as pollutant,
@@ -87,5 +87,6 @@ def map():
                 group["aqi"] = 0
                 group["aqi_description"] = "No data"
 
-        result = list(grouped.values())
+        # Sort grouped values by AQI descending
+        result = sorted(grouped.values(), key=lambda g: g["aqi"])
         return jsonify(result)

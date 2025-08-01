@@ -1,12 +1,13 @@
+import math
 
 # AQI legend: index, description, color
 aqi_legend = [
-    {"index": 1, "description": "Good", "color": "#007687"},
-    {"index": 2, "description": "Fair", "color": "#009344"},
-    {"index": 3, "description": "Moderate", "color": "#554f00"},
-    {"index": 4, "description": "Poor", "color": "#ff4040"},
-    {"index": 5, "description": "Very poor", "color": "#ff9999"},
-    {"index": 6, "description": "Extremely poor", "color": "#e1a6ff"}
+    {"index": 1, "description": "Good", "color": "#50F0E6"},
+    {"index": 2, "description": "Fair", "color": "#50CCAA"},
+    {"index": 3, "description": "Moderate", "color": "#F0E641"},
+    {"index": 4, "description": "Poor", "color": "#FF5050"},
+    {"index": 5, "description": "Very poor", "color": "#960032"},
+    {"index": 6, "description": "Extremely poor", "color": "#7D2181"}
 ]
 
 aqi_ranges = [
@@ -81,6 +82,9 @@ def get_pollutant_uris():
 def get_aqi(pollutant, value, timestep="Hour"):
     default_value = {"index": 0, "description": "No data", "color": "#cccccc"}
     if timestep != "Hour":
+        return default_value
+
+    if value is None or (isinstance(value, float) and math.isnan(value)):
         return default_value
 
     rounded_value = int(round(value))
