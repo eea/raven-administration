@@ -17,7 +17,7 @@ def map():
               json_agg(json_build_object(
                       'from_time', to_char(sp.from_time,'yyyy-mm-dd HH24:mi'),
                       'to_time', to_char(sp.to_time,'yyyy-mm-dd HH24:mi'),
-                      'value',  o.value::double PRECISION,
+                      'value',  nullif(o.value, 'NaN')::double precision,
                       'validation_flag',  o.validation_flag,
                       'verification_flag',  o.verification_flag,
                       'pollutant',  p.notation,

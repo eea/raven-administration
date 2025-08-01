@@ -12,7 +12,7 @@ def latest():
         with_network_sql, n_param = Q.with_networks_by_access_as_sql()
         sql = f"""
             {with_network_sql}
-			      select sp.id as id, to_char(sp.from_time,'yyyy-mm-dd HH24:mi') as from_time, to_char(sp.to_time,'yyyy-mm-dd HH24:mi') as to_time, o.value::double PRECISION, o.validation_flag, o.verification_flag, p.notation as pollutant, t.label as timestep, s.name as station, n.name as network, u.notation as unit,
+			      select sp.id as id, to_char(sp.from_time,'yyyy-mm-dd HH24:mi') as from_time, to_char(sp.to_time,'yyyy-mm-dd HH24:mi') as to_time, nullif(o.value, 'NaN')::double precision as value, o.validation_flag, o.verification_flag, p.notation as pollutant, t.label as timestep, s.name as station, n.name as network, u.notation as unit,
             case
                 when sp.to_time > NOW() - INTERVAL '3 hours' then 0
                 when sp.to_time > NOW() - INTERVAL '6 months' then 1
