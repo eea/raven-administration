@@ -43,6 +43,9 @@ class Endpoints:
         from endpoints.management.settings.routes import settings_endpoint
         app.register_blueprint(settings_endpoint)
 
+        from endpoints.management.aqi.routes import aqi_endpoint
+        app.register_blueprint(aqi_endpoint)
+
         # PROCESSING
         from endpoints.processing.scale.routes import scale_endpoint
         app.register_blueprint(scale_endpoint)

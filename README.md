@@ -28,6 +28,7 @@ git clone https://git.nilu.no/raven/raven-administration
 5. Run the `sql\pre_aggregates.sql` script
 6. Run the `sql\use_in_public_api.sql` script
 7. Run the `sql\meteo.sql` script
+8. Run the `sql\aqi.sql` script
 
 ## Set environment varables
 
