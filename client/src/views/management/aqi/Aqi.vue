@@ -80,7 +80,7 @@ const save = async () => {
   const flattened = Aqi.flatten_pollutant_groups(pollutant_groups.value, levels.value);
 
   console.log(flattened);
-  // if (flattened.length === 0) localStorage.removeItem("aqi_type");
+  if (flattened.length === 0) localStorage.removeItem("aqi_type");
 
   Eventy.showMessage("Saving AQI configuration. Please wait", "loading");
   await Service.save(flattened);
