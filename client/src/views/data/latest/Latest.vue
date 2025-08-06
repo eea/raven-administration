@@ -16,11 +16,19 @@ const ev = ref({});
 const showContextmenu = ref(false);
 const selected = ref({});
 const aqi_type = ref(localStorage.getItem("aqi_type") || "eea");
+const showAqiToggle = ref(false);
 
 const router = useRouter();
 
 onMounted(async () => {
   await loadData();
+  // check if all data.local_aqi is null, if so, set aqi_type to eea
+  if (data.value.every((row) => row.local_aqi_level === null)) {
+    aqi_type.value = "eea";
+    showAqiToggle.value = false;
+  } else {
+    showAqiToggle.value = true;
+  }
 });
 
 watch(aqi_type, (val) => {
@@ -89,7 +97,7 @@ const onContextMenu = (row, e) => {
     </contextmenu>
 
     <tool-bar title="Latest data" :show-column-picker="false" :show-add="false" v-model:q="q" @download-click="onDownload">
-      <div class="self-center flex gap-2 ml-10">
+      <div class="self-center flex gap-2 ml-10" v-if="showAqiToggle">
         <div class="flex items-center gap-1">
           <input v-model="aqi_type" type="radio" value="eea" id="aqi_eea" class="cursor-pointer accent-[#74992e]" />
           <label for="aqi_eea" class="cursor-pointer">EEA AQI</label>

@@ -16,6 +16,7 @@ const aqi_type = ref(localStorage.getItem("aqi_type") || "eea");
 
 onMounted(async () => {
   legends.value = await Service.legend();
+  if (Object.keys(legends.value).length === 1) aqi_type.value = "eea";
   await loadStations();
 });
 

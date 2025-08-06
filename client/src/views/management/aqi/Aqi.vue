@@ -26,9 +26,6 @@ const load = async () => {
   let { levels: l, pollutant_groups: r } = Aqi.convert_to_groups(aqiData.value);
   levels.value = l;
   pollutant_groups.value = r;
-  console.log(aqiData.value);
-  console.log("Loaded levels:", l);
-  console.log("Loaded groups:", r);
 };
 
 const addLevel = () => {
@@ -83,6 +80,7 @@ const save = async () => {
   const flattened = Aqi.flatten_pollutant_groups(pollutant_groups.value, levels.value);
 
   console.log(flattened);
+  // if (flattened.length === 0) localStorage.removeItem("aqi_type");
 
   Eventy.showMessage("Saving AQI configuration. Please wait", "loading");
   await Service.save(flattened);
@@ -187,31 +185,5 @@ const isSaveDisabled = computed(() => {
         <button class="n-button self-center" @click="save" :disabled="isSaveDisabled">Save</button>
       </div>
     </div>
-
-    <!-- <div v-if="aqiData.length === 0" class="w-full h-full flex items-center justify-center">
-      <button class="n-button text-xl !px-6 !py-4" @click="showPopup = true">Setup Local AQI</button>
-    </div>
-    <div v-if="aqiData.length > 0">
-      <table id="aqiId" class="n-table">
-        <tr>
-          <th>Pollutant</th>
-          <th>Timestep</th>
-          <th>Index</th>
-          <th>Description</th>
-          <th>Color</th>
-          <th>From</th>
-          <th>To</th>
-        </tr>
-        <tr v-for="item in aqiData" :key="item.id">
-          <td>{{ item.pollutant }}</td>
-          <td>{{ item.timestep }}</td>
-          <td>{{ item.level }}</td>
-          <td>{{ item.description }}</td>
-          <td><div class="w-4 h-4 rounded-full flex items-center justify-center" :style="{ backgroundColor: item.color + 'BB', borderColor: item.color, borderStyle: 'solid', borderWidth: '1px' }"></div></td>
-          <td>{{ item.range_from }}</td>
-          <td>{{ item.range_to }}</td>
-        </tr>
-      </table>
-    </div> -->
   </common-layout>
 </template>
