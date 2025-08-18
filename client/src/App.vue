@@ -46,4 +46,8 @@ a {
 a:hover {
   @apply no-underline text-nord0;
 }
+
+.tooltip {
+  @apply bg-gray-50 text-gray-600  border border-nord4 rounded p-2  z-[9999] transition-opacity duration-300 m-0 self-center;
+}
 </style>

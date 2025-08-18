@@ -4,6 +4,7 @@ import IconPlot from "~icons/material-symbols/bar-chart";
 import IconScale from "~icons/uil/process";
 
 import { useRouter } from "vue-router";
+import { ref, computed, onMounted, watch } from "vue";
 
 import { format, sub, add } from "date-fns";
 import Service from "./service";
@@ -14,11 +15,24 @@ const data = ref([]);
 const ev = ref({});
 const showContextmenu = ref(false);
 const selected = ref({});
+const aqi_type = ref(localStorage.getItem("aqi_type") || "eea");
+const showAqiToggle = ref(false);
 
 const router = useRouter();
 
 onMounted(async () => {
   await loadData();
+  // check if all data.local_aqi is null, if so, set aqi_type to eea
+  if (data.value.every((row) => row.local_aqi_level === null)) {
+    aqi_type.value = "eea";
+    showAqiToggle.value = false;
+  } else {
+    showAqiToggle.value = true;
+  }
+});
+
+watch(aqi_type, (val) => {
+  localStorage.setItem("aqi_type", val);
 });
 
 const loadData = async () => {
@@ -82,7 +96,18 @@ const onContextMenu = (row, e) => {
       </div>
     </contextmenu>
 
-    <tool-bar title="Latest data" :show-column-picker="false" :show-add="false" v-model:q="q" @download-click="onDownload" />
+    <tool-bar title="Latest data" :show-column-picker="false" :show-add="false" v-model:q="q" @download-click="onDownload">
+      <div class="self-center flex gap-2 ml-10" v-if="showAqiToggle">
+        <div class="flex items-center gap-1">
+          <input v-model="aqi_type" type="radio" value="eea" id="aqi_eea" class="cursor-pointer accent-[#74992e]" />
+          <label for="aqi_eea" class="cursor-pointer">EEA AQI</label>
+        </div>
+        <div class="flex items-center gap-1">
+          <input v-model="aqi_type" type="radio" value="local" id="aqi_local" class="cursor-pointer accent-[#74992e]" />
+          <label for="aqi_local" class="cursor-pointer">Local AQI</label>
+        </div>
+      </div>
+    </tool-bar>
 
     <div>
       <table id="latestId" class="n-table">
@@ -93,6 +118,7 @@ const onContextMenu = (row, e) => {
           <th>Timestep</th>
           <th>First date</th>
           <th>Latest date</th>
+          <th>AQI</th>
           <th>Value</th>
           <th>Validation</th>
           <th>Verification</th>
@@ -105,6 +131,12 @@ const onContextMenu = (row, e) => {
           <td>{{ row.timestep }}</td>
           <td>{{ row.from_time }}</td>
           <td :class="cls_cellClass(row)">{{ row.to_time }}</td>
+          <td v-if="aqi_type === 'eea'">
+            <div v-if="row.eea_aqi_level > 0" class="w-4 h-4 rounded-full flex items-center justify-center" v-tooltip="row.eea_aqi_desc" :style="{ backgroundColor: row.eea_aqi_color + 'BB', borderColor: row.eea_aqi_color, borderStyle: 'solid', borderWidth: '1px' }"></div>
+          </td>
+          <td v-if="aqi_type === 'local'">
+            <div v-if="row.local_aqi_level > 0" class="w-4 h-4 rounded-full flex items-center justify-center" v-tooltip="row.local_aqi_desc" :style="{ backgroundColor: row.local_aqi_color + 'BB', borderColor: row.local_aqi_color, borderStyle: 'solid', borderWidth: '1px' }"></div>
+          </td>
           <td>{{ row.value }}</td>
           <td>{{ row.validation_flag }}</td>
           <td>{{ row.verification_flag }}</td>

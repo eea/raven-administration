@@ -205,6 +205,16 @@ def pollutants():
         return jsonify(pollutants)
 
 
+@management_endpoint.route('/api/management/lookups/aqipollutants', methods=['GET'])
+@jwt_required_with_management_claim()
+def aqipollutants():
+    with CursorFromPool() as cursor:
+        pollutants_to_select = ['PM10', 'PM2.5', 'NO2', 'O3', 'SO2']
+        cursor.execute("select r.notation as label, r.uri as value from eea_pollutants r where r.notation in %(pollutants_to_select)s order by r.notation", {"pollutants_to_select": tuple(pollutants_to_select)})
+        pollutants = cursor.fetchall()
+        return jsonify(pollutants)
+
+
 @management_endpoint.route('/api/management/lookups/responsibleauthorities', methods=['GET'])
 @jwt_required_with_management_claim()
 def responsibleauthorities():

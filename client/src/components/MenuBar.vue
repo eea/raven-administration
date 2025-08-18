@@ -45,7 +45,8 @@ const getmodules = () => {
         { name: "Attainments", comp: "Attainments", show: jwt.management && jwt.allnetworks },
         { name: "Exceedances", comp: "Exceedances", show: jwt.management && jwt.allnetworks },
         { name: "Settings", comp: "Settings", show: jwt.management && jwt.allnetworks },
-        { name: "Pre aggregation", comp: "PreAggregation", show: jwt.data }
+        { name: "Pre aggregation", comp: "PreAggregation", show: jwt.management && jwt.allnetworks },
+        { name: "Local AQI", comp: "Aqi", show: jwt.management && jwt.allnetworks }
       ]
     },
     {
@@ -90,7 +91,7 @@ const getmodules = () => {
 
 const goto_git_changelog = () => {
   // window.location.href = "https://git.nilu.no/raven/raven-administration/-/blob/master/CHANGELOG.md?ref_type=heads";
-  window.open("https://git.nilu.no/raven/raven-administration/-/blob/master/CHANGELOG.md?ref_type=heads", "_blank");
+  window.open("https://github.com/eea/raven-administration/blob/master/CHANGELOG.md", "_blank");
 };
 
 const goto = (comp) => {

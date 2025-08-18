@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.4.0] - 2025-08-06
+
+### Added
+
+- Added aqi calculation for Latest data and Map modules.
+- Added possibility to add local aqi ranges in addistion to EEA's.
+- Added aqi.sql script to create required aqi database table
+
 ## [3.3.1] - 2025-05-15
 
 ### Fixes
