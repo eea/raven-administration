@@ -35,11 +35,11 @@ const cls2 = computed(() => {
 });
 </script>
 <template>
-  <div class="transition-position ease-in-out absolute bottom-4 border rounded shadow z-[9999] bg-white flex" :class="cls">
+  <div class="transition-position ease-in-out absolute bottom-4 border rounded shadow z-[9999] bg-white flex text-xl" :class="cls">
     <div class="flex p-1" :class="cls2">
-      <icon-error v-if="notify.type == 'error'" class="text-base self-center" />
-      <icon-loading v-else-if="notify.type == 'loading'" class="text-base self-center animate-spin" />
-      <icon-success v-else class="text-base self-center" />
+      <icon-error v-if="notify.type == 'error'" class="text-lg self-center" />
+      <icon-loading v-else-if="notify.type == 'loading'" class="text-lg self-center animate-spin" />
+      <icon-success v-else class="text-lg self-center" />
     </div>
     <div class="px-4 py-2">{{ notify.msg }}</div>
     <div class="pr-1 pt-1">

@@ -2,6 +2,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import "./assets/tailwind.css";
 import "./assets/n-elements.css";
+import { disableTextSelectOnShiftDown } from "./helpers/utils";
 
 // INTERCEPT
 import intercetor from "./helpers/interceptor";
@@ -19,6 +20,9 @@ app.use(Tooltip, {
   offsetX: 0,
   offsetY: -60
 });
+
+// Disable text selection on shift down
+disableTextSelectOnShiftDown();
 
 // ROUTER
 import router from "./router";
