@@ -160,7 +160,7 @@ const cmp_properties = computed(() => {
     <contextmenu-crud :show="showContextmenu" :ev="ev" @click-outside="close" @on-edit="onEdit" @onDelete="onDelete" :is-multi-select="selected.length > 1" />
     <file-upload :show="showUpload && !isTwoFileUpload" :ev="ev" @click-outside="close" @on-upload-click="onUploadClick" />
     <two-file-upload :show="showUpload && isTwoFileUpload" :ev="ev" @click-outside="close" @on-upload-click="onUploadClick" />
-    <column-picker :show="showColumnPicker" :ev="ev" :properties="cmp_properties" @click-outside="close" />
+    <column-picker :show="showColumnPicker" :ev="ev" :properties="cmp_properties" @click-outside="close" :name="name" />
 
     <component v-if="showAddButton" :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" @close="close" @save="saveAdd" />
     <component :is="crudComponent" :is-edit="true" :show="showEdit" :options="options" :selected-value="selected[0]" @close="close" @save="saveEdit" />

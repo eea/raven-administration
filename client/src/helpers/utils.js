@@ -105,3 +105,17 @@ export const filterList = (q, list, exclude_list) => {
     return showValues;
   });
 };
+
+export const disableTextSelectOnShiftDown = () => {
+  document.addEventListener("keydown", (e) => {
+    if (e.shiftKey) {
+      document.body.classList.add("select-none");
+    }
+  });
+
+  document.addEventListener("keyup", (e) => {
+    if (!e.shiftKey) {
+      document.body.classList.remove("select-none");
+    }
+  });
+};

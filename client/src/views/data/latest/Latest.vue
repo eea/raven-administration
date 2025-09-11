@@ -123,6 +123,7 @@ const onContextMenu = (row, e) => {
           <th>Validation</th>
           <th>Verification</th>
           <th>Unit</th>
+          <th>SPO</th>
         </tr>
         <tr v-for="row in cmp_data" :class="cls_rowClass(row)" :key="row.id" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}">
           <!-- <td>{{ row.network }}</td> -->
@@ -141,6 +142,7 @@ const onContextMenu = (row, e) => {
           <td>{{ row.validation_flag }}</td>
           <td>{{ row.verification_flag }}</td>
           <td>{{ row.unit }}</td>
+          <td>{{ row.id }}</td>
         </tr>
       </table>
     </div>
