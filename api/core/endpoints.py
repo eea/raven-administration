@@ -40,12 +40,6 @@ class Endpoints:
         from endpoints.management.exceedances.routes import exceedances_endpoint
         app.register_blueprint(exceedances_endpoint)
 
-        from endpoints.management.settings.routes import settings_endpoint
-        app.register_blueprint(settings_endpoint)
-
-        from endpoints.management.aqi.routes import aqi_endpoint
-        app.register_blueprint(aqi_endpoint)
-
         # PROCESSING
         from endpoints.processing.scale.routes import scale_endpoint
         app.register_blueprint(scale_endpoint)
@@ -69,9 +63,6 @@ class Endpoints:
         from endpoints.data.dataflow.routes import dataflow_endpoint
         app.register_blueprint(dataflow_endpoint)
 
-        from endpoints.management.preaggregation.routes import preagg_endpoint
-        app.register_blueprint(preagg_endpoint)
-
         from endpoints.data.map.routes import map_endpoint
         app.register_blueprint(map_endpoint)
 
@@ -81,6 +72,19 @@ class Endpoints:
 
         from endpoints.qualitycontrol.verify.routes import verify_endpoint
         app.register_blueprint(verify_endpoint)
+
+        # MISC
+        from endpoints.misc.settings.routes import settings_endpoint
+        app.register_blueprint(settings_endpoint)
+
+        from endpoints.misc.preaggregation.routes import preagg_endpoint
+        app.register_blueprint(preagg_endpoint)
+
+        from endpoints.misc.aqi.routes import aqi_endpoint
+        app.register_blueprint(aqi_endpoint)
+
+        from endpoints.misc.notifications.routes import notifications_endpoint
+        app.register_blueprint(notifications_endpoint)
 
         # ACCESS
         from endpoints.access.routes import access_endpoint

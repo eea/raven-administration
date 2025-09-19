@@ -1,0 +1,33 @@
+# Use Python base image with cron support
+FROM python:3.10-slim
+
+# Install cron and other dependencies
+RUN apt-get update && apt-get install -y \
+    cron \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements and install Python dependencies
+COPY cron/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the cron directory and scripts
+COPY cron/ ./cron/
+
+# Copy environment file
+COPY .env .env
+
+# Create log directory
+RUN mkdir -p /var/log/cron
+
+# Create entrypoint script
+COPY cron/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Expose no ports (background service)
+
+# Set entrypoint
+ENTRYPOINT ["/docker-entrypoint.sh"]

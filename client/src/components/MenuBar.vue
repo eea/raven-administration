@@ -43,10 +43,7 @@ const getmodules = () => {
         { name: "Observing Capabilities", comp: "ObservingCapabilities", show: jwt.management },
         { name: "Assessment Regimes", comp: "AssessmentRegimes", show: jwt.management && jwt.allnetworks },
         { name: "Attainments", comp: "Attainments", show: jwt.management && jwt.allnetworks },
-        { name: "Exceedances", comp: "Exceedances", show: jwt.management && jwt.allnetworks },
-        { name: "Settings", comp: "Settings", show: jwt.management && jwt.allnetworks },
-        { name: "Pre aggregation", comp: "PreAggregation", show: jwt.management && jwt.allnetworks },
-        { name: "Local AQI", comp: "Aqi", show: jwt.management && jwt.allnetworks }
+        { name: "Exceedances", comp: "Exceedances", show: jwt.management && jwt.allnetworks }
       ]
     },
     {
@@ -76,6 +73,16 @@ const getmodules = () => {
       items: [
         { name: "Validate", comp: "Validate", show: jwt.qualitycontrol },
         { name: "Verify", comp: "Verify", show: jwt.qualitycontrol }
+      ]
+    },
+    {
+      group: "Misc",
+      show: jwt.management && jwt.allnetworks,
+      items: [
+        { name: "Settings", comp: "Settings", show: jwt.management && jwt.allnetworks },
+        { name: "Pre aggregation", comp: "PreAggregation", show: jwt.management && jwt.allnetworks },
+        { name: "Local AQI", comp: "Aqi", show: jwt.management && jwt.allnetworks },
+        { name: "Notifications", comp: "Notifications", show: jwt.management && jwt.allnetworks }
       ]
     },
     {

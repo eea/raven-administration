@@ -5,7 +5,7 @@ from core.query import Q
 aqi_endpoint = Blueprint('aqi', __name__)
 
 
-@aqi_endpoint.route('/api/management/aqi', methods=['GET'])
+@aqi_endpoint.route('/api/misc/aqi', methods=['GET'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def aqi():
@@ -23,7 +23,7 @@ def aqi():
         return jsonify(rows)
 
 
-@aqi_endpoint.route('/api/management/aqi/save', methods=['POST'])
+@aqi_endpoint.route('/api/misc/aqi/save', methods=['POST'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def save_aqi():

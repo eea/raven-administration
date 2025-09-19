@@ -282,13 +282,65 @@ class Dataflows:
     def get_processes():
         with CursorFromPool() as cursor:
             cursor.execute("""
-                select p.*,
-                    r.name rname, r.organisation rorganisation,
-                    r.locator rlocator, r.postcode rpostcode,
-                    r.email remail, r.address raddress,
-                    r.phone rphone, r.website rwebsite
-                from processes p, responsible_authorities r
+                select 
+                    p.id,
+                    p.measurement_type,
+                    p.measurement_method,
+                    p.other_measurement_method,
+                    p.sampling_method,
+                    p.other_sampling_method,
+                    p.analytical_tech,
+                    p.other_analytical_tech,
+                    p.sampling_equipment,
+                    p.measurement_equipment,
+                    p.equiv_demonstration,
+                    p.equiv_demonstration_report,
+                    p.detection_limit,
+                    p.detection_limit_uom,
+                    p.uncertainty_estimate,
+                    p.documentation,
+                    p.qa_report,
+                    p.duration_number,
+                    p.duration_unit,
+                    p.cadence_number,
+                    p.cadence_unit,
+                    p.responsible_authority_id,
+                    p.other_measurement_equipment,
+                    p.other_sampling_equipment,
+                    r.name rname,r.organisation rorganisation,
+                    r.locator rlocator,r.postcode rpostcode,
+                    r.email remail,r.address raddress,
+                    r.phone rphone,r.website rwebsite
+                from processes p, responsible_authorities r, sampling_points sp, observing_capabilities oc
                 where p.responsible_authority_id = r.id
+                and p.id = oc.process_id
+                and oc.sampling_point_id = sp.id
+                and sp.private = false
+                group by 
+                    p.id,
+                    p.measurement_type,
+                    p.measurement_method,
+                    p.other_measurement_method,
+                    p.sampling_method,
+                    p.other_sampling_method,
+                    p.analytical_tech,
+                    p.other_analytical_tech,
+                    p.sampling_equipment,
+                    p.measurement_equipment,
+                    p.equiv_demonstration,
+                    p.equiv_demonstration_report,
+                    p.detection_limit,
+                    p.detection_limit_uom,
+                    p.uncertainty_estimate,
+                    p.documentation,
+                    p.qa_report,
+                    p.duration_number,
+                    p.duration_unit,
+                    p.cadence_number,
+                    p.cadence_unit,
+                    p.responsible_authority_id,
+                    p.other_measurement_equipment,
+                    p.other_sampling_equipment, r.name , r.organisation , r.locator , r.postcode , r.email , r.address , r.phone , r.website
               """)
             rows = cursor.fetchall()
             return Dataflows.map_list_of_dict(rows, Process)
