@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.5.0] - 2025-09-17
+
+### Added
+
+- Added a notification system
+- New docker container for cron jobs (Pre aggregation and Notifications)
+- `sql\notifications.sql`script for required database changes.
+- New environmental variables to be set (See readme or .env.example)
+- Added [sql file](sql/meteo_concentration.sql) to make meteo concentrations available.
+
+### Fixes
+
+- Processes in dataflow D did not respect if SPO was set to private. (issue #3)
+
 ## [3.4.1] - 2025-09-11
 
 ### Added

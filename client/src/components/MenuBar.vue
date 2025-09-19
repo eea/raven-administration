@@ -81,7 +81,8 @@ const getmodules = () => {
       items: [
         { name: "Settings", comp: "Settings", show: jwt.management && jwt.allnetworks },
         { name: "Pre aggregation", comp: "PreAggregation", show: jwt.management && jwt.allnetworks },
-        { name: "Local AQI", comp: "Aqi", show: jwt.management && jwt.allnetworks }
+        { name: "Local AQI", comp: "Aqi", show: jwt.management && jwt.allnetworks },
+        { name: "Notifications", comp: "Notifications", show: jwt.management && jwt.allnetworks }
       ]
     },
     {

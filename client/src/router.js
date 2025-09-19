@@ -33,6 +33,7 @@ const Verify = () => import("./views/qualitycontrol/verify/Verify.vue");
 const Settings = () => import("./views/misc/settings/Settings.vue");
 const PreAggregation = () => import("./views/misc/preaggregation/PreAggregation.vue");
 const Aqi = () => import("./views/misc/aqi/Aqi.vue");
+const Notifications = () => import("./views/misc/notifications/Notifications.vue");
 
 const Users = () => import("./views/access/users/Users.vue");
 const Groups = () => import("./views/access/groups/Groups.vue");
@@ -73,6 +74,7 @@ const routes = [
   { path: "/misc/settings", component: Settings, name: "Settings" },
   { path: "/misc/preaggregation", component: PreAggregation, name: "PreAggregation" },
   { path: "/misc/aqi", component: Aqi, name: "Aqi" },
+  { path: "/misc/notifications", component: Notifications, name: "Notifications" },
 
   { path: "/acess/users", component: Users, name: "Users" },
   { path: "/acess/groups", component: Groups, name: "Groups" },

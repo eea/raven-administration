@@ -55,6 +55,12 @@ const loadData = async () => {
 };
 defineExpose({ loadData }); // lets parent component call this function
 
+const onDoubleClick = () => {
+  // Add this to enable edit on double click
+  // if (showEdit.value) selected.value = [];
+  // showEdit.value = !showEdit.value;
+};
+
 const onEdit = () => {
   if (showEdit.value) selected.value = [];
   showEdit.value = !showEdit.value;
@@ -169,7 +175,7 @@ const cmp_properties = computed(() => {
       <slot name="custom-toolbar" />
     </tool-bar>
 
-    <grid :id="id" v-model:selected="selected" v-model:ev="ev" :properties="cmp_properties" :values="cmp_data" @on-right-click="showContextmenu = true" />
+    <grid :id="id" v-model:selected="selected" v-model:ev="ev" :properties="cmp_properties" :values="cmp_data" @on-right-click="showContextmenu = true" @on-dbl-click="onDoubleClick" />
   </common-layout>
 </template>
 

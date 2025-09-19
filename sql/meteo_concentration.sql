@@ -1,0 +1,10 @@
+INSERT INTO eea_concentrations (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/meteo/hPa', 'hectopascals (hPa)', 'hPa');
+INSERT INTO eea_concentrations (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/meteo/Cel', 'Degree Celsius (°C)', 'Cel');
+INSERT INTO eea_concentrations (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/meteo/deg', 'degree', '°');
+INSERT INTO eea_concentrations (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/meteo/km.h-1', 'km.h-1', 'km/h');
+INSERT INTO eea_concentrations (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/meteo/m.s-1', 'm.s-1', 'm/s');
+INSERT INTO eea_concentrations (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/meteo/mm', 'millimetre', 'mm');
+INSERT INTO eea_concentrations (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/meteo/mm.hr', 'mm.hr', 'mm.hr');
+INSERT INTO eea_concentrations (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/meteo/percent', 'percent', '%');
+INSERT INTO eea_concentrations (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/meteo/w.m-2', 'w.m-2', 'watts/m2');
+INSERT INTO eea_concentrations (id, label, notation) VALUES ('http://dd.eionet.europa.eu/vocabulary/uom/meteo/mBar', 'Millibar', 'mBar');

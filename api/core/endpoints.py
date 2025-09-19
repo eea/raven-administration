@@ -83,6 +83,9 @@ class Endpoints:
         from endpoints.misc.aqi.routes import aqi_endpoint
         app.register_blueprint(aqi_endpoint)
 
+        from endpoints.misc.notifications.routes import notifications_endpoint
+        app.register_blueprint(notifications_endpoint)
+
         # ACCESS
         from endpoints.access.routes import access_endpoint
         app.register_blueprint(access_endpoint)
