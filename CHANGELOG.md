@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.5.1] - 2025-09-23
+
+### Fixes
+
+- Removed reference to obsolete table
+
 ## [3.5.0] - 2025-09-17
 
 ### Added

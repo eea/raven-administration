@@ -12,7 +12,7 @@ def aqi():
     with CursorFromPool() as cursor:
         sql = """
             select p.notation as pollutant,t.label as timestep, i.level, i.description, i.color, lower(i.range) as range_from, upper(i.range) as range_to, p.uri as pollutant_uri, t.id as timestep_uri
-            from aqi_test i, eea_pollutants p, eea_times t
+            from aqi i, eea_pollutants p, eea_times t
             where i.pollutant_uri = p.uri
             and i.timestep = t.id
             and i.calculation_type = 'LOCAL'
@@ -29,14 +29,14 @@ def aqi():
 def save_aqi():
     data = request.json
 
-    # delete existing entries in aqi_test
+    # delete existing entries in aqi
     # add new entries from data
     with CursorFromPool() as cursor:
-        cursor.execute("DELETE FROM aqi_test WHERE calculation_type = 'LOCAL'")
+        cursor.execute("DELETE FROM aqi WHERE calculation_type = 'LOCAL'")
 
         for item in data:
             sql = """
-              INSERT INTO aqi_test (pollutant_uri, timestep, level, range, description, color, calculation_type)
+              INSERT INTO aqi (pollutant_uri, timestep, level, range, description, color, calculation_type)
               VALUES (%s, %s, %s, numrange(%s, %s, '[]'), %s, %s, 'LOCAL')
             """
             cursor.execute(sql, (

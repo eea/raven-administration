@@ -16,7 +16,7 @@ def legend_map():
                 level           AS index,
                 description,
                 color
-            FROM aqi_test
+            FROM aqi
             GROUP BY calculation_type, level, description, color
             ORDER BY calculation_type, level
         """)
@@ -47,12 +47,12 @@ def map():
             aqi_level = 'COALESCE(a_local.level, 0) AS aqi'
             aqi_description = 'a_local.description AS aqi_description'
             aqi_color = 'a_local.color AS aqi_color'
-            join_aqi = "LEFT JOIN aqi_test AS a_local ON a_local.pollutant_uri = sp.pollutant AND a_local.timestep = sp.timestep AND a_local.calculation_type = 'LOCAL' AND a_local.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)"
+            join_aqi = "LEFT JOIN aqi AS a_local ON a_local.pollutant_uri = sp.pollutant AND a_local.timestep = sp.timestep AND a_local.calculation_type = 'LOCAL' AND a_local.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)"
         else:
             aqi_level = 'COALESCE(a_eea.level, 0) AS aqi'
             aqi_description = 'a_eea.description AS aqi_description'
             aqi_color = 'a_eea.color AS aqi_color'
-            join_aqi = "LEFT JOIN aqi_test AS a_eea ON a_eea.pollutant_uri = sp.pollutant AND a_eea.timestep = sp.timestep AND a_eea.calculation_type = 'EEA' AND a_eea.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)"
+            join_aqi = "LEFT JOIN aqi AS a_eea ON a_eea.pollutant_uri = sp.pollutant AND a_eea.timestep = sp.timestep AND a_eea.calculation_type = 'EEA' AND a_eea.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)"
         sql = f"""
             {with_network_sql}
             SELECT
