@@ -47,13 +47,13 @@ def latest():
                 JOIN network_access      n  ON s.network_id        = n.id
                 JOIN eea_concentrations  u  ON sp.concentration    = u.id
                 
-                LEFT JOIN public.aqi_test AS a_local
+                LEFT JOIN public.aqi AS a_local
                     ON a_local.pollutant_uri    = sp.pollutant
                   AND a_local.timestep         = sp.timestep
                   AND a_local.calculation_type = 'LOCAL'
                   AND a_local.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)
                 
-                LEFT JOIN public.aqi_test AS a_eea
+                LEFT JOIN public.aqi AS a_eea
                     ON a_eea.pollutant_uri      = sp.pollutant
                   AND a_eea.timestep           = sp.timestep
                   AND a_eea.calculation_type   = 'EEA'
