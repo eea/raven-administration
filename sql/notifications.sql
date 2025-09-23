@@ -46,9 +46,6 @@ create table if not exists notifications_runs
 -- Set sequence ownership
 alter sequence notification_runs_id_seq owned by notifications_runs.id;
 
--- Set table ownership
-alter table notifications_runs owner to ravendb;
-
 -- Create notifications_samplingpoints table (depends on notifications table)
 create table if not exists notifications_samplingpoints
 (
