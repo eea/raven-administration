@@ -45,6 +45,9 @@ JWT_ACCESS_TOKEN_EXPIRES_SECONDS = 3600
 JWT_SECRET_KEY = make-up-a-secure-key
 CONTAINER_NAME_API = raven-api
 CONTAINER_NAME_CLIENT = raven-client
+CONTAINER_NAME_RNOTEBOOK = raven-rnotebook
+R_PORT = 8888
+
 ```
 
 `Hint: Use host.docker.internal if database is local. Ip 172.17.0.1 for Linux`
@@ -59,6 +62,7 @@ Then build and run the `docker-compose` file.
 docker-compose build
 docker-compose up
 # Access RAVEN at: http://localhost
+
 ```
 
 ## Development

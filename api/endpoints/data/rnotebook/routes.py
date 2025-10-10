@@ -8,16 +8,14 @@ import tempfile
 import os
 from urllib.parse import urlparse, unquote
 
-# Location of saved .R files
-RFILES_DIR = os.path.join(os.path.dirname(__file__), '../../../rfiles')
-
+# Always use the rfiles folder relative to the project root
+RFILES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../rfiles'))
 os.makedirs(RFILES_DIR, exist_ok=True)
 
 # Base URL of the R API
-R_API_URL = "http://127.0.0.1:8888" #this will break with docker...
+R_API_URL = os.environ.get('R_API_URL', 'http://127.0.0.1:8888')
 
 r_notebook_endpoint = Blueprint('r_notebook', __name__)
-
 
 def ensure_ravendb_conn() -> bool:
     """Ensure an R connection object named `ravendb_conn` exists in the R session.
@@ -186,7 +184,6 @@ def r_import_file():
     except requests.RequestException as e:
         return jsonify({"error": str(e)}), 500
     
-
 @r_notebook_endpoint.route('/api/rnotebook/rfiles', methods=['GET'])
 def list_rfiles():
     files = [f for f in os.listdir(RFILES_DIR) if f.endswith('.R')]
@@ -245,8 +242,8 @@ def delete_rfile(filename):
 def run_r_code(r_code: str) -> str:
     """Run R code using Rscript and return the output or errors."""
     import base64
-    # Use rfiles directory for temp and output files
-    temp_dir = os.path.join(os.path.dirname(__file__), '../../../rfiles')
+    # Use RFILES_DIR for temp and output files
+    temp_dir = RFILES_DIR
     os.makedirs(temp_dir, exist_ok=True)
     # Create a temporary R file in rfiles
     with tempfile.NamedTemporaryFile(mode='w', suffix='.R', dir=temp_dir, delete=False) as tmp:

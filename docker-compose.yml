@@ -7,8 +7,13 @@ services:
     container_name: ${CONTAINER_NAME_API:-raven-api}
     sysctls:
       - net.ipv4.tcp_keepalive_time=200
+    environment:
+      - RFILES_DIR=/app/rfiles
+      - R_API_URL=http://rnotebook:8888
     ports:
       - ${API_PORT:-5000}:5000
+    volumes:
+      - rfiles-data:/app/rfiles
     restart: always
   client:
     build:
@@ -21,3 +26,18 @@ services:
     ports:
       - ${CLIENT_PORT:-80}:80
     restart: always
+  rnotebook:
+    build:
+      context: .
+      dockerfile: Dockerfile.rnotebook
+    image: ${CONTAINER_NAME_RNOTEBOOK:-raven-rnotebook}
+    container_name: ${CONTAINER_NAME_RNOTEBOOK:-raven-rnotebook}
+    environment:
+      - R_PORT=${R_PORT:-8888}
+      - R_WORKDIR=${R_WORKDIR:-/srv/workspace}
+    ports:
+      - ${R_PORT:-8888}:${R_PORT:-8888}
+    restart: always
+
+volumes:
+  rfiles-data:

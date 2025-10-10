@@ -1,0 +1,31 @@
+FROM rocker/r-ver:4.3
+
+# Install system dependencies for R packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    libssl-dev \
+    libcurl4-openssl-dev \
+    libxml2-dev \
+    make \
+    g++ \
+    libfreetype6-dev \
+    libpng-dev \
+    libtiff5-dev \
+    libjpeg-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install R packages with logging and fail if any package fails
+RUN printf "pkgs <- c('plumber','jsonlite','RPostgres','DBI','tidyr','dplyr','lubridate','openair','ggplot2')\nfailed <- c()\nfor (pkg in pkgs) {\n  message('Installing ', pkg)\n  tryCatch({\n    install.packages(pkg, dependencies=TRUE, lib='/usr/local/lib/R/site-library')\n  }, error=function(e) {\n    message('Failed to install ', pkg, ': ', e$message)\n    failed <- c(failed, pkg)\n  })\n}\nif(length(failed) > 0) stop('Failed to install packages: ', paste(failed, collapse=', '))\n" > /tmp/install.R \
+ && Rscript /tmp/install.R \
+ && rm /tmp/install.R
+
+WORKDIR /srv
+COPY r/app.R ./app.R
+COPY r/workspace/ ./workspace/
+RUN mkdir -p /srv/workspace
+
+ENV R_PORT=8888 R_WORKDIR=/srv/workspace
+EXPOSE 8888
+CMD ["Rscript", "app.R"]
