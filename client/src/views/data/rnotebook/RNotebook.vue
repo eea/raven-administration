@@ -324,23 +324,23 @@ onMounted(loadFiles);
       </div>
         </div>
       </div>
-      <aside class="w-1/4 p-2 bg-white rounded shadow">
+      <aside class="w-1/3 p-2 bg-white rounded shadow">
         <div class="flex items-start justify-between">
           <label class="font-bold">Saved Files:</label>
         </div>
         <div class="mt-2 overflow-auto max-h-80">
           <!-- Header row for the grid (12-column layout so filename gets more space) -->
           <div class="grid grid-cols-12 gap-2 text-xs font-semibold text-gray-600 border-b pb-1">
-            <div class="col-span-7">File</div>
+            <div class="col-span-6">File</div>
             <div class="col-span-2">Status</div>
             <div class="col-span-2 text-center">Import</div>
-            <div class="col-span-1 text-center">Delete</div>
+            <div class="col-span-2 text-center">Delete</div>
           </div>
 
           <ul class="mt-2 space-y-2">
             <li v-for="file in files" :key="file" class="grid grid-cols-12 gap-2 items-center">
               <!-- File name (click to load) -->
-              <div class="col-span-7 truncate">
+              <div class="col-span-6 truncate">
                 <button @click="loadFile(file)" class="text-left w-full text-blue-600 hover:underline truncate" :title="file">{{ file }}</button>
               </div>
 
@@ -361,7 +361,7 @@ onMounted(loadFiles);
               </div>
 
               <!-- Delete button -->
-              <div class="col-span-1 text-center">
+              <div class="col-span-2 text-center">
                 <button @click.prevent="deleteFile(file)" class="text-sm text-red-600 hover:underline">Delete</button>
               </div>
             </li>
