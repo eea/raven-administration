@@ -10,6 +10,10 @@ Node version `18.12.1`
 Postgres version `12+`  
 Postgis extension  
 NPM
+R requirements:
+- R must be installed and Rscript available on PATH.
+- Minimum required R packages: `plumber`, `jsonlite`
+- For using 4sfera code snippets: `RPostgres`, `DBI`, `tidyr`, `dplyr`, `lubridate`, `openair`, `ggplot2`
 
 ## **Clone repository from git**
 
@@ -96,6 +100,9 @@ flask run
 
 # from inside the client folder start the frontend
 npm run dev
+
+# from the r folder start r notebook backend server
+Rscript r/app.R   
 ```
 
 ## Pre aggregations

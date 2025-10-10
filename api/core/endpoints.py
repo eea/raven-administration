@@ -66,6 +66,9 @@ class Endpoints:
         from endpoints.data.dataflow.routes import dataflow_endpoint
         app.register_blueprint(dataflow_endpoint)
 
+        from endpoints.data.rnotebook.routes import r_notebook_endpoint
+        app.register_blueprint(r_notebook_endpoint)
+
         from endpoints.management.preaggregation.routes import preagg_endpoint
         app.register_blueprint(preagg_endpoint)
 
