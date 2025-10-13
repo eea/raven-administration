@@ -10,6 +10,7 @@ Node version `18.12.1`
 Postgres version `12+`  
 Postgis extension  
 NPM
+
 R requirements:
 - R must be installed and Rscript available on PATH.
 - Minimum required R packages: `plumber`, `jsonlite`
