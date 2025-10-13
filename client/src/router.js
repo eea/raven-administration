@@ -15,8 +15,6 @@ const ObservingCapabilities = () => import("./views/management/observingcapabili
 const AssessmentRegimes = () => import("./views/management/assessmentregimes/AssessmentRegimes.vue");
 const Attainments = () => import("./views/management/attainments/Attainments.vue");
 const Exceedances = () => import("./views/management/exceedances/Exceedances.vue");
-const Settings = () => import("./views/management/settings/Settings.vue");
-const PreAggregation = () => import("./views/management/preaggregation/PreAggregation.vue");
 
 const Latest = () => import("./views/data/latest/Latest.vue");
 const Historical = () => import("./views/data/historical/Historical.vue");
@@ -32,6 +30,11 @@ const Scale = () => import("./views/processing/scale/Scale.vue");
 
 const Validate = () => import("./views/qualitycontrol/validate/Validate.vue");
 const Verify = () => import("./views/qualitycontrol/verify/Verify.vue");
+
+const Settings = () => import("./views/misc/settings/Settings.vue");
+const PreAggregation = () => import("./views/misc/preaggregation/PreAggregation.vue");
+const Aqi = () => import("./views/misc/aqi/Aqi.vue");
+const Notifications = () => import("./views/misc/notifications/Notifications.vue");
 
 const Users = () => import("./views/access/users/Users.vue");
 const Groups = () => import("./views/access/groups/Groups.vue");
@@ -54,8 +57,6 @@ const routes = [
   { path: "/management/assessmentregimes", component: AssessmentRegimes, name: "AssessmentRegimes" },
   { path: "/management/attainments", component: Attainments, name: "Attainments" },
   { path: "/management/exceedances", component: Exceedances, name: "Exceedances" },
-  { path: "/management/settings", component: Settings, name: "Settings" },
-  { path: "/management/preaggregation", component: PreAggregation, name: "PreAggregation" },
 
   { path: "/data/latest", component: Latest, name: "Latest" },
   { path: "/data/historical", component: Historical, name: "Historical" },
@@ -71,6 +72,11 @@ const routes = [
 
   { path: "/qualitycontrol/validate", component: Validate, name: "Validate" },
   { path: "/qualitycontrol/verify", component: Verify, name: "Verify" },
+
+  { path: "/misc/settings", component: Settings, name: "Settings" },
+  { path: "/misc/preaggregation", component: PreAggregation, name: "PreAggregation" },
+  { path: "/misc/aqi", component: Aqi, name: "Aqi" },
+  { path: "/misc/notifications", component: Notifications, name: "Notifications" },
 
   { path: "/acess/users", component: Users, name: "Users" },
   { path: "/acess/groups", component: Groups, name: "Groups" },

@@ -32,10 +32,14 @@ git clone https://git.nilu.no/raven/raven-administration
 5. Run the `sql\pre_aggregates.sql` script
 6. Run the `sql\use_in_public_api.sql` script
 7. Run the `sql\meteo.sql` script
+8. Run the `sql\aqi.sql` script
+9. Run the `sql\notifications.sql` script
+10. Run the `sql\meteo_concentration.sql` script
 
 ## Set environment varables
 
-**Create a file called `.env` in the `root` folder and set the variables**
+**Create a file called `.env` in the `root` folder and set the variables**  
+See `.env.example` for all variables
 
 ```
 API_PORT=5000
@@ -54,15 +58,77 @@ R_PORT = 8888
 
 ## Docker
 
-Make sure you have Docker engine installed. (https://www.docker.com/)  
-Then build and run the `docker-compose` file.
+Make sure you have Docker engine installed. (https://www.docker.com/)
+
+**Main application only (API + Client):**
 
 ```powershell
-# build and run
-docker-compose build
-docker-compose up
+docker-compose up -d --build
 # Access RAVEN at: http://localhost
 
+```
+
+**Full stack with background jobs (API + Client + Cron):**
+
+```powershell
+docker-compose -f docker-compose.cron.yml up -d --build
+# Access RAVEN at: http://localhost
+```
+
+## Background Jobs
+
+RAVEN includes configurable background jobs for data aggregation and notifications.
+
+### Aggregation
+
+Refreshes materialized views and pre-aggregated data. Can be triggered manually in the app or automated via cron.
+
+**Environment variables:**
+
+```
+CRON_AGGREGATION_ENABLED=true
+CRON_AGGREGATION_SCHEDULE=30 2 * * *
+```
+
+### Notifications
+
+Sends email alerts for missing data (sampling points not updated within specified interval).
+
+**Environment variables:**
+
+```
+CRON_NOTIFICATIONS_ENABLED=true
+CRON_NOTIFICATIONS_SCHEDULE=10 * * * *
+CRON_NOTIFICATIONS_MIN_INTERVAL_HOURS=3
+
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your.email@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM=noreply@yourorg.com
+```
+
+**Cron schedule format:** `minute hour day month weekday` ([crontab.guru](https://crontab.guru) for examples)
+
+### Manual Setup (Alternative)
+
+For non-Docker deployments, use system schedulers:
+
+**Linux cron:**
+
+```bash
+# Daily aggregation at 2:30 AM
+30 2 * * * cd /path/to/raven && python3 cron/refresh_views.py
+
+# Hourly notifications at minute 10
+10 * * * * cd /path/to/raven && python3 cron/email_when_missing.py
+```
+
+**Windows schtasks:**
+
+```powershell
+schtasks /create /SC DAILY /TN raven-aggregation /TR "python <path>\cron\refresh_views.py" /ST 02:30
+schtasks /create /SC HOURLY /TN raven-notifications /TR "python <path>\cron\email_when_missing.py"
 ```
 
 ## Development
@@ -107,20 +173,4 @@ npm run dev
 
 # from the r folder start r notebook backend server
 Rscript r/app.R   
-```
-
-## Pre aggregations
-
-Aggregating data can be triggered manually in the raven app.  
-However, it is recommended to set up a schedule to trigger the aggregation on a daily basis.  
-The sql command that needs to run is `select raven_refresh_aggregates()`  
-One ways is to use the postgres extension `pgagent`. This will enable a schedular within postgres.  
-Another way is to set up a `cron` job in linux or a `schtasks` in windows
-
-The `cron` folder has a python script that can be used together with a schedular.  
-It does require `psycopg2-binary==2.9.5`, so make sure this is available for the scheduled task.
-
-```powershell
-# Example of how to set up a scheduled task in Windows
-schtasks /create /SC DAILY /TN raven-refresh-views /TR "<path_to_python> <path_to_raven>\cron\refresh_views.py" /ST 00:10
 ```

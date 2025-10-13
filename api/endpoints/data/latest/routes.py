@@ -1,3 +1,4 @@
+import math
 from flask import jsonify, Blueprint
 from core.database import CursorFromPool
 from core.jwt_ext_custom import jwt_required_with_data_claim
@@ -12,23 +13,61 @@ def latest():
         with_network_sql, n_param = Q.with_networks_by_access_as_sql()
         sql = f"""
             {with_network_sql}
-			      select sp.id as id, to_char(sp.from_time,'yyyy-mm-dd HH24:mi') as from_time, to_char(sp.to_time,'yyyy-mm-dd HH24:mi') as to_time, nullif(o.value, 'NaN')::double precision as value, o.validation_flag, o.verification_flag, p.notation as pollutant, t.label as timestep, s.name as station, n.name as network, u.notation as unit,
-            case
-                when sp.to_time > NOW() - INTERVAL '3 hours' then 0
-                when sp.to_time > NOW() - INTERVAL '6 months' then 1
-                else 2
-            end status
-            from observations o, sampling_points sp, eea_pollutants p, eea_times t, stations s, network_access n, eea_concentrations u
-            where 1=1
-            and n.id = s.network_id
-            and s.id = sp.station_id
-            and o.sampling_point_id = sp.id
-            and sp.pollutant = p.uri
-            and sp.timestep = t.id
-            and o.to_time = sp.to_time
-            and sp.concentration = u.id
-            order by to_time desc, station, pollutant, timestep
+            SELECT
+                sp.id AS id,
+                to_char(sp.from_time, 'yyyy-mm-dd HH24:mi') AS from_time,
+                to_char(sp.to_time,   'yyyy-mm-dd HH24:mi') AS to_time,
+                o.validation_flag,
+                o.verification_flag,
+                p.notation           AS pollutant,
+                t.label              AS timestep,
+                s.name               AS station,
+                n.name               AS network,
+                u.notation           AS unit,
+                CASE
+                    WHEN sp.to_time > NOW() - INTERVAL '3 hours'  THEN 0
+                    WHEN sp.to_time > NOW() - INTERVAL '6 months' THEN 1
+                    ELSE 2
+                END                   AS status,
+                NULLIF(o.value, 'NaN')::double precision AS value,
+                
+                a_local.level        AS local_aqi_level,
+                a_local.description  AS local_aqi_desc,
+                a_local.color        AS local_aqi_color,
+                
+                a_eea.level          AS eea_aqi_level,
+                a_eea.description    AS eea_aqi_desc,
+                a_eea.color          AS eea_aqi_color
+            FROM
+                observations             o
+                JOIN sampling_points     sp ON o.sampling_point_id = sp.id
+                JOIN eea_pollutants      p  ON sp.pollutant        = p.uri
+                JOIN eea_times           t  ON sp.timestep         = t.id
+                JOIN stations            s  ON sp.station_id       = s.id
+                JOIN network_access      n  ON s.network_id        = n.id
+                JOIN eea_concentrations  u  ON sp.concentration    = u.id
+                
+                LEFT JOIN public.aqi AS a_local
+                    ON a_local.pollutant_uri    = sp.pollutant
+                  AND a_local.timestep         = sp.timestep
+                  AND a_local.calculation_type = 'LOCAL'
+                  AND a_local.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)
+                
+                LEFT JOIN public.aqi AS a_eea
+                    ON a_eea.pollutant_uri      = sp.pollutant
+                  AND a_eea.timestep           = sp.timestep
+                  AND a_eea.calculation_type   = 'EEA'
+                  AND a_eea.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)
+            WHERE
+                1 = 1
+                AND o.to_time = sp.to_time
+            ORDER BY
+                to_time   DESC,
+                station,
+                pollutant,
+                timestep;
         """
         cursor.execute(sql, n_param)
         values = cursor.fetchall()
+
         return jsonify(values)

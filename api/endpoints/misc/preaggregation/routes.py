@@ -1,12 +1,12 @@
 from flask import jsonify, Blueprint, request
-from endpoints.management.preaggregation.models import AggModel
+from endpoints.misc.preaggregation.models import AggModel
 from core.database import CursorFromPool
 from core.jwt_ext_custom import jwt_required_with_management_claim
 from core.query import Q
 preagg_endpoint = Blueprint('preagg', __name__)
 
 
-@preagg_endpoint.route('/api/management/preaggregation', methods=['GET'])
+@preagg_endpoint.route('/api/misc/preaggregation', methods=['GET'])
 @jwt_required_with_management_claim()
 def preagg():
     with CursorFromPool() as cursor:
@@ -31,7 +31,7 @@ def preagg():
         return jsonify(values)
 
 
-@preagg_endpoint.route('/api/management/preaggregation/update', methods=['GET'])
+@preagg_endpoint.route('/api/misc/preaggregation/update', methods=['GET'])
 @jwt_required_with_management_claim()
 def preagg_update():
     with CursorFromPool() as cursor:

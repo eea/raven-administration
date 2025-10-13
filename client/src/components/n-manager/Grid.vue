@@ -13,7 +13,7 @@ const props = defineProps({
 
 const sort_header = ref();
 
-const emit = defineEmits(["update:selected", "update:ev", "on-right-click"]);
+const emit = defineEmits(["update:selected", "update:ev", "on-right-click", "on-dbl-click"]);
 
 const cls_rowClass = (row) => {
   if (props.selected?.find((p) => compare(p, row))) return "selected";
@@ -45,6 +45,12 @@ const onRowClick = (row, e, rightClick) => {
   }
 };
 
+const onDoubleClick = (row, e) => {
+  var r = Object.assign({}, row);
+  emit("update:selected", [r]);
+  emit("on-dbl-click");
+};
+
 const cmp_sorted = computed(() => {
   if (!sort_header.value) return props.values;
   try {
@@ -69,7 +75,7 @@ const cmp_sorted = computed(() => {
           <icon-sort class="inline ml-1 text-nord10" v-show="sort_header == header.prop" />
         </th>
       </tr>
-      <tr v-for="row in cmp_sorted" :class="cls_rowClass(row)" @contextmenu.prevent="onRowClick(row, $event, true)" @click="onRowClick(row, $event, false)">
+      <tr v-for="row in cmp_sorted" :class="cls_rowClass(row)" @contextmenu.prevent="onRowClick(row, $event, true)" @click="onRowClick(row, $event, false)" @dblclick="onDoubleClick(row, $event)">
         <td v-for="header in properties" v-show="header.showInGrid" :class="cls_cellClass(header, row)">
           <n-checkbox v-if="header.type == 'checkbox'" class="align-middle" v-model="row[header.prop]" :disabled="true" />
           <span v-else-if="header.type == 'gridOnly'">{{ fn_cellVal(header, row) }}</span>

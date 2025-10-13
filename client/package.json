@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vue-leaflet/vue-leaflet": "^0.10.1",
     "@vueuse/core": "^9.6.0",
     "axios": "^1.2.0",
     "chart.js": "^4.0.1",
@@ -25,6 +26,7 @@
     "tailwind-nord": "^1.2.0",
     "vanillajs-datepicker": "^1.2.0",
     "vue": "^3.2.45",
+    "vue-follow-tooltip": "^1.0.0",
     "vue-router": "4.1.6"
   },
   "devDependencies": {

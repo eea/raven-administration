@@ -55,6 +55,12 @@ const loadData = async () => {
 };
 defineExpose({ loadData }); // lets parent component call this function
 
+const onDoubleClick = () => {
+  // Add this to enable edit on double click
+  // if (showEdit.value) selected.value = [];
+  // showEdit.value = !showEdit.value;
+};
+
 const onEdit = () => {
   if (showEdit.value) selected.value = [];
   showEdit.value = !showEdit.value;
@@ -160,7 +166,7 @@ const cmp_properties = computed(() => {
     <contextmenu-crud :show="showContextmenu" :ev="ev" @click-outside="close" @on-edit="onEdit" @onDelete="onDelete" :is-multi-select="selected.length > 1" />
     <file-upload :show="showUpload && !isTwoFileUpload" :ev="ev" @click-outside="close" @on-upload-click="onUploadClick" />
     <two-file-upload :show="showUpload && isTwoFileUpload" :ev="ev" @click-outside="close" @on-upload-click="onUploadClick" />
-    <column-picker :show="showColumnPicker" :ev="ev" :properties="cmp_properties" @click-outside="close" />
+    <column-picker :show="showColumnPicker" :ev="ev" :properties="cmp_properties" @click-outside="close" :name="name" />
 
     <component v-if="showAddButton" :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" @close="close" @save="saveAdd" />
     <component :is="crudComponent" :is-edit="true" :show="showEdit" :options="options" :selected-value="selected[0]" @close="close" @save="saveEdit" />
@@ -169,7 +175,7 @@ const cmp_properties = computed(() => {
       <slot name="custom-toolbar" />
     </tool-bar>
 
-    <grid :id="id" v-model:selected="selected" v-model:ev="ev" :properties="cmp_properties" :values="cmp_data" @on-right-click="showContextmenu = true" />
+    <grid :id="id" v-model:selected="selected" v-model:ev="ev" :properties="cmp_properties" :values="cmp_data" @on-right-click="showContextmenu = true" @on-dbl-click="onDoubleClick" />
   </common-layout>
 </template>
 
