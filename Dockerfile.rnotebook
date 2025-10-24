@@ -1,25 +1,56 @@
 FROM rocker/r-ver:4.3
 
-# Install system dependencies for R packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install system dependencies in separate steps for better caching and debugging
+RUN apt-get update
+
+RUN apt-get install -y --no-install-recommends \
     libpq-dev \
     libssl-dev \
-    libcurl4-openssl-dev \
+    libcurl4-openssl-dev
+
+RUN apt-get install -y --no-install-recommends \
     libxml2-dev \
     make \
-    g++ \
+    g++
+
+RUN apt-get install -y --no-install-recommends \
     libfreetype6-dev \
     libpng-dev \
     libtiff5-dev \
-    libjpeg-dev \
-    libharfbuzz-dev \
-    libfribidi-dev \
-    && rm -rf /var/lib/apt/lists/*
+    libjpeg-dev
 
-# Install R packages with logging and fail if any package fails
-RUN printf "pkgs <- c('plumber','jsonlite','RPostgres','DBI','tidyr','dplyr','lubridate','openair','ggplot2')\nfailed <- c()\nfor (pkg in pkgs) {\n  message('Installing ', pkg)\n  tryCatch({\n    install.packages(pkg, dependencies=TRUE, lib='/usr/local/lib/R/site-library')\n  }, error=function(e) {\n    message('Failed to install ', pkg, ': ', e$message)\n    failed <- c(failed, pkg)\n  })\n}\nif(length(failed) > 0) stop('Failed to install packages: ', paste(failed, collapse=', '))\n" > /tmp/install.R \
- && Rscript /tmp/install.R \
- && rm /tmp/install.R
+RUN apt-get install -y --no-install-recommends \
+    libharfbuzz-dev \
+    libfribidi-dev
+
+RUN rm -rf /var/lib/apt/lists/*
+
+# Install R packages one by one for better error handling and caching
+RUN install2.r --error \
+    plumber
+
+RUN install2.r --error \
+    jsonlite
+
+RUN install2.r --error \
+    RPostgres \
+    DBI
+
+RUN install2.r --error \
+    tidyr \
+    dplyr
+
+RUN install2.r --error \
+    lubridate
+
+RUN install2.r --error \
+    openair
+
+RUN install2.r --error \
+    ggplot2
+
+# Verify all packages are installed
+RUN Rscript -e "required_pkgs <- c('plumber','jsonlite','RPostgres','DBI','tidyr','dplyr','lubridate','openair','ggplot2'); missing <- required_pkgs[!sapply(required_pkgs, require, character.only=TRUE, quietly=TRUE)]; if(length(missing) > 0) stop('Missing packages: ', paste(missing, collapse=', ')) else cat('All packages installed successfully\n')"
 
 WORKDIR /srv
 COPY r/app.R ./app.R
