@@ -1,5 +1,14 @@
 FROM rocker/r-ver:4.3
 
+# Debug: Show what repositories are configured
+RUN Rscript -e "getOption('repos')"
+
+# Debug: Show R version and platform
+RUN R --version
+
+# Debug: Test repository connectivity
+RUN Rscript -e "try(available.packages(repos='https://p3m.dev/cran/__linux__/jammy/latest')[1:5,], silent=FALSE)"
+
 # Install system dependencies in separate steps for better caching and debugging
 RUN apt-get update
 
@@ -23,7 +32,18 @@ RUN apt-get install -y --no-install-recommends \
     libharfbuzz-dev \
     libfribidi-dev
 
+# Add libsodium-dev for the sodium R package (required by plumber)
+RUN apt-get install -y --no-install-recommends \
+    libsodium-dev
+
 RUN rm -rf /var/lib/apt/lists/*
+
+# Override the P3M repository with standard CRAN
+RUN echo 'options(repos = c(CRAN = "https://cloud.r-project.org/"))' >> /usr/local/lib/R/etc/Rprofile.site
+
+# Install sodium first since plumber depends on it
+RUN install2.r --error \
+    sodium
 
 # Install R packages one by one for better error handling and caching
 RUN install2.r --error \
