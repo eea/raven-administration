@@ -8,6 +8,8 @@ import tempfile
 import os
 from urllib.parse import urlparse, unquote
 
+R_API_TIMEOUT = 300  # 5 minutes timeout for R operations
+
 # Always use the rfiles folder relative to the project root
 RFILES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../rfiles'))
 os.makedirs(RFILES_DIR, exist_ok=True)
@@ -27,7 +29,7 @@ def ensure_ravendb_conn() -> bool:
     Returns True if the object exists or was created successfully, False otherwise.
     """
     try:
-        resp = requests.get(f"{R_API_URL}/ls")
+        resp = requests.get(f"{R_API_URL}/ls", timeout=R_API_TIMEOUT)
         resp.raise_for_status()
         objs = resp.json()
     except requests.RequestException:
@@ -73,7 +75,7 @@ def ensure_ravendb_conn() -> bool:
             f'                     password = "{password}")'
         )
 
-        resp = requests.post(f"{R_API_URL}/run", json={"code": code})
+        resp = requests.post(f"{R_API_URL}/run", json={"code": code}, timeout=R_API_TIMEOUT)
         try:
             resp.raise_for_status()
             return True
@@ -87,7 +89,7 @@ def ensure_ravendb_conn() -> bool:
 @jwt_required()
 def r_ls():
     try:
-        resp = requests.get(f"{R_API_URL}/ls")
+        resp = requests.get(f"{R_API_URL}/ls", timeout=R_API_TIMEOUT)
         resp.raise_for_status()
         return jsonify(resp.json())
     except requests.RequestException as e:
@@ -107,7 +109,7 @@ def r_run():
     if not code:
         return jsonify({"error": "No code provided"}), 400
     try:
-        resp = requests.post(f"{R_API_URL}/run", json={"code": code})
+        resp = requests.post(f"{R_API_URL}/run", json={"code": code}, timeout=R_API_TIMEOUT)
         resp.raise_for_status()
         return jsonify(resp.json())
     except requests.RequestException as e:
@@ -118,7 +120,7 @@ def r_run():
 @jwt_required()
 def r_reset():
     try:
-        resp = requests.post(f"{R_API_URL}/reset")
+        resp = requests.post(f"{R_API_URL}/reset", timeout=R_API_TIMEOUT)
         resp.raise_for_status()
         return jsonify(resp.json())
     except requests.RequestException as e:
@@ -132,7 +134,7 @@ def r_upload_file():
         return jsonify({"error": "No file uploaded"}), 400
     file = request.files['file']
     try:
-        resp = requests.post(f"{R_API_URL}/files/upload", files={'file': (file.filename, file.stream)})
+        resp = requests.post(f"{R_API_URL}/files/upload", files={'file': (file.filename, file.stream)}, timeout=R_API_TIMEOUT)
         resp.raise_for_status()
         return jsonify(resp.json())
     except requests.RequestException as e:
@@ -146,7 +148,7 @@ def r_download_file():
     if not name:
         return jsonify({"error": "No file name provided"}), 400
     try:
-        resp = requests.get(f"{R_API_URL}/files/download", params={"name": name})
+        resp = requests.get(f"{R_API_URL}/files/download", params={"name": name}, timeout=R_API_TIMEOUT)
         resp.raise_for_status()
         return (resp.content, resp.status_code, resp.headers.items())
     except requests.RequestException as e:
@@ -178,7 +180,7 @@ def r_import_file():
 
     # Post the file content to the R API /run endpoint so it's evaluated in .PERSIST_ENV
     try:
-        resp = requests.post(f"{R_API_URL}/run", json={"code": content})
+        resp = requests.post(f"{R_API_URL}/run", json={"code": content}, timeout=R_API_TIMEOUT)
         resp.raise_for_status()
         return jsonify(resp.json())
     except requests.RequestException as e:
