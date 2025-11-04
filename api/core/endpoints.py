@@ -63,6 +63,9 @@ class Endpoints:
         from endpoints.data.dataflow.routes import dataflow_endpoint
         app.register_blueprint(dataflow_endpoint)
 
+        from endpoints.data.statistics.routes import statistics_endpoint
+        app.register_blueprint(statistics_endpoint)
+
         from endpoints.data.map.routes import map_endpoint
         app.register_blueprint(map_endpoint)
 

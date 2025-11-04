@@ -144,3 +144,24 @@ export function timeAgo(inputDate) {
 
   return "just now";
 }
+
+export function isTouchBased() {
+  return window.matchMedia("(pointer: coarse)").matches;
+}
+
+export const datestringToHtml = (dt) => {
+  if (!dt) return "";
+  const date = new Date(dt);
+
+  // Extract parts
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const seconds = date.getSeconds().toString().padStart(2, "0");
+
+  // Format full date with bold hour
+  //return `${year}-${month}-${day} <span class="font-bold  text-sm">${hours}</span>:${minutes}:${seconds}`;
+  return `${year}-${month}-${day} <span class="font-bold text-sm">${hours}</span>`;
+};
