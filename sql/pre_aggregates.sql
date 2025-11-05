@@ -59,6 +59,7 @@ begin
     REFRESH MATERIALIZED VIEW  CONCURRENTLY  observations_summer_year;
     REFRESH MATERIALIZED VIEW  CONCURRENTLY  observations_winter_year;
     REFRESH MATERIALIZED VIEW  CONCURRENTLY  observations_day;
+    REFRESH MATERIALIZED VIEW  CONCURRENTLY  observations_day_8hmax;
 end
 $$ language plpgsql;
 
@@ -322,3 +323,132 @@ on observations_aot40f (sampling_point_id,time);
 
 
 ------------------------------------------------------------------------------------
+
+
+DROP MATERIALIZED VIEW IF EXISTS observations_day_8hmax;
+CREATE MATERIALIZED VIEW observations_day_8hmax AS
+select
+    *,
+    raven_coverage(time, count_valid::int,timestep,'day') as cov,
+    now() as created
+from (
+    with timeseries as (select s.id as sampling_point_id, t.timestep from sampling_points s, eea_times t WHERE s.timestep = t.id)
+    select
+        running_8hours.sampling_point_id,t.timestep,
+        date_trunc('day', datetime)  as time,
+        max(case when count_valid >= (0.75 * (28800.0 / t.timestep::float)) then val end) as val, -- max is duplicate because it asks for max not avg
+        min(case when count_valid >= (0.75 * (28800.0 / t.timestep::float)) then val end) as min,
+        max(case when count_valid >= (0.75 * (28800.0 / t.timestep::float)) then val end) as max,
+        count(*) as count_all,
+        count(case when count_valid >= (0.75 * (28800.0 / t.timestep::float)) then 1 end) as count_valid,
+        count(case when count_verified = count_all then 1 else 0 end) as count_verified
+      from (
+        select
+            o.from_time as datetime,
+            o.sampling_point_id,
+            avg(case when o.validation_flag >= 1 then o.value end)
+            over (partition by o.sampling_point_id order by o.from_time range between interval '7 hour' preceding and current row) as val,
+            count(*)
+            over (partition by o.sampling_point_id order by o.from_time range between interval '7 hour' preceding and current row) as count_all,
+            count(case when o.validation_flag >= 1 then 1 end)
+            over (partition by o.sampling_point_id order by o.from_time range between interval '7 hour' preceding and current row) as count_valid,
+            count(case when o.verification_flag = 1 then 1 end)
+            over (partition by o.sampling_point_id order by o.from_time range between interval '7 hour' preceding and current row) as count_verified
+        from observations o
+      ) as running_8hours, timeseries t
+      where running_8hours.sampling_point_id = t.sampling_point_id
+      group by running_8hours.sampling_point_id, date_trunc('day', running_8hours.datetime), t.timestep
+    ) as running_8hours_max;
+
+CREATE INDEX idx_obs_day_8hmax_id_time
+  ON observations_day_8hmax (sampling_point_id, time);
+
+CREATE UNIQUE INDEX un_obs_day_8hmax_id_time
+  ON observations_day_8hmax (sampling_point_id, time);
+
+------------------------------------------------------------------------------------
+
+DROP MATERIALIZED VIEW IF EXISTS observations_year_hour;
+create materialized view observations_year_hour as
+select
+    *,
+    raven_coverage(time, count_valid::int,timestep,'year') as cov,
+    now() as created
+from (
+    with timeseries as (select s.id as sampling_point_id, t.timestep from sampling_points s, eea_times t WHERE s.timestep = t.id)
+    select
+        hourly.sampling_point_id,t.timestep,
+        date_trunc('year', datetime)  as time,
+        avg(case when count_valid >= (0.75 * (3600.0 / t.timestep::float)) then val end) as val,
+        min(case when count_valid >= (0.75 * (3600.0 / t.timestep::float)) then val end) as min,
+        max(case when count_valid >= (0.75 * (3600.0 / t.timestep::float)) then val end) as max,
+        count(*) as count_all,
+        count(case when count_valid >= (0.75 * (3600.0 / t.timestep::float)) then 1 end) as count_valid,
+        count(case when count_verified = count_all then 1 else 0 end) as count_verified
+      from (
+        select
+            sampling_point_id,
+            date_trunc('hour', from_time) as datetime,
+            round(avg(value) FILTER (WHERE validation_flag >= 1), 10) as val,
+            round(min(value) FILTER (WHERE validation_flag >= 1), 10) as min,
+            round(max(value) FILTER (WHERE validation_flag >= 1), 10) as max,
+            count(value)::int AS count_all,
+            count(value) FILTER (WHERE validation_flag >= 1) ::int AS count_valid,
+            count(*) FILTER (WHERE verification_flag = 1)  ::int as count_verified
+          from observations
+          group by sampling_point_id, datetime
+      ) as hourly, timeseries t
+      where hourly.sampling_point_id = t.sampling_point_id
+      group by hourly.sampling_point_id, date_trunc('year', hourly.datetime), t.timestep
+    ) as yearly;
+
+
+CREATE INDEX idx_obs_year_hour_id_time
+on observations_year_hour (sampling_point_id,time);
+
+CREATE UNIQUE INDEX un_obs_year_hour_id_time
+on observations_year_hour (sampling_point_id,time);
+
+------------------------------------------------------------------------------------
+
+DROP MATERIALIZED VIEW IF EXISTS observations_year_day;
+create materialized view observations_year_day as
+select
+    *,
+    raven_coverage(time, count_valid::int,timestep,'year') as cov,
+    now() as created
+from (
+    with timeseries as (select s.id as sampling_point_id, t.timestep from sampling_points s, eea_times t WHERE s.timestep = t.id)
+    select
+        daily.sampling_point_id,t.timestep,
+        date_trunc('year', datetime)  as time,
+        avg(case when count_valid >= (0.75 * (86400.0 / t.timestep::float)) then val end) as val,
+        min(case when count_valid >= (0.75 * (86400.0 / t.timestep::float)) then val end) as min,
+        max(case when count_valid >= (0.75 * (86400.0 / t.timestep::float)) then val end) as max,
+        percentile_cont(0.99) WITHIN GROUP (ORDER BY case when count_valid >= (0.75 * (86400.0 / t.timestep::float)) then val end)::numeric as p99,
+        count(*) as count_all,
+        count(case when count_valid >= (0.75 * (86400.0 / t.timestep::float)) then 1 end) as count_valid,
+        count(case when count_verified = count_all then 1 else 0 end) as count_verified
+      from (
+        select
+            sampling_point_id,
+            date_trunc('day', from_time) as datetime,
+            round(avg(value) FILTER (WHERE validation_flag >= 1), 10) as val,
+            round(min(value) FILTER (WHERE validation_flag >= 1), 10) as min,
+            round(max(value) FILTER (WHERE validation_flag >= 1), 10) as max,
+            count(value)::int AS count_all,
+            count(value) FILTER (WHERE validation_flag >= 1) ::int AS count_valid,
+            count(*) FILTER (WHERE verification_flag = 1)  ::int as count_verified
+          from observations
+          group by sampling_point_id, datetime
+      ) as daily, timeseries t
+      where daily.sampling_point_id = t.sampling_point_id
+      group by daily.sampling_point_id, date_trunc('year', daily.datetime), t.timestep
+    ) as yearly;
+
+
+CREATE INDEX idx_obs_year_day_id_time
+on observations_year_day (sampling_point_id,time);
+
+CREATE UNIQUE INDEX un_obs_day_hour_id_time
+on observations_year_day (sampling_point_id,time);

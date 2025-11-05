@@ -24,7 +24,7 @@ export default defineConfig({
     }),
     VitePluginFonts({
       google: {
-        families: ["Rubik"]
+        families: ["Inter"]
       }
     })
   ]

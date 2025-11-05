@@ -11,6 +11,11 @@ Postgres version `12+`
 Postgis extension  
 NPM
 
+R requirements:
+- R must be installed and Rscript available on PATH.
+- Minimum required R packages: `plumber`, `jsonlite`
+- For using 4sfera code snippets: `RPostgres`, `DBI`, `tidyr`, `dplyr`, `lubridate`, `openair`, `ggplot2`
+
 ## **Clone repository from git**
 
 ```powershell
@@ -45,6 +50,9 @@ JWT_ACCESS_TOKEN_EXPIRES_SECONDS = 3600
 JWT_SECRET_KEY = make-up-a-secure-key
 CONTAINER_NAME_API = raven-api
 CONTAINER_NAME_CLIENT = raven-client
+CONTAINER_NAME_RNOTEBOOK = raven-rnotebook
+R_PORT = 8888
+
 ```
 
 `Hint: Use host.docker.internal if database is local. Ip 172.17.0.1 for Linux`
@@ -58,6 +66,7 @@ Make sure you have Docker engine installed. (https://www.docker.com/)
 ```powershell
 docker-compose up -d --build
 # Access RAVEN at: http://localhost
+
 ```
 
 **Full stack with background jobs (API + Client + Cron):**
@@ -162,4 +171,7 @@ flask run
 
 # from inside the client folder start the frontend
 npm run dev
+
+# from the r folder start r notebook backend server
+Rscript r/app.R   
 ```

@@ -1,0 +1,73 @@
+FROM rocker/r-ver:4.3
+
+# Install system dependencies in separate steps for better caching and debugging
+RUN apt-get update
+
+RUN apt-get install -y --no-install-recommends \
+    libpq-dev \
+    libssl-dev \
+    libcurl4-openssl-dev
+
+RUN apt-get install -y --no-install-recommends \
+    libxml2-dev \
+    make \
+    g++
+
+RUN apt-get install -y --no-install-recommends \
+    libfreetype6-dev \
+    libpng-dev \
+    libtiff5-dev \
+    libjpeg-dev
+
+RUN apt-get install -y --no-install-recommends \
+    libharfbuzz-dev \
+    libfribidi-dev
+
+# Add libsodium-dev for the sodium R package (required by plumber)
+RUN apt-get install -y --no-install-recommends \
+    libsodium-dev
+
+RUN rm -rf /var/lib/apt/lists/*
+
+# Override the P3M repository with standard CRAN
+RUN echo 'options(repos = c(CRAN = "https://cloud.r-project.org/"))' >> /usr/local/lib/R/etc/Rprofile.site
+
+# Install sodium first since plumber depends on it
+RUN install2.r --error \
+    sodium
+
+# Install R packages one by one for better error handling and caching
+RUN install2.r --error \
+    plumber
+
+RUN install2.r --error \
+    jsonlite
+
+RUN install2.r --error \
+    RPostgres \
+    DBI
+
+RUN install2.r --error \
+    tidyr \
+    dplyr
+
+RUN install2.r --error \
+    lubridate
+
+RUN install2.r --error \
+    openair
+
+RUN install2.r --error \
+    ggplot2
+
+# Verify all packages are installed
+RUN Rscript -e "required_pkgs <- c('plumber','jsonlite','RPostgres','DBI','tidyr','dplyr','lubridate','openair','ggplot2'); missing <- required_pkgs[!sapply(required_pkgs, require, character.only=TRUE, quietly=TRUE)]; if(length(missing) > 0) stop('Missing packages: ', paste(missing, collapse=', ')) else cat('All packages installed successfully\n')"
+
+WORKDIR /srv
+COPY r/app.R ./app.R
+COPY r/workspace/ ./workspace/
+RUN mkdir -p /srv/workspace
+
+ENV R_PORT=8888 R_WORKDIR=/srv/workspace
+EXPOSE 8888
+CMD ["Rscript", "app.R"]

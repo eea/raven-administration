@@ -54,4 +54,21 @@ export const Download = async (url, data) => {
   return await Request(payload);
 };
 
+export const Delete = async (url) => {
+  const payload = {
+    method: "delete",
+    url: url
+  };
+  return await Request(payload);
+};
+
+export const Put = async (url, data) => {
+  const payload = {
+    method: "put",
+    url: url,
+    data: data
+  };
+  return await Request(payload);
+};
+
 export default Request;
