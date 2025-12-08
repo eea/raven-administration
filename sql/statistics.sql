@@ -197,6 +197,10 @@ INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50
 INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-dmaxAbove100', false, true);
 INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-dmaxAbove120', true, false);
 
+------------------------------------------------------------------------------------
+-- NEW AGGREGATIONS (added Dec 2025)
+------------------------------------------------------------------------------------
+
 -- 3 Consecutive Hour Exceedances
 INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/8', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-3hAbove200', false, true);  -- NO2
 INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/1', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-3hAbove350', false, true);  -- SO2
