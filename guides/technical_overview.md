@@ -9,19 +9,45 @@ The system is managed and developed by `NILU`, with support from `4sFera`, on th
 
 ### Backend
 
-- **Python 3.10.9**: Provides the core backend logic using modern Python capabilities.
-  - **Flask**: Lightweight WSGI web application framework used for building the API layer.
-  - **Gunicorn**: Python WSGI HTTP server used to serve the Flask application in production.
-  - **Pandas**: Library for data manipulation and analysis.
-- **PostgreSQL 12+**: Relational database management system, ensuring data consistency and reliability.
-- **PostGIS Extension**: Adds support for geographic objects in PostgreSQL, enabling spatial queries and GIS functionality.
+- **Python 3.10.9**: Core programming language.
+- **Web Framework**:
+  - **Flask**: Micro-framework for the API.
+  - **Flask Extensions**:
+    - `Flask-JWT-Extended`: JWT based authentication.
+    - `Flask-Cors`: Handling Cross Origin Resource Sharing (CORS).
+    - `Flask-Compress`: Response compression.
+    - `Flask-HTTPAuth`: Basic HTTP authentication.
+- **Data Processing & Analysis**:
+  - **Pandas** & **NumPy**: Data manipulation and numerical analysis.
+  - **GeoPandas**: Spatial data operations.
+  - **Pydantic**: Data validation and settings management.
+- **Database Interaction**:
+  - **Psycopg2**: PostgreSQL adapter for Python.
+- **Utilities**:
+  - `python-simplexml`: XML parsing/generation.
+  - `requests`: HTTP library.
+  - `python-dotenv`: Environment variable management.
 
 ### Frontend
 
-- **Node.js 18.12.1**: Used primarily to manage frontend package installation and build processes.
-- **Vue.js**: Frontend JavaScript framework for building reactive and dynamic user interfaces.
-- **Tailwind CSS**: Utility-first CSS framework for rapid UI development with a mobile-first design approach.
-- **Vite.js**: Next-generation frontend tooling for faster and leaner development, serving as a build tool.
+- **Core Framework**:
+  - **Vue.js 3**: Progressive JavaScript framework.
+  - **Vue Router**: Official router for Vue.js.
+- **Build Tooling**:
+  - **Vite**: Next generation frontend tooling.
+  - **Node.js**: Runtime environment for build tools.
+- **UI & Styling**:
+  - **Tailwind CSS**: Utility-first CSS framework.
+  - **Ag-Grid Vue**: Advanced data grid for displaying complex datasets.
+  - **CodeMirror**: In-browser code editor.
+- **Visualization**:
+  - **Chart.js**: Simple yet flexible JavaScript charting.
+  - **Leaflet** (`@vue-leaflet/vue-leaflet`): Interactive maps.
+- **Utilities**:
+  - **Axios**: Promise based HTTP client.
+  - **Luxon** & **Date-fns**: Date and time manipulation.
+  - **VueUse**: Collection of essential Vue Composition Utilities.
+  - **Mitt**: Tiny functional event emitter.
 
 ### Deployment
 
