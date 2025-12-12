@@ -66,6 +66,9 @@ class Endpoints:
         from endpoints.data.statistics.routes import statistics_endpoint
         app.register_blueprint(statistics_endpoint)
 
+        from endpoints.data.exceedances.routes import exceedances_endpoint
+        app.register_blueprint(exceedances_endpoint)
+
         from endpoints.data.map.routes import map_endpoint
         app.register_blueprint(map_endpoint)
 
