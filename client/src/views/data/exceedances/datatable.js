@@ -50,14 +50,14 @@ export const columns = [
     width: 140,
     valueFormatter: (params) => {
       const labels = {
-        'LV': 'Health',
-        'ALT': 'Health',
-        'INT': 'Health',
-        'TV': 'Health',
-        'LTO': 'Health',
-        'CL': 'Vegetation'
+        LV: "Health",
+        ALT: "Health",
+        INT: "Health",
+        TV: "Health",
+        LTO: "Health",
+        CL: "Vegetation"
       };
-      return labels[params.value] || 'Health';
+      return labels[params.value] || "Health";
     }
   },
   {
@@ -82,9 +82,9 @@ export const columns = [
     width: 150,
     valueFormatter: (params) => {
       if (params.value === undefined || params.value === null) {
-        return '-';
+        return "-";
       }
-      return typeof params.value === 'number' ? params.value.toFixed(2) : params.value;
+      return typeof params.value === "number" ? params.value.toFixed(2) : params.value;
     }
   },
   {
@@ -95,9 +95,9 @@ export const columns = [
     width: 130,
     valueFormatter: (params) => {
       if (params.value === undefined || params.value === null) {
-        return '-';
+        return "-";
       }
-      return params.value + '%';
+      return params.value + "%";
     }
   },
   {
@@ -108,9 +108,9 @@ export const columns = [
     width: 130,
     cellRenderer: (params) => {
       if (params.value === true) {
-        return '<span class="px-2 py-1 rounded text-xs bg-red-500 text-white font-semibold">Yes</span>';
+        return '<span class="px-2 py-1 rounded text-xs bg-nord11/20 border border-nord11  font-semibold">Yes</span>';
       } else {
-        return '<span class="px-2 py-1 rounded text-xs bg-green-500 text-white font-semibold">No</span>';
+        return '<span class="px-2 py-1 rounded text-xs bg-nord14/20 border border-nord14  font-semibold">No</span>';
       }
     }
   }
