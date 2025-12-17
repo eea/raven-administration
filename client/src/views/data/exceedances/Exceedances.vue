@@ -1,5 +1,6 @@
 <script setup>
 import IconInfo from "~icons/ph/info-duotone";
+import IconLink from "~icons/ph/link-duotone";
 import Container from "../../../components/Container.vue";
 import { onMounted, computed, watch } from "vue";
 import Service from "./service";
@@ -177,6 +178,11 @@ const evaluateExceedances = async () => {
             Results show whether each threshold has been exceeded based on calculated statistics.
           </p>
         </div>
+      </div>
+
+      <div class="text-sm flex gap-1 mt-2">
+        <icon-link />
+        <div><a href="https://dd.eionet.europa.eu/vocabulary/aq/environmentalobjective/view" target="_blank">Read more about environmental objectives here</a></div>
       </div>
     </container>
 
