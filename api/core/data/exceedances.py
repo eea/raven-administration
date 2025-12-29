@@ -293,6 +293,78 @@ DIRECTIVE_THRESHOLDS = {
                 "2024/2881": {"value": 6000, "operator": ">"}
             }
         }
+    },
+    
+    # C6H6 (Benzene) Thresholds - Directive 2008/50/EC Annex II
+    "C6H6": {
+        "LV": {  # Limit Value
+            "Annual LV": {
+                "statistic": "P1Y",
+                "unit": "µg/m³",
+                "2008/50": {"value": 5, "operator": ">"},
+                "comment": "Annual mean limit value: 5 µg/m³"
+            }
+        }
+    },
+    
+    # Pb (Lead) Thresholds - Directive 2008/50/EC Annex II
+    "Pb": {
+        "LV": {  # Limit Value
+            "Annual LV": {
+                "statistic": "P1Y",
+                "unit": "µg/m³",
+                "2008/50": {"value": 0.5, "operator": ">"},
+                "comment": "Annual mean limit value: 0.5 µg/m³"
+            }
+        }
+    },
+    
+    # As (Arsenic) Thresholds - Directive 2008/50/EC Annex II
+    "As": {
+        "TV": {  # Target Value
+            "Annual TV": {
+                "statistic": "P1Y",
+                "unit": "ng/m³",
+                "2008/50": {"value": 6, "operator": ">"},
+                "comment": "Annual mean target value: 6 ng/m³ (PM10 fraction)"
+            }
+        }
+    },
+    
+    # Cd (Cadmium) Thresholds - Directive 2008/50/EC Annex II
+    "Cd": {
+        "TV": {  # Target Value
+            "Annual TV": {
+                "statistic": "P1Y",
+                "unit": "ng/m³",
+                "2008/50": {"value": 5, "operator": ">"},
+                "comment": "Annual mean target value: 5 ng/m³ (PM10 fraction)"
+            }
+        }
+    },
+    
+    # Ni (Nickel) Thresholds - Directive 2008/50/EC Annex II
+    "Ni": {
+        "TV": {  # Target Value
+            "Annual TV": {
+                "statistic": "P1Y",
+                "unit": "ng/m³",
+                "2008/50": {"value": 20, "operator": ">"},
+                "comment": "Annual mean target value: 20 ng/m³ (PM10 fraction)"
+            }
+        }
+    },
+    
+    # BaP (Benzo[a]pyrene) Thresholds - Directive 2008/50/EC Annex II
+    "BaP": {
+        "TV": {  # Target Value
+            "Annual TV": {
+                "statistic": "P1Y",
+                "unit": "ng/m³",
+                "2008/50": {"value": 1, "operator": ">"},
+                "comment": "Annual mean target value: 1 ng/m³ (PM10 fraction)"
+            }
+        }
     }
 }
 
@@ -305,13 +377,14 @@ POLLUTANT_URIS = {
     "PM10": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/5",
     "PM2.5": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/6001",
     "CO": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/10",
-    "C6H6": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/20",
-    "Pb": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/18",
-    "As": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/15",
-    "Cd": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/14",
-    "Ni": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/21",
-    "BaP": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/5029",
-    "NOx": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/9"
+    # Missing pollutants from P3 (Directive 2008/50/EC Annex II)
+    "C6H6": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/20",  # Benzene
+    "Pb": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/12",  # Lead (aerosol) - CORRECTED
+    "As": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/18",  # Arsenic (aerosol) - CORRECTED
+    "Cd": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/14",  # Cadmium (aerosol)
+    "Ni": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/15",  # Nickel (aerosol) - CORRECTED
+    "BaP": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/6015",  # Benzo(a)pyrene (air+aerosol) - CORRECTED
+    "NOx": "http://dd.eionet.europa.eu/vocabulary/aq/pollutant/9"  # Nitrogen oxides
 }
 
 # Reverse mapping (URI to notation)
