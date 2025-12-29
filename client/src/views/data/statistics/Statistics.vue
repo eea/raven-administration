@@ -8,7 +8,7 @@ import { columns } from "./datatable";
 const years = ref([]);
 const pollutantsAndAggregationProcess = ref([]);
 
-const selectedYear = ref("");
+const selectedYears = ref([]);  // Changed from selectedYear to support multi-select
 const selectedPollutant = ref("");
 const selectedAggregationProcess = ref("");
 
@@ -83,7 +83,7 @@ watch(selectedPollutant, (newPollutant) => {
 onMounted(async () => {
   data.value = [];
   years.value = await Service.years();
-  selectedYear.value = years.value[0].toString();
+  selectedYears.value = [years.value[0]];  // Initialize with first year as array
   console.log(years.value);
 
   pollutantsAndAggregationProcess.value = await Service.pollutants_and_aggregationprocess();
@@ -102,14 +102,61 @@ onMounted(async () => {
 
 const showValues = async () => {
   data.value = [];
+  
   const requestData = {
-    year: parseInt(selectedYear.value),
+    years: selectedYears.value.map(y => parseInt(y)),  // Send array of years
     pollutant: selectedPollutant.value,
     aggregation_process: selectedAggregationProcess.value
   };
 
   data.value = await Service.get(requestData);
   console.log(data.value);
+};
+
+const exportToCSV = () => {
+  if (data.value.length === 0) {
+    alert("No data to export. Please show statistics first.");
+    return;
+  }
+
+  // Get column headers
+  const headers = cols.value.map(col => col.headerName);
+  const fields = cols.value.map(col => col.field);
+
+  // Build CSV content
+  let csvContent = headers.join(",") + "\n";
+  
+  data.value.forEach(row => {
+    const values = fields.map(field => {
+      let value = row[field];
+      // Handle null/undefined
+      if (value === null || value === undefined) {
+        value = "";
+      }
+      // Escape quotes and wrap in quotes if contains comma
+      value = String(value).replace(/"/g, '""');
+      if (value.includes(",") || value.includes("\n") || value.includes('"')) {
+        value = `"${value}"`;
+      }
+      return value;
+    });
+    csvContent += values.join(",") + "\n";
+  });
+
+  // Create download link
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const filename = `statistics_${selectedPollutant.value}_${selectedAggregationProcess.value}_${timestamp}.csv`;
+  
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 </script>
 
@@ -121,9 +168,15 @@ const showValues = async () => {
       <div class="flex gap-2">
         <div>
           <div class="font-bold">Years</div>
-          <n-select class="!w-48" v-model="selectedYear">
-            <n-option v-for="year in years" :key="year" :value="year.toString()" :label="year.toString()" />
-          </n-select>
+          <select 
+            class="n-select !w-48 px-3 py-2 border rounded" 
+            v-model="selectedYears" 
+            multiple 
+            size="5"
+          >
+            <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
+          </select>
+          <div class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</div>
         </div>
         <div>
           <div class="font-bold">Pollutants</div>
@@ -140,6 +193,10 @@ const showValues = async () => {
         <div>
           <div>&nbsp;</div>
           <button class="n-button" @click="showValues">Show statistics</button>
+        </div>
+        <div v-if="data.length > 0">
+          <div>&nbsp;</div>
+          <button class="n-button" @click="exportToCSV">Download CSV</button>
         </div>
       </div>
 
@@ -158,6 +215,7 @@ const showValues = async () => {
         <icon-link />
         <div><a href="https://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/view" target="_blank">Read more about aggregation processes here</a></div>
       </div>
+
     </container>
 
     <div class="w-full h-full text-xs mt-8">
