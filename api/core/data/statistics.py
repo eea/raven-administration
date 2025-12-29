@@ -310,7 +310,10 @@ class Statistics:
         """
         Annual maximum of daily values (P1Y-day-max).
         For O3 and CO: Uses daily 8-hour max values from observations_day_8hmax table.
-        For other pollutants: Uses daily means from observations_year_day table.
+        For other pollutants: Uses daily means from observations_day table.
+        
+        Coverage is calculated as: (count of valid days / total days in year) * 100
+        where valid days have cov >= 75% (sufficient hourly data).
         """
         # O3 and CO use 8-hour daily max as the base for P1Y-day-max
         if pollutant.upper() in ['O3', 'CO']:
@@ -329,7 +332,7 @@ class Statistics:
                 %(aggregation_process)s as aggregation_process,
                 %(year)s as year,
                 ROUND(MAX(o.val), 3) as value,
-                ROUND((COUNT(o.val)::numeric / year_info.total_days) * 100, 2) as coverage
+                ROUND((COUNT(CASE WHEN o.cov >= %(coverage)s THEN 1 END)::numeric / year_info.total_days) * 100, 2) as coverage
             FROM all_sampling_points asp
             CROSS JOIN year_info
             LEFT JOIN observations_day_8hmax o ON o.sampling_point_id = asp.spo 
@@ -341,15 +344,39 @@ class Statistics:
             self.cursor.execute(sql, {
                 "aggregation_process": "P1Y-day-max",
                 "year": year,
-                "pollutant": pollutant
+                "pollutant": pollutant,
+                "coverage": 75
             })
         else:
-            # Other pollutants use daily mean aggregations
-            sql = self._get_simple_observation_data("observations_year_day", pollutant, year, "max")
+            # Other pollutants use daily mean from observations_day
+            sql = f"""
+            WITH {self._get_all_sampling_points_cte(pollutant)},
+            year_info AS (
+                SELECT 
+                    CASE 
+                        WHEN (%(year)s %% 4 = 0 AND %(year)s %% 100 <> 0) OR (%(year)s %% 400 = 0) THEN 366
+                        ELSE 365
+                    END as total_days
+            )
+            SELECT 
+                asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant,
+                %(aggregation_process)s as aggregation_process,
+                %(year)s as year,
+                ROUND(MAX(o.val), 3) as value,
+                ROUND((COUNT(CASE WHEN o.cov >= %(coverage)s THEN 1 END)::numeric / year_info.total_days) * 100, 2) as coverage
+            FROM all_sampling_points asp
+            CROSS JOIN year_info
+            LEFT JOIN observations_day o ON o.sampling_point_id = asp.spo 
+                AND EXTRACT(YEAR FROM o.time) = %(year)s
+                AND o.val IS NOT NULL
+            GROUP BY asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant, year_info.total_days
+            ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+            """
             self.cursor.execute(sql, {
                 "aggregation_process": "P1Y-day-max",
                 "year": year,
-                "pollutant": pollutant
+                "pollutant": pollutant,
+                "coverage": 75
             })
         return self.cursor.fetchall()
 
@@ -359,7 +386,10 @@ class Statistics:
         """
         Annual minimum of daily values (P1Y-day-min).
         For O3 and CO: Uses daily 8-hour max values from observations_day_8hmax table.
-        For other pollutants: Uses daily means from observations_year_day table.
+        For other pollutants: Uses daily means from observations_day table.
+        
+        Coverage is calculated as: (count of valid days / total days in year) * 100
+        where valid days have cov >= 75% (sufficient hourly data).
         """
         # O3 and CO use 8-hour daily max as the base for P1Y-day-min
         if pollutant.upper() in ['O3', 'CO']:
@@ -378,7 +408,7 @@ class Statistics:
                 %(aggregation_process)s as aggregation_process,
                 %(year)s as year,
                 ROUND(MIN(o.val), 3) as value,
-                ROUND((COUNT(o.val)::numeric / year_info.total_days) * 100, 2) as coverage
+                ROUND((COUNT(CASE WHEN o.cov >= %(coverage)s THEN 1 END)::numeric / year_info.total_days) * 100, 2) as coverage
             FROM all_sampling_points asp
             CROSS JOIN year_info
             LEFT JOIN observations_day_8hmax o ON o.sampling_point_id = asp.spo 
@@ -390,15 +420,39 @@ class Statistics:
             self.cursor.execute(sql, {
                 "aggregation_process": "P1Y-day-min",
                 "year": year,
-                "pollutant": pollutant
+                "pollutant": pollutant,
+                "coverage": 75
             })
         else:
-            # Other pollutants use daily mean aggregations
-            sql = self._get_simple_observation_data("observations_year_day", pollutant, year, "min")
+            # Other pollutants use daily mean from observations_day
+            sql = f"""
+            WITH {self._get_all_sampling_points_cte(pollutant)},
+            year_info AS (
+                SELECT 
+                    CASE 
+                        WHEN (%(year)s %% 4 = 0 AND %(year)s %% 100 <> 0) OR (%(year)s %% 400 = 0) THEN 366
+                        ELSE 365
+                    END as total_days
+            )
+            SELECT 
+                asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant,
+                %(aggregation_process)s as aggregation_process,
+                %(year)s as year,
+                ROUND(MIN(o.val), 3) as value,
+                ROUND((COUNT(CASE WHEN o.cov >= %(coverage)s THEN 1 END)::numeric / year_info.total_days) * 100, 2) as coverage
+            FROM all_sampling_points asp
+            CROSS JOIN year_info
+            LEFT JOIN observations_day o ON o.sampling_point_id = asp.spo 
+                AND EXTRACT(YEAR FROM o.time) = %(year)s
+                AND o.val IS NOT NULL
+            GROUP BY asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant, year_info.total_days
+            ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+            """
             self.cursor.execute(sql, {
                 "aggregation_process": "P1Y-day-min",
                 "year": year,
-                "pollutant": pollutant
+                "pollutant": pollutant,
+                "coverage": 75
             })
         return self.cursor.fetchall()
 
@@ -407,15 +461,42 @@ class Statistics:
     def generate_p1y_day_per99(self, pollutant, year):
         """
         Annual 99th percentile of daily values (P1Y-P1D-per99).
-        Uses the pre-calculated p99 value from observations_year_day table.
+        Uses daily values from observations_day table.
+        
+        Coverage is calculated as: (count of valid days / total days in year) * 100
+        where valid days have cov >= 75% (sufficient hourly data).
         
         Note: For O3, use P1Y-dmax-per99 instead (99th percentile of daily 8h-max).
         """
-        sql = self._get_simple_observation_data("observations_year_day", pollutant, year, "p99")
+        sql = f"""
+        WITH {self._get_all_sampling_points_cte(pollutant)},
+        year_info AS (
+            SELECT 
+                CASE 
+                    WHEN (%(year)s %% 4 = 0 AND %(year)s %% 100 <> 0) OR (%(year)s %% 400 = 0) THEN 366
+                    ELSE 365
+                END as total_days
+        )
+        SELECT 
+            asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant,
+            %(aggregation_process)s as aggregation_process,
+            %(year)s as year,
+            ROUND((PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY o.val))::numeric, 3) as value,
+            ROUND((COUNT(CASE WHEN o.cov >= %(coverage)s THEN 1 END)::numeric / year_info.total_days) * 100, 2) as coverage
+        FROM all_sampling_points asp
+        CROSS JOIN year_info
+        LEFT JOIN observations_day o ON o.sampling_point_id = asp.spo 
+            AND EXTRACT(YEAR FROM o.time) = %(year)s
+            AND o.val IS NOT NULL
+            AND o.cov >= %(coverage)s
+        GROUP BY asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant, year_info.total_days
+        ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+        """
         self.cursor.execute(sql, {
             "aggregation_process": "P1Y-P1D-per99",
             "year": year,
-            "pollutant": pollutant
+            "pollutant": pollutant,
+            "coverage": 75
         })
         return self.cursor.fetchall()
 
