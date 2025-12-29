@@ -49,7 +49,7 @@ DIRECTIVE_THRESHOLDS = {
             "Daily LV (percentile)": {
                 "statistic": "P1Y-P1D-per99",
                 "unit": "µg/m³",
-                "2024/2881": {"value": 45, "operator": ">"}
+                "WHO": {"value": 45, "operator": ">"}
             }
         },
         "INT": {  # Information Threshold
@@ -86,7 +86,7 @@ DIRECTIVE_THRESHOLDS = {
             "Daily LV (percentile)": {
                 "statistic": "P1Y-P1D-per99",
                 "unit": "µg/m³",
-                "2024/2881": {"value": 15, "operator": ">"}
+                "WHO": {"value": 15, "operator": ">"}
             }
         },
         "INT": {
@@ -131,7 +131,7 @@ DIRECTIVE_THRESHOLDS = {
             "Daily LV (percentile)": {
                 "statistic": "P1Y-P1D-per99",
                 "unit": "µg/m³",
-                "2024/2881": {"value": 25, "operator": ">"}
+                "WHO": {"value": 25, "operator": ">"}
             }
         },
         "INT": {
@@ -183,7 +183,7 @@ DIRECTIVE_THRESHOLDS = {
             "Daily LV (percentile)": {
                 "statistic": "P1Y-P1D-per99",
                 "unit": "µg/m³",
-                "2024/2881": {"value": 40, "operator": ">"}
+                "WHO": {"value": 40, "operator": ">"}
             }
         },
         "ALT": {
@@ -206,11 +206,19 @@ DIRECTIVE_THRESHOLDS = {
             }
         },
         "CL": {  # Critical Level
-            "Critical level": {
+            "Critical level (annual)": {
+                "statistic": "P1Y",
+                "unit": "µg/m³",
+                "2008/50": {"value": 20, "operator": ">"},
+                "2024/2881": {"value": 20, "operator": ">"},
+                "comment": "Vegetation protection: Annual mean"
+            },
+            "Critical level (winter)": {
                 "statistic": "winter-avg",
                 "unit": "µg/m³",
                 "2008/50": {"value": 20, "operator": ">"},
-                "2024/2881": {"value": 20, "operator": ">"}
+                "2024/2881": {"value": 20, "operator": ">"},
+                "comment": "Vegetation protection: Winter (Oct-Mar) mean"
             }
         }
     },
@@ -228,7 +236,7 @@ DIRECTIVE_THRESHOLDS = {
             "Daily LV (percentile)": {
                 "statistic": "P1Y-P1D-per99",
                 "unit": "mg/m³",
-                "2024/2881": {"value": 4, "operator": ">"}
+                "WHO": {"value": 4, "operator": ">"}
             },
             "Daily LV (4)": {
                 "statistic": "P1Y-daysAbove4",
@@ -272,7 +280,7 @@ DIRECTIVE_THRESHOLDS = {
             "TV (percentile)": {
                 "statistic": "P1Y-dmax-per99",
                 "unit": "µg/m³",
-                "2024/2881": {"value": 100, "operator": ">"}
+                "WHO": {"value": 100, "operator": ">"}
             }
         },
         "LTO": {  # Long Term Objective
