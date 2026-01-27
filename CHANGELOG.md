@@ -8,6 +8,7 @@ Changes before version 3.1.0 is not included
 ### Fixes
 
 - Prevent from_year and to_year to be returned as string from the backend.
+- Updated docker to handle more concurrent requests (workers and threads)
 
 ## [3.5.1] - 2025-09-23
 
