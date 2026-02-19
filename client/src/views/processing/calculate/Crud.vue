@@ -68,7 +68,6 @@ const onSave = () => {
 <template>
   <popup :show="show" :title="isEdit ? 'Edit Calculation' : 'Add Calculation'" @on-close="$emit('close')">
     <div class="mb-4 font-bold text-base border-b">Required</div>
-    <div class="text-xs text-gray-600 mb-3 italic">Note: Primary, Secondary, and Result must be different sampling points</div>
 
     <div v-if="!isEdit" class="mb-2">
       <div class="font-bold">Station:</div>
