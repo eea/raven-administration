@@ -1,7 +1,7 @@
 import { createApp } from "vue";
 import App from "./App.vue";
-import "./assets/tailwind.css";
-import "./assets/n-elements.css";
+import "./assets/style.css";
+// import "./assets/n-elements.css";
 import { disableTextSelectOnShiftDown } from "./helpers/utils";
 
 // INTERCEPT

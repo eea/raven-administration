@@ -1,4 +1,8 @@
 <script setup>
+import { ref } from "vue";
+import CommonLayout from "../../../components/CommonLayout.vue";
+import ToolBar from "../../../components/ToolBar.vue";
+import Container from "../../../components/Container.vue";
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
 
@@ -16,9 +20,9 @@ const onUpload = async () => {
 
 <template>
   <common-layout>
-    <tool-bar title="Manual limport" :show-column-picker="false" :show-add="false" :show-download="false" :show-filter="false" />
+    <tool-bar title="Manual limport" :show-add="false" :show-download="false" :show-filter="false" />
     <container class="flex gap-4">
-      <container class="!bg-nord7/20 mt-2 flex gap-1">
+      <container class="bg-nord7/20! mt-2 flex gap-1">
         <div class="font-bold text-base">The csv file must contain the following headers:</div>
         <div class="text-sm">
           <table class="">
@@ -59,8 +63,8 @@ const onUpload = async () => {
         </div>
       </container>
       <div class="flex gap-2">
-        <input type="file" ref="file" class="n-input" />
-        <button class="n-button" @click="onUpload()">Upload</button>
+        <input type="file" ref="file" class="input" />
+        <button class="button" @click="onUpload()">Upload</button>
       </div>
     </container>
   </common-layout>

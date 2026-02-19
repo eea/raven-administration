@@ -1,11 +1,10 @@
 <script setup>
-import { AllCommunityModule, ModuleRegistry, ClientSideRowModelModule } from "ag-grid-community";
+import { AllCommunityModule, ModuleRegistry, ClientSideRowModelModule, TooltipModule } from "ag-grid-community";
 import { AgGridVue } from "ag-grid-vue3";
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { themeQuartz } from "ag-grid-community";
-import { isTouchBased } from "../helpers/utils";
 
-ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
+ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule, TooltipModule]);
 
 const props = defineProps({
   data: Array,
@@ -26,37 +25,107 @@ const props = defineProps({
       return null;
     }
   },
+  searchWord: {
+    type: String,
+    required: false,
+    default: ""
+  },
+  loading: {
+    type: Boolean,
+    required: false,
+    default: false
+  },
   floatingFilter: {
     type: Boolean,
     required: false,
-    default: true
+    default: false
   },
   filter: {
     type: Boolean,
     required: false,
     default: true
   },
-  enableCellTextSelection: {
+  selectionMode: {
+    type: String,
+    required: false,
+    default: null // "singleRow" or "multiRow"
+  },
+  enableClickSelection: {
     type: Boolean,
     required: false,
-    default: false
+    default: null // null = auto-detect based on editable columns
+  },
+  getRowId: {
+    type: Function,
+    required: false,
+    default: undefined
+  },
+  fontSize: {
+    type: Number,
+    required: false,
+    default: 14
   }
 });
 
-const emit = defineEmits(["on-double-click", "on-right-click"]);
+const highlightRenderer = (params) => {
+  const value = params.value ?? "";
+  const keyword = props.searchWord || "";
+  if (!keyword) return value;
+
+  const regex = new RegExp(`(${keyword})`, "gi");
+  const highlighted = value.toString().replace(regex, `<span style="background: yellow">$1</span>`);
+
+  return highlighted;
+};
+
+const emit = defineEmits(["on-double-click", "on-right-click", "selection-changed", "grid-ready"]);
 
 const colDefs = ref([]);
 const gridApi = ref(null);
 defineExpose({ gridApi });
 
-const isTouchDevice = isTouchBased();
+const hasEditableColumns = computed(() => {
+  return colDefs.value.some((col) => col.editable === true);
+});
+
+const rowSelection = computed(() => {
+  if (!props.selectionMode) return { mode: "singleRow", checkboxes: false, headerCheckbox: false, enableClickSelection: false };
+
+  const isMultiRow = props.selectionMode === "multiRow";
+
+  // Auto-detect: disable click selection if grid has editable columns (unless explicitly overridden)
+  const shouldEnableClickSelection = props.enableClickSelection !== null ? props.enableClickSelection : !hasEditableColumns.value;
+
+  return {
+    mode: isMultiRow ? "multiRow" : "singleRow",
+    checkboxes: isMultiRow,
+    headerCheckbox: isMultiRow,
+    enableClickSelection: shouldEnableClickSelection,
+    enableSelectionWithoutKeys: isMultiRow
+  };
+});
 
 const defaultColDef = {
   // minWidth: 100,
   sortable: true,
   resizable: true,
   filter: props.filter,
-  floatingFilter: props.filter ? props.floatingFilter : false
+  floatingFilter: props.floatingFilter,
+  cellRendererParams: {
+    suppressCount: true
+  },
+  // Needed so HTML in renderer is rendered as HTML, but don't override
+  // explicit cellRenderers (e.g. custom icons like DeleteIcon).
+  cellRendererSelector: (params) => {
+    const col = params.colDef || {};
+    // If column defines its own cellRenderer or selector, let it win.
+    if (col.cellRenderer) return null;
+    // Otherwise, use the highlight renderer.
+    return {
+      component: highlightRenderer,
+      params: {}
+    };
+  }
 };
 if (props.responsive) defaultColDef.flex = 1;
 
@@ -67,29 +136,33 @@ const myTheme = themeQuartz.withParams({
   borderColor: "#d8dee9",
   borderRadius: 2,
   browserColorScheme: "light",
-  fontFamily: {
-    googleFont: "Inter"
-  },
+  fontFamily: ["ui-sans-serif", "system-ui", "sans-serif"],
   foregroundColor: "#4C566A",
   headerBackgroundColor: "#F3F5F7",
   headerFontWeight: 600,
-  headerFontSize: 13,
+  headerFontSize: props.fontSize,
   headerRowBorder: true,
-  fontSize: 13,
+  fontSize: props.fontSize,
   spacing: 4,
-  wrapperBorderRadius: 4
+  wrapperBorderRadius: 4,
+
+  checkboxUncheckedBackgroundColor: "#fff",
+  checkboxUncheckedBorderColor: "#d8dee9",
+  checkboxCheckedBackgroundColor: "#3b4252",
+  checkboxCheckedBorderColor: "#d8dee9",
+  checkboxCheckedShapeColor: "#fff",
+  checkboxIndeterminateBorderColor: "#d8dee9",
+  checkboxIndeterminateBackgroundColor: "#4c566a"
 });
 
-// Watch for changes in props.data and update colDefs
+// Watch for changes in props.columns only
 watch(
-  () => [props.data, props.columns],
-  ([newData, newColumns]) => {
-    if (newColumns !== null) {
-      colDefs.value = newColumns.map(
-        (col) => (typeof col === "string" ? { field: col } : col) // Convert strings to objects
-      );
-    } else if (newData?.length > 0) {
-      colDefs.value = Object.keys(newData[0]).map((field) => ({ field }));
+  () => props.columns,
+  (newColumns) => {
+    if (newColumns !== null && newColumns !== undefined) {
+      colDefs.value = newColumns;
+    } else if (props.data?.length > 0) {
+      colDefs.value = Object.keys(props.data[0]).map((field) => ({ field }));
     } else {
       colDefs.value = [];
     }
@@ -99,37 +172,38 @@ watch(
 
 const onClicked = (event) => {
   const { detail, button } = event.event; // Extract properties
-  // console.log("isTouchDevice", isTouchDevice);
+  // console.log('click', event);
 
   // Right-click (button === 2)
   if (button === 2) {
-    // console.log("Right Click:", event.data);
-    emit("on-right-click", event.data, event.event);
+    emit("on-right-click", event.data, event.event, event);
     return;
   }
   // Double-click
   if (detail === 2) {
     // console.log("Double Click:", event.data);
-    emit("on-double-click", event.data, event.event);
+    emit("on-double-click", event.data, event.event, event);
     return;
   }
-  if (isTouchDevice && button === 0) {
-    // Handle single click on mobile with a slight delay
-    setTimeout(() => {
-      emit("on-right-click", event.data, event.event);
-    }, 200); // 200ms delay
-    return;
-  }
+};
+
+const onSelectionChanged = (event) => {
+  emit("selection-changed", event.api.getSelectedRows());
 };
 
 const onGridReady = (params) => {
   gridApi.value = params.api; // Store API reference
-  params.api.sizeColumnsToFit();
-  // console.log(params.api);
-  //params.api.autoSizeAllColumns();
+
+  // Only call sizeColumnsToFit if no flex columns are defined
+  const hasFlexColumns = colDefs.value.some((col) => col.flex);
+  if (!hasFlexColumns) {
+    params.api.sizeColumnsToFit();
+  }
+
+  emit("grid-ready", params.api);
 };
 </script>
 
 <template>
-  <ag-grid-vue :tooltipShowDelay="0" :tooltipHideDelay="10000" style="width: 100%; height: 100%" :getRowStyle="getRowStyle" :defaultColDef="defaultColDef" :columnDefs="colDefs" :rowData="data" :theme="myTheme" :suppressClickEdit="true" :enableCellTextSelection="enableCellTextSelection" @grid-ready="onGridReady" @cell-context-menu="onClicked" @cell-clicked="onClicked" oncontextmenu="return false;"></ag-grid-vue>
+  <ag-grid-vue @selection-changed="onSelectionChanged" :rowSelection="rowSelection" :getRowId="getRowId" :tooltipShowDelay="0" :tooltipHideDelay="10000" :tooltipShowMode="'whenTruncated'" style="width: 100%; height: 100%" :loading="loading" :getRowStyle="getRowStyle" :defaultColDef="defaultColDef" :columnDefs="colDefs" :rowData="data" :theme="myTheme" :suppressClickEdit="false" :suppressRowTransform="true" :suppressColumnVirtualisation="false" :immutableData="false" :suppressCellFlash="true" @grid-ready="onGridReady" @cell-context-menu="onClicked" @cell-clicked="onClicked" oncontextmenu="return false;"></ag-grid-vue>
 </template>

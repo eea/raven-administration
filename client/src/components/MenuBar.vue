@@ -1,9 +1,10 @@
 <script setup>
+import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import Auth from "../helpers/auth";
 import IconLogout from "~icons/ic/outline-logout";
 import IconNewVersion from "~icons/material-symbols/download-for-offline-rounded";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import Version from "../helpers/version";
 
 const router = useRouter();
@@ -27,7 +28,7 @@ onMounted(async () => {
 const getmodules = () => {
   var token = sessionStorage.getItem("token");
   if (!token) return [];
-  const jwt = jwt_decode(token);
+  const jwt = jwtDecode(token);
   return [
     {
       group: "Management",
@@ -124,15 +125,16 @@ const signout = async () => {
           <div class="font-bold">New version available</div>
         </div>
       </div>
-      <div class="mt-1 flex flex-col border-b" v-for="m in modules" :key="m.group" v-show="m.show">
+      <div class="mt-1 flex flex-col border-b border-nord4" v-for="m in modules" :key="m.group" v-show="m.show">
         <div class="font-bold select-none px-2 mt-2 mb-1">{{ m.group }}</div>
         <div class="hover:bg-gray-100 hover:cursor-pointer" v-for="i in m.items" :key="i.name" @click="goto(i.comp)" v-show="i.show">
           <div class="py-1 px-4">{{ i.name }}</div>
         </div>
       </div>
     </div>
+
     <div class="">
-      <div class="flex px-1 text-xs font-bold border-b gap-1">
+      <div class="flex px-1 text-xs font-bold border-b border-nord4 gap-1">
         <icon-new-version class="self-center text-nord11 hover:text-nord12" v-if="!version.isLatest" />
         <div class="self-center">v.{{ version.current }}</div>
       </div>

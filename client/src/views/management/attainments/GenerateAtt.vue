@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from "vue";
 import { onClickOutside } from "@vueuse/core";
 const props = defineProps({
   show: Boolean
@@ -30,17 +31,17 @@ const years = () => {
 
     <div class="mb-2 flex cursor-pointer hover:bg-gray-50 gap-2 text-sm">
       <div class="self-center">Year:</div>
-      <n-select class="!w-40" v-model="year">
-        <n-option v-for="opt in years()" :value="opt" :label="opt" />
-      </n-select>
+      <select class="select w-40" v-model="year">
+        <option v-for="opt in years()" :key="opt" :value="opt">{{ opt }}</option>
+      </select>
     </div>
 
     <div class="mb-2 flex cursor-pointer hover:bg-gray-50 gap-2 text-sm">
       <div class="self-center flex-1" @click="deleteExistingAttainments = !deleteExistingAttainments">Delete existing attainments:</div>
-      <n-checkbox v-model="deleteExistingAttainments" class="self-center" />
+      <input type="checkbox" v-model="deleteExistingAttainments" class="self-center" />
     </div>
 
-    <button class="n-button" @click="emit('on-generate', { year, deleteExistingAttainments })">Generate</button>
+    <button class="button" @click="emit('on-generate', { year, deleteExistingAttainments })">Generate</button>
   </div>
 </template>
 

@@ -1,31 +1,19 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import Components from "unplugin-vue-components/vite";
-import AutoImport from "unplugin-auto-import/vite";
-import { VitePluginFonts } from "vite-plugin-fonts";
+import tailwindcss from "@tailwindcss/vite";
 import Icons from "unplugin-icons/vite";
 
-// https://vitejs.dev/config/
+// https://vite.dev/config/
 export default defineConfig({
+  plugins: [vue(), Icons(), tailwindcss()],
   server: {
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:5000",
-        changeOrigin: true
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+        ws: true
       }
     }
-  },
-  plugins: [
-    vue(),
-    Icons(),
-    Components(),
-    AutoImport({
-      imports: ["vue"]
-    }),
-    VitePluginFonts({
-      google: {
-        families: ["Inter"]
-      }
-    })
-  ]
+  }
 });

@@ -4,8 +4,8 @@ import IconMenu from "~icons/fa-solid/bars";
 const props = defineProps({
   "hide-menu-button": {
     type: Boolean,
-    default: false,
-  },
+    default: false
+  }
 });
 const emit = defineEmits(["on-click"]);
 </script>
@@ -18,7 +18,7 @@ const emit = defineEmits(["on-click"]);
       </div>
     </div>
     <div class="self-center flex gap-1 mr-1 text-base">
-      <div class="self-center">Raven3</div>
+      <div class="self-center">Raven4</div>
       <div class="self-center text-nord15">Administration</div>
     </div>
   </div>

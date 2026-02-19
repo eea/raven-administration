@@ -11,7 +11,8 @@ const Plot = {
         maintainAspectRatio: false,
         interaction: {
           intersect: false,
-          mode: "index"
+          mode: "nearest",
+          axis: "x"
         },
         plugins: {
           tooltip: {

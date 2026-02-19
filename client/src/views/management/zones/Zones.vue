@@ -1,8 +1,11 @@
 <script setup>
+import { onMounted, ref } from "vue";
 import Service from "./service";
 import pageOptions from "./pageOptions";
 import Crud from "./Crud.vue";
 import Eventy from "../../../helpers/eventy";
+
+import Manager from "../../../components/n-manager/Manager.vue";
 
 const options = ref({});
 
@@ -17,5 +20,5 @@ onMounted(async () => {
 </script>
 
 <template>
-  <manager name="Zones" :options="options" :service="Service" :show-add-button="false" :crud-component="Crud" />
+  <Manager name="Zones" :options="options" :service="Service" :show-add-button="false" :crud-component="Crud" />
 </template>

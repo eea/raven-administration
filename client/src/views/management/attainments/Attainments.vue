@@ -1,10 +1,12 @@
 <script setup>
+import { onMounted, ref } from "vue";
+import Manager from "../../../components/n-manager/Manager.vue";
 import GenerateAtt from "./GenerateAtt.vue";
+import CircleHover from "../../../components/CircleHover.vue";
 import Service from "./service";
 import pageOptions from "./pageOptions";
 import Eventy from "../../../helpers/eventy";
 import IconGenerate from "~icons/mingcute/lightning-fill";
-import { ref } from "vue";
 import { useRoute } from "vue-router";
 
 const options = ref({});

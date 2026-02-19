@@ -152,6 +152,8 @@ def timeseries():
                 and sp.pollutant = p.uri
                 and sp.timestep = t.id
                 and sp.concentration = u.id
+                and sp.from_time is not null
+                and sp.to_time is not null
                 order by s.name, p.notation, t.label
             ),
             scaling_points_with_timeseries as (

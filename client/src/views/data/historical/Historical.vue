@@ -1,4 +1,5 @@
 <script setup>
+import { ref, computed, onMounted, shallowRef } from "vue";
 import { useRoute } from "vue-router";
 import Service from "./service";
 
@@ -8,17 +9,25 @@ import zoomPlugin from "chartjs-plugin-zoom";
 import Plot from "./plot";
 
 import { format, sub, isAfter, isBefore, startOfWeek } from "date-fns";
-import { groupBy, sortBy } from "../../../helpers/utils";
+import { groupBy } from "../../../helpers/utils";
 import Eventy from "../../../helpers/eventy";
 import IconCalendar from "~icons/ic/round-access-time";
 
+import CommonLayout from "../../../components/CommonLayout.vue";
+import CMenu from "../../../components/CMenu.vue";
+import ToolBar from "../../../components/ToolBar.vue";
+import Container from "../../../components/Container.vue";
+import DatetimePicker from "../../../components/DatetimePicker.vue";
+import DataTable from "../../../components/DataTable.vue";
+
 Chart.register(zoomPlugin);
 
-const ev_preset = ref();
+const menuRef = ref();
 const timeseries = ref([]);
+const timeseriesGridApi = ref();
 
-const fromtime = ref("");
-const totime = ref("");
+const fromtime = ref(startOfWeek(new Date(), { weekStartsOn: 1 }));
+const totime = ref(new Date());
 const selectedIds = ref([]);
 const meantype = ref("0");
 const coverage = ref(75);
@@ -30,16 +39,16 @@ const useInvalidValues = ref(false);
 const showPlot = ref(false);
 
 const route = useRoute();
+const gridData = ref([]);
 
 var chart;
 
 onMounted(async () => {
-  changeDates("This week");
   timeseries.value = await Service.timeseries();
 
   if (route.query.ids) selectedIds.value = route.query.ids.split(";");
-  if (route.query.from) fromtime.value = route.query.from;
-  if (route.query.to) totime.value = route.query.to;
+  if (route.query.from) fromtime.value = new Date(route.query.from);
+  if (route.query.to) totime.value = new Date(route.query.to);
   if (route.query.ids || route.query.from || route.query.to) plotData();
 });
 
@@ -51,21 +60,37 @@ const plotData = async () => {
     chart = null;
   }
 
+  gridData.value = [];
+
   var meanvalues = await Service.get({
     sampling_point_ids: selectedIds.value,
-    from_dt: fromtime.value,
-    to_dt: totime.value,
+    from_dt: format(fromtime.value, "yyyy-MM-dd HH:00"),
+    to_dt: format(totime.value, "yyyy-MM-dd HH:00"),
     meantype: meantype.value,
     coverage: coverage.value,
     verifiedOnly: verifiedOnly.value,
     useInvalidValues: useInvalidValues.value
   });
+
+  gridData.value = meanvalues.map((m) => {
+    return {
+      station: m.station,
+      component: m.component,
+      datetime: m.datetime,
+      value: m.value,
+      coverage: m.coverage
+    };
+  });
+
+  console.log(gridData.value);
+
   var axes = getAxes(meanvalues);
   let config = Plot.config(axes, beginAtZero.value);
   chart = new Chart("chart", config);
 
   chart.data = formatValues(meanvalues, axes);
   chart.update();
+
   Eventy.hideMessage();
 };
 
@@ -73,8 +98,8 @@ const onDownload = async () => {
   Eventy.showMessage("Downloading data. Please wait", "loading");
   await Service.download({
     sampling_point_ids: selectedIds.value,
-    from_dt: fromtime.value,
-    to_dt: totime.value,
+    from_dt: format(fromtime.value, "yyyy-MM-dd HH:00"),
+    to_dt: format(totime.value, "yyyy-MM-dd HH:00"),
     meantype: meantype.value,
     coverage: coverage.value,
     verifiedOnly: verifiedOnly.value,
@@ -85,32 +110,31 @@ const onDownload = async () => {
 const changeDates = (s) => {
   const d = new Date();
   if (s == "This week") {
-    fromtime.value = format(startOfWeek(d, { weekStartsOn: 1 }), "yyy-MM-dd 00:00");
-    totime.value = format(d, "yyy-MM-dd HH:00");
+    fromtime.value = startOfWeek(d, { weekStartsOn: 1 });
+    totime.value = d;
   } else if (s == "Last week") {
-    fromtime.value = format(sub(startOfWeek(d, { weekStartsOn: 1 }), { days: 7 }), "yyy-MM-dd 00:00");
-    totime.value = format(startOfWeek(d, { weekStartsOn: 1 }), "yyy-MM-dd 00:00");
+    fromtime.value = sub(startOfWeek(d, { weekStartsOn: 1 }), { days: 7 });
+    totime.value = startOfWeek(d, { weekStartsOn: 1 });
   } else if (s == "This month") {
-    fromtime.value = format(new Date(d.getFullYear(), d.getMonth(), 1), "yyy-MM-dd 00:00");
-    totime.value = format(d, "yyy-MM-dd HH:00");
+    fromtime.value = new Date(d.getFullYear(), d.getMonth(), 1);
+    totime.value = d;
   } else if (s == "Last month") {
-    fromtime.value = format(new Date(d.getFullYear(), d.getMonth() - 1, 1), "yyy-MM-dd 00:00");
-    totime.value = format(new Date(d.getFullYear(), new Date().getMonth(), 0), "yyy-MM-dd 00:00");
+    fromtime.value = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+    totime.value = new Date(d.getFullYear(), new Date().getMonth(), 0);
   } else if (s == "This year") {
-    fromtime.value = format(new Date(d.getFullYear(), 0, 1), "yyy-MM-dd 00:00");
-    totime.value = format(d, "yyy-MM-dd HH:00");
+    fromtime.value = new Date(d.getFullYear(), 0, 1);
+    totime.value = d;
   } else if (s == "Last year") {
-    fromtime.value = format(new Date(d.getFullYear() - 1, 0, 1), "yyy-MM-dd 00:00");
-    totime.value = format(new Date(d.getFullYear(), 0, 1), "yyy-MM-dd 00:00");
+    fromtime.value = new Date(d.getFullYear() - 1, 0, 1);
+    totime.value = new Date(d.getFullYear(), 0, 1);
   }
-  ev_preset.value = null;
 };
 
 const formatValues = (meanvalues, axes) => {
   var grouped_values = groupBy(meanvalues, (p) => p.sampling_point_id);
   const series = [];
   grouped_values.forEach((p) => {
-    const values = sortBy(p[1], ["datetime"]);
+    const values = p[1].sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
     const data = values.map((o) => {
       return { x: o.datetime.replace(" ", "T"), y: o.value };
     });
@@ -132,113 +156,150 @@ const onResetZoom = () => {
 const cmp_timeseries = computed(() => {
   return timeseries.value.filter((t) => {
     if (!t.fromtime && !t.totime) return true;
-    return isAfter(new Date(t.totime), new Date(fromtime.value)) && isBefore(new Date(t.fromtime), new Date(totime.value));
+    return isAfter(new Date(t.totime), fromtime.value) && isBefore(new Date(t.fromtime), totime.value);
   });
 });
+
+const onMenuClick = ({ action }) => {
+  changeDates(action);
+};
+
+const onPresetClick = (e) => {
+  menuRef.value?.showMenu({}, e);
+};
+
+const timeseriesColumns = [
+  { field: "station", headerName: "Station", flex: 1, filter: true },
+  { field: "pollutant", headerName: "Pollutant", flex: 1, filter: true },
+  { field: "timestep", headerName: "Timestep", flex: 1, filter: true },
+  { field: "unit", headerName: "Unit", flex: 1, filter: true }
+];
+
+const gridDataColumns = [
+  { field: "station", headerName: "Station", flex: 1, filter: true },
+  { field: "component", headerName: "Component", flex: 1, filter: true },
+  { field: "datetime", headerName: "Datetime", flex: 1, filter: true },
+  { field: "value", headerName: "Value", flex: 1, filter: true },
+  { field: "coverage", headerName: "Coverage", flex: 1, filter: true }
+];
+
+const onTimeseriesGridReady = (params) => {
+  timeseriesGridApi.value = params.api;
+  // Set initial selection if selectedIds is populated (from query params)
+  if (selectedIds.value.length > 0) {
+    params.api.forEachNode((node) => {
+      if (selectedIds.value.includes(node.data.sampling_point_id)) {
+        node.setSelected(true);
+      }
+    });
+  }
+};
+
+const onTimeseriesSelectionChanged = (rows) => {
+  selectedIds.value = rows.map((r) => r.sampling_point_id);
+};
 </script>
 
 <template>
-  <common-layout>
-    <contextmenu :evt="ev_preset" :show="!!ev_preset" @click-outside="ev_preset = null" class="">
-      <div class="px-2 font-bold">Presets:</div>
-      <div class="border-l-2 border-nord14 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('This week')">This week</div>
-      <div class="border-l-2 border-nord14 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('Last week')">Last week</div>
-      <div class="border-l-2 border-nord11 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('This month')">This month</div>
-      <div class="border-l-2 border-nord11 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('Last month')">Last month</div>
-      <div class="border-l-2 border-nord15 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('This year')">This year</div>
-      <div class="border-l-2 border-nord15 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="changeDates('Last year')">Last year</div>
-    </contextmenu>
+  <CommonLayout class="flex flex-col gap-4">
+    <c-menu ref="menuRef" @on-click="onMenuClick">
+      <template #default="{ handleAction }">
+        <div class="px-2 font-bold">Presets:</div>
+        <div class="border-l-2 border-nord14 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('This week')">This week</div>
+        <div class="border-l-2 border-nord14 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('Last week')">Last week</div>
+        <div class="border-l-2 border-nord11 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('This month')">This month</div>
+        <div class="border-l-2 border-nord11 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('Last month')">Last month</div>
+        <div class="border-l-2 border-nord15 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('This year')">This year</div>
+        <div class="border-l-2 border-nord15 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('Last year')">Last year</div>
+      </template>
+    </c-menu>
 
-    <tool-bar title="Historical data" :show-column-picker="false" :show-add="false" :show-filter="false" @download-click="onDownload" />
+    <ToolBar title="Historical data" :show-add="false" :show-filter="false" @download-click="onDownload" />
 
-    <container>
+    <Container>
       <div class="flex gap-2">
         <div>
           <div class="font-bold">From</div>
-          <n-datetime v-model="fromtime" class="" />
+          <DatetimePicker v-model="fromtime" />
         </div>
         <div>
           <div class="font-bold">To</div>
-          <n-datetime v-model="totime" class="" />
+          <DatetimePicker v-model="totime" />
         </div>
         <div>
           <br />
-          <button class="n-button flex gap-2" @click="ev_preset = $event">
-            <icon-calendar class="self-center text-nord10 text-lg !p-0" />
+          <button class="button flex gap-2" @click="onPresetClick">
+            <icon-calendar class="self-center text-nord10 text-lg p-0!" />
             <div class="self-center">Presets</div>
           </button>
         </div>
       </div>
 
-      <div class="flex gap-2">
-        <div>
-          <div class="font-bold">Aggregation</div>
-          <n-select class="!w-48" v-model="meantype">
-            <n-option value="1000" label="Raw" />
-            <n-option value="0" label="Original" />
-            <n-option value="1" label="Hour" />
-            <n-option value="2" label="Day" />
-            <n-option value="5" label="Moving 24 hour" />
-            <n-option value="3" label="Moving eigth hour" />
-            <n-option value="6" label="Moving eigth hour max" />
-            <n-option value="7" label="Month" />
-            <n-option value="4" label="Year" />
-            <n-option value="8" label="Winter year" />
-            <n-option value="11" label="Winter season" />
-            <n-option value="12" label="Summer year" />
-            <n-option value="9" label="AOT40 Vegetion" />
-            <n-option value="10" label="AOT40 forest protection" />
-            <n-option value="999" label="Period" />
-          </n-select>
+      <div class="flex gap-6 bg-white border border-nord4 rounded p-2 self-start">
+        <div class="flex gap-2">
+          <div class="font-bold self-center">Aggregation</div>
+          <select class="select self-center" v-model="meantype">
+            <option value="1000">Raw</option>
+            <option value="0">Original</option>
+            <option value="1">Hour</option>
+            <option value="2">Day</option>
+            <option value="5">Moving 24 hour</option>
+            <option value="3">Moving eigth hour</option>
+            <option value="6">Moving eigth hour max</option>
+            <option value="7">Month</option>
+            <option value="4">Year</option>
+            <option value="8">Winter year</option>
+            <option value="11">Winter season</option>
+            <option value="12">Summer year</option>
+            <option value="9">AOT40 Vegetion</option>
+            <option value="10">AOT40 forest protection</option>
+            <option value="999">Period</option>
+          </select>
         </div>
-        <div>
-          <div class="font-bold">Coverage %</div>
-          <input class="n-input !w-36" type="number" v-model="coverage" />
-        </div>
-        <div>
-          <div class="font-bold">Plot type</div>
-          <n-select class="!w-36" v-model="plotType">
-            <n-option value="line" label="Line" />
-            <n-option value="bar" label="Bar" />
-          </n-select>
+        <div class="flex gap-2">
+          <div class="font-bold mb-1 self-center">Coverage {{ coverage }}%:</div>
+          <input type="range" min="0" max="100" step="1" v-model="coverage" class="self-center" />
         </div>
       </div>
 
       <div class="flex gap-6 bg-white border border-nord4 rounded p-2 self-start">
         <div class="flex gap-2">
           <label class="self-center cursor-pointer font-bold" @click="beginAtZero = !beginAtZero">Start Y-axis at zero:</label>
-          <n-checkbox class="self-center" v-model="beginAtZero" />
+          <input type="checkbox" class="self-center" v-model="beginAtZero" />
         </div>
         <div class="flex gap-2">
           <label class="self-center cursor-pointer font-bold" @click="useInvalidValues = !useInvalidValues">Include invalid values:</label>
-          <n-checkbox class="self-center" v-model="useInvalidValues" />
+          <input type="checkbox" class="self-center" v-model="useInvalidValues" />
         </div>
         <div class="flex gap-2">
           <label class="self-center cursor-pointer font-bold" @click="verifiedOnly = !verifiedOnly">Use only verified values:</label>
-          <n-checkbox class="self-center" v-model="verifiedOnly" />
+          <input type="checkbox" class="self-center" v-model="verifiedOnly" />
+        </div>
+        <div class="flex gap-2">
+          <label class="self-center cursor-pointer font-bold" @click="plotType = plotType === 'bar' ? 'line' : 'bar'">Bar chart:</label>
+          <input type="checkbox" class="self-center" :checked="plotType === 'bar'" @change="plotType = plotType === 'bar' ? 'line' : 'bar'" />
         </div>
       </div>
 
-      <div>
-        <div class="font-bold">Timeseries</div>
-        <n-multiselect class="!w-full" v-model="selectedIds" :searchable="cmp_timeseries.length > 0">
-          <n-option v-for="t in cmp_timeseries" :key="t.value" :value="t.value" :label="t.label" />
-          <n-option v-if="cmp_timeseries.length == 0" :value="0" label="No timeseries found for time period" class="!pointer-events-none" />
-        </n-multiselect>
+      <div class="h-64">
+        <div class="font-bold">Sampling Points</div>
+        <DataTable :font-size="11" :columns="timeseriesColumns" :data="cmp_timeseries" selection-mode="multiRow" :get-row-id="(params) => params.data.sampling_point_id" @grid-ready="onTimeseriesGridReady" @selection-changed="onTimeseriesSelectionChanged" />
       </div>
 
-      <div class="mt-2">
-        <button class="n-button" @click="plotData" :disabled="selectedIds.length == 0">Plot data</button>
+      <div class="mt-6">
+        <button class="button" @click="plotData" :disabled="selectedIds.length == 0">Plot data</button>
       </div>
-    </container>
+    </Container>
 
-    <container v-show="showPlot" class="mt-4 !p-4 w-full">
-      <div class="self-end"><button class="n-button" @click="onResetZoom">Reset zoom</button></div>
-      <div class="h-96 w-full">
+    <Container v-show="showPlot" class="mt-4 p-4! w-full h-96">
+      <div class="self-end"><button class="button" @click="onResetZoom">Reset zoom</button></div>
+      <div class="h-full w-full py-4">
         <canvas id="chart"></canvas>
       </div>
-    </container>
-  </common-layout>
+    </Container>
+
+    <Container v-show="showPlot" class="flex-1 mt-4 min-h-48"><DataTable :columns="gridDataColumns" :data="gridData"></DataTable></Container>
+  </CommonLayout>
 </template>
 
 <style></style>

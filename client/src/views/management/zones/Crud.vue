@@ -1,5 +1,7 @@
 <script setup>
-import { geoJSON, map, tileLayer } from "leaflet";
+import { computed, ref, watch, nextTick } from "vue";
+import Popup from "../../../components/Popup.vue";
+import { LMap, LTileLayer, LGeoJson } from "@vue-leaflet/vue-leaflet";
 import "leaflet/dist/leaflet.css";
 
 const props = defineProps({
@@ -12,11 +14,31 @@ const props = defineProps({
   }
 });
 
-const obj = ref({});
+const emit = defineEmits(["close", "save"]);
 
-var mymap;
-var zoneLayer;
+const obj = ref({});
+const mapRef = ref(null);
+const geoJsonRef = ref(null);
 let url = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+
+const geoJsonData = computed(() => {
+  if (obj.value.geojson) {
+    try {
+      return JSON.parse(obj.value.geojson);
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+});
+
+const geoJsonOptions = {
+  style: {
+    color: "#ff0000",
+    fillColor: "#ff0000",
+    weight: 1
+  }
+};
 
 watch(
   () => props.show,
@@ -27,56 +49,100 @@ watch(
       obj.value = Object.assign({}, props.selectedValue);
     }
 
-    initMap();
+    if (props.show) {
+      // Wait for popup and map to be rendered
+      setTimeout(() => {
+        if (mapRef.value?.leafletObject) {
+          mapRef.value.leafletObject.invalidateSize();
+          fitBounds();
+        }
+      }, 100);
+    }
   }
 );
 
-const initMap = () => {
-  if (mymap) mymap.remove();
-  mymap = map("map").setView([0, 0], 3);
-  tileLayer(url, {}).addTo(mymap);
-  if (mymap && obj.value.geojson) {
-    if (zoneLayer) mymap.removeLayer(zoneLayer);
-    zoneLayer = geoJSON(JSON.parse(obj.value.geojson), {
-      style: {
-        color: "#ff0000",
-        fillColor: "#ff0000",
-        weight: 1
-      }
-    }).addTo(mymap);
-    mymap.fitBounds(zoneLayer.getBounds());
+watch(geoJsonData, () => {
+  if (props.show) {
+    nextTick(() => {
+      setTimeout(() => {
+        if (mapRef.value?.leafletObject) {
+          mapRef.value.leafletObject.invalidateSize();
+          fitBounds();
+        }
+      }, 100);
+    });
   }
+});
+
+const onMapReady = () => {
+  if (mapRef.value?.leafletObject) {
+    mapRef.value.leafletObject.invalidateSize();
+    fitBounds();
+  }
+};
+
+const fitBounds = () => {
+  if (mapRef.value && geoJsonRef.value && geoJsonData.value) {
+    const leafletObject = geoJsonRef.value.leafletObject;
+    if (leafletObject && leafletObject.getBounds) {
+      mapRef.value.leafletObject.fitBounds(leafletObject.getBounds());
+    }
+  }
+};
+
+const handleSave = () => {
+  emit("save", Object.assign({}, obj.value));
+};
+
+const handleClose = () => {
+  emit("close");
 };
 </script>
 
 <template>
-  <side-bar-crud :show="show" @cancel="$emit('close')" @commit="$emit('save', Object.assign({}, obj))">
-    <div class="mb-4 font-bold text-base border-b">Required</div>
+  <popup :show="show" :title="isEdit ? 'Edit Zone' : 'Create Zone'" @on-close="handleClose" class="max-w-[60rem] w-[60rem] max-h-[90vh]">
+    <div class="flex flex-col gap-2 h-full">
+      <div class="flex-1 overflow-y-auto pr-2">
+        <div class="mb-4 font-bold text-base border-b border-nord4">Required</div>
 
-    <div class="mb-2" v-for="p in props.options.properties">
-      <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
-        <div class="font-bold">{{ p.label }}:</div>
-        <input class="n-input w-[40rem]" v-model="obj[p.prop]" :disabled="true" />
+        <div class="mb-2" v-for="p in props.options.properties">
+          <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
+            <div class="font-bold">{{ p.label }}:</div>
+            <input class="input w-full" v-model="obj[p.prop]" :disabled="true" />
+          </div>
+
+          <div v-else>
+            <div v-if="p.type == 'text' || p.type == 'number'">
+              <div class="font-bold">{{ p.label }}:</div>
+              <input :type="p.type" class="input w-full" v-model="obj[p.prop]" :placeholder="p.placeholder" />
+            </div>
+            <div v-else-if="p.type == 'lookup'">
+              <div class="font-bold">{{ p.label }}:</div>
+              <select v-model="obj[p.prop_id]" class="select w-full">
+                <option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value">{{ p.label }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-2 flex flex-col h-96">
+          <div class="font-bold">Preview:</div>
+          <div class="border border-nord4 h-full w-full flex-1">
+            <LMap ref="mapRef" :zoom="3" :center="[0, 0]" :options="{ zoomControl: true, attributionControl: false }" @ready="onMapReady">
+              <LTileLayer :url="url" />
+              <LGeoJson v-if="geoJsonData" ref="geoJsonRef" :geojson="geoJsonData" :options="geoJsonOptions" />
+            </LMap>
+          </div>
+        </div>
       </div>
 
-      <div v-else>
-        <div v-if="p.type == 'text' || p.type == 'number'">
-          <div class="font-bold">{{ p.label }}:</div>
-          <input :type="p.type" class="n-input w-[40rem]" v-model="obj[p.prop]" :placeholder="p.placeholder" />
-        </div>
-        <div v-else-if="p.type == 'lookup'">
-          <div class="font-bold">{{ p.label }}:</div>
-          <n-select v-model="obj[p.prop_id]" class="!w-[40rem]">
-            <n-option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value" :label="p.label" />
-          </n-select>
-        </div>
+      <div class="border-t border-gray-300"></div>
+      <div class="flex justify-between pt-2">
+        <button class="button" @click="handleSave">Save</button>
+        <button class="button" @click="handleClose">Cancel</button>
       </div>
     </div>
-    <div class="flex-1 mb-2 flex flex-col">
-      <div class="font-bold">Preview:</div>
-      <div class="border border-nord4 h-full w-full flex-1" id="map"></div>
-    </div>
-  </side-bar-crud>
+  </popup>
 </template>
 
 <style></style>

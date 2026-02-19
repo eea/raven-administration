@@ -1,4 +1,6 @@
 <script setup>
+import { onMounted, ref } from "vue";
+import Manager from "../../../components/n-manager/Manager.vue";
 import Service from "./service";
 import pageOptions from "./pageOptions";
 
@@ -10,5 +12,5 @@ onMounted(async () => {
 });
 </script>
 <template>
-  <manager name="Auto validate" :options="options" :service="Service" :show-upload-button="false" />
+  <Manager name="Auto validate" :options="options" :service="Service" :show-upload-button="false" />
 </template>

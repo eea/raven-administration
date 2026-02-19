@@ -1,8 +1,5 @@
-<template>
-  <div class="transition-position duration-500 ease-in-out absolute left-0 right-0 h-1 z-[999]" :class="cls"></div>
-</template>
-
 <script setup>
+import { computed, onMounted, ref } from "vue";
 import Eventy from "../helpers/eventy";
 
 const show = ref(false);
@@ -29,3 +26,7 @@ const cls = computed(() => {
   return s;
 });
 </script>
+
+<template>
+  <div class="transition-position duration-500 ease-in-out absolute left-0 right-0 h-1 z-[999]" :class="cls"></div>
+</template>

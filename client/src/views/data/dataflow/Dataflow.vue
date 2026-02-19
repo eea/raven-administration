@@ -71,27 +71,27 @@ const getShowReportnet3 = async () => {
       <div class="flex gap-3">
         <div>
           <div class="font-bold">Year</div>
-          <n-select class="!w-40" v-model="year">
+          <n-select class="w-40!" v-model="year">
             <n-option v-for="opt in years()" :value="opt" :label="opt" />
           </n-select>
         </div>
         <div>
           <div class="font-bold">Timezone</div>
-          <n-select class="!w-40" v-model="timezoneId">
+          <n-select class="w-40!" v-model="timezoneId">
             <n-option v-for="opt in timezones()" :value="opt" :label="'UTC +0' + opt" />
           </n-select>
         </div>
         <div>
           <div class="font-bold">Description</div>
-          <input class="n-input !w-56" v-model="description" />
+          <input class="input w-56!" v-model="description" />
         </div>
       </div>
       <div class="flex gap-4">
-        <button class="n-button" @click="downloadDataflow('B')" :disabled="false">Dataflow B</button>
-        <button class="n-button" @click="downloadDataflow('C')" :disabled="false">Dataflow C</button>
-        <button class="n-button" @click="downloadDataflow('D')" :disabled="false">Dataflow D</button>
-        <button class="n-button" @click="downloadDataflow('E1A')" :disabled="false">Dataflow E1A</button>
-        <button class="n-button" @click="downloadDataflow('G')" :disabled="false">Dataflow G</button>
+        <button class="button" @click="downloadDataflow('B')" :disabled="false">Dataflow B</button>
+        <button class="button" @click="downloadDataflow('C')" :disabled="false">Dataflow C</button>
+        <button class="button" @click="downloadDataflow('D')" :disabled="false">Dataflow D</button>
+        <button class="button" @click="downloadDataflow('E1A')" :disabled="false">Dataflow E1A</button>
+        <button class="button" @click="downloadDataflow('G')" :disabled="false">Dataflow G</button>
       </div>
     </div>
 
@@ -105,7 +105,7 @@ const getShowReportnet3 = async () => {
         </div>
         <div>
           <div>&nbsp;</div>
-          <button class="n-button" @click="downloadDataflowE2A" :disabled="false">Dataflow E2A</button>
+          <button class="button" @click="downloadDataflowE2A" :disabled="false">Dataflow E2A</button>
         </div>
       </div>
     </div>
@@ -116,28 +116,28 @@ const getShowReportnet3 = async () => {
         <!--   <div class="flex gap-3">
           <div>
             <div class="font-bold">Year</div>
-            <n-select class="!w-40" v-model="r3_year">
+            <n-select class="w-40!" v-model="r3_year">
               <n-option v-for="opt in years()" :key="opt" :value="opt" :label="opt" />
             </n-select>
           </div>
           <div>
             <div class="font-bold">Timezone</div>
-            <n-select class="!w-40" v-model="r3_timezoneId">
+            <n-select class="w-40!" v-model="r3_timezoneId">
               <n-option v-for="opt in timezones()" :key="opt" :value="opt" :label="'UTC +0' + opt" />
             </n-select>
           </div>
           <div>
             <div class="font-bold">Description</div>
-            <input class="n-input !w-56" v-model="r3_description" />
+            <input class="input w-56!" v-model="r3_description" />
           </div>
         </div>
          -->
         <div class="flex gap-4">
-          <button class="n-button" @click="downloadReportnet3Dataflow('B')" :disabled="false">Dataflow B</button>
-          <button class="n-button" @click="downloadReportnet3Dataflow('C')" :disabled="true">Dataflow C</button>
-          <button class="n-button" @click="downloadReportnet3Dataflow('D')" :disabled="false">Dataflow D</button>
-          <button class="n-button" @click="downloadReportnet3Dataflow('E1A')" :disabled="true">Dataflow E1A</button>
-          <button class="n-button" @click="downloadReportnet3Dataflow('G')" :disabled="true">Dataflow G</button>
+          <button class="button" @click="downloadReportnet3Dataflow('B')" :disabled="false">Dataflow B</button>
+          <button class="button" @click="downloadReportnet3Dataflow('C')" :disabled="true">Dataflow C</button>
+          <button class="button" @click="downloadReportnet3Dataflow('D')" :disabled="false">Dataflow D</button>
+          <button class="button" @click="downloadReportnet3Dataflow('E1A')" :disabled="true">Dataflow E1A</button>
+          <button class="button" @click="downloadReportnet3Dataflow('G')" :disabled="true">Dataflow G</button>
         </div>
       </div>
     </div>

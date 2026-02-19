@@ -62,6 +62,59 @@ export const tblToCsv = (id, name, separator = ",") => {
   document.body.removeChild(link);
 };
 
+/**
+ * Download array data as CSV file
+ * @param {Array} data - Array of objects to export
+ * @param {Object|Array} columnMapping - Either object {field: 'Header'} or array [{field, headerName}]
+ * @param {String} filename - Name of the file (without .csv extension)
+ */
+export const downloadCsv = (data, columnMapping, filename) => {
+  if (!data || data.length === 0) {
+    console.warn("No data to download");
+    return;
+  }
+
+  let csvData;
+
+  // If columnMapping is an object, convert data using field->header mapping
+  if (columnMapping && !Array.isArray(columnMapping)) {
+    csvData = data.map((row) => {
+      const mappedRow = {};
+      for (const [field, header] of Object.entries(columnMapping)) {
+        mappedRow[header] = row[field];
+      }
+      return mappedRow;
+    });
+  }
+  // If columnMapping is an array of column definitions
+  else if (Array.isArray(columnMapping)) {
+    csvData = data.map((row) => {
+      const mappedRow = {};
+      columnMapping.forEach((col) => {
+        const header = col.headerName || col.field;
+        mappedRow[header] = row[col.field];
+      });
+      return mappedRow;
+    });
+  }
+  // No mapping - use data as-is
+  else {
+    csvData = data;
+  }
+
+  // Generate CSV string
+  const csv = [Object.keys(csvData[0] || {}).join(","), ...csvData.map((row) => Object.values(row).join(","))].join("\n");
+
+  // Create and trigger download
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}.csv`;
+  a.click();
+  window.URL.revokeObjectURL(url);
+};
+
 export const compare = (object1, object2) => {
   if (!object1 || !object2) return false;
   const keys1 = Object.keys(object1);

@@ -1,8 +1,10 @@
 <script setup>
+import { computed, ref } from "vue";
 import IconAdd from "~icons/ic/baseline-add";
 import IconDownload from "~icons/ic/round-file-download";
 import IconUpload from "~icons/ic/round-file-upload";
-import IconColumnPicker from "~icons/ic/twotone-grid-view";
+
+import CircleHover from "./CircleHover.vue";
 
 const props = defineProps({
   title: {
@@ -25,10 +27,6 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
-  "show-column-picker": {
-    type: Boolean,
-    default: true
-  },
   "filter-text": {
     type: String,
     default: "Type to filter"
@@ -40,7 +38,7 @@ const props = defineProps({
 });
 
 const ev = ref({});
-const emit = defineEmits(["update:q", "add-click", "download-click", "upload-click", "column-picker-click"]);
+const emit = defineEmits(["update:q", "add-click", "download-click", "upload-click"]);
 </script>
 
 <template>
@@ -48,22 +46,19 @@ const emit = defineEmits(["update:q", "add-click", "download-click", "upload-cli
     <div class="flex justify-between p-1">
       <div class="flex">
         <div class="font-bold text-lg self-center">{{ title }}</div>
-        <circle-hover class="ml-1 self-center" @click="$emit('add-click', $event)" v-if="showAdd">
+        <CircleHover class="ml-1 self-center" @click="$emit('add-click', $event)" v-if="showAdd">
           <icon-add class="text-nord14 text-lg self-center" />
-        </circle-hover>
-        <circle-hover class="ml-1 self-center" @click="$emit('upload-click', $event)" v-if="showUpload">
+        </CircleHover>
+        <CircleHover class="ml-1 self-center" @click="$emit('upload-click', $event)" v-if="showUpload">
           <icon-upload class="text-nord9 text-base self-center" />
-        </circle-hover>
-        <circle-hover class="ml-1 self-center" @click="$emit('download-click', $event)" v-if="showDownload">
+        </CircleHover>
+        <CircleHover class="ml-1 self-center" @click="$emit('download-click', $event)" v-if="showDownload">
           <icon-download class="text-nord11 text-base self-center" />
-        </circle-hover>
-        <circle-hover class="ml-1 self-center" @click="$emit('column-picker-click', $event)" v-if="showColumnPicker">
-          <icon-column-picker class="text-nord15 text-sm self-center" />
-        </circle-hover>
+        </CircleHover>
         <slot />
       </div>
       <div v-if="showFilter" class="flex">
-        <input :placeholder="filterText" class="n-input" type="search" :value="q" @input="$emit('update:q', $event.target.value)" v-bind="$attrs" />
+        <input :placeholder="filterText" class="input" type="search" :value="q" @input="$emit('update:q', $event.target.value)" v-bind="$attrs" />
       </div>
     </div>
   </div>

@@ -1,24 +1,38 @@
 <script setup>
+import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
+
+import CommonLayout from "../../../components/CommonLayout.vue";
+import ToolBar from "../../../components/ToolBar.vue";
+import Container from "../../../components/Container.vue";
+import Confirm from "../../../components/Confirm.vue";
+import DataTable from "../../../components/DataTable.vue";
+import CMenuCrud from "../../../components/CMenuCrud.vue";
+
 import Chart from "chart.js/auto";
 import "chartjs-adapter-luxon";
 import Plot from "./plot";
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
-import LAdd from "./LAdd.vue";
-import LEdit from "./LEdit.vue";
+import Crud from "./Crud.vue";
 import IconDuplicate from "~icons/ic/twotone-content-copy";
 
 const timeserieId = ref("");
 const timeseries = ref([]);
 const scalingpoints = ref([]);
 const showPlotAndTable = ref(false);
-const showEdit = ref(false);
-const showAdd = ref(false);
+const showCrud = ref(false);
+const isEdit = ref(false);
 const selected = ref({});
-const ev = ref({});
-const showContextmenu = ref(false);
+const menuRef = ref();
 const showConfirm = ref(false);
+
+const scalingpointsColumns = [
+  { field: "timestamp", headerName: "Timestamp", flex: 1, filter: true },
+  { field: "zero_point", headerName: "0-point", flex: 1, filter: true },
+  { field: "span_value", headerName: "Span", flex: 1, filter: true },
+  { field: "gas_concentration", headerName: "Gas concentration", flex: 1, filter: true }
+];
 
 var chart1;
 var chart2;
@@ -81,36 +95,28 @@ const formatValues2 = () => {
 
 const onShowAdd = () => {
   if (!selected.value.sampling_point_id) selected.value.sampling_point_id = timeserieId.value;
-  showAdd.value = true;
-  showContextmenu.value = false;
+  isEdit.value = false;
+  showCrud.value = true;
 };
 
-const onSaveAdd = async (o) => {
-  Eventy.showMessage("Inserting scaling point. Please wait", "loading");
-  await Service.insert(o);
-  await onShowScalingpoints();
-  Eventy.showHideMessage("Scaling point added", "success", 5000);
-  close();
-};
-
-const onEdit = () => {
-  if (showEdit.value) selected.value = {};
-  showEdit.value = !showEdit.value;
-  showContextmenu.value = false;
-};
-
-const onSaveEdit = async (o) => {
-  Eventy.showMessage("Updating scaling point. Please wait", "loading");
-  await Service.update(o);
-  await onShowScalingpoints();
-  Eventy.showHideMessage("Scaling point changed", "success", 5000);
+const onSaveCrud = async (o) => {
+  if (isEdit.value) {
+    Eventy.showMessage("Updating scaling point. Please wait", "loading");
+    await Service.update(o);
+    await onShowScalingpoints();
+    Eventy.showHideMessage("Scaling point changed", "success", 5000);
+  } else {
+    Eventy.showMessage("Inserting scaling point. Please wait", "loading");
+    await Service.insert(o);
+    await onShowScalingpoints();
+    Eventy.showHideMessage("Scaling point added", "success", 5000);
+  }
   close();
 };
 
 const onDelete = () => {
   if (showConfirm.value) selected.value = {};
   showConfirm.value = !showConfirm.value;
-  showContextmenu.value = false;
 };
 
 const onSaveDelete = async (o) => {
@@ -123,17 +129,31 @@ const onSaveDelete = async (o) => {
 };
 
 const close = () => {
-  showEdit.value = false;
-  showAdd.value = false;
+  showCrud.value = false;
   selected.value = {};
-  showContextmenu.value = false;
   showConfirm.value = false;
 };
 
 const onContextMenu = (row, e) => {
   selected.value = row;
-  ev.value = e;
-  showContextmenu.value = true;
+  if (menuRef.value) {
+    menuRef.value.showMenu(row, e);
+  }
+};
+
+const onMenuClick = ({ action, data }) => {
+  selected.value = data;
+
+  if (action === "edit") {
+    isEdit.value = true;
+    showCrud.value = true;
+  } else if (action === "delete") {
+    showConfirm.value = true;
+  } else if (action === "duplicate") {
+    if (!selected.value.sampling_point_id) selected.value.sampling_point_id = timeserieId.value;
+    isEdit.value = false;
+    showCrud.value = true;
+  }
 };
 
 const cmp_scalingpoints = computed(() => {
@@ -149,27 +169,29 @@ const cls_timeseries = (hasscalingpoint) => {
 <template>
   <common-layout>
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete the scaling point?" @close="close" @ok="onSaveDelete" />
-    <contextmenu-crud :show="showContextmenu" :ev="ev" @click-outside="close" @on-edit="onEdit" @on-delete="onDelete">
-      <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onShowAdd">
-        <icon-duplicate class="text-nord12 text-sm self-center" />
-        <div class="self-center ml-1">Duplicate</div>
-      </div>
-    </contextmenu-crud>
+    <c-menu-crud ref="menuRef" @on-menu-click="onMenuClick">
+      <template #extra-items="{ handleAction }">
+        <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="handleAction('duplicate')">
+          <icon-duplicate class="text-nord12 text-sm self-center" />
+          <div class="self-center ml-1">Duplicate</div>
+        </div>
+      </template>
+    </c-menu-crud>
     <tool-bar title="Scale" :show-filter="false" @add-click="onShowAdd" :show-download="false" :show-column-picker="false" />
-    <l-add :show="showAdd" :obj="selected" @close="close" @save="onSaveAdd" />
-    <l-edit :show="showEdit" :scalingpoint="selected" @close="close" @save="onSaveEdit" />
+    <Crud :show="showCrud" :obj="selected" :is-edit="isEdit" @close="close" @save="onSaveCrud" />
 
     <container>
       <div class="flex gap-3">
         <div class="flex-1">
-          <div class="font-bold">Timeserie</div>
-          <n-select class="!w-full" v-model="timeserieId" :searchable="true">
-            <n-option v-for="opt in timeseries" :value="opt.value" :label="opt.label" :class="cls_timeseries(opt.hasscalingpoint)" />
-          </n-select>
+          <div class="font-bold">Sampling point</div>
+          <select class="select w-full" v-model="timeserieId">
+            <option value="">Select sampling point</option>
+            <option v-for="opt in timeseries" :key="opt.value" :value="opt.value" :class="cls_timeseries(opt.hasscalingpoint)">{{ opt.label }}</option>
+          </select>
         </div>
         <div>
           <div>&nbsp;</div>
-          <button class="n-button" :disabled="timeserieId.length == 0" @click="onShowScalingpoints">Show scaling points</button>
+          <button class="button" :disabled="timeserieId.length == 0" @click="onShowScalingpoints">Show scaling points</button>
         </div>
       </div>
     </container>
@@ -179,21 +201,8 @@ const cls_timeseries = (hasscalingpoint) => {
       <container class="w-1/2 h-72"><canvas id="chart2"></canvas></container>
     </div>
 
-    <div class="mt-4" v-if="showPlotAndTable">
-      <table id="convertionsId" class="n-table">
-        <tr>
-          <th>Timestamp</th>
-          <th>0-point</th>
-          <th>Span</th>
-          <th>Gas concentration</th>
-        </tr>
-        <tr v-for="row in cmp_scalingpoints" @contextmenu.prevent="onContextMenu(row, $event)" @click="selected = {}">
-          <td class="space-x-4">{{ row.timestamp }}</td>
-          <td>{{ row.zero_point }}</td>
-          <td>{{ row.span_value }}</td>
-          <td>{{ row.gas_concentration }}</td>
-        </tr>
-      </table>
+    <div class="mt-4 min-h-96 flex-1" v-if="showPlotAndTable">
+      <DataTable :columns="scalingpointsColumns" :data="cmp_scalingpoints" :filter="false" :floating-filter="false" :responsive="true" @on-right-click="onContextMenu" />
     </div>
   </common-layout>
 </template>

@@ -1,5 +1,9 @@
 <script setup>
-import { onMounted, computed } from "vue";
+import { onMounted, computed, ref } from "vue";
+import ToolBar from "../../../components/ToolBar.vue";
+import Container from "../../../components/Container.vue";
+import CommonLayout from "../../../components/CommonLayout.vue";
+
 import Service from "./service";
 import Aqi from "./aqi.js";
 import Eventy from "../../../helpers/eventy";
@@ -109,13 +113,13 @@ const isSaveDisabled = computed(() => {
     <container v-if="showEmptyMessage">
       <div class="font-bold">Raven uses EEA methodology for air quality index calculations, but you can set up your own local AQI configuration.</div>
 
-      <div><button class="n-button" @click="showEmptyMessage = false">Setup Local AQI</button></div>
+      <div><button class="button" @click="showEmptyMessage = false">Setup Local AQI</button></div>
     </container>
 
     <div v-if="!showEmptyMessage" class="flex flex-col gap-6 h-full overflow-y-hidden">
       <!-- Levels -->
       <div class="flex flex-col gap-2">
-        <table class="n-table">
+        <table class="table">
           <thead>
             <tr>
               <th>Index</th>
@@ -126,15 +130,15 @@ const isSaveDisabled = computed(() => {
           <tbody>
             <tr v-for="(level, idx) in levels" :key="idx">
               <td class="w-20">{{ level.index }}</td>
-              <td><input v-model="level.description" placeholder="Description" class="n-input w-full" /></td>
-              <td class="w-40"><input v-model="level.color" placeholder="Color (hex)" class="n-input w-full cursor-pointer" type="color" /></td>
+              <td><input v-model="level.description" placeholder="Description" class="input w-full" /></td>
+              <td class="w-40"><input v-model="level.color" placeholder="Color (hex)" class="input w-full cursor-pointer" type="color" /></td>
             </tr>
           </tbody>
         </table>
         <div class="flex justify-start gap-2">
-          <button class="n-button" @click="addLevel">Add Level</button>
-          <button class="n-button" @click="removeLevel" :disabled="levels.length <= 1">Remove Level</button>
-          <button class="n-button" @click="removeAqi">Delete Local AQI</button>
+          <button class="button" @click="addLevel">Add Level</button>
+          <button class="button" @click="removeLevel" :disabled="levels.length <= 1">Remove Level</button>
+          <button class="button" @click="removeAqi">Delete Local AQI</button>
         </div>
       </div>
 
@@ -144,22 +148,22 @@ const isSaveDisabled = computed(() => {
       <div class="h-full flex flex-col overflow-hidden">
         <h3 class="font-bold mb-2">Pollutant Groups</h3>
         <div class="flex gap-4">
-          <select class="n-input" v-model="selectedPollutant">
+          <select class="select" v-model="selectedPollutant">
             <option v-for="pollutant in pollutants" :key="pollutant.value" :value="pollutant">{{ pollutant.label }}</option>
           </select>
-          <select class="n-input" v-model="selectedTimestep">
+          <select class="select" v-model="selectedTimestep">
             <option v-for="timestep in timesteps" :key="timestep.value" :value="timestep">{{ timestep.label }}</option>
           </select>
-          <button class="n-button" @click="addPollutantGroup" :disabled="!selectedPollutant || !selectedTimestep || groupExists()">Add Pollutant Group</button>
+          <button class="button" @click="addPollutantGroup" :disabled="!selectedPollutant || !selectedTimestep || groupExists()">Add Pollutant Group</button>
         </div>
 
         <div class="h-full overflow-y-auto flex flex-col mt-4">
           <container class="mt-6" v-for="(pg, idx) in pollutant_groups">
             <div class="flex justify-between">
               <div class="font-bold self-center">{{ pg.pollutant }} - {{ pg.timestep }}</div>
-              <button class="n-button self-center" @click="removeRange(idx)">Remove</button>
+              <button class="button self-center" @click="removeRange(idx)">Remove</button>
             </div>
-            <table class="n-table mt-2">
+            <table class="table mt-2">
               <thead>
                 <tr>
                   <th>Index</th>
@@ -170,8 +174,8 @@ const isSaveDisabled = computed(() => {
               <tbody>
                 <tr v-for="(r, rIdx) in pg.ranges" :key="rIdx">
                   <td class="w-20">{{ r.level }}</td>
-                  <td><input v-model.number="r.range_from" placeholder="From" class="n-input w-full" type="number" /></td>
-                  <td><input v-model.number="r.range_to" placeholder="To" class="n-input w-full" type="number" /></td>
+                  <td><input v-model.number="r.range_from" placeholder="From" class="input w-full" type="number" /></td>
+                  <td><input v-model.number="r.range_to" placeholder="To" class="input w-full" type="number" /></td>
                 </tr>
               </tbody>
             </table>
@@ -181,8 +185,8 @@ const isSaveDisabled = computed(() => {
 
       <div class="border-t border-gray-300"></div>
       <div class="flex justify-end gap-4 h-24 mb-4">
-        <button class="n-button self-center" @click="load">Cancel</button>
-        <button class="n-button self-center" @click="save" :disabled="isSaveDisabled">Save</button>
+        <button class="button self-center" @click="load">Cancel</button>
+        <button class="button self-center" @click="save" :disabled="isSaveDisabled">Save</button>
       </div>
     </div>
   </common-layout>

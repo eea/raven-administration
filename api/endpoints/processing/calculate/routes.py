@@ -67,15 +67,21 @@ def calculate_insert():
 def calculate_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
-        sampling_point_ids = __get_sampling_points_from_id(model.id)
+
+        # Get the first (and only) ID from the array
+        calc_id = model.ids[0] if model.ids else None
+        if not calc_id:
+            raise BadRequest("No calculation ID provided")
+
+        sampling_point_ids = __get_sampling_points_from_id(calc_id)
 
         if Q.any_has_no_access(sampling_point_ids):
             raise BadRequest("Access denied for samplingpoint")
 
         sql = "delete from calculated_series where id = %(id)s"
-        cursor.execute(sql, model)
+        cursor.execute(sql, {"id": calc_id})
         if cursor.rowcount == 0:
-            raise BadRequest("Could not delete for id " + model.id)
+            raise BadRequest(f"Could not delete calculation {calc_id}")
 
         return jsonify({"success": True})
 
@@ -112,6 +118,45 @@ def calculate_update():
 def calculate_timeseries():
     timeseries = Q.timeseries_by_access()
     return jsonify(timeseries)
+
+
+@calculate_endpoint.route("/api/processing/calculate/download", methods=['GET'])
+@jwt_required_with_processing_claim()
+def calculate_download():
+    """Download calculations as CSV"""
+    from core.utils import download_csv
+
+    with CursorFromPool() as cursor:
+        with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+        cursor.execute(f"""
+            {with_network_sql},            
+            timeseries as (
+                select s.name as station, s.id as sta_id, po.notation,p.id
+                from stations s, sampling_points p,  eea_pollutants po, network_access n
+                where 1=1
+                and s.network_id = n.id
+                and s.id = p.station_id
+                and p.pollutant = po.uri
+            )
+            select 	
+	              spo_pri.station,
+                spo_pri.notation as primary_pollutant,
+                cs.operator,
+                spo_sec.notation as secondary_pollutant,
+                spo_res.notation as result_pollutant
+            from 
+                timeseries spo_pri,
+                timeseries spo_sec,
+                timeseries spo_res,
+                calculated_series cs
+            where 1=1
+            and cs.primary = spo_pri.id
+            and cs.secondary = spo_sec.id
+            and cs.result = spo_res.id
+            order by spo_pri.station, spo_pri.notation
+        """, n_param)
+        calculations = cursor.fetchall()
+        return download_csv(calculations, "calculations.csv")
 
 
 def __get_sampling_points_from_id(id):

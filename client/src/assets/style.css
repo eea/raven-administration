@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+@theme {
+  --color-nord0: #2e3440;
+  --color-nord1: #3b4252;
+  --color-nord2: #434c5e;
+  --color-nord3: #4c566a;
+  --color-nord4: #d8dee9;
+  --color-nord5: #e5e9f0;
+  --color-nord6: #eceff4;
+  --color-nord7: #8fbcbb;
+  --color-nord8: #88c0d0;
+  --color-nord9: #81a1c1;
+  --color-nord10: #5e81ac;
+  --color-nord11: #bf616a;
+  --color-nord12: #d08770;
+  --color-nord13: #ebcb8b;
+  --color-nord14: #a3be8c;
+  --color-nord15: #b48ead;
+}
+
+html,
+body {
+  @apply h-full w-full text-[14px];
+}
+
+body {
+  @apply h-full text-nord3 antialiased font-sans leading-normal m-0;
+  background-color: #ededeb;
+}
+
+#app {
+  @apply flex flex-col min-h-full items-stretch relative flex-1 w-full h-full;
+}
+
+a {
+  @apply underline! text-nord0!;
+}
+
+a:hover {
+  @apply no-underline text-nord0;
+}
+
+.plot_tooltip {
+  @apply border border-nord4 rounded  bg-white p-2 opacity-60 text-sm  font-sans;
+  --vis-tooltip-text-color: #4c566a;
+  --vis-tooltip-border-color: #d8dee9;
+  --vis-font-family: "ui-sans-serif", sans-serif;
+}
+
+.button {
+  @apply px-2 py-1 rounded text-nord3 cursor-pointer border border-nord4 select-none bg-white/50;
+  /*inline-block*/
+  @apply hover:border-nord3/40;
+}
+
+.button[aria-selected="true"] {
+  @apply border-2 border-nord7;
+}
+
+.button:disabled {
+  @apply bg-nord6/50 text-nord3/50 border-nord4 pointer-events-none;
+}
+
+.input {
+  @apply px-2 py-1 rounded inline-block border border-nord4 bg-white focus:outline-none;
+}
+
+input:disabled {
+  @apply bg-nord6/50 text-nord3/50 border-nord4;
+}
+
+.select {
+  @apply text-inherit border border-nord4 rounded px-2 py-1 outline-none transition-colors duration-200 bg-white;
+}
+.option {
+  @apply bg-white text-inherit;
+}
+.select:disabled {
+  @apply bg-nord6/50 text-nord3/50 border-nord4;
+}
+
+.tooltip {
+  @apply bg-gray-50 border border-nord4 rounded p-2 font-sans  z-9999 transition-opacity duration-300 m-0 self-center;
+}
+
+input[type="checkbox"]:not(:disabled) {
+  @apply cursor-pointer accent-nord1;
+  transform: scale(1.2);
+}
+
+/* Disabled checkboxes */
+input[type="checkbox"]:disabled {
+  @apply cursor-pointer accent-nord6 opacity-100;
+  transform: scale(1.2);
+}
+
+input[type="radio"]:not(:disabled) {
+  @apply cursor-pointer accent-nord1;
+  transform: scale(1.2);
+}
+
+input[type="radio"]:disabled {
+  @apply cursor-pointer accent-nord6 opacity-100;
+  transform: scale(1.2);
+}
+
+input[type="range"]:not(:disabled) {
+  @apply cursor-pointer accent-nord1;
+  /* transform: scale(0.8); */
+}
+
+input[type="range"]:disabled {
+  @apply cursor-pointer accent-nord6 opacity-100;
+  /* transform: scale(0.8); */
+}
+
+/* -------------------------------------------------------------------------------- */
+
+.table {
+  @apply bg-gray-50 min-w-full divide-y divide-nord4/20 border border-nord4;
+}
+
+.table td,
+.table th {
+  @apply p-2 text-left;
+}
+
+.table tr:hover {
+  @apply bg-gray-100 cursor-pointer;
+}
+
+.table th:hover {
+  @apply cursor-auto;
+}
+
+.table th {
+  @apply bg-gray-100;
+}
+
+/* .table td:first-child {
+  width: 1%;
+  white-space: nowrap;
+} */
+
+.table .selected {
+  @apply bg-nord14/20;
+}
+
+.table .selected:hover {
+  @apply bg-nord14/20;
+}

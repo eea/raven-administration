@@ -1,5 +1,11 @@
 <script setup>
+import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
+
+import ProgressBar from "./components/ProgressBar.vue";
+import NotifyBar from "./components/NotifyBar.vue";
+import TopBar from "./components/TopBar.vue";
+import MenuBar from "./components/MenuBar.vue";
 
 const route = useRoute();
 
@@ -11,12 +17,12 @@ const isLogin = computed(() => {
 </script>
 
 <template>
-  <progress-bar />
-  <notify-bar />
+  <ProgressBar />
+  <NotifyBar />
   <div class="h-full flex flex-col overflow-hidden">
-    <top-bar @on-click="showMenu = !showMenu" :hide-menu-button="isLogin" />
+    <TopBar @on-click="showMenu = !showMenu" :hide-menu-button="isLogin" />
     <div class="flex overflow-hidden flex-1">
-      <menu-bar :show="showMenu && !isLogin" />
+      <MenuBar :show="showMenu && !isLogin" />
       <div class="flex-1 overflow-auto">
         <router-view></router-view>
       </div>
@@ -24,30 +30,4 @@ const isLogin = computed(() => {
   </div>
 </template>
 
-<style>
-html,
-body {
-  @apply h-full w-full text-[13px] md:text-[14px];
-}
-
-body {
-  @apply h-full font-sans text-sm text-nord3 antialiased tracking-tighter m-0;
-  background-color: #ededeb;
-}
-
-#app {
-  @apply flex flex-col min-h-full items-stretch relative flex-1 w-full h-full;
-}
-
-a {
-  @apply !underline !text-nord0;
-}
-
-a:hover {
-  @apply no-underline text-nord0;
-}
-
-.tooltip {
-  @apply bg-gray-50 text-gray-600  border border-nord4 rounded p-2  z-[9999] transition-opacity duration-300 m-0 self-center;
-}
-</style>
+<style></style>

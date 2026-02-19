@@ -60,13 +60,18 @@ def convert_delete():
     with CursorFromPool() as cursor:
         model = DeleteModel(**request.json)
 
-        if __has_no_access(model.id):
+        # Get the first (and only) ID from the array
+        convert_id = model.ids[0] if model.ids else None
+        if not convert_id:
+            raise BadRequest("No conversion ID provided")
+
+        if __has_no_access(convert_id):
             raise BadRequest("Access denied for samplingpoint")
 
         sql = "delete from converted_series where id = %(id)s"
-        cursor.execute(sql, model)
+        cursor.execute(sql, {"id": convert_id})
         if cursor.rowcount == 0:
-            raise BadRequest("Could not delete for id " + model.id)
+            raise BadRequest(f"Could not delete conversion {convert_id}")
 
         return jsonify({"success": True})
 
@@ -114,6 +119,36 @@ def convert_units():
 def convert_timeseries():
     timeseries = Q.timeseries_by_access()
     return jsonify(timeseries)
+
+
+@convert_endpoint.route("/api/processing/convert/download", methods=['GET'])
+@jwt_required_with_processing_claim()
+def convert_download():
+    """Download conversions as CSV"""
+    from core.utils import download_csv
+
+    with CursorFromPool() as cursor:
+        with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+        cursor.execute(f"""
+            {with_network_sql}
+            select
+                st.name as station, po.notation as pollutant, ti.label as timestep,
+                s.notation as source,
+                t.notation as target,
+                cs.factor::double PRECISION as factor
+            from converted_series cs, eea_concentrations s, eea_concentrations t, stations st, sampling_points p,  eea_pollutants po, eea_times ti, network_access n
+            where 1=1
+            and n.id = st.network_id
+            and cs.source = s.id
+            and cs.target = t.id
+            and cs.sampling_point_id = p.id
+            and p.station_id = st.id
+            and p.pollutant = po.uri
+            and p.timestep = ti.id
+            order by st.name, po.notation, ti.label
+        """, n_param)
+        conversions = cursor.fetchall()
+        return download_csv(conversions, "conversions.csv")
 
 
 def __has_no_access(id):

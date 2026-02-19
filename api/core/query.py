@@ -79,6 +79,39 @@ class Q:
             return cursor.fetchall()
 
     @staticmethod
+    def timeseries_columns_with_time_by_access():
+        with CursorFromPool() as cursor:
+            with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+            cursor.execute(f"""
+                {with_network_sql}
+                SELECT aa.name as station, aa.pollutant, aa.timestep, aa.unit, aa.value as sampling_point_id,                   
+                      to_char(aa.fromtime, 'YYYY-MM-DD"T"HH24:MI:SS') as fromtime,
+                      to_char(aa.totime, 'YYYY-MM-DD"T"HH24:MI:SS') as totime
+                  FROM
+                (
+                  SELECT sp.id as sp, sp.id as value, s.name, po.notation pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.label as timestep, u.notation as unit
+                    FROM
+                        network_access n,
+                        stations s,
+                        sampling_points sp,
+                        eea_pollutants po,
+                        eea_times t,
+                        eea_concentrations u
+                    WHERE 1=1
+                        and n.id = s.network_id
+                        and s.id = sp.station_id
+                        and sp.pollutant = po.uri
+                        and sp.timestep = t.id
+                        and sp.concentration = u.id
+                        and sp.from_time is not null
+                        and sp.to_time is not null
+                    GROUP by s.name, sp.id, sp.pollutant,sp.id, po.notation, sp.from_time,  sp.to_time, t.label, u.notation
+                ) aa
+                order by station, pollutant, timestep
+            """, n_param)
+            return cursor.fetchall()
+
+    @staticmethod
     def timezones():
         with CursorFromPool() as cursor:
             cursor.execute("select r.notation as label, r.id as value from eea_timezones r order by r.notation")

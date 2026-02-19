@@ -1,4 +1,6 @@
 <script setup>
+import SideBar from "./SideBar.vue";
+
 const props = defineProps({
   show: Boolean,
   saveText: {
@@ -13,15 +15,15 @@ const props = defineProps({
 </script>
 
 <template>
-  <side-bar :show="show">
+  <SideBar :show="show">
     <div class="flex flex-col gap-4 px-6 py-4 justify-between h-full">
       <div class="flex flex-col h-full overflow-y-auto">
         <slot />
       </div>
       <div class="flex justify-between">
-        <button class="n-button outline outline-2 outline-nord14" @click="$emit('commit')">{{ saveText }}</button>
-        <button class="n-button outline outline-2 outline-nord11" @click="$emit('cancel')">{{ cancelText }}</button>
+        <button class="button" @click="$emit('commit')">{{ saveText }}</button>
+        <button class="button" @click="$emit('cancel')">{{ cancelText }}</button>
       </div>
     </div>
-  </side-bar>
+  </SideBar>
 </template>

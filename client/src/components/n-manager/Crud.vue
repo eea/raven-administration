@@ -1,4 +1,9 @@
 <script setup>
+import { computed, ref, watch } from "vue";
+import { format } from "date-fns";
+import Popup from "../Popup.vue";
+import DatetimePicker from "../DatetimePicker.vue";
+
 const props = defineProps({
   show: Boolean,
   isEdit: Boolean,
@@ -9,6 +14,8 @@ const props = defineProps({
   }
 });
 
+const emit = defineEmits(["close", "save"]);
+
 const obj = ref({});
 
 watch(
@@ -18,6 +25,15 @@ watch(
       obj.value = props.options.properties.reduce((a, v) => ({ ...a, [v.prop]: v.default }), {});
     } else {
       obj.value = Object.assign({}, props.selectedValue);
+
+      // Convert string datetime values to Date objects for DatetimePicker
+      props.options.properties
+        .filter((p) => p.type === "eeaDatetime")
+        .forEach((p) => {
+          if (obj.value[p.prop] && typeof obj.value[p.prop] === "string") {
+            obj.value[p.prop] = new Date(obj.value[p.prop]);
+          }
+        });
     }
   }
 );
@@ -31,76 +47,110 @@ const cmp_optional_properties = computed(() => {
   if (!props.options.properties) return [];
   return props.options.properties.filter((p) => !p.required && p.type != "gridOnly");
 });
+
+const handleSave = () => {
+  const saveData = Object.assign({}, obj.value);
+
+  // Convert Date objects back to strings for API
+  props.options.properties
+    .filter((p) => p.type === "eeaDatetime")
+    .forEach((p) => {
+      if (saveData[p.prop] instanceof Date) {
+        saveData[p.prop] = format(saveData[p.prop], "yyyy-MM-dd HH:00");
+      }
+    });
+
+  emit("save", saveData);
+};
+
+const handleClose = () => {
+  emit("close");
+};
+
+const title = computed(() => {
+  const entityName = props.options?.entityName || "Item";
+  return props.isEdit ? `Edit ${entityName}` : `Create ${entityName}`;
+});
 </script>
 
 <template>
-  <side-bar-crud :show="show" @cancel="$emit('close')" @commit="$emit('save', Object.assign({}, obj))">
-    <div class="flex gap-6" :class="options.showRequiredAndoptionalSideBySideInCrud ? 'flex-row' : 'flex-col'">
-      <div>
-        <div class="mb-4 font-bold text-base border-b">Required</div>
+  <popup :show="show" :title="title" @on-close="handleClose" class="max-w-6xl w-full max-h-[90vh]">
+    <div class="flex flex-col gap-2 h-full">
+      <div class="flex-1 overflow-y-auto pr-2">
+        <div class="flex gap-6" :class="options.showRequiredAndoptionalSideBySideInCrud ? 'flex-row' : 'flex-col'">
+          <div class="flex-1">
+            <div class="mb-4 font-bold text-lg border-b border-nord4">Required</div>
 
-        <div class="mb-2" v-for="p in cmp_required_properties">
-          <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
-            <div class="font-bold">{{ p.label }}:</div>
-            <input class="n-input w-72" v-model="obj[p.prop]" :disabled="true" />
+            <div class="mb-2" v-for="p in cmp_required_properties">
+              <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
+                <div class="font-bold">{{ p.label }}:</div>
+                <input class="input w-full" v-model="obj[p.prop]" :disabled="true" />
+              </div>
+
+              <div v-else>
+                <div v-if="p.type == 'text' || p.type == 'number'">
+                  <div class="font-bold">{{ p.label }}:</div>
+                  <input :type="p.type" class="input w-full" v-model="obj[p.prop]" :placeholder="p.placeholder" />
+                </div>
+                <div v-else-if="p.type == 'checkbox'" class="mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
+                  <div class="font-bold self-center flex-1" @click="obj[p.prop] = !obj[p.prop]">{{ p.label }}:</div>
+                  <input type="checkbox" v-model="obj[p.prop]" class="self-center" />
+                </div>
+                <div v-else-if="p.type == 'lookup'">
+                  <div class="font-bold">{{ p.label }}:</div>
+                  <select v-model="obj[p.prop_id]" class="select w-full">
+                    <option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value">{{ p.label }}</option>
+                  </select>
+                </div>
+                <div v-else-if="p.type == 'eeaDatetime'">
+                  <div class="font-bold">{{ p.label }}:</div>
+                  <DatetimePicker v-model="obj[p.prop]" />
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div v-else>
-            <div v-if="p.type == 'text' || p.type == 'number'">
-              <div class="font-bold">{{ p.label }}:</div>
-              <input :type="p.type" class="n-input w-72" v-model="obj[p.prop]" :placeholder="p.placeholder" />
-            </div>
-            <div v-else-if="p.type == 'checkbox'" class="mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
-              <div class="font-bold self-center flex-1" @click="obj[p.prop] = !obj[p.prop]">{{ p.label }}:</div>
-              <n-checkbox v-model="obj[p.prop]" class="self-center" />
-            </div>
-            <div v-else-if="p.type == 'lookup'">
-              <div class="font-bold">{{ p.label }}:</div>
-              <n-select v-model="obj[p.prop_id]" class="!w-72">
-                <n-option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value" :label="p.label" />
-              </n-select>
-            </div>
-            <div v-else-if="p.type == 'eeaDatetime'">
-              <div class="font-bold">{{ p.label }}:</div>
-              <n-eea-datetime v-model="obj[p.prop]" class="!w-72" />
+          <div class="flex-1">
+            <div class="mb-4 font-bold text-lg border-b border-nord4" v-if="cmp_optional_properties.length > 0">Optional</div>
+
+            <div class="mb-2" v-for="p in cmp_optional_properties">
+              <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
+                <div class="font-bold">{{ p.label }}:</div>
+                <input class="input w-full" v-model="obj[p.prop]" :disabled="true" />
+              </div>
+
+              <div v-else>
+                <div v-if="p.type == 'text' || p.type == 'number'">
+                  <div class="font-bold">{{ p.label }}:</div>
+                  <input :type="p.type" class="input w-full" v-model="obj[p.prop]" :placeholder="p.placeholder" />
+                </div>
+                <div v-else-if="p.type == 'checkbox'" class="mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
+                  <div class="font-bold self-center flex-1" @click="obj[p.prop] = !obj[p.prop]">{{ p.label }}:</div>
+                  <input type="checkbox" v-model="obj[p.prop]" class="self-center" />
+                </div>
+                <div v-else-if="p.type == 'lookup'">
+                  <div class="font-bold">{{ p.label }}:</div>
+                  <select v-model="obj[p.prop_id]" class="select w-full">
+                    <option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value">{{ p.label }}</option>
+                  </select>
+                </div>
+                <div v-else-if="p.type == 'eeaDatetime'">
+                  <div class="font-bold">{{ p.label }}:</div>
+                  <DatetimePicker v-model="obj[p.prop]" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div>
-        <div class="mb-4 font-bold text-base border-b" v-if="cmp_optional_properties.length > 0">Optional</div>
-
-        <div class="mb-2" v-for="p in cmp_optional_properties">
-          <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
-            <div class="font-bold">{{ p.label }}:</div>
-            <input class="n-input w-72" v-model="obj[p.prop]" :disabled="true" />
-          </div>
-
-          <div v-else>
-            <div v-if="p.type == 'text' || p.type == 'number'">
-              <div class="font-bold">{{ p.label }}:</div>
-              <input :type="p.type" class="n-input w-72" v-model="obj[p.prop]" :placeholder="p.placeholder" />
-            </div>
-            <div v-else-if="p.type == 'checkbox'" class="mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
-              <div class="font-bold self-center flex-1" @click="obj[p.prop] = !obj[p.prop]">{{ p.label }}:</div>
-              <n-checkbox v-model="obj[p.prop]" class="self-center" />
-            </div>
-            <div v-else-if="p.type == 'lookup'">
-              <div class="font-bold">{{ p.label }}:</div>
-              <n-select v-model="obj[p.prop_id]" class="!w-72">
-                <n-option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value" :label="p.label" />
-              </n-select>
-            </div>
-            <div v-else-if="p.type == 'eeaDatetime'">
-              <div class="font-bold">{{ p.label }}:</div>
-              <n-eea-datetime v-model="obj[p.prop]" class="!w-72" />
-            </div>
-          </div>
-        </div>
+      <div class="border-t border-gray-300"></div>
+      <div class="flex justify-end pt-2 gap-4">
+        <button class="button" @click="handleSave">Save</button>
+        <button class="button" @click="handleClose">Cancel</button>
       </div>
     </div>
-  </side-bar-crud>
+  </popup>
 </template>
 
 <style></style>

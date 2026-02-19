@@ -8,6 +8,10 @@ class Common:
     @staticmethod
     def validate_dataframe(df_values: DataFrame):
         bench = time.perf_counter()
+        # Skip validation if dataframe is empty
+        if df_values.empty:
+            printcol(f"- Validating datatypes took {time.perf_counter() - bench} seconds (empty dataframe)")
+            return
         # Validations raises an exception if it fails
         df_values["begin_position"] = pd.to_datetime(df_values["begin_position"], format="%Y-%m-%dT%H:%M:%S%z")
         df_values["end_position"] = pd.to_datetime(df_values["end_position"], format="%Y-%m-%dT%H:%M:%S%z")
@@ -20,6 +24,10 @@ class Common:
     @staticmethod
     def add_timeserie_info(cursor: any, df_values: pd.DataFrame):
         bench = time.perf_counter()
+        # Return empty dataframe if input is empty
+        if df_values.empty:
+            printcol(f"- Adding timeserie info took {time.perf_counter() - bench} seconds (empty dataframe)")
+            return df_values
         ids = tuple(df_values.sampling_point_id.unique().tolist())
         sql = """
             select

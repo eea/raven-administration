@@ -1,4 +1,5 @@
 <script setup>
+import { ref, watch } from "vue";
 const props = defineProps({
   show: Boolean,
   scalingpoint: Object
@@ -23,19 +24,19 @@ const onSave = () => {
     <div class="mb-4 font-bold text-base border-b">Required</div>
     <div class="mb-2">
       <div class="font-bold">Zero point:</div>
-      <input type="number" class="n-input w-72" v-model="obj.zero_point" placeholder="float: Zero point value" />
+      <input type="number" class="input w-72" v-model="obj.zero_point" placeholder="float: Zero point value" />
     </div>
     <div class="mb-2">
       <div class="font-bold">Span value:</div>
-      <input type="number" class="n-input w-72" v-model="obj.span_value" placeholder="float: Span value" />
+      <input type="number" class="input w-72" v-model="obj.span_value" placeholder="float: Span value" />
     </div>
     <div class="mb-2">
       <div class="font-bold">Gas concentration:</div>
-      <input type="number" class="n-input w-72" v-model="obj.gas_concentration" placeholder="float: Gas concentration" />
+      <input type="number" class="input w-72" v-model="obj.gas_concentration" placeholder="float: Gas concentration" />
     </div>
     <div class="mb-2">
       <div class="font-bold">Timestamp:</div>
-      <n-datetime v-model="obj.timestamp" class="!w-72" />
+      <n-datetime v-model="obj.timestamp" class="w-72!" />
     </div>
   </side-bar-crud>
 </template>

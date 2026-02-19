@@ -25,5 +25,5 @@ def historical():
 @historical_endpoint.route('/api/data/historical/timeseries', methods=['GET'])
 @jwt_required_with_data_claim()
 def timeseries():
-    timeseries = Q.timeseries_with_time_by_access()
+    timeseries = Q.timeseries_columns_with_time_by_access()
     return jsonify(timeseries)

@@ -1,8 +1,15 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
+import CommonLayout from "../../../components/CommonLayout.vue";
+import ToolBar from "../../../components/ToolBar.vue";
+import CMenuCrud from "../../../components/CMenuCrud.vue";
+import Confirm from "../../../components/Confirm.vue";
+import Popup from "../../../components/Popup.vue";
+import DataTable from "../../../components/DataTable.vue";
+import Crud from "./Crud.vue";
+
 import Service from "./service";
 import { timeAgo } from "../../../helpers/utils";
-import Crud from "./Crud.vue";
 import IconError from "~icons/material-symbols/help";
 
 const notifications = ref([]);
@@ -11,11 +18,25 @@ const logs = ref([]);
 const missingSamplingPoints = ref([]);
 const showCrud = ref(false);
 const selectedRow = ref(null);
-const showContextmenu = ref(false);
-const ev = ref({});
+const contextMenuRef = ref(null);
 const showConfirm = ref(false);
 const errorMessage = ref("");
 const showErrorPopup = ref(false);
+
+const missingSamplingPointsColumns = [
+  { field: "spo", headerName: "SPO", flex: 2 },
+  { field: "station", headerName: "Station", flex: 1 },
+  { field: "pollutant", headerName: "Pollutant", flex: 1 },
+  { field: "concentration", headerName: "Concentration", flex: 1 },
+  { field: "timestep", headerName: "Timestep", flex: 1 },
+  { field: "totime", headerName: "Last Update", flex: 2 },
+  {
+    field: "time_ago",
+    headerName: "Time Ago",
+    width: 110,
+    valueGetter: (params) => timeAgo(params.data.totime)
+  }
+];
 
 onMounted(async () => {
   notifications.value = await Service.get();
@@ -27,35 +48,29 @@ onMounted(async () => {
 const onOpenCrud = (row) => {
   selectedRow.value = row || selectedRow.value;
   showCrud.value = true;
-  showContextmenu.value = false;
 };
 
 const onCloseCrud = async (isSaved) => {
   showCrud.value = false;
   selectedRow.value = null;
-  showContextmenu.value = false;
   showConfirm.value = false;
-  ev.value = {};
 
   if (isSaved) notifications.value = await Service.get();
 };
 
-const onContextMenu = (row, e) => {
-  selectedRow.value = row;
-  ev.value = e;
-  showContextmenu.value = true;
+const onMenuClick = ({ action, data }) => {
+  selectedRow.value = data;
+  if (action === "edit") {
+    showCrud.value = true;
+  } else if (action === "delete") {
+    showConfirm.value = true;
+  }
 };
 
 const onSaveDelete = async (id) => {
   if (!selectedRow.value) return;
   await Service.delete({ name: selectedRow.value.name });
   await onCloseCrud(true);
-};
-
-const onDelete = () => {
-  if (showConfirm.value) selectedRow.value = {};
-  showConfirm.value = !showConfirm.value;
-  showContextmenu.value = false;
 };
 
 const onCloseErrorPopup = () => {
@@ -75,19 +90,19 @@ const onOpenErrorPopup = (msg) => {
   <common-layout>
     <popup :show="showErrorPopup" title="Notifications error" @on-close="onCloseErrorPopup">{{ errorMessage }}</popup>
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete the notification?" @close="onCloseCrud" @ok="onSaveDelete" />
-    <contextmenu-crud :show="showContextmenu" :ev="ev" @click-outside="onCloseCrud" @on-delete="onDelete" @on-edit="onOpenCrud" />
+    <CMenuCrud ref="contextMenuRef" @on-menu-click="onMenuClick" />
     <Crud :data="selectedRow" :sampling-points="samplingPoints" :show="showCrud" @on-close="onCloseCrud" />
     <tool-bar title="Notifications" :show-column-picker="false" :show-add="true" :show-download="false" :show-filter="false" @add-click="onOpenCrud" />
 
     <div>
-      <table class="n-table">
+      <table class="table">
         <tr>
           <th></th>
           <th>Name</th>
           <th>Emails</th>
         </tr>
-        <tr v-for="n in notifications" :key="n.id" @dblclick="onOpenCrud(n)" @contextmenu.prevent="onContextMenu(n, $event)">
-          <td class="w-4"><n-checkbox class="align-middle" v-model="n.enabled" :disabled="true" /></td>
+        <tr v-for="n in notifications" :key="n.id" @dblclick="onOpenCrud(n)" @contextmenu.prevent="contextMenuRef.showMenu(n, $event)">
+          <td class="w-4"><input type="checkbox" class="align-middle" v-model="n.enabled" :disabled="true" /></td>
           <td>{{ n.name }}</td>
           <td>{{ n.emails }}</td>
         </tr>
@@ -96,7 +111,7 @@ const onOpenErrorPopup = (msg) => {
 
     <div class="mt-8">
       <div class="text-base font-bold self-center">Last 5 email notifications</div>
-      <table class="n-table">
+      <table class="table">
         <tr>
           <th>Email sendt</th>
           <th>Missing sampling points</th>
@@ -122,28 +137,11 @@ const onOpenErrorPopup = (msg) => {
       </table>
     </div>
 
-    <div class="mt-8">
-      <div class="text-base font-bold self-center">Sampling points with data older than 3 hours</div>
-      <table class="n-table">
-        <tr>
-          <th>SPO</th>
-          <th>Station</th>
-          <th>Pollutant</th>
-          <th>Concentration</th>
-          <th>Timestep</th>
-          <th>Last Update</th>
-          <th></th>
-        </tr>
-        <tr v-for="mv in missingSamplingPoints" :key="mv.id">
-          <td>{{ mv.spo }}</td>
-          <td>{{ mv.station }}</td>
-          <td>{{ mv.pollutant }}</td>
-          <td>{{ mv.concentration }}</td>
-          <td>{{ mv.timestep }}</td>
-          <td>{{ mv.totime }}</td>
-          <td>{{ timeAgo(mv.totime) }}</td>
-        </tr>
-      </table>
+    <div class="mt-8 flex-1 min-h-0 flex flex-col">
+      <div class="text-base font-bold mb-2">Sampling points with data older than 3 hours</div>
+      <div class="flex-1 min-h-0">
+        <DataTable :data="missingSamplingPoints" :columns="missingSamplingPointsColumns" :filter="true" :floating-filter="false" :responsive="true" />
+      </div>
     </div>
   </common-layout>
 </template>
