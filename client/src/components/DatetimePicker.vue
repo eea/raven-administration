@@ -8,15 +8,29 @@ const props = defineProps({
 });
 const emit = defineEmits(["update:modelValue"]);
 
-// Normalize timestamp to ensure it has seconds
+// Normalize timestamp to ensure it has seconds and handle various input types
 const normalizedValue = computed(() => {
   if (!props.modelValue) return null;
 
+  // If it's a Date object, convert to string format
+  if (props.modelValue instanceof Date) {
+    const date = props.modelValue;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  }
+
   const str = String(props.modelValue);
+
   // If it's missing seconds, add :00
   if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(str)) {
     return str + ":00";
   }
+
   return str;
 });
 
