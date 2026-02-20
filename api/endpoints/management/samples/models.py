@@ -1,8 +1,9 @@
 from pydantic import BaseModel
 from typing import Optional
+from core.base_model import RavenBaseModel
 
 
-class SampleModel(BaseModel):
+class SampleModel(RavenBaseModel):
     id: str
     inlet_height: float
     building_distance: Optional[float] = None

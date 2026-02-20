@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List
 from typing import Optional
+from core.base_model import RavenBaseModel
 
 
 class AssessmentRegimeDataModel(BaseModel):
@@ -13,7 +14,7 @@ class AssessmentRegimeDataModel(BaseModel):
         return super().__getattribute__(key)
 
 
-class AssessmentRegimeModel(BaseModel):
+class AssessmentRegimeModel(RavenBaseModel):
     id: str
     name: str
     object_type_id: str

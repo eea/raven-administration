@@ -1,9 +1,11 @@
 from datetime import datetime
 from pydantic import BaseModel
 from typing import Optional
+from core.base_model import RavenBaseModel
 
 
-class SamplingPointsModel(BaseModel):
+class SamplingPointsModel(RavenBaseModel):
+    
     id: str
     station_id: str
     pollutant_id: str

@@ -5,7 +5,7 @@ The system is managed and developed by `NILU`, with support from `4sFera`, on th
 
 ## Requirements
 
-Python version `3.10.8`  
+Python version `3.12+`  
 Node version `18.12.1`  
 Postgres version `12+`  
 Postgis extension  

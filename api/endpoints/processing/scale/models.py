@@ -2,6 +2,7 @@ import string
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+from core.base_model import RavenBaseModel
 
 
 class ScalingpointModel(BaseModel):
@@ -11,7 +12,7 @@ class ScalingpointModel(BaseModel):
         return super().__getattribute__(key)
 
 
-class UpdateModel(BaseModel):
+class UpdateModel(RavenBaseModel):
     sampling_point_id: str
     id: str
     zero_point: float
@@ -37,7 +38,7 @@ class InsertModel(BaseModel):
         return super().__getattribute__(key)
 
 
-class DeleteModel(BaseModel):
+class DeleteModel(RavenBaseModel):
     id: str
     createdby: Optional[str] = None
 

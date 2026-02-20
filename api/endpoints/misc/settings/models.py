@@ -1,8 +1,8 @@
-from pydantic import BaseModel
+from core.base_model import RavenBaseModel
 from typing import Optional
 
 
-class SettingsModel(BaseModel):
+class SettingsModel(RavenBaseModel):
     id: str
     namespace: str
     uom_m: str

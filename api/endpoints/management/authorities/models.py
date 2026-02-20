@@ -1,7 +1,9 @@
 from pydantic import BaseModel
+from core.base_model import RavenBaseModel
 
 
-class AuthorityModel(BaseModel):
+class AuthorityModel(RavenBaseModel):
+    
     id: str
     name: str
     organisation: str

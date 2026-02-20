@@ -1,8 +1,9 @@
 from pydantic import BaseModel
 from typing import Optional
+from core.base_model import RavenBaseModel
 
 
-class AttainmentModel(BaseModel):
+class AttainmentModel(RavenBaseModel):
     id: str
     name: str
     assessment_regime_id: str

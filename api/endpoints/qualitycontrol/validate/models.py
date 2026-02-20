@@ -1,9 +1,10 @@
-from pydantic import BaseModel, conlist
+from core.base_model import RavenBaseModel
+from pydantic import field_validator
 from typing import List
 from datetime import datetime
 
 
-class TimevalueModel(BaseModel):
+class TimevalueModel(RavenBaseModel):
     sampling_point_id: str
     from_dt: datetime
     to_dt: datetime
@@ -12,10 +13,17 @@ class TimevalueModel(BaseModel):
         return super().__getattribute__(key)
 
 
-class FlagModel(BaseModel):
-    ids: conlist(str, min_items=1)
+class FlagModel(RavenBaseModel):
+    ids: List[str]
     flag: int
     sampling_point_id: str
+
+    @field_validator('ids')
+    @classmethod
+    def validate_ids(cls, v):
+        if len(v) < 1:
+            raise ValueError('ids must contain at least one item')
+        return v
 
     @property
     def ids_tuple(self) -> tuple:

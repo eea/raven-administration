@@ -1,11 +1,11 @@
 from datetime import datetime
 from core.database import CursorFromPool
-from pydantic import BaseModel, conlist
-from werkzeug.security import check_password_hash, generate_password_hash
+from core.base_model import RavenBaseModel
 from typing import List, Optional
+from werkzeug.security import check_password_hash, generate_password_hash
 
 
-class User(BaseModel):
+class User(RavenBaseModel):
     id: str
     name: str
     username: str
@@ -16,7 +16,7 @@ class User(BaseModel):
     qualitycontrol: bool
     users: bool
     allnetworks: bool
-    networks: conlist(str, min_items=0)
+    networks: List[str]
 
 
 # USER
