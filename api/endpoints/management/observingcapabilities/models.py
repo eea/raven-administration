@@ -1,9 +1,10 @@
 from datetime import datetime
 from pydantic import BaseModel
 from typing import Optional
+from core.base_model import RavenBaseModel
 
 
-class ObservingCapabilityModel(BaseModel):
+class ObservingCapabilityModel(RavenBaseModel):
     id: str
     begin_position: str
     process_type_id: str

@@ -9,3 +9,4 @@
 - Use popup instead of sidebar on add/edit. (better for more complex gui)
 - Update eea lookup tables
 - Upgrade packages frontend and backend
+- Look into error messages

@@ -1,9 +1,11 @@
 from datetime import datetime
 from pydantic import BaseModel
 from typing import Optional
+from core.base_model import RavenBaseModel
 
 
-class StationModel(BaseModel):
+class StationModel(RavenBaseModel):
+    
     id: str
     name: str
     network_id: str

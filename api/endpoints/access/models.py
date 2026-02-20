@@ -1,39 +1,54 @@
-from pydantic import BaseModel, conlist
-from typing import Optional
+from core.base_model import RavenBaseModel
+from pydantic import field_validator
+from typing import Optional, List
 from pytz import timezone
 
 
-class InsertModel(BaseModel):
+class InsertModel(RavenBaseModel):
     name: str
     username: str
     password: str
-    groups: conlist(str, min_items=1)
+    groups: List[str]
     createdby: Optional[str] = None
+
+    @field_validator('groups')
+    @classmethod
+    def validate_groups(cls, v):
+        if len(v) < 1:
+            raise ValueError('groups must contain at least one item')
+        return v
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
 
 
-class UpdateModel(BaseModel):
+class UpdateModel(RavenBaseModel):
     id: int
     name: str
     username: str
     password: Optional[str] = None
-    groups: conlist(str, min_items=1)
+    groups: List[str]
     createdby: Optional[str] = None
 
+    @field_validator('groups')
+    @classmethod
+    def validate_groups(cls, v):
+        if len(v) < 1:
+            raise ValueError('groups must contain at least one item')
+        return v
+
     def __getitem__(self, key):
         return super().__getattribute__(key)
 
 
-class DeleteModel(BaseModel):
+class DeleteModel(RavenBaseModel):
     id: int
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
 
 
-class InsertGroupModel(BaseModel):
+class InsertGroupModel(RavenBaseModel):
     name: str
     management: Optional[bool] = False
     data: Optional[bool] = False
@@ -42,13 +57,13 @@ class InsertGroupModel(BaseModel):
     qualitycontrol: Optional[bool] = False
     users: Optional[bool] = False
     allnetworks: Optional[bool] = False
-    networks: conlist(str, min_items=0)
+    networks: List[str] = []
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
 
 
-class UpdateGroupModel(BaseModel):
+class UpdateGroupModel(RavenBaseModel):
     id: int
     name: str
     management: Optional[bool] = False
@@ -58,7 +73,7 @@ class UpdateGroupModel(BaseModel):
     qualitycontrol: Optional[bool] = False
     users: Optional[bool] = False
     allnetworks: Optional[bool] = False
-    networks: conlist(str, min_items=0)
+    networks: List[str] = []
 
     def __getitem__(self, key):
         return super().__getattribute__(key)

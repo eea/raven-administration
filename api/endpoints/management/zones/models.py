@@ -1,7 +1,9 @@
 from pydantic import BaseModel
+from core.base_model import RavenBaseModel
 
 
-class ZoneModel(BaseModel):
+class ZoneModel(RavenBaseModel):
+    
     id: str
     name: str
     code: str

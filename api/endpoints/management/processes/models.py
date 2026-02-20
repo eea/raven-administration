@@ -1,8 +1,9 @@
 from pydantic import BaseModel
 from typing import Optional
+from core.base_model import RavenBaseModel
 
 
-class ProcessModel(BaseModel):
+class ProcessModel(RavenBaseModel):
     id: str
     measurement_type_id: str
     measurement_method_id: str

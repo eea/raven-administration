@@ -1,8 +1,10 @@
 from pydantic import BaseModel
 from typing import Optional
+from core.base_model import RavenBaseModel
 
 
-class NetworkModel(BaseModel):
+class NetworkModel(RavenBaseModel):
+    
     id: str
     name: str
     media_id: str

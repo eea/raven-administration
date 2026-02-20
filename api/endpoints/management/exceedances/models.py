@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List
 from typing import Optional
+from core.base_model import RavenBaseModel
 
 
 class ExceedanceMethodDataModel(BaseModel):
@@ -11,7 +12,7 @@ class ExceedanceMethodDataModel(BaseModel):
         return super().__getattribute__(key)
 
 
-class ExceedanceModel(BaseModel):
+class ExceedanceModel(RavenBaseModel):
     id: str
     attainment_id: str
     exceedance_description_id: str
