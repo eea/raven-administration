@@ -61,13 +61,13 @@ watch([beginAtZero, plotType], () => {
 
 const updateChart = () => {
   if (!chart || !gridData.value.length) return;
-  
+
   chart.destroy();
-  
+
   var axes = getAxes(gridData.value);
   let config = Plot.config(axes, beginAtZero.value);
   chart = new Chart("chart", config);
-  
+
   chart.data = formatValues(gridData.value, axes);
   chart.update();
 };
@@ -91,8 +91,6 @@ const plotData = async () => {
     verifiedOnly: verifiedOnly.value,
     useInvalidValues: useInvalidValues.value
   });
-
-  console.log(gridData.value);
 
   var axes = getAxes(gridData.value);
   let config = Plot.config(axes, beginAtZero.value);
