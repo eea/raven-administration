@@ -1,5 +1,9 @@
 class Endpoints:
     def init_app(self, app):
+        # HEALTH CHECK (no auth required)
+        from endpoints.health.routes import health_endpoint
+        app.register_blueprint(health_endpoint)
+        
         from endpoints.auth.routes import auth_endpoint
         app.register_blueprint(auth_endpoint)
 
