@@ -400,6 +400,94 @@ URI_TO_POLLUTANT = {v: k for k, v in POLLUTANT_URIS.items()}
 
 
 # ============================================================================
+# EEA POLLUTANT CODE MAPPING (for Plans & Programs H-K integration)
+# Maps RAVEN pollutant notations to EEA air pollutant codes
+# Reference: EEA Data Dictionary - Air Quality Pollutant Codes
+# ============================================================================
+
+POLLUTANT_EEA_CODES = {
+    'NO2': 7,       # Nitrogen dioxide
+    'PM10': 5,      # Particulate matter < 10µm
+    'PM2.5': 6001,  # Particulate matter < 2.5µm
+    'PM25': 6001,   # Alias for PM2.5
+    'SO2': 1,       # Sulphur dioxide
+    'O3': 7029,     # Ozone
+    'CO': 10,       # Carbon monoxide
+    'C6H6': 20,     # Benzene
+    'Benzene': 20,  # Alias for C6H6
+    'NOx': 8,       # Nitrogen oxides
+    'Pb': 7012,     # Lead
+    'BaP': 5012,    # Benzo(a)pyrene
+    'As': 20,       # Arsenic
+    'Cd': 21,       # Cadmium
+    'Ni': 22        # Nickel
+}
+
+
+def get_pollutant_eea_code(pollutant: str) -> Optional[int]:
+    """
+    Get EEA air pollutant code for a pollutant notation.
+    
+    Args:
+        pollutant: RAVEN pollutant notation (e.g., 'NO2', 'PM10', 'PM2.5')
+        
+    Returns:
+        EEA code integer, or None if not found
+        
+    Example:
+        >>> get_pollutant_eea_code('NO2')
+        7
+        >>> get_pollutant_eea_code('PM2.5')
+        6001
+        >>> get_pollutant_eea_code('UNKNOWN')
+        None
+    """
+    return POLLUTANT_EEA_CODES.get(pollutant.upper())
+
+
+# ============================================================================
+# ASSESSMENT TYPE MAPPING (for Plans & Programs H-K integration)
+# Maps RAVEN assessment type notations to EEA simplified format
+# Reference: EEA assessment type vocabulary
+# ============================================================================
+
+ASSESSMENT_TYPE_MAPPING = {
+    'Fixed measurement': 'fixed',
+    'Fixed random measurements': 'fixed',
+    'Indicative measurement': 'indicative',
+    'Modelling': 'modelling',
+    'Objective estimation': 'modelling',
+    'Other measurement': 'fixed'  # Default to fixed
+}
+
+
+def map_assessment_type(notation: str) -> str:
+    """
+    Map RAVEN assessment type notation to EEA simplified format.
+    
+    RAVEN stores full notation (e.g., 'Fixed measurement'), but EEA
+    Plans & Programs expects simplified format ('fixed', 'indicative', 'modelling').
+    
+    Args:
+        notation: RAVEN assessment type notation
+        
+    Returns:
+        EEA format: 'fixed', 'indicative', or 'modelling'
+        Defaults to 'fixed' if notation not recognized
+        
+    Example:
+        >>> map_assessment_type('Fixed measurement')
+        'fixed'
+        >>> map_assessment_type('Indicative measurement')
+        'indicative'
+        >>> map_assessment_type('Modelling')
+        'modelling'
+    """
+    return ASSESSMENT_TYPE_MAPPING.get(notation, 'fixed')
+
+
+
+# ============================================================================
 # EXCEEDANCES CLASS
 # ============================================================================
 

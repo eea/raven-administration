@@ -33,3 +33,8 @@ class Config(object):
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(seconds=JWT_ACCESS_TOKEN_EXPIRES_SECONDS)
     SHOWREPORTNET3 = get_variable('SHOWREPORTNET3', False)
     SWAGGER_URL = os.environ.get('SWAGGER_URL') or 'http://localhost:5000/'
+    
+    # API Key for service-to-service authentication (Plans & Programs integration)
+    # Set PLANS_PROGRAMS_API_KEY in .env file
+    # Generate secure key: python -c "import secrets; print(secrets.token_urlsafe(32))"
+    PLANS_PROGRAMS_API_KEY = os.environ.get('PLANS_PROGRAMS_API_KEY')
