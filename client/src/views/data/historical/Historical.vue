@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, shallowRef } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import Service from "./service";
 
@@ -52,6 +52,26 @@ onMounted(async () => {
   if (route.query.ids || route.query.from || route.query.to) plotData();
 });
 
+// Watch for chart display option changes and update chart without refetching data
+watch([beginAtZero, plotType], () => {
+  if (chart && gridData.value.length > 0) {
+    updateChart();
+  }
+});
+
+const updateChart = () => {
+  if (!chart || !gridData.value.length) return;
+  
+  chart.destroy();
+  
+  var axes = getAxes(gridData.value);
+  let config = Plot.config(axes, beginAtZero.value);
+  chart = new Chart("chart", config);
+  
+  chart.data = formatValues(gridData.value, axes);
+  chart.update();
+};
+
 const plotData = async () => {
   showPlot.value = true;
   Eventy.showMessage("Plotting data. Please wait", "loading");
@@ -62,7 +82,7 @@ const plotData = async () => {
 
   gridData.value = [];
 
-  var meanvalues = await Service.get({
+  gridData.value = await Service.get({
     sampling_point_ids: selectedIds.value,
     from_dt: format(fromtime.value, "yyyy-MM-dd HH:00"),
     to_dt: format(totime.value, "yyyy-MM-dd HH:00"),
@@ -72,23 +92,13 @@ const plotData = async () => {
     useInvalidValues: useInvalidValues.value
   });
 
-  gridData.value = meanvalues.map((m) => {
-    return {
-      station: m.station,
-      component: m.component,
-      datetime: m.datetime,
-      value: m.value,
-      coverage: m.coverage
-    };
-  });
-
   console.log(gridData.value);
 
-  var axes = getAxes(meanvalues);
+  var axes = getAxes(gridData.value);
   let config = Plot.config(axes, beginAtZero.value);
   chart = new Chart("chart", config);
 
-  chart.data = formatValues(meanvalues, axes);
+  chart.data = formatValues(gridData.value, axes);
   chart.update();
 
   Eventy.hideMessage();
@@ -264,20 +274,12 @@ const onTimeseriesSelectionChanged = (rows) => {
 
       <div class="flex gap-6 bg-white border border-nord4 rounded p-2 self-start">
         <div class="flex gap-2">
-          <label class="self-center cursor-pointer font-bold" @click="beginAtZero = !beginAtZero">Start Y-axis at zero:</label>
-          <input type="checkbox" class="self-center" v-model="beginAtZero" />
-        </div>
-        <div class="flex gap-2">
           <label class="self-center cursor-pointer font-bold" @click="useInvalidValues = !useInvalidValues">Include invalid values:</label>
           <input type="checkbox" class="self-center" v-model="useInvalidValues" />
         </div>
         <div class="flex gap-2">
           <label class="self-center cursor-pointer font-bold" @click="verifiedOnly = !verifiedOnly">Use only verified values:</label>
           <input type="checkbox" class="self-center" v-model="verifiedOnly" />
-        </div>
-        <div class="flex gap-2">
-          <label class="self-center cursor-pointer font-bold" @click="plotType = plotType === 'bar' ? 'line' : 'bar'">Bar chart:</label>
-          <input type="checkbox" class="self-center" :checked="plotType === 'bar'" @change="plotType = plotType === 'bar' ? 'line' : 'bar'" />
         </div>
       </div>
 
@@ -292,7 +294,19 @@ const onTimeseriesSelectionChanged = (rows) => {
     </Container>
 
     <Container v-show="showPlot" class="mt-4 p-4! w-full h-96">
-      <div class="self-end"><button class="button" @click="onResetZoom">Reset zoom</button></div>
+      <div class="flex justify-between mb-2">
+        <div class="flex gap-6">
+          <div class="flex gap-2">
+            <label class="self-center cursor-pointer font-bold" @click="beginAtZero = !beginAtZero">Start Y-axis at zero:</label>
+            <input type="checkbox" class="self-center" v-model="beginAtZero" />
+          </div>
+          <div class="flex gap-2">
+            <label class="self-center cursor-pointer font-bold" @click="plotType = plotType === 'bar' ? 'line' : 'bar'">Bar chart:</label>
+            <input type="checkbox" class="self-center" :checked="plotType === 'bar'" @change="plotType = plotType === 'bar' ? 'line' : 'bar'" />
+          </div>
+        </div>
+        <button class="button" @click="onResetZoom">Reset zoom</button>
+      </div>
       <div class="h-full w-full py-4">
         <canvas id="chart"></canvas>
       </div>
