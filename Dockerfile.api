@@ -8,4 +8,4 @@ COPY .env ../
 COPY api/ ./
 ENV PYTHONUNBUFFERED=1
 EXPOSE 5000
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "3", "--threads", "2", "--timeout", "600", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "3", "--threads", "2", "--timeout", "3600", "app:app"]
