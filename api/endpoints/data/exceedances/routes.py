@@ -87,7 +87,7 @@ def get_regimes():
     pollutant = request.args.get('pollutant')
     
     if not zone_id:
-        return jsonify({"error": "zone_id parameter is required"}), 400
+        return jsonify({"msg": "zone_id parameter is required"}), 400
     
     with CursorFromPool() as cursor:
         exc = Exceedances(cursor)
@@ -194,7 +194,7 @@ def evaluate_exceedances():
     aggregation_process = data.get('aggregation_process')
     
     if not year or not pollutant or not directive:
-        return jsonify({"error": "year, pollutant, and directive are required"}), 400
+        return jsonify({"msg": "year, pollutant, and directive are required"}), 400
     
     with CursorFromPool() as cursor:
         from core.data.exceedances import DIRECTIVE_THRESHOLDS
@@ -286,7 +286,17 @@ def evaluate_regime():
     try:
         model = ExceedancesRegimeModel(**request.json)
     except ValidationError as e:
-        return jsonify({"error": "Validation error", "details": e.errors()}), 400
+        # Extract the first error message from Pydantic validation errors
+        errors = e.errors()
+        if errors and len(errors) > 0:
+            first_error = errors[0]
+            field = " -> ".join(str(loc) for loc in first_error.get('loc', []))
+            message = first_error.get('msg', 'Validation error')
+            error_msg = f"{field}: {message}" if field else message
+        else:
+            error_msg = "Validation error"
+        
+        return jsonify({"msg": error_msg}), 400
     
     with CursorFromPool() as cursor:
         exc = Exceedances(cursor)

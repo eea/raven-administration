@@ -1,16 +1,34 @@
 const ErrorParser = {
   asMessage: function (error) {
     let message = "Unknown error";
-    if (error.response.status == 404) message = "Route not found";
-    else if (error.response.status == 400) {
-      let errMsg = error.response.data.msg;
-      if (error.response.data instanceof Blob) errMsg = "File error: Could not parse input data";
-      message = JSON.stringify(errMsg);
-    } else {
+    
+    // Handle 404
+    if (error.response?.status == 404) {
+      message = "Route not found";
+    } 
+    // Handle 400 validation errors
+    else if (error.response?.status == 400) {
+      if (error.response.data instanceof Blob) {
+        message = "File error: Could not parse input data";
+      } else {
+        // Extract the message - support both "msg" and "error" keys for backward compatibility
+        message = error.response.data.msg || error.response.data.error || "Bad request";
+      }
+    } 
+    // Handle other errors
+    else if (error.response) {
       console.log("Error response: ", error.response);
-      message = error.response.data.msg;
-      if (!message) message = "Something went wrong!";
+      message = error.response.data?.msg || error.response.data?.error || "Something went wrong!";
     }
+    // Handle network errors
+    else if (error.request) {
+      message = "Network error: Unable to reach server";
+    }
+    // Handle other errors
+    else {
+      message = error.message || "Unknown error occurred";
+    }
+    
     return message;
   }
 };
