@@ -15,7 +15,7 @@ class StationModel(RavenBaseModel):
     eoi_code: str
     longitude: float
     latitude: float
-    altitude: float
+    altitude: Optional[float] = None
     epsg: int
     begin_position: str
     mobile: bool

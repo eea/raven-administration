@@ -14,7 +14,7 @@ const pageOptions = (lookups) => ({
 
     { type: "number", label: "Longitude", prop: "longitude", placeholder: "float: Longitude", required: true, default: null, enableInEdit: true, showInGrid: false },
     { type: "number", label: "Latitude", prop: "latitude", placeholder: "float: Latitude", required: true, default: null, enableInEdit: true, showInGrid: false },
-    { type: "number", label: "Altitude", prop: "altitude", placeholder: "float: Altitude", required: true, default: null, enableInEdit: true, showInGrid: false },
+    { type: "number", label: "Altitude", prop: "altitude", placeholder: "float: Altitude", required: false, default: null, enableInEdit: true, showInGrid: false },
     { type: "number", label: "Epsg", prop: "epsg", placeholder: "int: Epsg", required: true, default: null, enableInEdit: true, showInGrid: false },
 
     { type: "eeaDatetime", label: "Begin", prop: "begin_position", required: true, default: null, enableInEdit: true, showInGrid: false },

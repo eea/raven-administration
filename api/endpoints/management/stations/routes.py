@@ -81,7 +81,10 @@ def stations_update():
               heavy_duty_fraction=%(heavy_duty_fraction)s, 
               street_width=%(street_width)s, 
               height_facades=%(height_facades)s, 
-              geom = ST_SetSRID(ST_MakePoint(%(longitude)s,%(latitude)s,%(altitude)s),%(epsg)s),
+              geom = CASE 
+                WHEN %(altitude)s IS NULL THEN ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), %(epsg)s)
+                ELSE ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s, %(altitude)s), %(epsg)s)
+              END,
               municipality=%(municipality)s, 
               eoi_code=%(eoi_code)s
             where id = %(id)s
@@ -141,10 +144,16 @@ def stations_insert():
               %(heavy_duty_fraction)s, 
               %(street_width)s, 
               %(height_facades)s, 
-              ST_Transform(ST_SetSRID(ST_MakePoint(%(longitude)s,%(latitude)s,%(altitude)s),%(epsg)s),4326), 
+              ST_Transform(
+                CASE 
+                  WHEN %(altitude)s IS NULL THEN ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), %(epsg)s)
+                  ELSE ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s, %(altitude)s), %(epsg)s)
+                END,
+                4326
+              ), 
               %(municipality)s, 
               %(eoi_code)s
-            )           
+            )
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
