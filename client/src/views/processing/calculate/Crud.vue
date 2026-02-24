@@ -111,9 +111,9 @@ const onSave = () => {
     </div>
 
     <!-- BUTTONS -->
-    <div class="flex gap-2 justify-end mt-4">
-      <div><button class="button" :disabled="!obj.primary || !obj.operator || !obj.secondary || !obj.result" @click="onSave">Save</button></div>
-      <div><button class="button" @click="$emit('close')">Cancel</button></div>
+    <div class="flex justify-end gap-4 mt-4">
+      <button class="button" :disabled="!obj.primary || !obj.operator || !obj.secondary || !obj.result" @click="onSave">Save</button>
+      <button class="button" @click="$emit('close')">Cancel</button>
     </div>
   </popup>
 </template>

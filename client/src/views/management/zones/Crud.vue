@@ -100,10 +100,10 @@ const handleClose = () => {
 </script>
 
 <template>
-  <popup :show="show" :title="isEdit ? 'Edit Zone' : 'Create Zone'" @on-close="handleClose" class="max-w-[60rem] w-[60rem] max-h-[90vh]">
-    <div class="flex flex-col gap-2 h-full">
-      <div class="flex-1 overflow-y-auto pr-2">
-        <div class="mb-4 font-bold text-base border-b border-nord4">Required</div>
+  <popup :show="show" :title="isEdit ? 'Edit Zone' : 'Create Zone'" @on-close="handleClose" class="max-w-[60rem] w-[60rem]">
+    <!-- Content Section with Scrollbar -->
+    <div class="overflow-y-auto pr-2 max-h-[60vh]">
+      <div class="mb-4 font-bold text-base border-b border-nord4">Required</div>
 
         <div class="mb-2" v-for="p in props.options.properties">
           <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
@@ -136,11 +136,11 @@ const handleClose = () => {
         </div>
       </div>
 
-      <div class="border-t border-gray-300"></div>
-      <div class="flex justify-between pt-2">
-        <button class="button" @click="handleSave">Save</button>
-        <button class="button" @click="handleClose">Cancel</button>
-      </div>
+    <!-- Footer Section (Always Visible) -->
+    <div class="border-t border-gray-300 mt-4"></div>
+    <div class="flex justify-end pt-2 gap-4">
+      <button class="button" @click="handleSave">Save</button>
+      <button class="button" @click="handleClose">Cancel</button>
     </div>
   </popup>
 </template>
