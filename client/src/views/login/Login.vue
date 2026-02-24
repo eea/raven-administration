@@ -68,7 +68,7 @@ const reset = () => {
       <div class="p-2">
         <button :disabled="!canLogin" class="button w-full" @click="login">Log in</button>
       </div>
-      <div class="text-nord11 text-center flex-wrap break-words">{{ message }}</div>
+      <div class="text-nord11 text-center flex-wrap wrap-break-word">{{ message }}</div>
     </Container>
     <Container class="m-auto w-80! gap-0!" v-if="canCreateAdmin">
       <div class="p-4 bg-nord14/50 text-nord0 font-bold text-center rounded-t">Create First Admin User</div>
@@ -83,7 +83,7 @@ const reset = () => {
       <div class="p-2">
         <button :disabled="!canCreate" class="button w-full" @click="create">Create admin user</button>
       </div>
-      <div class="text-nord11 text-center flex-wrap wrap-break-words">{{ message }}</div>
+      <div class="text-nord11 text-center flex-wrap wrap-break-word">{{ message }}</div>
     </Container>
   </div>
 </template>
