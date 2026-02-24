@@ -70,19 +70,20 @@ const reset = () => {
       </div>
       <div class="text-nord11 text-center flex-wrap break-words">{{ message }}</div>
     </Container>
-    <Container class="m-auto w-80 gap-0!" v-if="canCreateAdmin">
+    <Container class="m-auto w-80! gap-0!" v-if="canCreateAdmin">
+      <div class="p-4 bg-nord14/50 text-nord0 font-bold text-center rounded-t">Create First Admin User</div>
       <div class="p-2 flex flex-col">
         <div class="mb-1">Username:</div>
-        <input type="text" class="input w-full" placeholder="admin" :value="admin" :disabled="true" />
+        <input type="text" class="input w-full" placeholder="admin" value="admin" :disabled="true" />
       </div>
       <div class="p-2 flex flex-col">
         <div class="mb-1">Password:</div>
-        <input type="password" placeholder="Password" class="input w-full" v-model="password" @keyup.enter="login" />
+        <input type="password" placeholder="Password" class="input w-full" v-model="password" @keyup.enter="create" />
       </div>
       <div class="p-2">
         <button :disabled="!canCreate" class="button w-full" @click="create">Create admin user</button>
       </div>
-      <div class="text-nord11 text-center flex-wrap break-words">{{ message }}</div>
+      <div class="text-nord11 text-center flex-wrap wrap-break-words">{{ message }}</div>
     </Container>
   </div>
 </template>
