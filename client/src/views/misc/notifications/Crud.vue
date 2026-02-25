@@ -115,8 +115,7 @@ const samplingPointColumns = [
   { field: "station", headerName: "Station", flex: 1 },
   { field: "pollutant", headerName: "Pollutant", flex: 1 },
   { field: "concentration", headerName: "Concentration", flex: 0.7 },
-  { field: "timestep", headerName: "Timestep", flex: 0.7 },
-  { field: "type", headerName: "Type", flex: 1 }
+  { field: "timestep", headerName: "Timestep", flex: 0.7 }
 ];
 </script>
 
