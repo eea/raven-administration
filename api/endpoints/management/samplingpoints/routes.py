@@ -19,51 +19,61 @@ def samplingpoints():
             {with_samplingpoints_sql}
             SELECT
               sp.id,
-              sp.station_classification as station_classification_id,
-              sp.assessment_type as assessment_type_id,
-              sp.media_monitored as media_id,
-              sp.station_id,
-              sp.measurement_regime as measurement_regime_id,
-              sp.end_position,
-              sp.begin_position,
-              sp.pollutant as pollutant_id,
-              sp.timestep as timestep_id,
-              sp.concentration as concentration_id,
-              sp.main_emission_sources,
-              sp.change_aei_stations,
-              sp.distance_source,
-              sp.industrial_emissions,
+              sp.inlet_height,
+              sp.building_distance,
+              sp.kerb_distance,
+              sp.emission_source_distance,
               sp.logger_id,
-              sp.mobile,
-              sp.heating_emissions,
-              sp.traffic_emissions,
-              sp.used_aqd,
               sp.private,
-              mv.label as media,
-              st.name as station,
-              mr.label as measurement_regime,
-              ast.label as assessment_type,
-              sc.label as station_classification,
-              p.notation as pollutant,
-              cn.notation as concentration,
-              tm.label as timestep,tm.label,cn.notation,
-              sp.use_in_public_api 
+              sp.use_in_public_api,
+              sp.pollutant_id, COALESCE(NULLIF(p.notation, ''), p.label) as pollutant,
+              sp.time_resolution_id, tr.label as time_resolution,
+              sp.unit_id, u.notation as unit,
+              sp.station_id, st.name as station
           FROM
-              sampling_points sp,eea_mediavalues mv, eea_measurementregimevalues mr, eea_assessmenttypes ast,
-              eea_stationclassifications sc, stations st, eea_pollutants p, eea_concentrations cn, eea_times tm, sampling_point_access spa
-          WHERE sp.station_id = st.id
-          AND sp.pollutant = p.uri
-          AND sp.concentration = cn.id
-          AND sp.timestep = tm.id
-          AND sp.media_monitored = mv.id
-          AND sp.measurement_regime = mr.id
-          AND sp.assessment_type = ast.id
-          AND sp.station_classification = sc.id 
-          AND sp.id = spa.id
-          ORDER BY st.name, p.notation
+              sampling_points sp
+              LEFT JOIN eea_pollutants p ON sp.pollutant_id = p.id
+              LEFT JOIN eea_times tr ON sp.time_resolution_id = tr.id
+              LEFT JOIN eea_concentrations u ON sp.unit_id = u.id
+              INNER JOIN stations st ON sp.station_id = st.id
+              INNER JOIN sampling_point_access spa ON sp.id = spa.id
+          ORDER BY st.name, COALESCE(NULLIF(p.notation, ''), p.label)
         """, n_param)
         samplingpoints = cursor.fetchall()
         return jsonify(samplingpoints)
+
+
+@samplingpoints_endpoint.route('/api/management/samplingpoints/lookups', methods=['GET'])
+@jwt_required_with_management_claim()
+def samplingpoints_lookups():
+    with CursorFromPool() as cursor:
+        # Get stations accessible to user
+        with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+        cursor.execute(f"""
+            {with_network_sql}
+            SELECT st.id as value, st.name as label
+            FROM stations st
+            INNER JOIN networks n ON st.network_id = n.id
+            INNER JOIN network_access na ON n.id = na.id
+            ORDER BY st.name
+        """, n_param)
+        stations = cursor.fetchall()
+        
+        cursor.execute("SELECT id as value, COALESCE(NULLIF(notation, ''), label) as label FROM eea_pollutants ORDER BY COALESCE(NULLIF(notation, ''), label)")
+        pollutants = cursor.fetchall()
+        
+        cursor.execute("SELECT id as value, label FROM eea_times ORDER BY label")
+        time_resolutions = cursor.fetchall()
+        
+        cursor.execute("SELECT id as value, notation as label FROM eea_concentrations ORDER BY notation")
+        units = cursor.fetchall()
+        
+        return jsonify({
+            "stations": stations,
+            "pollutants": pollutants,
+            "time_resolutions": time_resolutions,
+            "units": units
+        })
 
 
 @samplingpoints_endpoint.route('/api/management/samplingpoints/update', methods=['POST'])
@@ -78,27 +88,17 @@ def samplingpoints_update():
         sql = """ 
           UPDATE sampling_points
           SET 
-            media_monitored=%(media_id)s, 
-            station_id=%(station_id)s, 
-            measurement_regime=%(measurement_regime_id)s, 
-            mobile=%(mobile)s, 
-            assessment_type=%(assessment_type_id)s, 
-            station_classification=%(station_classification_id)s, 
-            used_aqd=%(used_aqd)s, 
-            main_emission_sources=%(main_emission_sources)s, 
-            traffic_emissions=%(traffic_emissions)s, 
-            heating_emissions=%(heating_emissions)s, 
-            industrial_emissions=%(industrial_emissions)s, 
-            distance_source=%(distance_source)s, 
-            change_aei_stations=%(change_aei_stations)s, 
-            begin_position=%(begin_position)s, 
-            end_position=%(end_position)s,
+            inlet_height=%(inlet_height)s,
+            building_distance=%(building_distance)s,
+            kerb_distance=%(kerb_distance)s,
+            emission_source_distance=%(emission_source_distance)s,
             logger_id=%(logger_id)s,
-            pollutant=%(pollutant_id)s,
-            concentration=%(concentration_id)s,
-            timestep=%(timestep_id)s,
             private=%(private)s,
-            use_in_public_api=%(use_in_public_api)s
+            use_in_public_api=%(use_in_public_api)s,
+            pollutant_id=%(pollutant_id)s,
+            time_resolution_id=%(time_resolution_id)s,
+            unit_id=%(unit_id)s,
+            station_id=%(station_id)s
           WHERE id = %(id)s
         """
 
@@ -106,7 +106,7 @@ def samplingpoints_update():
         if cursor.rowcount == 0:
             raise BadRequest("Could not update for id " + model.id)
 
-        return jsonify({"success": True})
+        return jsonify({"msg": "Sampling point updated successfully"})
 
 
 @samplingpoints_endpoint.route('/api/management/samplingpoints/insert', methods=['POST'])
@@ -120,51 +120,14 @@ def samplingpoints_insert():
 
         sql = """
           INSERT INTO sampling_points (
-            id, 
-            media_monitored, 
-            station_id, 
-            measurement_regime, 
-            mobile, assessment_type, 
-            station_classification, 
-            used_aqd, 
-            main_emission_sources, 
-            traffic_emissions, 
-            heating_emissions, 
-            industrial_emissions, 
-            distance_source, 
-            change_aei_stations, 
-            begin_position, 
-            end_position, 
-            logger_id, 
-            pollutant, 
-            concentration, 
-            timestep,
-            private,
-            use_in_public_api
+            id, inlet_height, building_distance, kerb_distance,
+            emission_source_distance, logger_id, private, use_in_public_api,
+            pollutant_id, time_resolution_id, unit_id, station_id
           )
           VALUES (
-            %(id)s, 
-            %(media_id)s, 
-            %(station_id)s, 
-            %(measurement_regime_id)s, 
-            %(mobile)s, 
-            %(assessment_type_id)s, 
-            %(station_classification_id)s, 
-            %(used_aqd)s, 
-            %(main_emission_sources)s, 
-            %(traffic_emissions)s, 
-            %(heating_emissions)s, 
-            %(industrial_emissions)s, 
-            %(distance_source)s,
-            %(change_aei_stations)s, 
-            %(begin_position)s, 
-            %(end_position)s, 
-            %(logger_id)s,
-            %(pollutant_id)s, 
-            %(concentration_id)s, 
-            %(timestep_id)s,
-            %(private)s,
-            %(use_in_public_api)s
+            %(id)s, %(inlet_height)s, %(building_distance)s, %(kerb_distance)s,
+            %(emission_source_distance)s, %(logger_id)s, %(private)s, %(use_in_public_api)s,
+            %(pollutant_id)s, %(time_resolution_id)s, %(unit_id)s, %(station_id)s
           )           
         """
 
@@ -172,7 +135,7 @@ def samplingpoints_insert():
         if cursor.rowcount == 0:
             raise BadRequest("Could not insert for id " + model.id)
 
-        return jsonify({"success": True})
+        return jsonify({"msg": "Sampling point created successfully"})
 
 
 @samplingpoints_endpoint.route('/api/management/samplingpoints/delete', methods=['POST'])
@@ -188,4 +151,4 @@ def samplingpoints_delete():
         if rows == 0:
             raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
 
-        return jsonify({"success": True})
+        return jsonify({"msg": "Sampling point deleted successfully"})
