@@ -11,11 +11,20 @@ aqi_endpoint = Blueprint('aqi', __name__)
 def aqi():
     with CursorFromPool() as cursor:
         sql = """
-            select p.notation as pollutant,t.label as timestep, i.level, i.description, i.color, lower(i.range) as range_from, upper(i.range) as range_to, p.uri as pollutant_uri, t.id as timestep_uri
-            from aqi i, eea_pollutants p, eea_times t
-            where i.pollutant_uri = p.uri
-            and i.timestep = t.id
-            and i.calculation_type = 'LOCAL'
+            select 
+                COALESCE(NULLIF(p.notation, ''), p.label) as pollutant,
+                t.label as timestep, 
+                i.level, 
+                i.description, 
+                i.color, 
+                lower(i.range) as range_from, 
+                upper(i.range) as range_to, 
+                p.id as pollutant_id, 
+                t.id as timestep_id
+            from aqi i
+            join eea_pollutants p on i.pollutant_id = p.id
+            join eea_times t on i.timestep = t.id
+            where i.calculation_type = 'LOCAL'
             order by pollutant, timestep, level
         """
         cursor.execute(sql)
@@ -36,16 +45,16 @@ def save_aqi():
 
         for item in data:
             sql = """
-              INSERT INTO aqi (pollutant_uri, timestep, level, range, description, color, calculation_type)
+              INSERT INTO aqi (pollutant_id, timestep, level, range, description, color, calculation_type)
               VALUES (%s, %s, %s, numrange(%s, %s, '[]'), %s, %s, 'LOCAL')
             """
             cursor.execute(sql, (
-                item['pollutant_uri'],
-                item['timestep_uri'],
+                item['pollutant_id'],
+                item['timestep_id'],
                 item['level'],
                 item['range_from'],
                 item['range_to'],
                 item['description'],
                 item['color']
             ))
-        return jsonify({"success": True})
+        return jsonify({"msg": "AQI configuration saved successfully"})

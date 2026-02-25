@@ -8,8 +8,8 @@ class AqiModel(BaseModel):
     level: int
     description: str
     color: str
-    pollutant_uri: str
-    timestep_uri: str
+    pollutant_id: int
+    timestep_id: str
     range_from: float
     range_to: float
 
