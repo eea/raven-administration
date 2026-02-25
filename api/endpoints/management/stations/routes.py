@@ -16,42 +16,48 @@ def stations():
         with_network_sql, n_param = Q.with_networks_by_access_as_sql()
         cursor.execute(f"""
           {with_network_sql} 
-          SELECT st.id,
-                st.name,
-                st.begin_position,
-                st.end_position,
-                st.network_id,
-                st.city,
-                st.national_station_code,
-                st.media_monitored as media_id,
-                st.mobile,
-                st.measurement_regime  as measurement_regime_id,
-                st.area_classification  as area_classification_id,
-                st.distance_junction,
-                st.traffic_volume,
-                st.heavy_duty_fraction::DOUBLE PRECISION,
-                st.height_facades,
-                st.municipality,
-                st.street_width,
-                st.eoi_code,
-                ST_X(st.geom)    longitude,
-                ST_Y(st.geom)    latitude,
-                ST_Z(st.geom)    altitude,
-                ST_SRID(st.geom) epsg,
-                n.name   as      network,
-                mv.label as      media,
-                mr.label as      measurement_regime,
-                ac.label as      area_classification 
-          FROM stations st, eea_mediavalues mv, eea_areaclassifications ac, eea_measurementregimevalues mr, networks n, network_access na
-          WHERE st.network_id = n.id
-          AND st.area_classification = ac.id
-          AND st.media_monitored = mv.id
-          AND st.measurement_regime = mr.id 
-          AND n.id = na.id
+          SELECT st.id, st.eoi_code, st.name, st.national_code,
+                 st.latitude, st.longitude, st.altitude, st.supersite,
+                 st.area_classification_id, ac.label as area_classification,
+                 st.spo_category_id, sc.label as spo_category,
+                 st.network_id, n.name as network
+          FROM stations st
+          LEFT JOIN eea_areaclassifications ac ON st.area_classification_id = ac.id
+          LEFT JOIN eea_spocategory sc ON st.spo_category_id = sc.id
+          INNER JOIN networks n ON st.network_id = n.id
+          INNER JOIN network_access na ON n.id = na.id
           ORDER BY st.name, st.id
         """, n_param)
         stations = cursor.fetchall()
         return jsonify(stations)
+
+
+@stations_endpoint.route('/api/management/stations/lookups', methods=['GET'])
+@jwt_required_with_management_claim()
+def stations_lookups():
+    with CursorFromPool() as cursor:
+        # Get networks accessible to user
+        with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+        cursor.execute(f"""
+            {with_network_sql}
+            SELECT n.id as value, n.name as label
+            FROM networks n, network_access na
+            WHERE n.id = na.id
+            ORDER BY n.name
+        """, n_param)
+        networks = cursor.fetchall()
+        
+        cursor.execute("SELECT id as value, label FROM eea_areaclassifications ORDER BY label")
+        areaclassifications = cursor.fetchall()
+        
+        cursor.execute("SELECT id as value, label FROM eea_spocategory ORDER BY label")
+        spocategories = cursor.fetchall()
+        
+        return jsonify({
+            "networks": networks,
+            "areaclassifications": areaclassifications,
+            "spocategories": spocategories
+        })
 
 
 @stations_endpoint.route('/api/management/stations/update', methods=['POST'])
@@ -65,35 +71,23 @@ def stations_update():
 
         sql = """ 
             UPDATE stations
-            SET 
-              name=%(name)s, 
-              begin_position=%(begin_position)s, 
-              end_position=%(end_position)s, 
-              network_id=%(network_id)s, 
-              city=%(city)s, 
-              national_station_code=%(national_station_code)s, 
-              media_monitored=%(media_id)s, 
-              mobile=%(mobile)s, 
-              measurement_regime=%(measurement_regime_id)s, 
-              area_classification=%(area_classification_id)s, 
-              distance_junction=%(distance_junction)s, 
-              traffic_volume=%(traffic_volume)s, 
-              heavy_duty_fraction=%(heavy_duty_fraction)s, 
-              street_width=%(street_width)s, 
-              height_facades=%(height_facades)s, 
-              geom = CASE 
-                WHEN %(altitude)s IS NULL THEN ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), %(epsg)s)
-                ELSE ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s, %(altitude)s), %(epsg)s)
-              END,
-              municipality=%(municipality)s, 
-              eoi_code=%(eoi_code)s
-            where id = %(id)s
+            SET eoi_code = %(eoi_code)s,
+                name = %(name)s,
+                national_code = %(national_code)s,
+                latitude = %(latitude)s,
+                longitude = %(longitude)s,
+                altitude = %(altitude)s,
+                supersite = %(supersite)s,
+                area_classification_id = %(area_classification_id)s,
+                spo_category_id = %(spo_category_id)s,
+                network_id = %(network_id)s
+            WHERE id = %(id)s
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
             raise BadRequest("Could not update for id " + model.id)
 
-        return jsonify({"success": True})
+        return jsonify({"msg": "Station updated successfully"})
 
 
 @stations_endpoint.route('/api/management/stations/insert', methods=['POST'])
@@ -106,60 +100,16 @@ def stations_insert():
             raise BadRequest("Access denied for network")
 
         sql = """ 
-            INSERT INTO stations (
-              id, 
-              name, 
-              begin_position, 
-              end_position, 
-              network_id, 
-              city, 
-              national_station_code, 
-              media_monitored, 
-              mobile, 
-              measurement_regime, 
-              area_classification, 
-              distance_junction, 
-              traffic_volume, 
-              heavy_duty_fraction, 
-              street_width, 
-              height_facades, 
-              geom, 
-              municipality, 
-              eoi_code
-            )
-            VALUES (
-              %(id)s, 
-              %(name)s, 
-              %(begin_position)s, 
-              %(end_position)s, 
-              %(network_id)s, 
-              %(city)s, 
-              %(national_station_code)s, 
-              %(media_id)s, 
-              %(mobile)s, 
-              %(measurement_regime_id)s, 
-              %(area_classification_id)s, 
-              %(distance_junction)s, 
-              %(traffic_volume)s, 
-              %(heavy_duty_fraction)s, 
-              %(street_width)s, 
-              %(height_facades)s, 
-              ST_Transform(
-                CASE 
-                  WHEN %(altitude)s IS NULL THEN ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), %(epsg)s)
-                  ELSE ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s, %(altitude)s), %(epsg)s)
-                END,
-                4326
-              ), 
-              %(municipality)s, 
-              %(eoi_code)s
-            )
+            INSERT INTO stations (id, eoi_code, name, national_code, latitude, longitude, 
+                                 altitude, supersite, area_classification_id, spo_category_id, network_id)
+            VALUES (%(id)s, %(eoi_code)s, %(name)s, %(national_code)s, %(latitude)s, %(longitude)s,
+                   %(altitude)s, %(supersite)s, %(area_classification_id)s, %(spo_category_id)s, %(network_id)s)
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
-            raise BadRequest("Could not update for id " + model.id)
+            raise BadRequest("Could not insert for id " + model.id)
 
-        return jsonify({"success": True})
+        return jsonify({"msg": "Station created successfully"})
 
 
 @stations_endpoint.route("/api/management/stations/delete", methods=['POST'])
@@ -169,10 +119,10 @@ def stations_delete():
         model = DeleteModel(**request.json)
 
         if not Access.to_stations(model.ids):
-            raise BadRequest("Access denied for station")
+            raise BadRequest("Access denied for stations")
 
         rows = Q.delete("stations", model)
         if rows == 0:
             raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
 
-        return jsonify({"success": True})
+        return jsonify({"msg": "Station deleted successfully"})
