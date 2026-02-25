@@ -15,57 +15,74 @@ processes_endpoint = Blueprint('processes', __name__)
 @jwt_required_with_management_claim()
 def processes():
     with CursorFromPool() as cursor:
-        cursor.execute(""" 
+        with_samplingpoints_sql, n_param = Q.with_sampling_points_by_networks_access()
+        cursor.execute(f""" 
+          {with_samplingpoints_sql}
           SELECT
               pr.id,
-              pr.sampling_method,
-              pr.other_sampling_method,
-              pr.analytical_tech,
-              pr.other_analytical_tech,
-              pr.sampling_equipment,
-              pr.equiv_demonstration,
-              pr.equiv_demonstration_report,
-              pr.detection_limit::DOUBLE PRECISION,
-              pr.uncertainty_estimate::DOUBLE PRECISION,
-              pr.documentation,
-              pr.qa_report,
-              pr.duration_number,
-              pr.cadence_number,
-              pr.other_measurement_equipment,
-              pr.other_sampling_equipment,
-              pr.other_measurement_method,
-              
-              
-              pr.equiv_demonstration as equiv_demonstration_id,
-              pr.measurement_type as measurement_type_id,
-              pr.measurement_method as measurement_method_id,
-              pr.measurement_equipment as measurement_equipment_id,
-              pr.detection_limit_uom as detection_limit_uom_id,
-              pr.duration_unit as duration_unit_id,
-              pr.cadence_unit as cadence_unit_id,
-              pr.responsible_authority_id as authority_id,
-              
-              mt.label as measurement_type,
-              mm.label as measurement_method,
-              me.label as measurement_equipment,
-              tm_d.label as duration_unit,
-              tm_c.label as cadence_unit,
-              ra.name as authority,
-              ed.label as equiv_demonstration,
-              ct.notation as detection_limit_uom 
-          FROM  processes pr
-              LEFT OUTER JOIN eea_measurementtypes mt ON lower(pr.measurement_type) = lower(mt.id)
-              LEFT OUTER JOIN eea_measurementmethods mm ON lower(pr.measurement_method) = lower(mm.id)
-              LEFT OUTER JOIN eea_measurementequipments me ON lower(pr.measurement_equipment) = lower(me.id)
-              LEFT OUTER JOIN eea_equivalencedemonstrated ed ON lower(pr.equiv_demonstration) = lower(ed.id)
-              LEFT OUTER JOIN responsible_authorities ra ON lower(pr.responsible_authority_id) = lower(ra.id)
-              LEFT OUTER JOIN eea_concentrations ct ON lower(pr.detection_limit_uom) = lower(ct.id)
-              LEFT OUTER JOIN eea_times tm_d ON lower(pr.duration_unit) = lower(tm_d.id)
-              LEFT OUTER JOIN eea_times tm_c ON lower(pr.cadence_unit) = lower(tm_c.id) 
+              pr.activity_begin,
+              pr.activity_end,
+              pr.data_quality_report_id,
+              pr.equivalence_demonstration_report_id,
+              pr.process_documentation_id,
+              pr.measurement_type_id, mt.label as measurement_type,
+              pr.method_id, mm.label as method,
+              pr.equipment_id, me.label as equipment,
+              pr.analytical_technique_id, at.label as analytical_technique,
+              pr.equivalence_demonstrated_id, ed.label as equivalence_demonstrated,
+              pr.sampling_point_id, sp.id as sampling_point
+          FROM processes pr
+              LEFT JOIN eea_measurementtypes mt ON pr.measurement_type_id = mt.id
+              LEFT JOIN eea_measurementmethods mm ON pr.method_id = mm.id
+              LEFT JOIN eea_measurementequipments me ON pr.equipment_id = me.id
+              LEFT JOIN eea_analyticaltechnique at ON pr.analytical_technique_id = at.id
+              LEFT JOIN eea_equivalencedemonstrated ed ON pr.equivalence_demonstrated_id = ed.id
+              INNER JOIN sampling_points sp ON pr.sampling_point_id = sp.id
+              INNER JOIN sampling_point_access spa ON sp.id = spa.id
           ORDER BY pr.id
-        """)
+        """, n_param)
         processes = cursor.fetchall()
         return jsonify(processes)
+
+
+@processes_endpoint.route('/api/management/processes/lookups', methods=['GET'])
+@jwt_required_with_management_claim()
+def processes_lookups():
+    with CursorFromPool() as cursor:
+        # Get sampling points accessible to user
+        with_samplingpoints_sql, n_param = Q.with_sampling_points_by_networks_access()
+        cursor.execute(f"""
+            {with_samplingpoints_sql}
+            SELECT sp.id as value, sp.id as label
+            FROM sampling_points sp
+            INNER JOIN sampling_point_access spa ON sp.id = spa.id
+            ORDER BY sp.id
+        """, n_param)
+        sampling_points = cursor.fetchall()
+        
+        cursor.execute("SELECT id as value, label FROM eea_measurementtypes ORDER BY label")
+        measurement_types = cursor.fetchall()
+        
+        cursor.execute("SELECT id as value, label FROM eea_measurementmethods ORDER BY label")
+        methods = cursor.fetchall()
+        
+        cursor.execute("SELECT id as value, label FROM eea_measurementequipments ORDER BY label")
+        equipments = cursor.fetchall()
+        
+        cursor.execute("SELECT id as value, label FROM eea_analyticaltechnique ORDER BY label")
+        analytical_techniques = cursor.fetchall()
+        
+        cursor.execute("SELECT id as value, label FROM eea_equivalencedemonstrated ORDER BY label")
+        equivalence_demonstrated = cursor.fetchall()
+        
+        return jsonify({
+            "sampling_points": sampling_points,
+            "measurement_types": measurement_types,
+            "methods": methods,
+            "equipments": equipments,
+            "analytical_techniques": analytical_techniques,
+            "equivalence_demonstrated": equivalence_demonstrated
+        })
 
 
 @processes_endpoint.route('/api/management/processes/update', methods=['POST'])
@@ -73,32 +90,24 @@ def processes():
 def processes_update():
     with CursorFromPool() as cursor:
         model = ProcessModel(**request.json)
+        
+        if not Access.to_sampling_point(model.sampling_point_id):
+            raise BadRequest("Access denied for sampling point")
+        
         sql = """        
             UPDATE processes
             SET 
-              measurement_type = %(measurement_type_id)s,
-              measurement_method = %(measurement_method_id)s,
-              other_measurement_method = %(other_measurement_method)s,
-              sampling_method = %(sampling_method)s,
-              other_sampling_method = %(other_sampling_method)s,
-              analytical_tech = %(analytical_tech)s,
-              other_analytical_tech = %(other_analytical_tech)s,
-              sampling_equipment = %(sampling_equipment)s,
-              measurement_equipment = %(measurement_equipment_id)s,
-              equiv_demonstration = %(equiv_demonstration_id)s,
-              equiv_demonstration_report = %(equiv_demonstration_report)s,
-              detection_limit = %(detection_limit)s,
-              detection_limit_uom = %(detection_limit_uom_id)s,
-              uncertainty_estimate = %(uncertainty_estimate)s,
-              documentation = %(documentation)s,
-              qa_report = %(qa_report)s,
-              duration_number = %(duration_number)s,
-              duration_unit = %(duration_unit_id)s,
-              cadence_number = %(cadence_number)s,
-              cadence_unit = %(cadence_unit_id)s,
-              responsible_authority_id = %(authority_id)s,
-              other_measurement_equipment = %(other_measurement_equipment)s,
-              other_sampling_equipment = %(other_sampling_equipment)s
+              activity_begin = %(activity_begin)s,
+              activity_end = %(activity_end)s,
+              data_quality_report_id = %(data_quality_report_id)s,
+              equivalence_demonstration_report_id = %(equivalence_demonstration_report_id)s,
+              process_documentation_id = %(process_documentation_id)s,
+              measurement_type_id = %(measurement_type_id)s,
+              method_id = %(method_id)s,
+              equipment_id = %(equipment_id)s,
+              analytical_technique_id = %(analytical_technique_id)s,
+              equivalence_demonstrated_id = %(equivalence_demonstrated_id)s,
+              sampling_point_id = %(sampling_point_id)s
             WHERE id = %(id)s
         """
 
@@ -106,7 +115,7 @@ def processes_update():
         if cursor.rowcount == 0:
             raise BadRequest("Could not update for id " + model.id)
 
-        return jsonify({"success": True})
+        return jsonify({"msg": "Process updated successfully"})
 
 
 @processes_endpoint.route('/api/management/processes/insert', methods=['POST'])
@@ -114,25 +123,29 @@ def processes_update():
 def processes_insert():
     with CursorFromPool() as cursor:
         model = ProcessModel(**request.json)
+        
+        if not Access.to_sampling_point(model.sampling_point_id):
+            raise BadRequest("Access denied for sampling point")
+        
         sql = """
           INSERT INTO processes (
-            id, measurement_type, measurement_method, other_measurement_method, sampling_method, other_sampling_method, analytical_tech, 
-            other_analytical_tech, sampling_equipment, measurement_equipment, equiv_demonstration, equiv_demonstration_report, detection_limit, 
-            detection_limit_uom, uncertainty_estimate, documentation, qa_report, duration_number, duration_unit, cadence_number, cadence_unit, 
-            responsible_authority_id, other_measurement_equipment, other_sampling_equipment
+            id, activity_begin, activity_end, data_quality_report_id,
+            equivalence_demonstration_report_id, process_documentation_id,
+            measurement_type_id, method_id, equipment_id,
+            analytical_technique_id, equivalence_demonstrated_id, sampling_point_id
           )
           VALUES (
-            %(id)s, %(measurement_type_id)s, %(measurement_method_id)s, %(other_measurement_method)s, %(sampling_method)s, %(other_sampling_method)s, %(analytical_tech)s, 
-            %(other_analytical_tech)s, %(sampling_equipment)s, %(measurement_equipment_id)s, %(equiv_demonstration_id)s, %(equiv_demonstration_report)s, %(detection_limit)s,
-            %(detection_limit_uom_id)s, %(uncertainty_estimate)s, %(documentation)s, %(qa_report)s, %(duration_number)s, %(duration_unit_id)s, %(cadence_number)s, %(cadence_unit_id)s, 
-            %(authority_id)s, %(other_measurement_equipment)s, %(other_sampling_equipment)s
+            %(id)s, %(activity_begin)s, %(activity_end)s, %(data_quality_report_id)s,
+            %(equivalence_demonstration_report_id)s, %(process_documentation_id)s,
+            %(measurement_type_id)s, %(method_id)s, %(equipment_id)s,
+            %(analytical_technique_id)s, %(equivalence_demonstrated_id)s, %(sampling_point_id)s
           )            
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
             raise BadRequest("Could not insert for id " + model.id)
 
-        return jsonify({"success": True})
+        return jsonify({"msg": "Process created successfully"})
 
 
 @processes_endpoint.route('/api/management/processes/delete', methods=['POST'])
@@ -144,4 +157,4 @@ def processes_delete():
     if rows == 0:
         raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
 
-    return jsonify({"success": True})
+    return jsonify({"msg": "Process deleted successfully"})
