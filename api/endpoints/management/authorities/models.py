@@ -1,19 +1,18 @@
 from pydantic import BaseModel
 from core.base_model import RavenBaseModel
-from typing import Optional
 
 
 class AuthorityModel(RavenBaseModel):
     
     id: str
-    person_name: Optional[str] = None
+    person_name: str
     email: str
     organisation_name: str
-    organisation_url: Optional[str] = None
-    organisation_address: Optional[str] = None
-    instance_id: Optional[str] = None
-    object_id: Optional[str] = None
-    status_id: Optional[str] = None
+    organisation_url: str
+    organisation_address: str
+    instance_id: str
+    object_id: str
+    status_id: str
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
