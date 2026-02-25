@@ -180,7 +180,7 @@ def is_locked_user(cursor, id):
 
 # GROUP
 def add_group(name, management, data, exporting, processing, qualitycontrol, users, allnetworks, networks):
-    if allnetworks == False and len(networks) == 0:
+    if allnetworks == False and (networks is None or len(networks) == 0):
         raise Exception("Networks cannot be empty when allnetworks is false")
 
     with CursorFromPool() as cursor:
@@ -203,9 +203,10 @@ def add_group(name, management, data, exporting, processing, qualitycontrol, use
         cursor.execute(sql, o)
         groupid = cursor.fetchone()
 
-        sql = "insert into groupnetwork (networkid, groupid) values (%(networkid)s, %(groupid)s)"
-        for n in networks:
-            cursor.execute(sql, {"networkid": n, "groupid": groupid["id"]})
+        if networks:
+            sql = "insert into groupnetwork (networkid, groupid) values (%(networkid)s, %(groupid)s)"
+            for n in networks:
+                cursor.execute(sql, {"networkid": n, "groupid": groupid["id"]})
 
 
 def update_group(id, name, management, data, exporting, processing, qualitycontrol, users, allnetworks, networks):
@@ -215,7 +216,7 @@ def update_group(id, name, management, data, exporting, processing, qualitycontr
         if is_locked_group(cursor, id):
             raise Exception("Cannot update locked group")
 
-        if allnetworks == False and len(networks) == 0:
+        if allnetworks == False and (networks is None or len(networks) == 0):
             raise Exception("Networks cannot be empty when allnetworks is false")
 
         sql = """
@@ -248,7 +249,7 @@ def update_group(id, name, management, data, exporting, processing, qualitycontr
 
         cursor.execute("delete from groupnetwork where groupid = %(groupid)s", {"groupid": id})
 
-        if allnetworks != True:
+        if allnetworks != True and networks:
             sql = "insert into groupnetwork (networkid, groupid) values (%(networkid)s, %(groupid)s)"
             for n in networks:
                 cursor.execute(sql, {"networkid": n, "groupid": id})

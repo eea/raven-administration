@@ -57,7 +57,7 @@ class InsertGroupModel(RavenBaseModel):
     qualitycontrol: Optional[bool] = False
     users: Optional[bool] = False
     allnetworks: Optional[bool] = False
-    networks: List[str] = []
+    networks: Optional[List[str]] = None
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
@@ -73,7 +73,7 @@ class UpdateGroupModel(RavenBaseModel):
     qualitycontrol: Optional[bool] = False
     users: Optional[bool] = False
     allnetworks: Optional[bool] = False
-    networks: List[str] = []
+    networks: Optional[List[str]] = None
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
