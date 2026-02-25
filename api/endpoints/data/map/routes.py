@@ -47,25 +47,25 @@ def map():
             aqi_level = 'COALESCE(a_local.level, 0) AS aqi'
             aqi_description = 'a_local.description AS aqi_description'
             aqi_color = 'a_local.color AS aqi_color'
-            join_aqi = "LEFT JOIN aqi AS a_local ON a_local.pollutant_uri = sp.pollutant AND a_local.timestep = sp.timestep AND a_local.calculation_type = 'LOCAL' AND a_local.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)"
+            join_aqi = "LEFT JOIN aqi AS a_local ON a_local.pollutant_id = sp.pollutant_id AND a_local.timestep = sp.time_resolution_id AND a_local.calculation_type = 'LOCAL' AND a_local.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)"
         else:
             aqi_level = 'COALESCE(a_eea.level, 0) AS aqi'
             aqi_description = 'a_eea.description AS aqi_description'
             aqi_color = 'a_eea.color AS aqi_color'
-            join_aqi = "LEFT JOIN aqi AS a_eea ON a_eea.pollutant_uri = sp.pollutant AND a_eea.timestep = sp.timestep AND a_eea.calculation_type = 'EEA' AND a_eea.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)"
+            join_aqi = "LEFT JOIN aqi AS a_eea ON a_eea.pollutant_id = sp.pollutant_id AND a_eea.timestep = sp.time_resolution_id AND a_eea.calculation_type = 'EEA' AND a_eea.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)"
         sql = f"""
             {with_network_sql}
             SELECT
                 n.name AS network,
                 s.name AS name,
-                st_x(geom) AS x,
-                st_y(geom) AS y,
+                s.longitude AS x,
+                s.latitude AS y,
                 to_char(sp.from_time, 'yyyy-mm-dd HH24:mi') AS from_time,
                 to_char(sp.to_time,   'yyyy-mm-dd HH24:mi') AS to_time,
                 NULLIF(o.value, 'NaN')::double precision AS value,
-                o.validation_flag,
-                o.verification_flag,
-                p.notation AS pollutant,
+                o.validity_id,
+                o.verification_id,
+                COALESCE(NULLIF(p.notation, ''), p.label) AS pollutant,
                 t.label AS timestep,
                 u.notation AS unit,
                 {aqi_level},
@@ -73,13 +73,13 @@ def map():
                 {aqi_color}
             FROM observations o
             JOIN sampling_points sp       ON o.sampling_point_id = sp.id
-            JOIN eea_pollutants p         ON sp.pollutant        = p.uri
-            JOIN eea_times t              ON sp.timestep         = t.id
+            JOIN eea_pollutants p         ON sp.pollutant_id     = p.id
+            JOIN eea_times t              ON sp.time_resolution_id = t.id
             JOIN stations s               ON s.id                = sp.station_id
             JOIN network_access n         ON n.id                = s.network_id
-            JOIN eea_concentrations u     ON sp.concentration    = u.id
+            JOIN eea_concentrations u     ON sp.unit_id          = u.id
             {join_aqi}
-            WHERE o.to_time = sp.to_time
+            WHERE o.end_time = sp.to_time
         """
         cursor.execute(sql, n_param)
         values = cursor.fetchall()
@@ -93,8 +93,8 @@ def map():
             "pollutant":         v["pollutant"],
             "timestep":          v["timestep"],
             "unit":              v["unit"],
-            "validation_flag":   v["validation_flag"],
-            "verification_flag": v["verification_flag"],
+            "validity_id":       v["validity_id"],
+            "verification_id":   v["verification_id"],
             "value":             v["value"],
             "aqi":               v["aqi"],
             "aqi_description":   v["aqi_description"],
