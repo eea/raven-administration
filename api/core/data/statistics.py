@@ -1002,12 +1002,12 @@ class Statistics:
                 st.name as station, 
                 sp.id as code,
                 sp.id as spo, 
-                p.notation as pollutant
+                COALESCE(NULLIF(p.notation, ''), p.label) as pollutant
             FROM sampling_points sp
-            JOIN eea_pollutants p ON sp.pollutant = p.uri
+            JOIN eea_pollutants p ON sp.pollutant_id = p.id
             JOIN stations st ON sp.station_id = st.id
             JOIN networks n ON st.network_id = n.id
-            WHERE LOWER(p.notation) = LOWER(%(pollutant)s)
+            WHERE LOWER(COALESCE(NULLIF(p.notation, ''), p.label)) = LOWER(%(pollutant)s)
         )"""
 
     # ============================================================================

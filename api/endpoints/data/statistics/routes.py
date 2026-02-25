@@ -49,13 +49,13 @@ def statistics_pollutants_and_aggregation_process():
         SELECT
           pol.notation AS pollutant,
           array_agg(ARRAY[
-            ap.notation,
+            ap.id,
             s.directive_2008_50::text,
             s.directive_2024_2881::text
-          ] ORDER BY ap.notation) AS ap_with_directives
+          ] ORDER BY ap.id) AS ap_with_directives
         FROM statistics s
         JOIN eea_pollutants pol
-          ON s.pollutant_uri = pol.uri
+          ON s.pollutant_id = pol.id
         JOIN eea_aggregationprocess ap
           ON s.aggregation_process_id = ap.id
         GROUP BY pol.notation
