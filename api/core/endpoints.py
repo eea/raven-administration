@@ -29,12 +29,6 @@ class Endpoints:
         from endpoints.management.processes.routes import processes_endpoint
         app.register_blueprint(processes_endpoint)
 
-        from endpoints.management.samples.routes import samples_endpoint
-        app.register_blueprint(samples_endpoint)
-
-        from endpoints.management.observingcapabilities.routes import observingcapabilities_endpoint
-        app.register_blueprint(observingcapabilities_endpoint)
-
         from endpoints.management.assessmentregimes.routes import assessmentregimes_endpoint
         app.register_blueprint(assessmentregimes_endpoint)
 

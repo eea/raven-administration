@@ -10,8 +10,6 @@ const Networks = () => import("./views/management/networks/Networks.vue");
 const Stations = () => import("./views/management/stations/Stations.vue");
 const SamplingPoints = () => import("./views/management/samplingpoints/Samplingpoints.vue");
 const Processes = () => import("./views/management/processes/Processes.vue");
-const Samples = () => import("./views/management/samples/Samples.vue");
-const ObservingCapabilities = () => import("./views/management/observingcapabilities/ObservingCapabilities.vue");
 const AssessmentRegimes = () => import("./views/management/assessmentregimes/AssessmentRegimes.vue");
 const Attainments = () => import("./views/management/attainments/Attainments.vue");
 const Exceedances = () => import("./views/management/exceedances/Exceedances.vue");
@@ -54,8 +52,6 @@ const routes = [
   { path: "/management/stations", component: Stations, name: "Stations" },
   { path: "/management/samplingpoints", component: SamplingPoints, name: "SamplingPoints" },
   { path: "/management/processes", component: Processes, name: "Processes" },
-  { path: "/management/samples", component: Samples, name: "Samples" },
-  { path: "/management/observingcapabilities", component: ObservingCapabilities, name: "ObservingCapabilities" },
   { path: "/management/assessmentregimes", component: AssessmentRegimes, name: "AssessmentRegimes" },
   { path: "/management/attainments", component: Attainments, name: "Attainments" },
   { path: "/management/exceedances", component: Exceedances, name: "Exceedances" },
