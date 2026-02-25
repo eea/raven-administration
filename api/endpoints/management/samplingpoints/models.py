@@ -4,10 +4,10 @@ from typing import Optional
 
 class SamplingPointsModel(RavenBaseModel):
     id: str
-    inlet_height: Optional[float] = None
-    building_distance: Optional[float] = None
-    kerb_distance: Optional[float] = None
-    emission_source_distance: Optional[float] = None
+    inlet_height: float
+    building_distance: float
+    kerb_distance: float
+    emission_source_distance: float
     logger_id: Optional[str] = None
     private: bool
     use_in_public_api: bool
