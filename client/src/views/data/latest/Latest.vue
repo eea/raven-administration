@@ -60,8 +60,8 @@ const createColumns = () => {
       }
     },
     { field: "value", headerName: "Value", flex: 1 },
-    { field: "validity_id", headerName: "Validity", flex: 1 },
-    { field: "verification_id", headerName: "Verification", flex: 1 },
+    { field: "observationvalidity_id", headerName: "Validity", flex: 1 },
+    { field: "observationverification_id", headerName: "Verification", flex: 1 },
     { field: "unit", headerName: "Unit", flex: 0.7 },
     { field: "id", headerName: "SPO", flex: 1 }
   ];
@@ -94,7 +94,7 @@ const getRowStyle = (params) => {
   const row = params.data;
   let style = {};
 
-  if (row.validity_id && row.validity_id !== '1') {
+  if (row.observationvalidity_id && row.observationvalidity_id !== 1) {
     style.backgroundColor = "#bf616a1a"; // bg-nord11/10
   }
 

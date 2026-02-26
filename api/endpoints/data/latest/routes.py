@@ -17,8 +17,8 @@ def latest():
                 sp.id AS id,
                 to_char(sp.from_time, 'yyyy-mm-dd HH24:mi') AS from_time,
                 to_char(sp.to_time,   'yyyy-mm-dd HH24:mi') AS to_time,
-                o.validity_id,
-                o.verification_id,
+                o.observationvalidity_id,
+                o.observationverification_id,
                 COALESCE(NULLIF(p.notation, ''), p.label) AS pollutant,
                 t.label              AS timestep,
                 s.name               AS station,
@@ -60,9 +60,9 @@ def latest():
                   AND a_eea.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)
             WHERE
                 1 = 1
-                AND o.end_time = sp.to_time
+                AND o.to_time = sp.to_time
             ORDER BY
-                end_time  DESC,
+                o.to_time  DESC,
                 station,
                 pollutant,
                 timestep;
