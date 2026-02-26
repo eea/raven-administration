@@ -19,6 +19,8 @@ const emit = defineEmits(["close", "save"]);
 const obj = ref({});
 const mapRef = ref(null);
 const geoJsonRef = ref(null);
+const fileInput = ref(null);
+const sourceEpsg = ref(4326);
 let url = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 
 const geoJsonData = computed(() => {
@@ -90,8 +92,44 @@ const fitBounds = () => {
   }
 };
 
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      
+      // Extract geometry from GeoJSON
+      let geometry;
+      if (json.type === 'FeatureCollection' && json.features && json.features.length > 0) {
+        // Take the first feature's geometry
+        geometry = json.features[0].geometry;
+      } else if (json.type === 'Feature' && json.geometry) {
+        // Single feature
+        geometry = json.geometry;
+      } else if (json.type && json.coordinates) {
+        // Already a geometry object
+        geometry = json;
+      } else {
+        alert("Invalid GeoJSON format. Must be a FeatureCollection, Feature, or Geometry.");
+        return;
+      }
+      
+      obj.value.geojson = JSON.stringify(geometry);
+    } catch (error) {
+      alert("Error reading GeoJSON file: " + error.message);
+    }
+  }
+};
+
+const triggerFileInput = () => {
+  fileInput.value.click();
+};
+
 const handleSave = () => {
-  emit("save", Object.assign({}, obj.value));
+  const data = Object.assign({}, obj.value);
+  data.source_epsg = sourceEpsg.value;
+  emit("save", data);
 };
 
 const handleClose = () => {
@@ -122,6 +160,42 @@ const handleClose = () => {
                 <option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value">{{ p.label }}</option>
               </select>
             </div>
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <div class="font-bold">Geometry (GeoJSON):</div>
+          <div class="flex gap-2 items-center mb-2">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm">Source EPSG Code:</label>
+              <select v-model="sourceEpsg" class="select">
+                <option :value="4326">EPSG:4326 (WGS84)</option>
+                <option :value="4258">EPSG:4258 (ETRS89)</option>
+                <option :value="3035">EPSG:3035 (LAEA)</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex gap-2 items-center">
+            <input 
+              ref="fileInput" 
+              type="file" 
+              accept=".json,.geojson" 
+              @change="handleFileUpload" 
+              class="hidden"
+            />
+            <button 
+              type="button" 
+              class="button bg-nord10 hover:bg-nord10/80" 
+              @click="triggerFileInput"
+            >
+              Upload GeoJSON File
+            </button>
+            <span v-if="geoJsonData" class="text-nord14 text-sm">
+              ✓ Geometry loaded
+            </span>
+            <span v-else class="text-nord11 text-sm">
+              No geometry
+            </span>
           </div>
         </div>
 
