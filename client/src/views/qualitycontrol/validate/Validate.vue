@@ -42,9 +42,9 @@ const columns = shallowRef([
   { field: "totime", headerName: "To", flex: 1 },
   { field: "value", headerName: "Value", width: 120 },
   { field: "import_value", headerName: "Import value", width: 120 },
-  { field: "validation_flag", headerName: "Validation", width: 120 },
+  { field: "observationvalidity_id", headerName: "Validation", width: 120 },
   {
-    field: "verification_flag",
+    field: "observationverification_id",
     headerName: "Verification",
     width: 120,
     cellRenderer: (params) => {
@@ -114,7 +114,7 @@ const getRowStyle = (params) => {
   const row = params.data;
   if (!row) return { background: "" };
 
-  if (row.validation_flag < 1) {
+  if (row.observationvalidity_id < 1) {
     return { background: "rgba(191, 97, 106, 0.1)" }; // nord11/10
   }
 
@@ -130,8 +130,8 @@ const onDownload = () => {
       totime: "To",
       value: "Value",
       import_value: "Import value",
-      validation_flag: "Validation",
-      verification_flag: "Verification"
+      observationvalidity_id: "Validation",
+      observationverification_id: "Verification"
     };
     downloadCsv(timevalues.value, columnMapping, name);
   }
@@ -237,7 +237,7 @@ const formatValues = () => {
   timevalues.value.forEach((o) => {
     var value_to_use = showValidOnly.value ? o.valid_value_only : o.value;
     var v = value_to_use == -9900 ? null : value_to_use;
-    var c = o.validation_flag < 1 ? "#BF616A" : "#A3BE8C";
+    var c = o.observationvalidity_id < 1 ? "#BF616A" : "#A3BE8C";
     const n = Object.assign({}, o);
     colors.push(c);
     data.push({ x: o.totime.replace(" ", "T"), y: v, obj: n });
