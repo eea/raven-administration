@@ -14,9 +14,9 @@ autovalidate_endpoint = Blueprint("autovalidate", __name__)
 def autovalidate():
     with CursorFromPool() as cursor:
         cursor.execute("""
-            select v.id,v.min, v.max,v.rep, v.enabled, p.notation as pollutant, p.uri as pollutant_id
+            select v.id, v.min, v.max, v.rep, v.enabled, p.notation as pollutant, p.id as pollutant_id
             from autovalidated_series v, eea_pollutants p
-            where v.pollutant = p.uri
+            where v.pollutant_id = p.id
             order by p.notation
         """)
         autovalidations = cursor.fetchall()
@@ -29,8 +29,8 @@ def autovalidate_insert():
     with CursorFromPool() as cursor:
         model = InsertModel(**request.json)
         sql = """ 
-            insert into autovalidated_series ("min", "max", rep, pollutant) 
-            values (%(min)s,%(max)s,%(rep)s,%(pollutant_id)s)
+            insert into autovalidated_series ("min", "max", rep, pollutant_id) 
+            values (%(min)s, %(max)s, %(rep)s, %(pollutant_id)s)
         """
         cursor.execute(sql, model)
         return jsonify({"success": True})
@@ -43,7 +43,7 @@ def autovalidate_delete():
     rows = Q.delete("autovalidated_series", model)
 
     if rows == 0:
-        raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
+        raise BadRequest("Could not delete for ids " + ','.join(map(str, model.ids)))
 
     return jsonify({"success": True})
 
@@ -72,9 +72,9 @@ def autovalidate_update():
 def autovalidate_pollutants():
     with CursorFromPool() as cursor:
         cursor.execute("""
-            select p.notation || ' - ' || p.label as label, p.uri as value
+            select p.notation || ' - ' || p.label as label, p.id as value
             from eea_pollutants p
-            where p.uri not in (select a.pollutant from autovalidated_series a)
+            where p.id not in (select a.pollutant_id from autovalidated_series a)
             order by p.notation
         """)
         pollutants = cursor.fetchall()

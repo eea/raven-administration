@@ -1,11 +1,11 @@
 from core.database import CursorFromPool
 from core.jwt_ext_custom import can_see_all_networks, get_networks
 from pydantic import BaseModel
-from typing import List
+from typing import List, Union
 
 
 class DeleteModel(BaseModel):
-    ids: List[str]
+    ids: List[Union[str, int]]
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
