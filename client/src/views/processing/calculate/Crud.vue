@@ -66,12 +66,12 @@ const onSave = () => {
 </script>
 
 <template>
-  <popup :show="show" :title="isEdit ? 'Edit Calculation' : 'Add Calculation'" @on-close="$emit('close')">
+  <popup :show="show" :title="isEdit ? 'Edit Calculation' : 'Add Calculation'" @on-close="$emit('close')" class="w-[50%]">
     <div class="mb-4 font-bold text-base border-b">Required</div>
 
-    <div v-if="!isEdit" class="mb-2">
+    <div class="mb-2">
       <div class="font-bold">Station:</div>
-      <select v-model="station" class="select w-full">
+      <select v-model="station" class="select w-full" :disabled="isEdit">
         <option value="">Select station</option>
         <option v-for="a in cmp_stations" :key="a" :value="a">{{ a }}</option>
       </select>

@@ -19,9 +19,9 @@ class Q:
                 select CONCAT(s.name,', ', p.notation,', ', t.label, ', ', u.notation )  as label, sp.id as value
                 from sampling_points sp, stations s, eea_pollutants p, eea_times t, eea_concentrations u
                 where sp.station_id = s.id
-                and sp.pollutant = p.uri
-                and sp.timestep = t.id
-                and sp.concentration = u.id
+                and sp.pollutant_id = p.id
+                and sp.time_resolution_id = t.id
+                and sp.unit_id = u.id
                 order by s.name, p.notation, t.label
             """)
             return cursor.fetchall()
@@ -36,9 +36,9 @@ class Q:
                 from sampling_points sp, stations s, eea_pollutants p, eea_times t, eea_concentrations u, network_access n
                 where sp.station_id = s.id
                 and n.id = s.network_id
-                and sp.pollutant = p.uri
-                and sp.timestep = t.id
-                and sp.concentration = u.id
+                and sp.pollutant_id = p.id
+                and sp.time_resolution_id = t.id
+                and sp.unit_id = u.id
                 order by s.name, p.notation, t.label
             """, n_param)
             return cursor.fetchall()

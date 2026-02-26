@@ -1,8 +1,8 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
 from core.database import CursorFromPool
-from endpoints.processing.convert.models import InsertModel, UpdateModel, DeleteModel
-from core.query import Q
+from endpoints.processing.convert.models import InsertModel, UpdateModel
+from core.query import Q, DeleteModel
 from core.jwt_ext_custom import jwt_required_with_processing_claim
 from core.jwt_ext_custom import get_name
 
@@ -29,8 +29,8 @@ def convert():
             and cs.target = t.id
             and cs.sampling_point_id = p.id
             and p.station_id = st.id
-            and p.pollutant = po.uri
-            and p.timestep = ti.id
+            and p.pollutant_id = po.id
+            and p.time_resolution_id = ti.id
         """, n_param)
         convertions = cursor.fetchall()
         return jsonify(convertions)
@@ -143,8 +143,8 @@ def convert_download():
             and cs.target = t.id
             and cs.sampling_point_id = p.id
             and p.station_id = st.id
-            and p.pollutant = po.uri
-            and p.timestep = ti.id
+            and p.pollutant_id = po.id
+            and p.time_resolution_id = ti.id
             order by st.name, po.notation, ti.label
         """, n_param)
         conversions = cursor.fetchall()
