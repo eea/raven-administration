@@ -177,7 +177,7 @@ const onDownload = () => {
       </div>
     </container>
 
-    <div class="mt-4 h-[calc(100vh-300px)]" v-if="showTable">
+    <div class="mt-4 h-full" v-if="showTable">
       <DataTable :data="cmp_datasets" :columns="columns" :get-row-style="getRowStyle" :filter="false" :floating-filter="false" @on-right-click="onContextMenu" />
     </div>
   </common-layout>

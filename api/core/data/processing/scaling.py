@@ -18,15 +18,15 @@ class Scaling:
                 for sp in scaling_points:
                     filtered_values = []
                     if sp["f_sampling_point_id"] is not None and sp["t_sampling_point_id"] is not None:
-                        filtered_values = group[(group["end_position"].apply(lambda t: t.timestamp()) >= sp["f_timestamp"].timestamp()) & (group["end_position"].apply(lambda t: t.timestamp()) < sp["t_timestamp"].timestamp())]
+                        filtered_values = group[(group["to_time"].apply(lambda t: t.timestamp()) >= sp["f_timestamp"].timestamp()) & (group["to_time"].apply(lambda t: t.timestamp()) < sp["t_timestamp"].timestamp())]
 
                         for row in filtered_values.itertuples():
-                            scaled_value = Scaling.__scale__(sp["f_zero_point"], sp["f_span_value"], sp["f_gas_concentration"], sp["f_timestamp"].timestamp(), sp["t_zero_point"], sp["t_span_value"], sp["t_gas_concentration"], sp["t_timestamp"].timestamp(), row.value, row.end_position.timestamp())
+                            scaled_value = Scaling.__scale__(sp["f_zero_point"], sp["f_span_value"], sp["f_gas_concentration"], sp["f_timestamp"].timestamp(), sp["t_zero_point"], sp["t_span_value"], sp["t_gas_concentration"], sp["t_timestamp"].timestamp(), row.value, row.to_time.timestamp())
                             df_values.at[row.Index,  "value"] = scaled_value
                             df_values.at[row.Index,  "scaled_value"] = scaled_value
 
                     elif sp["f_sampling_point_id"] is not None:
-                        filtered_values = group[(group["end_position"].apply(lambda t: t.timestamp()) >= sp["f_timestamp"].timestamp())]
+                        filtered_values = group[(group["to_time"].apply(lambda t: t.timestamp()) >= sp["f_timestamp"].timestamp())]
 
                         for row in filtered_values.itertuples():
                             scaled_value = Scaling.__scalevalue__(sp["f_zero_point"], sp["f_span_value"], sp["f_gas_concentration"], row.value)
@@ -34,7 +34,7 @@ class Scaling:
                             df_values.at[row.Index,  "scaled_value"] = scaled_value
 
                     elif sp["t_sampling_point_id"] is not None:
-                        filtered_values = group[(group["end_position"].apply(lambda t: t.timestamp()) < sp["t_timestamp"].timestamp())]
+                        filtered_values = group[(group["to_time"].apply(lambda t: t.timestamp()) < sp["t_timestamp"].timestamp())]
 
                         for row in filtered_values.itertuples():
                             scaled_value = Scaling.__scalevalue__(sp["t_zero_point"], sp["t_span_value"], sp["t_gas_concentration"], row.value)
@@ -48,7 +48,7 @@ class Scaling:
     def ReScale(cursor, use_scalingpoint, sampling_point_id, zero, span, gas, timestamp, old_timestamp=None):
         minmax = Scaling.__minmax__(cursor, sampling_point_id, timestamp, old_timestamp)
         df_values = Scaling.__get_imported_observations(cursor, sampling_point_id, minmax["min"], minmax["max"])
-        Common.validate_dataframe(df_values)
+        Common.validate_dataframe(df_values, cursor)
         df_values = Common.add_timeserie_info(cursor, df_values)
         return Scaling.Scale(cursor, df_values, {"sampling_point_id": sampling_point_id, "zero_point": zero, "span_value": span, "gas_concentration": gas, "timestamp": timestamp, "old_timestamp": old_timestamp, "use_scalingpoint": use_scalingpoint})
 
@@ -92,14 +92,13 @@ class Scaling:
             select 
               o.id, 
               o.sampling_point_id, 
-              o.begin_position, 
-              o.end_position, 
-              o.verification_flag, 
-              o.validation_flag, 
+              o.from_time, 
+              o.to_time, 
+              o.observationverification_id, 
+              o.observationvalidity_id, 
               o.import_value::DOUBLE PRECISION, 
               o.import_value::DOUBLE PRECISION as value, 
               null as scaled_value,
-              o.from_time, o.to_time, 
               extract(epoch from o.to_time)*1000 as to_epoch, 
               extract(epoch from o.from_time)*1000 as from_epoch
             from observations o 

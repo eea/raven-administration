@@ -53,7 +53,7 @@ def update():
 
         values = Scaling.ReScale(cursor, True, model.sampling_point_id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, current_timestamp)
 
-        if len(values[values["verification_flag"] == 1]) > 0:
+        if len(values[values["observationverification_id"] == 1]) > 0:
             raise Exception("Cannot scale values with verification flag 1")
 
         values = Importing.process_scaled_values(cursor, values, False)
@@ -78,7 +78,7 @@ def insert():
 
         values = Scaling.ReScale(cursor, True, model.sampling_point_id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, model.timestamp)
 
-        if len(values[values["verification_flag"] == 1]) > 0:
+        if len(values[values["observationverification_id"] == 1]) > 0:
             raise Exception("Cannot scale values with verification flag 1")
 
         values = Importing.process_scaled_values(cursor, values, False)
@@ -102,7 +102,7 @@ def delete():
 
         values = Scaling.ReScale(cursor, False, sp["sampling_point_id"], sp["zero_point"], sp["span_value"], sp["gas_concentration"], sp["timestamp"], sp["timestamp"])
 
-        if len(values[values["verification_flag"] == 1]) > 0:
+        if len(values[values["observationverification_id"] == 1]) > 0:
             raise Exception("Cannot scale values with verification flag 1")
 
         values = Importing.process_scaled_values(cursor, values, False)
@@ -128,7 +128,7 @@ def preview():
 
         values = Scaling.ReScale(cursor, True, model.sampling_point_id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, current_timestamp)
 
-        hasVerifiedValues = len(values[values["verification_flag"] == 1]) > 0
+        hasVerifiedValues = len(values[values["observationverification_id"] == 1]) > 0
 
         values = Importing.process_scaled_values(cursor, values, False)
 
@@ -149,9 +149,9 @@ def timeseries():
                 from sampling_points sp, stations s, eea_pollutants p, eea_times t, eea_concentrations u, network_access n
                 where sp.station_id = s.id
                 and n.id = s.network_id
-                and sp.pollutant = p.uri
-                and sp.timestep = t.id
-                and sp.concentration = u.id
+                and sp.pollutant_id = p.id
+                and sp.time_resolution_id = t.id
+                and sp.unit_id = u.id
                 and sp.from_time is not null
                 and sp.to_time is not null
                 order by s.name, p.notation, t.label

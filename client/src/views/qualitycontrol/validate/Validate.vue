@@ -50,7 +50,7 @@ const columns = shallowRef([
     cellRenderer: (params) => {
       const value = params.value;
       if (value === 1) {
-        return `<div class="flex gap-1"><span>${value}</span><svg class="text-xs text-nord14" style="width: 12px; height: 12px; display: inline-block;" viewBox="0 0 256 256" fill="currentColor"><path d="M208,80H96V48a8,8,0,0,1,16,0,8,8,0,0,0,16,0,24,24,0,0,0-48,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm0,128H48V96H208V208Zm-68-56a12,12,0,1,1-12-12A12,12,0,0,1,140,152Z"></path></svg></div>`;
+        return `<div class="flex gap-1 items-center"><span>${value}</span><svg class="text-xs text-nord14" style="width: 12px; height: 12px; display: inline-block;" viewBox="0 0 256 256" fill="currentColor"><path d="M208,80H96V48a8,8,0,0,1,16,0,8,8,0,0,0,16,0,24,24,0,0,0-48,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm0,128H48V96H208V208Zm-68-56a12,12,0,1,1-12-12A12,12,0,0,1,140,152Z"></path></svg></div>`;
       }
       return value;
     }
@@ -195,7 +195,9 @@ const onValidate = async (flag, row) => {
     Eventy.showHideMessage("Validation flag updated", "success");
   } catch (error) {
     console.error("Error validating:", error);
-    Eventy.showHideMessage("Error updating validation flag", "error", 3000);
+    // Display the actual error message from the server
+    const errorMessage = error.message || "Error updating validation flag";
+    Eventy.showHideMessage(errorMessage, "error", 5000);
   }
 };
 

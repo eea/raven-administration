@@ -6,19 +6,44 @@ from core.printcol import printcol
 
 class Common:
     @staticmethod
-    def validate_dataframe(df_values: DataFrame):
+    def get_settings_timezone(cursor):
+        """Get the configured timezone from settings"""
+        cursor.execute("SELECT tz.id FROM settings s JOIN eea_timezones tz ON s.timezone_id = tz.id LIMIT 1")
+        row = cursor.fetchone()
+        if row:
+            # Convert "UTC+01" format to offset minutes for pytz.FixedOffset
+            tz_str = row["id"]
+            if tz_str == "UTC":
+                return 0
+            # Parse UTC+01, UTC-05, etc.
+            sign = 1 if "+" in tz_str else -1
+            offset_hours = int(tz_str.split("+")[-1].split("-")[-1])
+            return sign * offset_hours * 60
+        return 0  # Default to UTC if no settings
+
+    @staticmethod
+    def validate_dataframe(df_values: DataFrame, cursor=None):
         bench = time.perf_counter()
         # Skip validation if dataframe is empty
         if df_values.empty:
             printcol(f"- Validating datatypes took {time.perf_counter() - bench} seconds (empty dataframe)")
             return
         # Validations raises an exception if it fails
-        df_values["begin_position"] = pd.to_datetime(df_values["begin_position"], format="%Y-%m-%dT%H:%M:%S%z")
-        df_values["end_position"] = pd.to_datetime(df_values["end_position"], format="%Y-%m-%dT%H:%M:%S%z")
+        df_values["from_time"] = pd.to_datetime(df_values["from_time"])
+        df_values["to_time"] = pd.to_datetime(df_values["to_time"])
+        
+        # Localize naive timestamps to the configured timezone
+        if cursor is not None:
+            tz_offset_minutes = Common.get_settings_timezone(cursor)
+            import pytz
+            tz = pytz.FixedOffset(tz_offset_minutes)
+            df_values["from_time"] = df_values["from_time"].dt.tz_localize(tz)
+            df_values["to_time"] = df_values["to_time"].dt.tz_localize(tz)
+        
         df_values.sampling_point_id.astype(str)
         df_values.value = df_values.value.astype(float)
-        df_values.verification_flag.astype(int)
-        df_values.validation_flag.astype(int)
+        df_values.observationverification_id.astype(int)
+        df_values.observationvalidity_id.astype(int)
         printcol(f"- Validating datatypes took {time.perf_counter() - bench} seconds")
 
     @staticmethod
@@ -39,7 +64,7 @@ class Common:
             from
                 eea_times t,
                 sampling_points p left join calculated_series cs on cs.result = p.id
-            where p.timestep = t.id
+            where p.time_resolution_id = t.id
             and p.id in %(ids)s
         """
         cursor.execute(sql, {"ids": ids})

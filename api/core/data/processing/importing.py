@@ -29,7 +29,7 @@ class Importing:
         # - DoFlagging
         # - Upsert inserts
 
-        Common.validate_dataframe(df_values)
+        Common.validate_dataframe(df_values, cursor)
         Importing.set_import_value(df_values)
         df_values = Common.add_timeserie_info(cursor, df_values)
         Importing.verify_values(cursor, df_values)
@@ -57,9 +57,11 @@ class Importing:
 
     @staticmethod
     def verify_values(cursor: any, df_values: DataFrame):
+        from core.data.processing.common import Common
+        
         bench = time.perf_counter()
         # Check for duplicate datetimes
-        if len(df_values[df_values[['sampling_point_id', 'begin_position', 'end_position']].duplicated()]) > 0:
+        if len(df_values[df_values[['sampling_point_id', 'from_time', 'to_time']].duplicated()]) > 0:
             raise Exception("A timeserie cannot contain duplicate datetimes")
 
         # Check if value has a samplingpoint
@@ -71,20 +73,32 @@ class Importing:
             raise Exception("Calculated values cannot be imported")
 
         # Check to see if timestep matches with the imported values. Ignore if timestep is -1
-        df_errors = df_values[(((df_values.end_position - df_values.begin_position) / pd.Timedelta(seconds=1)).astype('int64') - ((df_values.apply(lambda x: U.actual_timestep(x.begin_position, x.ts_timestep), axis=1))).astype('int64')) > 0]
+        df_errors = df_values[(((df_values.to_time - df_values.from_time) / pd.Timedelta(seconds=1)).astype('int64') - ((df_values.apply(lambda x: U.actual_timestep(x.from_time, x.ts_timestep), axis=1))).astype('int64')) > 0]
         df_errors = df_errors[df_errors.ts_timestep != -1]
         if len(df_errors) > 0:
             l = len(df_errors)
             f = df_errors.iloc[0]
-            raise Exception(f"Imported values does not match timestep. First error is at {f.sampling_point_id} {f.begin_position} {f.end_position} {f.ts_timestep}")
+            raise Exception(f"Imported values does not match timestep. First error is at {f.sampling_point_id} {f.from_time} {f.to_time} {f.ts_timestep}")
+
+        # Check if all imported timestamps match the configured timezone
+        expected_offset_minutes = Common.get_settings_timezone(cursor)
+        actual_offsets = df_values["from_time"].apply(lambda t: t.utcoffset().total_seconds() / 60).unique()
+        if len(actual_offsets) > 1:
+            raise Exception(f"Imported data contains multiple timezones. All timestamps must have the same timezone.")
+        if len(actual_offsets) > 0 and actual_offsets[0] != expected_offset_minutes:
+            # Get timezone ID for error message
+            cursor.execute("SELECT tz.id FROM settings s JOIN eea_timezones tz ON s.timezone_id = tz.id LIMIT 1")
+            tz_row = cursor.fetchone()
+            expected_tz = tz_row["id"] if tz_row else "UTC"
+            actual_offset_hours = int(actual_offsets[0] / 60)
+            actual_tz = f"UTC{actual_offset_hours:+03d}".replace("+00", "")  # Format as UTC+01 or UTC-05
+            if actual_tz == "UTC":
+                actual_tz = "UTC"
+            raise Exception(f"Imported data timezone ({actual_tz}) does not match configured timezone ({expected_tz}). Please check your data or update settings.")
 
         # Check if any are verified values
-        # if len(df_values[df_values["verification_flag"] == 1]) > 0:
+        # if len(df_values[df_values["observationverification_id"] == 1]) > 0:
         #     raise Exception("Imported values cannot be verified")
-
-        # Check if all values have the same timezone
-        if len(df_values["begin_position"].apply(lambda t: t.utcoffset().total_seconds()).unique()) > 1 or len(df_values["end_position"].apply(lambda t: t.utcoffset().total_seconds()).unique()) > 1:
-            raise Exception("All values must have the same timezone ")
 
         printcol(f"- Verifying values took {time.perf_counter() - bench} seconds")
 
@@ -101,33 +115,33 @@ class Importing:
                 UPDATE observations as t 
                 SET
                     value = s.value,
-                    verification_flag = s.verification_flag,
-                    validation_flag = s.validation_flag,
+                    observationverification_id = s.observationverification_id,
+                    observationvalidity_id = s.observationvalidity_id,
                     touched = now(),
                     import_value = s.import_value,
                     scaled_value = s.scaled_value
                 FROM source s
                 WHERE t.sampling_point_id = s.sampling_point_id
-                AND t.begin_position = s.begin_position
-                AND t.end_position = s.end_position
-                RETURNING t.sampling_point_id, t.begin_position, t.end_position
+                AND t.from_time = s.from_time
+                AND t.to_time = s.to_time
+                RETURNING t.sampling_point_id, t.from_time, t.to_time
             )
-            INSERT INTO observations (sampling_point_id, begin_position, end_position, value, verification_flag, validation_flag, import_value,scaled_value, touched)
+            INSERT INTO observations (sampling_point_id, from_time, to_time, value, observationverification_id, observationvalidity_id, import_value,scaled_value, touched)
             SELECT v.*, now() as touched
             FROM source v
             WHERE NOT EXISTS (
                 SELECT 1
                 FROM updates u
                 WHERE u.sampling_point_id = v.sampling_point_id
-                AND u.begin_position = v.begin_position
-                and u.end_position = v.end_position 
+                AND u.from_time = v.from_time
+                and u.to_time = v.to_time 
             )
         """
 
         # tic = time.perf_counter()
         d = Importing.__data2io__(df_values)
-        cols = ('sampling_point_id', 'begin_position', 'end_position', 'value', 'verification_flag', 'validation_flag', 'import_value', 'scaled_value')
-        cursor.execute('CREATE TEMP TABLE source(sampling_point_id varchar(100), begin_position varchar(25), end_position varchar(25),value numeric(255,5), verification_flag integer,validation_flag integer, import_value numeric(255,5), scaled_value numeric(255,5)) ON COMMIT DROP;')
+        cols = ('sampling_point_id', 'from_time', 'to_time', 'value', 'observationverification_id', 'observationvalidity_id', 'import_value', 'scaled_value')
+        cursor.execute('CREATE TEMP TABLE source(sampling_point_id varchar(100), from_time varchar(25), to_time varchar(25),value numeric(255,5), observationverification_id integer,observationvalidity_id integer, import_value numeric(255,5), scaled_value numeric(255,5)) ON COMMIT DROP;')
         cursor.copy_from(d, 'source', columns=cols, null='None')
         cursor.execute(sql)
         cursor.execute('DROP TABLE source')
@@ -139,6 +153,6 @@ class Importing:
         data = df_values.to_dict("records")
         si = io.StringIO()
         for row in data:
-            si.write(f"{row['sampling_point_id']}\t{row['begin_position'].isoformat()}\t{row['end_position'].isoformat()}\t{row['value']}\t{row['verification_flag']}\t{row['validation_flag']}\t{row['import_value']}\t{row['scaled_value']}\n")
+            si.write(f"{row['sampling_point_id']}\t{row['from_time'].isoformat()}\t{row['to_time'].isoformat()}\t{row['value']}\t{row['observationverification_id']}\t{row['observationvalidity_id']}\t{row['import_value']}\t{row['scaled_value']}\n")
         si.seek(0)
         return si
