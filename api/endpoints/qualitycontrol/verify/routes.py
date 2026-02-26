@@ -29,21 +29,21 @@ def datasets():
                     aa.month,
                     aa.pollutant,
                     aa.timestep,
-                    COALESCE (min(aa.c) FILTER (WHERE verification_flag = 1),0) AS verified, 
-                    COALESCE (min(aa.c) FILTER (WHERE verification_flag = 2),0) AS pre_verified, 
-                    COALESCE (min(aa.c) FILTER (WHERE verification_flag = 3),0) AS not_verified								
+                    COALESCE (min(aa.c) FILTER (WHERE observationverification_id = 1),0) AS verified, 
+                    COALESCE (min(aa.c) FILTER (WHERE observationverification_id = 2),0) AS pre_verified, 
+                    COALESCE (min(aa.c) FILTER (WHERE observationverification_id = 3),0) AS not_verified								
                 from 
                 (
-                  select s.name, p.id, EXTRACT(year FROM o.from_time) as year,EXTRACT(month FROM o.from_time) as month, po.notation pollutant, t.label as timestep, o.verification_flag, count(*) as c
+                  select s.name, p.id, EXTRACT(year FROM o.from_time) as year,EXTRACT(month FROM o.from_time) as month, po.notation pollutant, t.label as timestep, o.observationverification_id, count(*) as c
                   from stations s, sampling_points p, observations o,  eea_pollutants po, eea_times t, network_access n
                   where EXTRACT(year FROM o.from_time) = %(year)s
                   and n.id = s.network_id
                   and s.id = %(station_id)s
                   and s.id = p.station_id
                   and p.id = o.sampling_point_id
-                  and p.pollutant = po.uri
-                  and p.timestep = t.id
-                  group by s.name, EXTRACT(year FROM o.from_time), EXTRACT(month FROM o.from_time), o.verification_flag, po.notation, p.id, t.label
+                  and p.pollutant_id = po.id
+                  and p.time_resolution_id = t.id
+                  group by s.name, EXTRACT(year FROM o.from_time), EXTRACT(month FROM o.from_time), o.observationverification_id, po.notation, p.id, t.label
                 ) aa
                 group by aa.name,aa.id, aa.year, aa.month, aa.pollutant, aa.timestep
             """, params)
@@ -86,7 +86,7 @@ def flag():
     with CursorFromPool() as cursor:
         cursor.execute("""
             update observations
-            set verification_flag = %(level)s
+            set observationverification_id = %(level)s
             where EXTRACT(year FROM from_time) = %(year)s
             and EXTRACT(month FROM from_time) = %(month)s            
             and sampling_point_id = %(sampling_point_id)s
