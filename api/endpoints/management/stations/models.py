@@ -15,7 +15,6 @@ class StationModel(RavenBaseModel):
     altitude: float
     supersite: bool
     area_classification_id: str
-    spo_category_id: str
     network_id: str
 
     def __getitem__(self, key):

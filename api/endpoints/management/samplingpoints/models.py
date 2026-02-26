@@ -15,6 +15,7 @@ class SamplingPointsModel(RavenBaseModel):
     time_resolution_id: str
     unit_id: str
     station_id: str
+    spo_category_id: Optional[str] = None
 
     def __getitem__(self, key):
         return super().__getattribute__(key)

@@ -12,7 +12,6 @@ const pageOptions = (lookups) => ({
     { type: "number", label: "Altitude", prop: "altitude", placeholder: "float: Altitude (meters)", required: true, default: null, enableInEdit: true, showInGrid: false },
     { type: "checkbox", label: "Supersite", prop: "supersite", required: true, default: false, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Area classification", prop: "area_classification", prop_id: "area_classification_id", lookup: "areaclassifications", required: true, default: null, enableInEdit: true, showInGrid: true },
-    { type: "lookup", label: "SPO category", prop: "spo_category", prop_id: "spo_category_id", lookup: "spocategories", required: true, default: null, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Network", prop: "network", prop_id: "network_id", lookup: "networks", required: true, default: null, enableInEdit: true, showInGrid: true }
   ],
   lookups: lookups

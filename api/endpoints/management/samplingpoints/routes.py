@@ -29,12 +29,14 @@ def samplingpoints():
               sp.pollutant_id, COALESCE(NULLIF(p.notation, ''), p.label) as pollutant,
               sp.time_resolution_id, tr.label as time_resolution,
               sp.unit_id, u.notation as unit,
-              sp.station_id, st.name as station
+              sp.station_id, st.name as station,
+              sp.spo_category_id, sc.label as spo_category
           FROM
               sampling_points sp
               LEFT JOIN eea_pollutants p ON sp.pollutant_id = p.id
               LEFT JOIN eea_times tr ON sp.time_resolution_id = tr.id
               LEFT JOIN eea_concentrations u ON sp.unit_id = u.id
+              LEFT JOIN eea_spocategory sc ON sp.spo_category_id = sc.id
               INNER JOIN stations st ON sp.station_id = st.id
               INNER JOIN sampling_point_access spa ON sp.id = spa.id
           ORDER BY st.name, COALESCE(NULLIF(p.notation, ''), p.label)
@@ -98,7 +100,8 @@ def samplingpoints_update():
             pollutant_id=%(pollutant_id)s,
             time_resolution_id=%(time_resolution_id)s,
             unit_id=%(unit_id)s,
-            station_id=%(station_id)s
+            station_id=%(station_id)s,
+            spo_category_id=%(spo_category_id)s
           WHERE id = %(id)s
         """
 
@@ -122,12 +125,12 @@ def samplingpoints_insert():
           INSERT INTO sampling_points (
             id, inlet_height, building_distance, kerb_distance,
             emission_source_distance, logger_id, private, use_in_public_api,
-            pollutant_id, time_resolution_id, unit_id, station_id
+            pollutant_id, time_resolution_id, unit_id, station_id, spo_category_id
           )
           VALUES (
             %(id)s, %(inlet_height)s, %(building_distance)s, %(kerb_distance)s,
             %(emission_source_distance)s, %(logger_id)s, %(private)s, %(use_in_public_api)s,
-            %(pollutant_id)s, %(time_resolution_id)s, %(unit_id)s, %(station_id)s
+            %(pollutant_id)s, %(time_resolution_id)s, %(unit_id)s, %(station_id)s, %(spo_category_id)s
           )           
         """
 

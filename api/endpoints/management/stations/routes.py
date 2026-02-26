@@ -19,11 +19,9 @@ def stations():
           SELECT st.id, st.eoi_code, st.name, st.national_code,
                  st.latitude, st.longitude, st.altitude, st.supersite,
                  st.area_classification_id, ac.label as area_classification,
-                 st.spo_category_id, sc.label as spo_category,
                  st.network_id, n.name as network
           FROM stations st
           LEFT JOIN eea_areaclassifications ac ON st.area_classification_id = ac.id
-          LEFT JOIN eea_spocategory sc ON st.spo_category_id = sc.id
           INNER JOIN networks n ON st.network_id = n.id
           INNER JOIN network_access na ON n.id = na.id
           ORDER BY st.name, st.id
@@ -79,7 +77,6 @@ def stations_update():
                 altitude = %(altitude)s,
                 supersite = %(supersite)s,
                 area_classification_id = %(area_classification_id)s,
-                spo_category_id = %(spo_category_id)s,
                 network_id = %(network_id)s
             WHERE id = %(id)s
         """
@@ -101,9 +98,9 @@ def stations_insert():
 
         sql = """ 
             INSERT INTO stations (id, eoi_code, name, national_code, latitude, longitude, 
-                                 altitude, supersite, area_classification_id, spo_category_id, network_id)
+                                 altitude, supersite, area_classification_id, network_id)
             VALUES (%(id)s, %(eoi_code)s, %(name)s, %(national_code)s, %(latitude)s, %(longitude)s,
-                   %(altitude)s, %(supersite)s, %(area_classification_id)s, %(spo_category_id)s, %(network_id)s)
+                   %(altitude)s, %(supersite)s, %(area_classification_id)s, %(network_id)s)
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
