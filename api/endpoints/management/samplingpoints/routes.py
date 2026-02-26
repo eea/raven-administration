@@ -70,11 +70,15 @@ def samplingpoints_lookups():
         cursor.execute("SELECT id as value, notation as label FROM eea_concentrations ORDER BY notation")
         units = cursor.fetchall()
         
+        cursor.execute("SELECT id as value, label FROM eea_spocategory ORDER BY label")
+        spocategories = cursor.fetchall()
+        
         return jsonify({
             "stations": stations,
             "pollutants": pollutants,
             "time_resolutions": time_resolutions,
-            "units": units
+            "units": units,
+            "spocategories": spocategories
         })
 
 

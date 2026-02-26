@@ -7,7 +7,7 @@ const pageOptions = (lookups) => ({
     { type: "lookup", label: "Pollutant", prop_id: "pollutant_id", prop: "pollutant", required: true, lookup: "pollutants", default: null, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Time resolution", prop_id: "time_resolution_id", prop: "time_resolution", required: true, lookup: "time_resolutions", default: null, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Unit", prop_id: "unit_id", prop: "unit", required: true, lookup: "units", default: null, enableInEdit: true, showInGrid: true },
-    { type: "lookup", label: "SPO category", prop_id: "spo_category_id", prop: "spo_category", lookup: "spocategories", required: false, default: null, enableInEdit: true, showInGrid: true },
+    { type: "lookup", label: "SPO category", prop_id: "spo_category_id", prop: "spo_category", lookup: "spocategories", required: true, default: null, enableInEdit: true, showInGrid: true },
     { type: "checkbox", label: "Private", prop: "private", required: true, default: false, enableInEdit: true, showInGrid: true },
     { type: "checkbox", label: "Public api", prop: "use_in_public_api", required: true, default: false, enableInEdit: true, showInGrid: true },
     { type: "number", label: "Inlet height", prop: "inlet_height", placeholder: "num: Inlet height", required: true, default: null, enableInEdit: true, showInGrid: false },
