@@ -118,9 +118,9 @@ def samplingpoints():
               attainments at
           where 1=1
           and sp.station_id = s.id
-          and sp.pollutant = po.uri
-          and sp.timestep = t.id
-          and sp.concentration = u.id
+          and sp.pollutant_id = po.id
+          and sp.time_resolution_id = t.id
+          and sp.unit_id = u.id
           and sp.id = ad.assessmentlocal_id
           and ad.assessmentregime_id = ar.id
           and at.assessmentregime_id = ar.id

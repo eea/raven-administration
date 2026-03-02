@@ -200,7 +200,7 @@ class PlansAndProgramsExport:
             
         FROM sampling_points sp
         JOIN stations st ON sp.station_id = st.id
-        JOIN eea_pollutants p ON sp.pollutant = p.uri
+        JOIN eea_pollutants p ON sp.pollutant_id = p.id
         JOIN networks n ON st.network_id = n.id
         JOIN eea_assessmenttypes eat ON sp.assessment_type = eat.id
         LEFT JOIN zones z ON ST_Within(st.geom, z.geom) AND z.year = %(reportingyear)s

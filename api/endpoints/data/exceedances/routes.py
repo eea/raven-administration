@@ -55,7 +55,7 @@ def get_sampling_points():
                 st.eoi_code as station_code,
                 n.name as network_name
             FROM sampling_points sp
-            JOIN eea_pollutants p ON sp.pollutant = p.uri
+            JOIN eea_pollutants p ON sp.pollutant_id = p.id
             JOIN stations st ON sp.station_id = st.id
             JOIN networks n ON st.network_id = n.id
             {where_clause}

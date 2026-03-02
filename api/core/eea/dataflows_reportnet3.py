@@ -93,7 +93,7 @@ class Dataflows_reportnet3:
         with CursorFromPool() as cursor:
             cursor.execute("""
               select sp.id                     as samplingpoint_local_id,
-                    sp.pollutant,
+                    sp.pollutant_id            as pollutant,
                     sp.id                     as samplingpoint_name,
                     sp.from_time              as start_date_time,
                     sp.to_time                as end_date_time,

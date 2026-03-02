@@ -178,9 +178,9 @@ with conn.cursor() as curs:
                 to_char(sp.to_time,'yyyy-mm-dd HH24:mi') as totime
           FROM sampling_points sp, stations s, eea_pollutants p, eea_concentrations c, eea_times t
           WHERE sp.station_id = s.id
-          AND sp.pollutant = p.uri
-          AND sp.concentration = c.id
-          AND sp.timestep = t.id
+          AND sp.pollutant_id = p.id
+          AND sp.unit_id = c.id
+          AND sp.time_resolution_id = t.id
           AND to_time IS NOT NULL
           AND to_time < now() - interval '{min_interval_hours} hours'
         """
