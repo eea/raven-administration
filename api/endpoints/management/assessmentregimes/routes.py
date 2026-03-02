@@ -38,9 +38,9 @@ def assessmentregimes():
                   eea_times t
               where 1=1
               and sp.station_id = s.id
-              and sp.pollutant = po.uri
-              and sp.timestep = t.id
-              and sp.concentration = u.id
+              and sp.pollutant_id = po.id
+              and sp.time_resolution_id = t.id
+              and sp.unit_id = u.id
               and sp.id = ad.assessmentlocal_id
           )
           SELECT
@@ -133,9 +133,9 @@ def samplingpoints():
               eea_times t
           where 1=1
           and sp.station_id = s.id
-          and sp.pollutant = po.uri
-          and sp.timestep = t.id
-          and sp.concentration = u.id
+          and sp.pollutant_id = po.id
+          and sp.time_resolution_id = t.id
+          and sp.unit_id = u.id
           order by s.name, po.notation, t.label
         """)
 
