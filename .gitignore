@@ -161,3 +161,4 @@ dmypy.json
 .idea
 
 ddl*
+test_scripts*

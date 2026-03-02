@@ -4,7 +4,18 @@ const pageOptions = (lookups) => ({
     // REQUIRED
     { type: "text", label: "Id", prop: "id", placeholder: "str: A unique id", required: true, default: null, enableInEdit: false, showInGrid: true },
     { type: "lookup", label: "Sampling Point", prop_id: "sampling_point_id", prop: "sampling_point", required: true, lookup: "sampling_points", default: null, enableInEdit: true, showInGrid: true },
-    { type: "text", label: "Activity begin", prop: "activity_begin", placeholder: "str: Activity begin (e.g., 2020-01-01)", required: true, default: null, enableInEdit: true, showInGrid: true },
+    { 
+      type: "text", 
+      label: "Activity begin", 
+      prop: "activity_begin", 
+      placeholder: "YYYY-MM-DD HH:MM:SS (e.g., 2020-01-01 00:00:00)", 
+      required: true, 
+      default: null, 
+      enableInEdit: true, 
+      showInGrid: true,
+      pattern: "^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2}:\\d{2})?$",
+      title: "Enter date in format YYYY-MM-DD or YYYY-MM-DD HH:MM:SS"
+    },
     { type: "text", label: "Data quality report ID", prop: "data_quality_report_id", placeholder: "str: Data quality report ID", required: true, default: null, enableInEdit: true, showInGrid: false },
     { type: "text", label: "Equivalence demonstration report ID", prop: "equivalence_demonstration_report_id", placeholder: "str: Equivalence demonstration report ID", required: true, default: null, enableInEdit: true, showInGrid: false },
     { type: "text", label: "Process documentation ID", prop: "process_documentation_id", placeholder: "str: Process documentation ID", required: true, default: null, enableInEdit: true, showInGrid: false },
@@ -15,7 +26,18 @@ const pageOptions = (lookups) => ({
     { type: "lookup", label: "Equivalence demonstrated", prop_id: "equivalence_demonstrated_id", prop: "equivalence_demonstrated", required: true, lookup: "equivalence_demonstrated", default: null, enableInEdit: true, showInGrid: false },
 
     // OPTIONAL
-    { type: "text", label: "Activity end", prop: "activity_end", placeholder: "str: Activity end (e.g., 2025-12-31)", required: false, default: null, enableInEdit: true, showInGrid: false }
+    { 
+      type: "text", 
+      label: "Activity end", 
+      prop: "activity_end", 
+      placeholder: "YYYY-MM-DD HH:MM:SS (e.g., 2025-12-31 00:00:00) - Optional", 
+      required: false, 
+      default: null, 
+      enableInEdit: true, 
+      showInGrid: false,
+      pattern: "^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2}:\\d{2})?$",
+      title: "Enter date in format YYYY-MM-DD or YYYY-MM-DD HH:MM:SS"
+    }
   ],
   lookups: lookups
 });
