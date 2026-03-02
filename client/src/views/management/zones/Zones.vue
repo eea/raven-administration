@@ -11,14 +11,14 @@ const options = ref({});
 
 onMounted(async () => {
   Eventy.showMessage("Loading metadata", "loading");
-  const authorities = await Service.authorities();
   const zone_types = await Service.zone_types();
+  const zone_categories = await Service.zone_categories();
   Eventy.hideMessage();
 
-  options.value = pageOptions({ authorities, zone_types });
+  options.value = pageOptions({ zone_types, zone_categories });
 });
 </script>
 
 <template>
-  <Manager name="Zones" :options="options" :service="Service" :show-add-button="false" :crud-component="Crud" />
+  <Manager name="Zones" :options="options" :service="Service" :show-add-button="true" :crud-component="Crud" />
 </template>

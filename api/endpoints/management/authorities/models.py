@@ -5,15 +5,14 @@ from core.base_model import RavenBaseModel
 class AuthorityModel(RavenBaseModel):
     
     id: str
-    name: str
-    organisation: str
-    locator: str
-    postcode: int
+    person_name: str
     email: str
-    address: str
-    phone: str
-    website: str
-    is_responsible_reporter: bool
+    organisation_name: str
+    organisation_url: str
+    organisation_address: str
+    instance_id: str
+    object_id: str
+    status_id: str
 
     def __getitem__(self, key):
         return super().__getattribute__(key)

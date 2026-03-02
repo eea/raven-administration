@@ -1,11 +1,11 @@
 from core.database import CursorFromPool
 from core.jwt_ext_custom import can_see_all_networks, get_networks
 from pydantic import BaseModel
-from typing import List
+from typing import List, Union
 
 
 class DeleteModel(BaseModel):
-    ids: List[str]
+    ids: List[Union[str, int]]
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
@@ -19,9 +19,9 @@ class Q:
                 select CONCAT(s.name,', ', p.notation,', ', t.label, ', ', u.notation )  as label, sp.id as value
                 from sampling_points sp, stations s, eea_pollutants p, eea_times t, eea_concentrations u
                 where sp.station_id = s.id
-                and sp.pollutant = p.uri
-                and sp.timestep = t.id
-                and sp.concentration = u.id
+                and sp.pollutant_id = p.id
+                and sp.time_resolution_id = t.id
+                and sp.unit_id = u.id
                 order by s.name, p.notation, t.label
             """)
             return cursor.fetchall()
@@ -36,9 +36,9 @@ class Q:
                 from sampling_points sp, stations s, eea_pollutants p, eea_times t, eea_concentrations u, network_access n
                 where sp.station_id = s.id
                 and n.id = s.network_id
-                and sp.pollutant = p.uri
-                and sp.timestep = t.id
-                and sp.concentration = u.id
+                and sp.pollutant_id = p.id
+                and sp.time_resolution_id = t.id
+                and sp.unit_id = u.id
                 order by s.name, p.notation, t.label
             """, n_param)
             return cursor.fetchall()
@@ -55,8 +55,8 @@ class Q:
                       to_char(aa.fromtime, 'YYYY-MM-DD"T"HH24:MI:SS') as fromtime,
                       to_char(aa.totime, 'YYYY-MM-DD"T"HH24:MI:SS') as totime
                   FROM
-                (
-                  SELECT sp.id as sp, sp.id as value, s.name, po.notation pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.label as timestep, u.notation as unit
+                 (
+                  SELECT sp.id as sp, sp.id as value, s.name, COALESCE(NULLIF(po.notation, ''), po.label) as pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.label as timestep, u.notation as unit
                     FROM
                         network_access n,
                         stations s,
@@ -67,12 +67,12 @@ class Q:
                     WHERE 1=1
                         and n.id = s.network_id
                         and s.id = sp.station_id
-                        and sp.pollutant = po.uri
-                        and sp.timestep = t.id
-                        and sp.concentration = u.id
+                        and sp.pollutant_id = po.id
+                        and sp.time_resolution_id = t.id
+                        and sp.unit_id = u.id
                         and sp.from_time is not null
                         and sp.to_time is not null
-                    GROUP by s.name, sp.id, sp.pollutant,sp.id, po.notation, sp.from_time,  sp.to_time, t.label, u.notation
+                    GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label), sp.from_time,  sp.to_time, t.label, u.notation
                 ) aa
                 order by label
             """, n_param)
@@ -89,7 +89,7 @@ class Q:
                       to_char(aa.totime, 'YYYY-MM-DD"T"HH24:MI:SS') as totime
                   FROM
                 (
-                  SELECT sp.id as sp, sp.id as value, s.name, po.notation pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.label as timestep, u.notation as unit
+                  SELECT sp.id as sp, sp.id as value, s.name, COALESCE(NULLIF(po.notation, ''), po.label) as pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.label as timestep, u.notation as unit
                     FROM
                         network_access n,
                         stations s,
@@ -100,12 +100,12 @@ class Q:
                     WHERE 1=1
                         and n.id = s.network_id
                         and s.id = sp.station_id
-                        and sp.pollutant = po.uri
-                        and sp.timestep = t.id
-                        and sp.concentration = u.id
+                        and sp.pollutant_id = po.id
+                        and sp.time_resolution_id = t.id
+                        and sp.unit_id = u.id
                         and sp.from_time is not null
                         and sp.to_time is not null
-                    GROUP by s.name, sp.id, sp.pollutant,sp.id, po.notation, sp.from_time,  sp.to_time, t.label, u.notation
+                    GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label), sp.from_time,  sp.to_time, t.label, u.notation
                 ) aa
                 order by station, pollutant, timestep
             """, n_param)
@@ -159,7 +159,7 @@ class Q:
             where 1=1
             and s.network_id = n.id
             and s.id = p.station_id
-            and p.pollutant = po.uri
+            and p.pollutant_id = po.id
           )
         """
         return sql, {"networkids": tuple(get_networks())}

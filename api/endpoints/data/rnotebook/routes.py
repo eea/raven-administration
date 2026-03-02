@@ -93,7 +93,7 @@ def r_ls():
         resp.raise_for_status()
         return jsonify(resp.json())
     except requests.RequestException as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"msg": str(e)}), 500
 
 # Run arbitrary R code
 @r_notebook_endpoint.route('/api/rnotebook/run', methods=['POST'])
@@ -101,19 +101,19 @@ def r_ls():
 def r_run():
     # Make sure ravendb_conn exists in the R session before running arbitrary code
     if not ensure_ravendb_conn():
-        return jsonify({"error": "Could not ensure ravendb_conn in R session"}), 500
+        return jsonify({"msg": "Could not ensure ravendb_conn in R session"}), 500
 
     data = request.get_json(force=True)
     code = data.get('code', '')
 
     if not code:
-        return jsonify({"error": "No code provided"}), 400
+        return jsonify({"msg": "No code provided"}), 400
     try:
         resp = requests.post(f"{R_API_URL}/run", json={"code": code}, timeout=R_API_TIMEOUT)
         resp.raise_for_status()
         return jsonify(resp.json())
     except requests.RequestException as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"msg": str(e)}), 500
 
 # Reset R workspace
 @r_notebook_endpoint.route('/api/rnotebook/reset', methods=['POST'])
@@ -124,21 +124,21 @@ def r_reset():
         resp.raise_for_status()
         return jsonify(resp.json())
     except requests.RequestException as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"msg": str(e)}), 500
 
 # Upload a file to R workspace
 @r_notebook_endpoint.route('/api/rnotebook/files/upload', methods=['POST'])
 @jwt_required()
 def r_upload_file():
     if 'file' not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
+        return jsonify({"msg": "No file uploaded"}), 400
     file = request.files['file']
     try:
         resp = requests.post(f"{R_API_URL}/files/upload", files={'file': (file.filename, file.stream)}, timeout=R_API_TIMEOUT)
         resp.raise_for_status()
         return jsonify(resp.json())
     except requests.RequestException as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"msg": str(e)}), 500
 
 # Download a file from R workspace
 @r_notebook_endpoint.route('/api/rnotebook/files/download', methods=['GET'])
@@ -146,13 +146,13 @@ def r_upload_file():
 def r_download_file():
     name = request.args.get('name')
     if not name:
-        return jsonify({"error": "No file name provided"}), 400
+        return jsonify({"msg": "No file name provided"}), 400
     try:
         resp = requests.get(f"{R_API_URL}/files/download", params={"name": name}, timeout=R_API_TIMEOUT)
         resp.raise_for_status()
         return (resp.content, resp.status_code, resp.headers.items())
     except requests.RequestException as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"msg": str(e)}), 500
 
 
 # Import a saved .R file into the R persistent session (.PERSIST_ENV)
@@ -162,21 +162,21 @@ def r_import_file():
     data = request.get_json(force=True)
     filename = data.get('filename')
     if not filename:
-        return jsonify({"error": "No filename provided"}), 400
+        return jsonify({"msg": "No filename provided"}), 400
 
     # ensure file path is inside RFILES_DIR
     safe_path = os.path.join(RFILES_DIR, filename)
     if not os.path.isfile(safe_path):
-        return jsonify({"error": "File not found"}), 404
+        return jsonify({"msg": "File not found"}), 404
 
     try:
         with open(safe_path, 'r', encoding='utf-8') as f:
             content = f.read()
     except Exception as e:
-        return jsonify({"error": f"Could not read file: {str(e)}"}), 500
+        return jsonify({"msg": f"Could not read file: {str(e)}"}), 500
 
     if not content:
-        return jsonify({"error": "Empty file"}), 400
+        return jsonify({"msg": "Empty file"}), 400
 
     # Post the file content to the R API /run endpoint so it's evaluated in .PERSIST_ENV
     try:
@@ -184,7 +184,7 @@ def r_import_file():
         resp.raise_for_status()
         return jsonify(resp.json())
     except requests.RequestException as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"msg": str(e)}), 500
     
 @r_notebook_endpoint.route('/api/rnotebook/rfiles', methods=['GET'])
 def list_rfiles():

@@ -14,8 +14,6 @@ class Filling:
         timeseries = df_values.groupby("sampling_point_id")
         for key, values in timeseries:
             scaled_value = -9900 if values.scaled_value.iloc[0] != None else None
-            tz = values.end_position.iloc[0].tz
-            tz_seconds = tz.utcoffset(values.end_position.iloc[0]).seconds
 
             ts_from_epoch = values.ts_from_epoch.iloc[0] if pd.notna(values.ts_from_epoch.iloc[0]) else None
             ts_to_epoch = values.ts_to_epoch.iloc[0] if pd.notna(values.ts_to_epoch.iloc[0]) else None
@@ -24,7 +22,7 @@ class Filling:
             if ts_timestep == -1:
                 continue
 
-            dates = values.end_position.apply(lambda x: x.timestamp()+tz_seconds).unique()
+            dates = values.to_time.apply(lambda x: x.timestamp()).unique()
             from_time = int(dates.min() if ts_to_epoch == None else dates.min() if ts_to_epoch > dates.min() else ts_to_epoch)
             to_time = int(dates.max() if ts_to_epoch == None else dates.max() if ts_to_epoch < dates.max() else ts_from_epoch if ts_from_epoch > dates.max() else dates.max())
 
@@ -36,11 +34,11 @@ class Filling:
             for m in missing_dates:
                 v = {
                     "sampling_point_id": key,
-                    "begin_position": pd.to_datetime(datetime.fromtimestamp(m-ts_timestep-tz_seconds, tz=tz)),  # pd.to_datetime(datetime.fromtimestamp(m-ts_timestep, tz=tz)),
-                    "end_position": pd.to_datetime(datetime.fromtimestamp(m-tz_seconds, tz=tz)),
+                    "from_time": pd.to_datetime(datetime.fromtimestamp(m-ts_timestep)),
+                    "to_time": pd.to_datetime(datetime.fromtimestamp(m)),
                     "value": -9900,
-                    "verification_flag": 3,
-                    "validation_flag": -1,
+                    "observationverification_id": 3,
+                    "observationvalidity_id": -1,
                     "import_value": -9900,
                     "scaled_value": scaled_value
                 }
@@ -55,7 +53,7 @@ class Filling:
         sql = """
             select p.id as sampling_point_id, extract(epoch from p.from_time) as from_time, extract(epoch from p.to_time) as to_time, t.timestep
             from sampling_points p, eea_times t
-            where p.timestep = t.id
+            where p.time_resolution_id = t.id
             and p.id in %(ids)s 
         """
         cursor.execute(sql, {"ids": sampling_point_ids})
@@ -63,11 +61,11 @@ class Filling:
 
     def __existing_dates__(cursor: any, sampling_point_id, epoch_from, epoch_to):
         sql = """
-            select extract(epoch from to_time)::int as end_position
+            select extract(epoch from to_time)::int as to_time
             from observations o
             where o.sampling_point_id = %(sp)s
             and  extract(epoch from o.from_time) >= %(epoch_from)s
             and  extract(epoch from o.from_time) <= %(epoch_to)s  
         """
         cursor.execute(sql, {"sp": sampling_point_id, "epoch_from": epoch_from, "epoch_to": epoch_to})
-        return list(map(lambda x: x["end_position"], cursor.fetchall()))
+        return list(map(lambda x: x["to_time"], cursor.fetchall()))

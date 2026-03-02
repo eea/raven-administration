@@ -2,16 +2,12 @@ import { Get, Post, Upload, Download } from "../../../helpers/request";
 
 const Service = {
   get: async () => Get("/api/management/stations"),
+  lookups: async () => Get("/api/management/stations/lookups"),
   update: async (data) => Post("/api/management/stations/update", data),
   insert: async (data) => Post("/api/management/stations/insert", data),
   delete: async (data) => Post("/api/management/stations/delete", data),
   upload: async (data) => Upload("/api/imports/stations", data),
-  download: async () => Download("/api/exports/stations"),
-
-  media: async () => Get("/api/management/lookups/media"),
-  networks: async () => Get("/api/management/lookups/networks"),
-  areaclassifications: async () => Get("/api/management/lookups/areaclassifications"),
-  measurementregimes: async () => Get("/api/management/lookups/measurementregimes")
+  download: async () => Download("/api/exports/stations")
 };
 
 export default Service;

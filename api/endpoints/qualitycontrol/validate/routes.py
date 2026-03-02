@@ -24,10 +24,10 @@ def timevalues():
               to_char (o.from_time, 'YYYY-MM-DD HH24:MI:SS') as "fromtime",
               to_char (o.to_time, 'YYYY-MM-DD HH24:MI:SS') as "totime",
               o.sampling_point_id as "sampling_point_id",
-              o.validation_flag,
-              o.verification_flag,
+              o.observationvalidity_id,
+              o.observationverification_id,
               o.value::double PRECISION ,
-              case when o.validation_flag not in (1,2,3) then null else o.value::double PRECISION end as "valid_value_only",
+              case when o.observationvalidity_id not in (1,2,3) then null else o.value::double PRECISION end as "valid_value_only",
               o.import_value::double PRECISION
             FROM observations o
             WHERE 1=1
@@ -51,7 +51,7 @@ def flag():
     with CursorFromPool() as cursor:
         cursor.execute("""
             update observations
-            set validation_flag = %(flag)s
+            set observationvalidity_id = %(flag)s
             where id in %(ids_tuple)s
         """, m)
         if cursor.rowcount == 0:

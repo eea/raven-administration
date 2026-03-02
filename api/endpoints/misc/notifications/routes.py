@@ -60,14 +60,20 @@ def notifications_logs():
 def missing_values():
     with CursorFromPool() as cursor:
         sql = """
-            select sp.id as spo,s.name as station, p.notation as pollutant, c.notation as concentration, t.label as timestep, to_char(sp.to_time,'yyyy-mm-dd HH24:mi') as totime
-            from sampling_points sp, stations s, eea_pollutants p, eea_concentrations c, eea_times t
-            where sp.station_id =  s.id
-            and sp.pollutant = p.uri
-            and sp.concentration = c.id
-            and sp.timestep = t.id
-            and to_time is not null
-            and to_time < now() - interval '3 hours'
+            select 
+                sp.id as spo,
+                s.name as station, 
+                COALESCE(NULLIF(p.notation, ''), p.label) as pollutant, 
+                c.notation as concentration, 
+                t.label as timestep, 
+                to_char(sp.to_time,'yyyy-mm-dd HH24:mi') as totime
+            from sampling_points sp
+            join stations s on sp.station_id = s.id
+            join eea_pollutants p on sp.pollutant_id = p.id
+            join eea_concentrations c on sp.unit_id = c.id
+            join eea_times t on sp.time_resolution_id = t.id
+            where sp.to_time is not null
+            and sp.to_time < now() - interval '3 hours'
             order by station, pollutant
 
         """
@@ -82,13 +88,17 @@ def missing_values():
 def sampling_points():
     with CursorFromPool() as cursor:
         sql = """
-            select sp.id as spo,s.name as station, p.notation as pollutant, c.notation as concentration, t.label as timestep, sc.label as type
-            from sampling_points sp, stations s, eea_pollutants p, eea_concentrations c, eea_times t, eea_stationclassifications sc
-            where sp.station_id =  s.id
-            and sp.pollutant = p.uri
-            and sp.concentration = c.id
-            and sp.timestep = t.id
-            and sp.station_classification = sc.id
+            select 
+                sp.id as spo,
+                s.name as station, 
+                COALESCE(NULLIF(p.notation, ''), p.label) as pollutant, 
+                c.notation as concentration, 
+                t.label as timestep
+            from sampling_points sp
+            join stations s on sp.station_id = s.id
+            join eea_pollutants p on sp.pollutant_id = p.id
+            join eea_concentrations c on sp.unit_id = c.id
+            join eea_times t on sp.time_resolution_id = t.id
             order by station, pollutant
         """
         cursor.execute(sql)

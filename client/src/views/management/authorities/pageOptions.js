@@ -1,16 +1,17 @@
 const pageOptions = (lookups) => ({
+  entityName: "Authority",
   showRequiredAndoptionalSideBySideInCrud: false,
   properties: [
+    // REQUIRED
     { type: "text", label: "Id", prop: "id", placeholder: "str: A unique id", required: true, default: null, enableInEdit: false, showInGrid: true },
-    { type: "text", label: "Name", prop: "name", placeholder: "str: Name of authority", required: true, default: null, enableInEdit: true, showInGrid: true },
-    { type: "text", label: "Organisation", prop: "organisation", placeholder: "str: Name of organisation", required: true, default: null, enableInEdit: true, showInGrid: true },
-    { type: "text", label: "Locator", prop: "locator", placeholder: "str: Location of authority", required: true, default: null, enableInEdit: true, showInGrid: false },
-    { type: "number", label: "Postcode", prop: "postcode", placeholder: "int: Postal code of authority", required: true, default: null, enableInEdit: true, showInGrid: false },
-    { type: "text", label: "Email", prop: "email", placeholder: "str: Email of authority", required: true, default: null, enableInEdit: true, showInGrid: false },
-    { type: "text", label: "Address", prop: "address", placeholder: "str: Address of authority", required: true, default: null, enableInEdit: true, showInGrid: false },
-    { type: "text", label: "Phone", prop: "phone", placeholder: "str: Phone of authority", required: true, default: null, enableInEdit: true, showInGrid: false },
-    { type: "text", label: "Website", prop: "website", placeholder: "str: Website of authority", required: true, default: null, enableInEdit: true, showInGrid: false },
-    { type: "checkbox", label: "Is main authority", prop: "is_responsible_reporter", required: true, default: false, enableInEdit: true, showInGrid: true }
+    { type: "text", label: "Person name", prop: "person_name", placeholder: "str: Contact person name", required: true, default: null, enableInEdit: true, showInGrid: true },
+    { type: "text", label: "Email", prop: "email", placeholder: "str: Contact email", required: true, default: null, enableInEdit: true, showInGrid: true },
+    { type: "text", label: "Organisation name", prop: "organisation_name", placeholder: "str: Name of organisation", required: true, default: null, enableInEdit: true, showInGrid: true },
+    { type: "text", label: "Organisation URL", prop: "organisation_url", placeholder: "str: Website URL", required: true, default: null, enableInEdit: true, showInGrid: false },
+    { type: "text", label: "Organisation address", prop: "organisation_address", placeholder: "str: Physical address", required: true, default: null, enableInEdit: true, showInGrid: false },
+    { type: "lookup", label: "Instance", prop: "instance", prop_id: "instance_id", lookup: "instances", required: true, default: null, enableInEdit: true, showInGrid: true },
+    { type: "lookup", label: "Object", prop: "object", prop_id: "object_id", lookup: "objects", required: true, default: null, enableInEdit: true, showInGrid: true },
+    { type: "lookup", label: "Status", prop: "status", prop_id: "status_id", lookup: "statuses", required: true, default: null, enableInEdit: true, showInGrid: true }
   ],
   lookups: lookups
 });

@@ -74,81 +74,81 @@ const title = computed(() => {
 </script>
 
 <template>
-  <popup :show="show" :title="title" @on-close="handleClose" class="max-w-6xl w-full max-h-[90vh]">
-    <div class="flex flex-col gap-2 h-full">
-      <div class="flex-1 overflow-y-auto pr-2">
-        <div class="flex gap-6" :class="options.showRequiredAndoptionalSideBySideInCrud ? 'flex-row' : 'flex-col'">
-          <div class="flex-1">
-            <div class="mb-4 font-bold text-lg border-b border-nord4">Required</div>
+  <popup :show="show" :title="title" @on-close="handleClose" class="max-w-6xl w-full">
+    <!-- Content Section with Scrollbar -->
+    <div class="overflow-y-auto pr-2 max-h-[60vh]">
+      <div class="flex gap-6" :class="options.showRequiredAndoptionalSideBySideInCrud ? 'flex-row' : 'flex-col'">
+        <div class="flex-1">
+          <div class="mb-4 font-bold text-lg border-b border-nord4">Required</div>
 
-            <div class="mb-2" v-for="p in cmp_required_properties">
-              <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
+          <div class="mb-2" v-for="p in cmp_required_properties">
+            <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
+              <div class="font-bold">{{ p.label }}:</div>
+              <input class="input w-full" v-model="obj[p.prop]" :disabled="true" />
+            </div>
+
+            <div v-else>
+              <div v-if="p.type == 'text' || p.type == 'number'">
                 <div class="font-bold">{{ p.label }}:</div>
-                <input class="input w-full" v-model="obj[p.prop]" :disabled="true" />
+                <input :type="p.type" class="input w-full" v-model="obj[p.prop]" :placeholder="p.placeholder" />
               </div>
-
-              <div v-else>
-                <div v-if="p.type == 'text' || p.type == 'number'">
-                  <div class="font-bold">{{ p.label }}:</div>
-                  <input :type="p.type" class="input w-full" v-model="obj[p.prop]" :placeholder="p.placeholder" />
-                </div>
-                <div v-else-if="p.type == 'checkbox'" class="mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
-                  <div class="font-bold self-center flex-1" @click="obj[p.prop] = !obj[p.prop]">{{ p.label }}:</div>
-                  <input type="checkbox" v-model="obj[p.prop]" class="self-center" />
-                </div>
-                <div v-else-if="p.type == 'lookup'">
-                  <div class="font-bold">{{ p.label }}:</div>
-                  <select v-model="obj[p.prop_id]" class="select w-full">
-                    <option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value">{{ p.label }}</option>
-                  </select>
-                </div>
-                <div v-else-if="p.type == 'eeaDatetime'">
-                  <div class="font-bold">{{ p.label }}:</div>
-                  <DatetimePicker v-model="obj[p.prop]" />
-                </div>
+              <div v-else-if="p.type == 'checkbox'" class="mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
+                <div class="font-bold self-center flex-1" @click="obj[p.prop] = !obj[p.prop]">{{ p.label }}:</div>
+                <input type="checkbox" v-model="obj[p.prop]" class="self-center" />
+              </div>
+              <div v-else-if="p.type == 'lookup'">
+                <div class="font-bold">{{ p.label }}:</div>
+                <select v-model="obj[p.prop_id]" class="select w-full">
+                  <option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value">{{ p.label }}</option>
+                </select>
+              </div>
+              <div v-else-if="p.type == 'eeaDatetime'">
+                <div class="font-bold">{{ p.label }}:</div>
+                <DatetimePicker v-model="obj[p.prop]" />
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="flex-1">
-            <div class="mb-4 font-bold text-lg border-b border-nord4" v-if="cmp_optional_properties.length > 0">Optional</div>
+        <div class="flex-1">
+          <div class="mb-4 font-bold text-lg border-b border-nord4" v-if="cmp_optional_properties.length > 0">Optional</div>
 
-            <div class="mb-2" v-for="p in cmp_optional_properties">
-              <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
+          <div class="mb-2" v-for="p in cmp_optional_properties">
+            <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
+              <div class="font-bold">{{ p.label }}:</div>
+              <input class="input w-full" v-model="obj[p.prop]" :disabled="true" />
+            </div>
+
+            <div v-else>
+              <div v-if="p.type == 'text' || p.type == 'number'">
                 <div class="font-bold">{{ p.label }}:</div>
-                <input class="input w-full" v-model="obj[p.prop]" :disabled="true" />
+                <input :type="p.type" class="input w-full" v-model="obj[p.prop]" :placeholder="p.placeholder" />
               </div>
-
-              <div v-else>
-                <div v-if="p.type == 'text' || p.type == 'number'">
-                  <div class="font-bold">{{ p.label }}:</div>
-                  <input :type="p.type" class="input w-full" v-model="obj[p.prop]" :placeholder="p.placeholder" />
-                </div>
-                <div v-else-if="p.type == 'checkbox'" class="mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
-                  <div class="font-bold self-center flex-1" @click="obj[p.prop] = !obj[p.prop]">{{ p.label }}:</div>
-                  <input type="checkbox" v-model="obj[p.prop]" class="self-center" />
-                </div>
-                <div v-else-if="p.type == 'lookup'">
-                  <div class="font-bold">{{ p.label }}:</div>
-                  <select v-model="obj[p.prop_id]" class="select w-full">
-                    <option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value">{{ p.label }}</option>
-                  </select>
-                </div>
-                <div v-else-if="p.type == 'eeaDatetime'">
-                  <div class="font-bold">{{ p.label }}:</div>
-                  <DatetimePicker v-model="obj[p.prop]" />
-                </div>
+              <div v-else-if="p.type == 'checkbox'" class="mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
+                <div class="font-bold self-center flex-1" @click="obj[p.prop] = !obj[p.prop]">{{ p.label }}:</div>
+                <input type="checkbox" v-model="obj[p.prop]" class="self-center" />
+              </div>
+              <div v-else-if="p.type == 'lookup'">
+                <div class="font-bold">{{ p.label }}:</div>
+                <select v-model="obj[p.prop_id]" class="select w-full">
+                  <option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value">{{ p.label }}</option>
+                </select>
+              </div>
+              <div v-else-if="p.type == 'eeaDatetime'">
+                <div class="font-bold">{{ p.label }}:</div>
+                <DatetimePicker v-model="obj[p.prop]" />
               </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="border-t border-gray-300"></div>
-      <div class="flex justify-end pt-2 gap-4">
-        <button class="button" @click="handleSave">Save</button>
-        <button class="button" @click="handleClose">Cancel</button>
-      </div>
+    <!-- Footer Section (Always Visible) -->
+    <div class="border-t border-gray-300 mt-4"></div>
+    <div class="flex justify-end pt-2 gap-4">
+      <button class="button" @click="handleSave">Save</button>
+      <button class="button" @click="handleClose">Cancel</button>
     </div>
   </popup>
 </template>

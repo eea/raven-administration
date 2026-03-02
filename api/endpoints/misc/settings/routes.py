@@ -1,7 +1,5 @@
 from flask import jsonify, Blueprint, request
-from werkzeug.exceptions import BadRequest
 from core.database import CursorFromPool
-from core.query_access import Access
 from endpoints.misc.settings.models import SettingsModel
 from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
@@ -22,23 +20,38 @@ def settings():
         return jsonify(settings)
 
 
-@settings_endpoint.route('/api/misc/settings/update', methods=['POST'])
+@settings_endpoint.route('/api/misc/settings/lookups', methods=['GET'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
-def settings_update():
+def settings_lookups():
+    with CursorFromPool() as cursor:
+        cursor.execute("SELECT id as value, label FROM eea_countries ORDER BY label")
+        countries = cursor.fetchall()
+        
+        cursor.execute("SELECT id as value, label FROM eea_timezones ORDER BY label")
+        timezones = cursor.fetchall()
+        
+        return jsonify({
+            "countries": countries,
+            "timezones": timezones
+        })
+
+
+@settings_endpoint.route('/api/misc/settings/save', methods=['POST'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def settings_save():
     with CursorFromPool() as cursor:
         model = SettingsModel(**request.json)
+        
+        # Delete all existing rows
+        cursor.execute("DELETE FROM settings")
+        
+        # Insert new row
         sql = """
-            UPDATE settings
-            SET
-              namespace = %(namespace)s,
-              uom_m = %(uom_m)s,
-  			      observation_prefix = %(observation_prefix)s,
-	      		  language_code = %(language_code)s
-            WHERE id = %(id)s
+            INSERT INTO settings (country_code_id, timezone_id)
+            VALUES (%(country_code_id)s, %(timezone_id)s)
         """
         cursor.execute(sql, model)
-        if cursor.rowcount == 0:
-            raise BadRequest("Could not update for id " + model.id)
-
-        return jsonify({"success": True})
+        
+        return jsonify({"msg": "Settings saved successfully"})

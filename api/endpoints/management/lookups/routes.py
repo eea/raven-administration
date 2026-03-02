@@ -210,7 +210,7 @@ def pollutants():
 def aqipollutants():
     with CursorFromPool() as cursor:
         pollutants_to_select = ['PM10', 'PM2.5', 'NO2', 'O3', 'SO2']
-        cursor.execute("select r.notation as label, r.uri as value from eea_pollutants r where r.notation in %(pollutants_to_select)s order by r.notation", {"pollutants_to_select": tuple(pollutants_to_select)})
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_pollutants r where r.notation in %(pollutants_to_select)s order by r.notation", {"pollutants_to_select": tuple(pollutants_to_select)})
         pollutants = cursor.fetchall()
         return jsonify(pollutants)
 
@@ -251,6 +251,15 @@ def zones_types():
         return jsonify(rows)
 
 
+@management_endpoint.route('/api/management/lookups/zones_categories', methods=['GET'])
+@jwt_required_with_management_claim()
+def zones_categories():
+    with CursorFromPool() as cursor:
+        cursor.execute("select r.label as label, r.id as value from eea_zonecategory r order by r.label")
+        rows = cursor.fetchall()
+        return jsonify(rows)
+
+
 @management_endpoint.route('/api/management/lookups/timezones', methods=['GET'])
 @jwt_required_with_management_claim()
 def timezones():
@@ -266,7 +275,7 @@ def timesteps():
         cursor.execute("""
         select r.label as label, r.id as value
         from eea_times r
-        where r.id ~ %(type)s
+        where r.uri ~ %(type)s
         order by r.label
         """, {"type": "vocabulary/" + type})
         timesteps = cursor.fetchall()

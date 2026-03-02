@@ -14,13 +14,6 @@ class InsertModel(BaseModel):
         return super().__getattribute__(key)
 
 
-class DeleteModel(BaseModel):
-    ids: list[int]
-
-    def __getitem__(self, key):
-        return super().__getattribute__(key)
-
-
 class UpdateModel(BaseModel):
     id: int
     primary: str

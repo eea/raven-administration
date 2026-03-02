@@ -19,6 +19,8 @@ const emit = defineEmits(["close", "save"]);
 const obj = ref({});
 const mapRef = ref(null);
 const geoJsonRef = ref(null);
+const fileInput = ref(null);
+const sourceEpsg = ref(4326);
 let url = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 
 const geoJsonData = computed(() => {
@@ -90,8 +92,44 @@ const fitBounds = () => {
   }
 };
 
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      
+      // Extract geometry from GeoJSON
+      let geometry;
+      if (json.type === 'FeatureCollection' && json.features && json.features.length > 0) {
+        // Take the first feature's geometry
+        geometry = json.features[0].geometry;
+      } else if (json.type === 'Feature' && json.geometry) {
+        // Single feature
+        geometry = json.geometry;
+      } else if (json.type && json.coordinates) {
+        // Already a geometry object
+        geometry = json;
+      } else {
+        alert("Invalid GeoJSON format. Must be a FeatureCollection, Feature, or Geometry.");
+        return;
+      }
+      
+      obj.value.geojson = JSON.stringify(geometry);
+    } catch (error) {
+      alert("Error reading GeoJSON file: " + error.message);
+    }
+  }
+};
+
+const triggerFileInput = () => {
+  fileInput.value.click();
+};
+
 const handleSave = () => {
-  emit("save", Object.assign({}, obj.value));
+  const data = Object.assign({}, obj.value);
+  data.source_epsg = sourceEpsg.value;
+  emit("save", data);
 };
 
 const handleClose = () => {
@@ -100,10 +138,10 @@ const handleClose = () => {
 </script>
 
 <template>
-  <popup :show="show" :title="isEdit ? 'Edit Zone' : 'Create Zone'" @on-close="handleClose" class="max-w-[60rem] w-[60rem] max-h-[90vh]">
-    <div class="flex flex-col gap-2 h-full">
-      <div class="flex-1 overflow-y-auto pr-2">
-        <div class="mb-4 font-bold text-base border-b border-nord4">Required</div>
+  <popup :show="show" :title="isEdit ? 'Edit Zone' : 'Create Zone'" @on-close="handleClose" class="max-w-[60rem] w-[60rem]">
+    <!-- Content Section with Scrollbar -->
+    <div class="overflow-y-auto pr-2 max-h-[60vh]">
+      <div class="mb-4 font-bold text-base border-b border-nord4">Required</div>
 
         <div class="mb-2" v-for="p in props.options.properties">
           <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
@@ -125,6 +163,42 @@ const handleClose = () => {
           </div>
         </div>
 
+        <div class="mb-2">
+          <div class="font-bold">Geometry (GeoJSON):</div>
+          <div class="flex gap-2 items-center mb-2">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm">Source EPSG Code:</label>
+              <select v-model="sourceEpsg" class="select">
+                <option :value="4326">EPSG:4326 (WGS84)</option>
+                <option :value="4258">EPSG:4258 (ETRS89)</option>
+                <option :value="3035">EPSG:3035 (LAEA)</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex gap-2 items-center">
+            <input 
+              ref="fileInput" 
+              type="file" 
+              accept=".json,.geojson" 
+              @change="handleFileUpload" 
+              class="hidden"
+            />
+            <button 
+              type="button" 
+              class="button bg-nord10 hover:bg-nord10/80" 
+              @click="triggerFileInput"
+            >
+              Upload GeoJSON File
+            </button>
+            <span v-if="geoJsonData" class="text-nord14 text-sm">
+              ✓ Geometry loaded
+            </span>
+            <span v-else class="text-nord11 text-sm">
+              No geometry
+            </span>
+          </div>
+        </div>
+
         <div class="mb-2 flex flex-col h-96">
           <div class="font-bold">Preview:</div>
           <div class="border border-nord4 h-full w-full flex-1">
@@ -136,11 +210,11 @@ const handleClose = () => {
         </div>
       </div>
 
-      <div class="border-t border-gray-300"></div>
-      <div class="flex justify-between pt-2">
-        <button class="button" @click="handleSave">Save</button>
-        <button class="button" @click="handleClose">Cancel</button>
-      </div>
+    <!-- Footer Section (Always Visible) -->
+    <div class="border-t border-gray-300 mt-4"></div>
+    <div class="flex justify-end pt-2 gap-4">
+      <button class="button" @click="handleSave">Save</button>
+      <button class="button" @click="handleClose">Cancel</button>
     </div>
   </popup>
 </template>

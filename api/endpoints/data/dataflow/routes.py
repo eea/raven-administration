@@ -40,7 +40,7 @@ def dataflows_e2a():
 @jwt_required_with_exporting_claim()
 def dataflows_reportnet3():
     if not current_app.config['SHOWREPORTNET3']:
-        return jsonify({"error": "Reportnet3 dataflow is not enabled"}), 403
+        return jsonify({"msg": "Reportnet3 dataflow is not enabled"}), 403
 
     m = DataflowModel(**request.args.to_dict())
     data = Dataflows_reportnet3.get_dataflow(m.type, m.year, m.timezone, m.description)
@@ -89,7 +89,7 @@ def show_reportnet3():
 @jwt_required_with_exporting_claim()
 def dataflows_reportnet3_b():
     if not current_app.config['SHOWREPORTNET3']:
-        return jsonify({"error": "Reportnet3 dataflow is not enabled"}), 403
+        return jsonify({"msg": "Reportnet3 dataflow is not enabled"}), 403
 
     data = Dataflows_reportnet3.get_dataflowB()
     if not data:
@@ -102,7 +102,7 @@ def dataflows_reportnet3_b():
 @jwt_required_with_exporting_claim()
 def dataflows_reportnet3_d_processes():
     if not current_app.config['SHOWREPORTNET3']:
-        return jsonify({"error": "Reportnet3 dataflow is not enabled"}), 403
+        return jsonify({"msg": "Reportnet3 dataflow is not enabled"}), 403
 
     data = Dataflows_reportnet3.get_processes()
     if not data:
@@ -115,7 +115,7 @@ def dataflows_reportnet3_d_processes():
 @jwt_required_with_exporting_claim()
 def dataflows_reportnet3_d_samplingpoints():
     if not current_app.config['SHOWREPORTNET3']:
-        return jsonify({"error": "Reportnet3 dataflow is not enabled"}), 403
+        return jsonify({"msg": "Reportnet3 dataflow is not enabled"}), 403
 
     data = Dataflows_reportnet3.get_samplingpoints()
     if not data:

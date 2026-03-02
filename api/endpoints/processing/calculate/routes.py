@@ -1,8 +1,8 @@
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
 from core.database import CursorFromPool
-from endpoints.processing.calculate.models import InsertModel, UpdateModel, DeleteModel
-from core.query import Q
+from endpoints.processing.calculate.models import InsertModel, UpdateModel
+from core.query import Q, DeleteModel
 from core.jwt_ext_custom import jwt_required_with_processing_claim
 
 
@@ -22,7 +22,7 @@ def calculate():
                 where 1=1
                 and s.network_id = n.id
                 and s.id = p.station_id
-                and p.pollutant = po.uri
+                and p.pollutant_id = po.id
             )
             select 	
                 spo_pri.sta_id,
@@ -136,7 +136,7 @@ def calculate_download():
                 where 1=1
                 and s.network_id = n.id
                 and s.id = p.station_id
-                and p.pollutant = po.uri
+                and p.pollutant_id = po.id
             )
             select 	
 	              spo_pri.station,

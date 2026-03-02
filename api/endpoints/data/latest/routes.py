@@ -17,9 +17,9 @@ def latest():
                 sp.id AS id,
                 to_char(sp.from_time, 'yyyy-mm-dd HH24:mi') AS from_time,
                 to_char(sp.to_time,   'yyyy-mm-dd HH24:mi') AS to_time,
-                o.validation_flag,
-                o.verification_flag,
-                p.notation           AS pollutant,
+                o.observationvalidity_id,
+                o.observationverification_id,
+                COALESCE(NULLIF(p.notation, ''), p.label) AS pollutant,
                 t.label              AS timestep,
                 s.name               AS station,
                 n.name               AS network,
@@ -41,28 +41,28 @@ def latest():
             FROM
                 observations             o
                 JOIN sampling_points     sp ON o.sampling_point_id = sp.id
-                JOIN eea_pollutants      p  ON sp.pollutant        = p.uri
-                JOIN eea_times           t  ON sp.timestep         = t.id
+                JOIN eea_pollutants      p  ON sp.pollutant_id    = p.id
+                JOIN eea_times           t  ON sp.time_resolution_id = t.id
                 JOIN stations            s  ON sp.station_id       = s.id
                 JOIN network_access      n  ON s.network_id        = n.id
-                JOIN eea_concentrations  u  ON sp.concentration    = u.id
+                JOIN eea_concentrations  u  ON sp.unit_id          = u.id
                 
                 LEFT JOIN public.aqi AS a_local
-                    ON a_local.pollutant_uri    = sp.pollutant
-                  AND a_local.timestep         = sp.timestep
+                    ON a_local.pollutant_id    = sp.pollutant_id
+                  AND a_local.timestep         = sp.time_resolution_id
                   AND a_local.calculation_type = 'LOCAL'
                   AND a_local.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)
                 
                 LEFT JOIN public.aqi AS a_eea
-                    ON a_eea.pollutant_uri      = sp.pollutant
-                  AND a_eea.timestep           = sp.timestep
+                    ON a_eea.pollutant_id      = sp.pollutant_id
+                  AND a_eea.timestep           = sp.time_resolution_id
                   AND a_eea.calculation_type   = 'EEA'
                   AND a_eea.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)
             WHERE
                 1 = 1
                 AND o.to_time = sp.to_time
             ORDER BY
-                to_time   DESC,
+                o.to_time  DESC,
                 station,
                 pollutant,
                 timestep;

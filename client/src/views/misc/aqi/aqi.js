@@ -24,17 +24,17 @@ const aqi = {
       const key = item.pollutant + "|" + item.timestep;
       if (!rangeMap[key]) {
         rangeMap[key] = {
-          pollutant_uri: item.pollutant_uri,
+          pollutant_id: item.pollutant_id,
           pollutant: item.pollutant,
-          timestep_uri: item.timestep_uri,
+          timestep_id: item.timestep_id,
           timestep: item.timestep,
           ranges: []
         };
       }
       rangeMap[key].ranges.push({
-        pollutant_uri: item.pollutant_uri,
+        pollutant_id: item.pollutant_id,
         pollutant: item.pollutant,
-        timestep_uri: item.timestep_uri,
+        timestep_id: item.timestep_id,
         timestep: item.timestep,
         level: item.level,
         range_from: item.range_from !== undefined ? Number(item.range_from) : null,
@@ -53,12 +53,12 @@ const aqi = {
     return {
       pollutant: pollutant.label,
       timestep: timestep.label,
-      pollutant_uri: pollutant.value,
-      timestep_uri: timestep.value,
+      pollutant_id: pollutant.value,
+      timestep_id: timestep.value,
       ranges: levels.map((level) => ({
-        pollutant_uri: pollutant.value,
+        pollutant_id: pollutant.value,
         pollutant: pollutant.label,
-        timestep_uri: timestep.value,
+        timestep_id: timestep.value,
         timestep: timestep.label,
         level: level.index,
         range_from: null,
@@ -69,9 +69,9 @@ const aqi = {
 
   add_range: (pollutant_groups, index) => {
     return {
-      pollutant_uri: pollutant_groups.value,
+      pollutant_id: pollutant_groups.value,
       pollutant: pollutant_groups.label,
-      timestep_uri: pollutant_groups.value,
+      timestep_id: pollutant_groups.value,
       timestep: pollutant_groups.label,
       level: index,
       range_from: null,
@@ -85,9 +85,9 @@ const aqi = {
         return pg.ranges.map((r) => {
           const levelInfo = levels.find((lvl) => lvl.index === r.level) || {};
           return {
-            pollutant_uri: pg.pollutant_uri,
+            pollutant_id: pg.pollutant_id,
             pollutant: pg.pollutant,
-            timestep_uri: pg.timestep_uri,
+            timestep_id: pg.timestep_id,
             timestep: pg.timestep,
             level: r.level,
             range_from: r.range_from,

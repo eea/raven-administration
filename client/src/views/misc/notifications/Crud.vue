@@ -115,8 +115,7 @@ const samplingPointColumns = [
   { field: "station", headerName: "Station", flex: 1 },
   { field: "pollutant", headerName: "Pollutant", flex: 1 },
   { field: "concentration", headerName: "Concentration", flex: 0.7 },
-  { field: "timestep", headerName: "Timestep", flex: 0.7 },
-  { field: "type", headerName: "Type", flex: 1 }
+  { field: "timestep", headerName: "Timestep", flex: 0.7 }
 ];
 </script>
 
@@ -146,9 +145,9 @@ const samplingPointColumns = [
       </div>
 
       <!-- BUTTONS -->
-      <div class="flex justify-end gap-2 h-20">
-        <div><button class="button" @click="$emit('on-close', false)">Cancel</button></div>
-        <div><button class="button" :disabled="!obj.name || !obj.emails" @click="onSave">Save</button></div>
+      <div class="flex justify-end gap-4">
+        <button class="button" :disabled="!obj.name || !obj.emails" @click="onSave">Save</button>
+        <button class="button" @click="$emit('on-close', false)">Cancel</button>
       </div>
     </div>
   </popup>

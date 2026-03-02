@@ -16,8 +16,8 @@ class Converting:
         for row in filtered_values.itertuples():
             converted_timeserie = next(filter(lambda x: x["sampling_point_id"] == row.sampling_point_id, converted_timeseries), None)
             if converted_timeserie is not None:
-                # if validation_flag < 0 and value is -9900 or -990 or -999 then don't convert
-                if row.validation_flag < 0 and (row.value == -9900 or row.value == -990 or row.value == -999):
+                # if observationvalidity_id < 0 and value is -9900 or -990 or -999 then don't convert
+                if row.observationvalidity_id < 0 and (row.value == -9900 or row.value == -990 or row.value == -999):
                     df_values.at[row.Index,  "value"] = row.value
                 else:
                     df_values.at[row.Index,  "value"] = row.value * float(converted_timeserie["factor"])

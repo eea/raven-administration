@@ -9,6 +9,7 @@ const router = useRouter();
 const canCreateAdmin = ref(false);
 const username = ref("");
 const password = ref("");
+const passwordConfirm = ref("");
 const message = ref("");
 
 onMounted(async () => {
@@ -20,7 +21,7 @@ const canLogin = computed(() => {
 });
 
 const canCreate = computed(() => {
-  return password.value.length;
+  return password.value.length > 0 && password.value === passwordConfirm.value;
 });
 
 const login = async () => {
@@ -51,6 +52,7 @@ const reset = () => {
   message.value = "";
   username.value = "";
   password.value = "";
+  passwordConfirm.value = "";
 };
 </script>
 
@@ -68,21 +70,27 @@ const reset = () => {
       <div class="p-2">
         <button :disabled="!canLogin" class="button w-full" @click="login">Log in</button>
       </div>
-      <div class="text-nord11 text-center flex-wrap break-words">{{ message }}</div>
+      <div class="text-nord11 text-center flex-wrap wrap-break-word">{{ message }}</div>
     </Container>
-    <Container class="m-auto w-80 gap-0!" v-if="canCreateAdmin">
+    <Container class="m-auto w-80! gap-0!" v-if="canCreateAdmin">
+      <div class="p-4 bg-nord14/50 text-nord0 font-bold text-center rounded-t">Create First Admin User</div>
       <div class="p-2 flex flex-col">
         <div class="mb-1">Username:</div>
-        <input type="text" class="input w-full" placeholder="admin" :value="admin" :disabled="true" />
+        <input type="text" class="input w-full" placeholder="admin" value="admin" :disabled="true" />
       </div>
       <div class="p-2 flex flex-col">
         <div class="mb-1">Password:</div>
-        <input type="password" placeholder="Password" class="input w-full" v-model="password" @keyup.enter="login" />
+        <input type="password" placeholder="Password" class="input w-full" v-model="password" />
+      </div>
+      <div class="p-2 flex flex-col">
+        <div class="mb-1">Confirm Password:</div>
+        <input type="password" placeholder="Confirm Password" class="input w-full" v-model="passwordConfirm" @keyup.enter="create" />
       </div>
       <div class="p-2">
         <button :disabled="!canCreate" class="button w-full" @click="create">Create admin user</button>
       </div>
-      <div class="text-nord11 text-center flex-wrap break-words">{{ message }}</div>
+      <div class="text-nord11 text-center flex-wrap wrap-break-word" v-if="message">{{ message }}</div>
+      <div class="text-nord11 text-center text-sm p-2" v-if="password.length > 0 && passwordConfirm.length > 0 && password !== passwordConfirm">Passwords do not match</div>
     </Container>
   </div>
 </template>

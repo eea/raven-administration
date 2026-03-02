@@ -111,9 +111,9 @@ const onClose = () => {
       </div>
 
       <!-- BUTTONS -->
-      <div class="flex justify-end gap-2">
-        <div><button class="button" :disabled="!obj.name" @click="onSave">Save</button></div>
-        <div><button class="button" @click="onClose">Cancel</button></div>
+      <div class="flex justify-end gap-4">
+        <button class="button" :disabled="!obj.name" @click="onSave">Save</button>
+        <button class="button" @click="onClose">Cancel</button>
       </div>
     </div>
   </popup>

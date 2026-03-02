@@ -6,7 +6,7 @@ class InsertModel(BaseModel):
     min: float
     max: float
     rep: int
-    pollutant_id: str
+    pollutant_id: int
 
     def __getitem__(self, key):
         return super().__getattribute__(key)

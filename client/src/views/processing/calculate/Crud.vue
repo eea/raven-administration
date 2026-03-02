@@ -66,12 +66,12 @@ const onSave = () => {
 </script>
 
 <template>
-  <popup :show="show" :title="isEdit ? 'Edit Calculation' : 'Add Calculation'" @on-close="$emit('close')">
+  <popup :show="show" :title="isEdit ? 'Edit Calculation' : 'Add Calculation'" @on-close="$emit('close')" class="w-[50%]">
     <div class="mb-4 font-bold text-base border-b">Required</div>
 
-    <div v-if="!isEdit" class="mb-2">
+    <div class="mb-2">
       <div class="font-bold">Station:</div>
-      <select v-model="station" class="select w-full">
+      <select v-model="station" class="select w-full" :disabled="isEdit">
         <option value="">Select station</option>
         <option v-for="a in cmp_stations" :key="a" :value="a">{{ a }}</option>
       </select>
@@ -111,9 +111,9 @@ const onSave = () => {
     </div>
 
     <!-- BUTTONS -->
-    <div class="flex gap-2 justify-end mt-4">
-      <div><button class="button" :disabled="!obj.primary || !obj.operator || !obj.secondary || !obj.result" @click="onSave">Save</button></div>
-      <div><button class="button" @click="$emit('close')">Cancel</button></div>
+    <div class="flex justify-end gap-4 mt-4">
+      <button class="button" :disabled="!obj.primary || !obj.operator || !obj.secondary || !obj.result" @click="onSave">Save</button>
+      <button class="button" @click="$emit('close')">Cancel</button>
     </div>
   </popup>
 </template>

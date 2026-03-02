@@ -7,13 +7,20 @@ import Service from "./service";
 import Eventy from "../../../helpers/eventy";
 
 const settings = ref({
-  id: "",
-  namespace: "",
-  observation_prefix: "",
-  language_code: ""
+  country_code_id: "",
+  timezone_id: ""
+});
+
+const lookups = ref({
+  countries: [],
+  timezones: []
 });
 
 onMounted(async () => {
+  // Load lookups
+  lookups.value = await Service.lookups();
+
+  // Load current settings
   const data = await Service.get();
   if (data && data.length > 0) {
     settings.value = data[0];
@@ -22,7 +29,7 @@ onMounted(async () => {
 
 const onSave = async () => {
   Eventy.showMessage("Saving settings...", "loading");
-  await Service.update(settings.value);
+  await Service.save(settings.value);
   Eventy.showHideMessage("Settings saved successfully", "success", 3000);
 };
 </script>
@@ -34,22 +41,29 @@ const onSave = async () => {
     <container class="p-4!">
       <div class="flex gap-4 items-end">
         <div class="flex-1">
-          <label class="font-bold">Namespace</label>
-          <input class="input w-full" type="text" v-model="settings.namespace" placeholder="Namespace to be used in dataflow" />
+          <label class="font-bold">
+            Country
+            <span class="text-nord11">*</span>
+          </label>
+          <select class="select w-full" v-model="settings.country_code_id">
+            <option value="">Select country</option>
+            <option v-for="c in lookups.countries" :key="c.value" :value="c.value">{{ c.label }}</option>
+          </select>
         </div>
 
         <div class="flex-1">
-          <label class="font-bold">Observation prefix</label>
-          <input class="input w-full" type="text" v-model="settings.observation_prefix" placeholder="Dataflow prefix for observations" />
-        </div>
-
-        <div class="w-32">
-          <label class="font-bold">Language code</label>
-          <input class="input w-full" type="text" v-model="settings.language_code" placeholder="Language to be used in dataflow" />
+          <label class="font-bold">
+            Timezone
+            <span class="text-nord11">*</span>
+          </label>
+          <select class="select w-full" v-model="settings.timezone_id">
+            <option value="">Select timezone</option>
+            <option v-for="t in lookups.timezones" :key="t.value" :value="t.value">{{ t.label }}</option>
+          </select>
         </div>
 
         <div>
-          <button class="button" @click="onSave">Save Settings</button>
+          <button class="button" :disabled="!settings.country_code_id || !settings.timezone_id" @click="onSave">Save Settings</button>
         </div>
       </div>
     </container>

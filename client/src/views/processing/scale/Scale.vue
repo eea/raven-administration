@@ -141,6 +141,12 @@ const onContextMenu = (row, e) => {
   }
 };
 
+const onRowDoubleClick = (row) => {
+  selected.value = row;
+  isEdit.value = true;
+  showCrud.value = true;
+};
+
 const onMenuClick = ({ action, data }) => {
   selected.value = data;
 
@@ -202,7 +208,7 @@ const cls_timeseries = (hasscalingpoint) => {
     </div>
 
     <div class="mt-4 min-h-96 flex-1" v-if="showPlotAndTable">
-      <DataTable :columns="scalingpointsColumns" :data="cmp_scalingpoints" :filter="false" :floating-filter="false" :responsive="true" @on-right-click="onContextMenu" />
+      <DataTable :columns="scalingpointsColumns" :data="cmp_scalingpoints" :filter="false" :floating-filter="false" :responsive="true" @on-right-click="onContextMenu" @on-double-click="onRowDoubleClick" />
     </div>
   </common-layout>
 </template>

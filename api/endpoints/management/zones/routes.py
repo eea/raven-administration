@@ -15,10 +15,19 @@ zones_endpoint = Blueprint('zones', __name__)
 def zones():
     with CursorFromPool() as cursor:
         cursor.execute("""
-          select z.id, z.code, z.name, z.year, z.area, z.population, z.population_year, z.type as zone_type_id, zt.label as zone_type, z.responsible_authority_id as authority_id, r.name as authority, ST_AsGeoJSON(geom) as geojson          
-          from zones z, eea_zonetypes zt, responsible_authorities r
-          where z.type = zt.id
-          and z.responsible_authority_id = r.id
+          select 
+            z.id, 
+            z.code, 
+            z.name, 
+            z.area, 
+            z.zone_type_id, 
+            zt.label as zone_type,
+            z.zone_category_id,
+            zc.label as zone_category,
+            ST_AsGeoJSON(z.geom) as geojson          
+          from zones z
+          left join eea_zonetypes zt on z.zone_type_id = zt.id
+          left join eea_zonecategory zc on z.zone_category_id = zc.id
         """)
         zones = cursor.fetchall()
         return jsonify(zones)
@@ -30,21 +39,50 @@ def zones():
 def zones_update():
     with CursorFromPool() as cursor:
         model = ZoneModel(**request.json)
-        sql = """ 
+        
+        # If source EPSG is 4326, use directly; otherwise transform to 4326
+        if model.source_epsg == 4326:
+            geom_sql = "ST_SetSRID(ST_GeomFromGeoJSON(%(geojson)s), 4326)"
+        else:
+            geom_sql = f"ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(%(geojson)s), %(source_epsg)s), 4326)"
+        
+        sql = f""" 
             UPDATE zones
-            SET name = %(name)s,
-            year = %(year)s,
-            area = %(area)s,
-            responsible_authority_id = %(authority_id)s,
-            type = %(zone_type_id)s,
-            population = %(population)s,
-            population_year = %(population_year)s 
+            SET 
+                code = %(code)s,
+                name = %(name)s,
+                area = %(area)s,
+                zone_type_id = %(zone_type_id)s,
+                zone_category_id = %(zone_category_id)s,
+                geom = {geom_sql}
             where id = %(id)s
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
             raise BadRequest("Could not update for id " + model.id)
 
+        return jsonify({"success": True})
+
+
+@zones_endpoint.route('/api/management/zones/add', methods=['POST'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def zones_add():
+    with CursorFromPool() as cursor:
+        model = ZoneModel(**request.json)
+        
+        # If source EPSG is 4326, use directly; otherwise transform to 4326
+        if model.source_epsg == 4326:
+            geom_sql = "ST_SetSRID(ST_GeomFromGeoJSON(%(geojson)s), 4326)"
+        else:
+            geom_sql = f"ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(%(geojson)s), %(source_epsg)s), 4326)"
+        
+        sql = f"""
+            INSERT INTO zones (id, code, name, area, zone_type_id, zone_category_id, geom)
+            VALUES (%(id)s, %(code)s, %(name)s, %(area)s, %(zone_type_id)s, %(zone_category_id)s, 
+                    {geom_sql})
+        """
+        cursor.execute(sql, model)
         return jsonify({"success": True})
 
 

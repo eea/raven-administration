@@ -57,10 +57,10 @@ const title = computed(() => {
 </script>
 
 <template>
-  <popup :show="show" :title="title" @on-close="handleClose" class="max-w-6xl w-full max-h-[90vh]">
-    <div class="flex flex-col gap-2 h-full">
-      <div class="flex-1 overflow-y-auto pr-2">
-        <div class="flex gap-6" :class="options.showRequiredAndoptionalSideBySideInCrud ? 'flex-row' : 'flex-col'">
+  <popup :show="show" :title="title" @on-close="handleClose" class="max-w-6xl w-full">
+    <!-- Content Section with Scrollbar -->
+    <div class="overflow-y-auto pr-2 max-h-[60vh]">
+      <div class="flex gap-6" :class="options.showRequiredAndoptionalSideBySideInCrud ? 'flex-row' : 'flex-col'">
           <div class="flex-1">
             <div class="mb-4 font-bold text-lg border-b border-nord4">Required</div>
 
@@ -144,11 +144,11 @@ const title = computed(() => {
         </div>
       </div>
 
-      <div class="border-t border-gray-300"></div>
-      <div class="flex justify-between pt-2">
-        <button class="button" @click="onSave">Save</button>
-        <button class="button" @click="handleClose">Cancel</button>
-      </div>
+    <!-- Footer Section (Always Visible) -->
+    <div class="border-t border-gray-300 mt-4"></div>
+    <div class="flex justify-end pt-2 gap-4">
+      <button class="button" @click="onSave">Save</button>
+      <button class="button" @click="handleClose">Cancel</button>
     </div>
   </popup>
 </template>

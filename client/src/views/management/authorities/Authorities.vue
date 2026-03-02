@@ -7,7 +7,8 @@ import pageOptions from "./pageOptions";
 const options = ref({});
 
 onMounted(async () => {
-  options.value = pageOptions({});
+  const lookups = await Service.lookups();
+  options.value = pageOptions(lookups);
 });
 </script>
 <template>

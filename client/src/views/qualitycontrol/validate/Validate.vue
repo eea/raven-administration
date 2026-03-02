@@ -42,15 +42,15 @@ const columns = shallowRef([
   { field: "totime", headerName: "To", flex: 1 },
   { field: "value", headerName: "Value", width: 120 },
   { field: "import_value", headerName: "Import value", width: 120 },
-  { field: "validation_flag", headerName: "Validation", width: 120 },
+  { field: "observationvalidity_id", headerName: "Validation", width: 120 },
   {
-    field: "verification_flag",
+    field: "observationverification_id",
     headerName: "Verification",
     width: 120,
     cellRenderer: (params) => {
       const value = params.value;
       if (value === 1) {
-        return `<div class="flex gap-1"><span>${value}</span><svg class="text-xs text-nord14" style="width: 12px; height: 12px; display: inline-block;" viewBox="0 0 256 256" fill="currentColor"><path d="M208,80H96V48a8,8,0,0,1,16,0,8,8,0,0,0,16,0,24,24,0,0,0-48,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm0,128H48V96H208V208Zm-68-56a12,12,0,1,1-12-12A12,12,0,0,1,140,152Z"></path></svg></div>`;
+        return `<div class="flex gap-1 items-center"><span>${value}</span><svg class="text-xs text-nord14" style="width: 12px; height: 12px; display: inline-block;" viewBox="0 0 256 256" fill="currentColor"><path d="M208,80H96V48a8,8,0,0,1,16,0,8,8,0,0,0,16,0,24,24,0,0,0-48,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm0,128H48V96H208V208Zm-68-56a12,12,0,1,1-12-12A12,12,0,0,1,140,152Z"></path></svg></div>`;
       }
       return value;
     }
@@ -114,7 +114,7 @@ const getRowStyle = (params) => {
   const row = params.data;
   if (!row) return { background: "" };
 
-  if (row.validation_flag < 1) {
+  if (row.observationvalidity_id < 1) {
     return { background: "rgba(191, 97, 106, 0.1)" }; // nord11/10
   }
 
@@ -130,8 +130,8 @@ const onDownload = () => {
       totime: "To",
       value: "Value",
       import_value: "Import value",
-      validation_flag: "Validation",
-      verification_flag: "Verification"
+      observationvalidity_id: "Validation",
+      observationverification_id: "Verification"
     };
     downloadCsv(timevalues.value, columnMapping, name);
   }
@@ -195,7 +195,9 @@ const onValidate = async (flag, row) => {
     Eventy.showHideMessage("Validation flag updated", "success");
   } catch (error) {
     console.error("Error validating:", error);
-    Eventy.showHideMessage("Error updating validation flag", "error", 3000);
+    // Display the actual error message from the server
+    const errorMessage = error.message || "Error updating validation flag";
+    Eventy.showHideMessage(errorMessage, "error", 5000);
   }
 };
 
@@ -237,7 +239,7 @@ const formatValues = () => {
   timevalues.value.forEach((o) => {
     var value_to_use = showValidOnly.value ? o.valid_value_only : o.value;
     var v = value_to_use == -9900 ? null : value_to_use;
-    var c = o.validation_flag < 1 ? "#BF616A" : "#A3BE8C";
+    var c = o.observationvalidity_id < 1 ? "#BF616A" : "#A3BE8C";
     const n = Object.assign({}, o);
     colors.push(c);
     data.push({ x: o.totime.replace(" ", "T"), y: v, obj: n });

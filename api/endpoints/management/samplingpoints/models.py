@@ -1,34 +1,21 @@
-from datetime import datetime
-from pydantic import BaseModel
-from typing import Optional
 from core.base_model import RavenBaseModel
+from typing import Optional
 
 
 class SamplingPointsModel(RavenBaseModel):
-    
     id: str
-    station_id: str
-    pollutant_id: str
-    timestep_id: str
-    concentration_id: str
-    station_classification_id: str
-    media_id: str
-    measurement_regime_id: str
-    assessment_type_id: str
-    begin_position: str
-    mobile: bool
+    inlet_height: float
+    building_distance: float
+    kerb_distance: float
+    emission_source_distance: float
+    logger_id: Optional[str] = None
     private: bool
     use_in_public_api: bool
-
-    main_emission_sources: Optional[str] = None
-    traffic_emissions: Optional[str] = None
-    heating_emissions: Optional[str] = None
-    industrial_emissions: Optional[str] = None
-    distance_source: Optional[str] = None
-    change_aei_stations: Optional[str] = None
-    end_position: Optional[str] = None
-    logger_id: Optional[str] = None
-    used_aqd: Optional[bool] = None
+    pollutant_id: int
+    time_resolution_id: str
+    unit_id: str
+    station_id: str
+    spo_category_id: str
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
