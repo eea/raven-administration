@@ -9,7 +9,6 @@ const Service = {
     const response = await axios.get(`/api/dataflow/reportnet3/csv?type=${type}&year=${year}&timezone=${timezone}&description=${description}`, { responseType: "arraybuffer" });
     return new Blob([response.data], { type: "application/zip" });
   },
-  showReportnet3: async () => Get(`/api/dataflow/showreportnet3`),
   
   // New CSV Dataflow exports (using Download helper like authorities module)
   getAvailableYears: async () => Get("/api/dataflow/csv/available_years"),
