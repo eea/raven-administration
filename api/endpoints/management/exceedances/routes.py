@@ -5,7 +5,7 @@ from endpoints.management.exceedances.models import ExceedanceModel
 from core.query import Q, DeleteModel
 from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 
-exceedances_endpoint = Blueprint('exceedances', __name__)
+exceedances_endpoint = Blueprint('management_exceedances', __name__)
 
 @exceedances_endpoint.route('/api/management/exceedances', methods=['GET'])
 @jwt_required_with_management_claim()

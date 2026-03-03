@@ -20,6 +20,7 @@ const Latest = () => import("./views/data/latest/Latest.vue");
 const Historical = () => import("./views/data/historical/Historical.vue");
 const Dataflow = () => import("./views/data/dataflow/Dataflow.vue");
 const Statistics = () => import("./views/data/statistics/Statistics.vue");
+const DataExceedances = () => import("./views/data/exceedances/Exceedances.vue");
 const Map = () => import("./views/data/map/Map.vue");
 const RNotebook = () => import("./views/data/rnotebook/RNotebook.vue");
 
@@ -63,6 +64,7 @@ const routes = [
   { path: "/data/historical", component: Historical, name: "Historical" },
   { path: "/data/dataflow", component: Dataflow, name: "Dataflow" },
   { path: "/data/statistics", component: Statistics, name: "Statistics" },
+  { path: "/data/exceedances", component: DataExceedances, name: "DataExceedances" },
   { path: "/data/map", component: Map, name: "Map" },
   { path: "/data/rnotebook", component: RNotebook, name: "RNotebook" },
 

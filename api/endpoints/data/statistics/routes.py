@@ -72,10 +72,16 @@ def statistics_values():
     with CursorFromPool() as cursor:
         m = StatisticsModel(**request.json)
         statistics = Statistics(cursor)
-        statistics_data = statistics.generate(m.aggregation_process, m.pollutant, m.year)
+        
+        # Generate statistics for all requested years
+        all_statistics_data = []
+        for year in m.year_list:
+            year_data = statistics.generate(m.aggregation_process, m.pollutant, year)
+            all_statistics_data.extend(year_data)
 
+        # Apply network filtering
         if not can_see_all_networks():
             user_networks = get_networks()
-            statistics_data = [row for row in statistics_data if row['network'] in user_networks]
+            all_statistics_data = [row for row in all_statistics_data if row['network'] in user_networks]
 
-        return jsonify(statistics_data)
+        return jsonify(all_statistics_data)

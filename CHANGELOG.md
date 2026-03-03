@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [Under development] - 2026-01-08
+
+### Fixes
+
+- Prevent from_year and to_year to be returned as string from the backend.
+- Updated docker to handle more concurrent requests (workers and threads)
+- index out of bounds bug when flagging during import
+
 ## [3.5.1] - 2025-09-23
 
 ### Fixes
