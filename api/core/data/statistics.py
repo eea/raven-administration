@@ -201,7 +201,7 @@ class Statistics:
             "aggregation_process": "P1Y-dmaxAbove120",
             "year": year,
             "pollutant": pollutant,
-            "threshold": 120,
+            "threshold": 120.5,
             "coverage": 75
         })
         return self.cursor.fetchall()
