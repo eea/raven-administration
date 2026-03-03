@@ -331,7 +331,7 @@ class Statistics:
                 asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant,
                 %(aggregation_process)s as aggregation_process,
                 %(year)s as year,
-                ROUND(MAX(o.val), 3) as value,
+                ROUND(MAX(CASE WHEN o.cov >= %(coverage)s THEN o.val END), 3) as value,
                 ROUND((COUNT(CASE WHEN o.cov >= %(coverage)s THEN 1 END)::numeric / year_info.total_days) * 100, 2) as coverage
             FROM all_sampling_points asp
             CROSS JOIN year_info
@@ -362,7 +362,7 @@ class Statistics:
                 asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant,
                 %(aggregation_process)s as aggregation_process,
                 %(year)s as year,
-                ROUND(MAX(o.val), 3) as value,
+                ROUND(MAX(CASE WHEN o.cov >= %(coverage)s THEN o.val END), 3) as value,
                 ROUND((COUNT(CASE WHEN o.cov >= %(coverage)s THEN 1 END)::numeric / year_info.total_days) * 100, 2) as coverage
             FROM all_sampling_points asp
             CROSS JOIN year_info
@@ -407,7 +407,7 @@ class Statistics:
                 asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant,
                 %(aggregation_process)s as aggregation_process,
                 %(year)s as year,
-                ROUND(MIN(o.val), 3) as value,
+                ROUND(MIN(CASE WHEN o.cov >= %(coverage)s THEN o.val END), 3) as value,
                 ROUND((COUNT(CASE WHEN o.cov >= %(coverage)s THEN 1 END)::numeric / year_info.total_days) * 100, 2) as coverage
             FROM all_sampling_points asp
             CROSS JOIN year_info
@@ -438,7 +438,7 @@ class Statistics:
                 asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant,
                 %(aggregation_process)s as aggregation_process,
                 %(year)s as year,
-                ROUND(MIN(o.val), 3) as value,
+                ROUND(MIN(CASE WHEN o.cov >= %(coverage)s THEN o.val END), 3) as value,
                 ROUND((COUNT(CASE WHEN o.cov >= %(coverage)s THEN 1 END)::numeric / year_info.total_days) * 100, 2) as coverage
             FROM all_sampling_points asp
             CROSS JOIN year_info
