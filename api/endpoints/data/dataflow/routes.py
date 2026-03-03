@@ -3,16 +3,196 @@ from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from core.query import Q
 from core.utils import U
+from core.database import CursorFromPool
 from endpoints.data.dataflow.models import DataflowModel, DataflowModelE2a
 from core.eea.dataflows import Dataflows
 from core.eea.dataflows_reportnet3 import Dataflows_reportnet3
 from core.jwt_ext_custom import jwt_required_with_exporting_claim
+from core.data import dataflow as DataflowExports
 import zipfile
 from io import BytesIO
 import pandas as pd
+from datetime import datetime
 
 dataflow_endpoint = Blueprint('dataflow', __name__)
 
+
+# NEW CSV EXPORTS (Reportnet3 format)
+
+@dataflow_endpoint.route("/api/dataflow/csv/available_years", methods=['GET'])
+@jwt_required_with_exporting_claim()
+def get_available_years():
+    """Get available years from sampling_points from_time and to_time"""
+    with CursorFromPool() as cursor:
+        cursor.execute("""
+            SELECT DISTINCT EXTRACT(YEAR FROM year_date)::integer as year
+            FROM (
+                SELECT from_time as year_date FROM sampling_points WHERE from_time IS NOT NULL
+                UNION
+                SELECT to_time as year_date FROM sampling_points WHERE to_time IS NOT NULL
+            ) years
+            ORDER BY year DESC
+        """)
+        years = cursor.fetchall()
+        return jsonify([row['year'] for row in years])
+
+
+@dataflow_endpoint.route("/api/dataflow/csv/authorities", methods=['POST'])
+@jwt_required_with_exporting_claim()
+def export_authorities_csv():
+    """Export authorities as CSV matching Reportnet3 format"""
+    with CursorFromPool() as cursor:
+        cursor.execute("SELECT country_code_id FROM settings LIMIT 1")
+        settings_row = cursor.fetchone()
+        country_code = settings_row['country_code_id'] if settings_row else None
+    
+    csv_content = DataflowExports.get_authorities_csv(country_code)
+    return U.csv_response(csv_content, "Authority.csv")
+
+
+@dataflow_endpoint.route("/api/dataflow/csv/stations", methods=['POST'])
+@jwt_required_with_exporting_claim()
+def export_stations_csv():
+    """Export stations as CSV matching Reportnet3 format"""
+    with CursorFromPool() as cursor:
+        cursor.execute("SELECT country_code_id, timezone_id FROM settings LIMIT 1")
+        settings_row = cursor.fetchone()
+        country_code = settings_row['country_code_id'] if settings_row else None
+        timezone_id = settings_row['timezone_id'] if settings_row else None
+    
+    csv_content = DataflowExports.get_stations_csv(country_code, timezone_id)
+    return U.csv_response(csv_content, "Station.csv")
+
+
+@dataflow_endpoint.route("/api/dataflow/csv/samplingpoints", methods=['POST'])
+@jwt_required_with_exporting_claim()
+def export_samplingpoints_csv():
+    """Export sampling points as CSV matching Reportnet3 format"""
+    with CursorFromPool() as cursor:
+        cursor.execute("SELECT country_code_id FROM settings LIMIT 1")
+        settings_row = cursor.fetchone()
+        country_code = settings_row['country_code_id'] if settings_row else None
+    
+    csv_content = DataflowExports.get_samplingpoints_csv(country_code)
+    return U.csv_response(csv_content, "SamplingPoint.csv")
+
+
+@dataflow_endpoint.route("/api/dataflow/csv/processes", methods=['POST'])
+@jwt_required_with_exporting_claim()
+def export_processes_csv():
+    """Export processes as CSV matching Reportnet3 format"""
+    with CursorFromPool() as cursor:
+        cursor.execute("SELECT country_code_id FROM settings LIMIT 1")
+        settings_row = cursor.fetchone()
+        country_code = settings_row['country_code_id'] if settings_row else None
+    
+    csv_content = DataflowExports.get_processes_csv(country_code)
+    return U.csv_response(csv_content, "SamplingPointProcess.csv")
+
+
+@dataflow_endpoint.route("/api/dataflow/csv/measurements", methods=['POST'])
+@jwt_required_with_exporting_claim()
+def export_measurements_csv():
+    """Export measurement results as CSV matching Reportnet3 format for a specific year"""
+    data = request.get_json() or {}
+    year = data.get('year')
+    
+    if not year:
+        raise BadRequest("Year parameter is required")
+    
+    try:
+        year = int(year)
+    except ValueError:
+        raise BadRequest("Year must be a valid integer")
+    
+    with CursorFromPool() as cursor:
+        cursor.execute("SELECT country_code_id, timezone_id FROM settings LIMIT 1")
+        settings_row = cursor.fetchone()
+        country_code = settings_row['country_code_id'] if settings_row else None
+        timezone_id = settings_row['timezone_id'] if settings_row else None
+    
+    csv_content = DataflowExports.get_measurements_csv(country_code, timezone_id, year)
+    return U.csv_response(csv_content, f"MeasurementResult_{year}.csv")
+
+
+@dataflow_endpoint.route("/api/dataflow/csv/zonegeometry", methods=['POST'])
+@jwt_required_with_exporting_claim()
+def export_zonegeometry_csv():
+    """Export zone geometry as CSV matching Reportnet3 format"""
+    with CursorFromPool() as cursor:
+        cursor.execute("SELECT country_code_id FROM settings LIMIT 1")
+        settings_row = cursor.fetchone()
+        country_code = settings_row['country_code_id'] if settings_row else None
+    
+    csv_content = DataflowExports.get_zonegeometry_csv(country_code)
+    return U.csv_response(csv_content, "ZoneGeometry.csv")
+
+
+@dataflow_endpoint.route("/api/dataflow/csv/download_all", methods=['POST'])
+@jwt_required_with_exporting_claim()
+def export_all_csv():
+    """Export all dataflow CSVs as a ZIP file (optionally includes measurements for a specific year)"""
+    data = request.get_json() or {}
+    year = data.get('year')
+    
+    # Get settings once for all exports
+    with CursorFromPool() as cursor:
+        cursor.execute("SELECT country_code_id, timezone_id FROM settings LIMIT 1")
+        settings_row = cursor.fetchone()
+        country_code = settings_row['country_code_id'] if settings_row else None
+        timezone_id = settings_row['timezone_id'] if settings_row else None
+    
+    # Create a BytesIO buffer for the ZIP file
+    zip_buffer = BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # Add Authority CSV
+        csv_content = DataflowExports.get_authorities_csv(country_code)
+        if csv_content:
+            zip_file.writestr('Authority.csv', csv_content)
+        
+        # Add Station CSV
+        csv_content = DataflowExports.get_stations_csv(country_code, timezone_id)
+        if csv_content:
+            zip_file.writestr('Station.csv', csv_content)
+        
+        # Add SamplingPoint CSV
+        csv_content = DataflowExports.get_samplingpoints_csv(country_code)
+        if csv_content:
+            zip_file.writestr('SamplingPoint.csv', csv_content)
+        
+        # Add SamplingPointProcess CSV
+        csv_content = DataflowExports.get_processes_csv(country_code)
+        if csv_content:
+            zip_file.writestr('SamplingPointProcess.csv', csv_content)
+        
+        # Add MeasurementResult CSV (if year provided)
+        if year:
+            try:
+                year_int = int(year)
+                csv_content = DataflowExports.get_measurements_csv(country_code, timezone_id, year_int)
+                if csv_content:
+                    zip_file.writestr(f'MeasurementResult_{year_int}.csv', csv_content)
+            except (ValueError, TypeError):
+                pass  # Skip measurements if year is invalid
+        
+        # Add ZoneGeometry CSV
+        csv_content = DataflowExports.get_zonegeometry_csv(country_code)
+        if csv_content:
+            zip_file.writestr('ZoneGeometry.csv', csv_content)
+    
+    # Prepare the ZIP file for download
+    zip_buffer.seek(0)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    
+    response = Response(zip_buffer.read(), mimetype='application/zip')
+    response.headers['Content-Disposition'] = f'attachment; filename=dataflow_export_{timestamp}.zip'
+    zip_buffer.close()
+    
+    return response
+
+
+# OLD DATAFLOW ENDPOINTS (XML based - kept for backward compatibility)
 
 @dataflow_endpoint.route('/api/dataflow', methods=['GET'])
 @jwt_required_with_exporting_claim()
@@ -36,89 +216,44 @@ def dataflows_e2a():
     return U.xmlify(xml)
 
 
-@dataflow_endpoint.route('/api/dataflow/reportnet3/csv', methods=['GET'])
-@jwt_required_with_exporting_claim()
-def dataflows_reportnet3():
-    if not current_app.config['SHOWREPORTNET3']:
-        return jsonify({"msg": "Reportnet3 dataflow is not enabled"}), 403
+# OLD REPORTNET3 ENDPOINTS - DEPRECATED
+# These endpoints have been replaced by the new CSV export system above
+# Kept commented for reference, can be removed after migration is complete
 
-    m = DataflowModel(**request.args.to_dict())
-    data = Dataflows_reportnet3.get_dataflow(m.type, m.year, m.timezone, m.description)
-    if not data:
-        raise BadRequest("Could not create csv for dataflow "+m.type+", no data found")
+# @dataflow_endpoint.route('/api/dataflow/reportnet3/csv', methods=['GET'])
+# @jwt_required_with_exporting_claim()
+# def dataflows_reportnet3():
+#     m = DataflowModel(**request.args.to_dict())
+#     data = Dataflows_reportnet3.get_dataflow(m.type, m.year, m.timezone, m.description)
+#     if not data:
+#         raise BadRequest("Could not create csv for dataflow "+m.type+", no data found")
+#     # ... rest of implementation
 
-    # Create a zip file in memory
-    zip_buffer = BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        if isinstance(data, list):
-            # Convert data to a DataFrame and write it to a single CSV file
-            df = pd.DataFrame(data)
-            csv_buffer = BytesIO()
-            df.to_csv(csv_buffer, index=False)
-            csv_buffer.seek(0)
-            zip_file.writestr("reportnet3_dataflow.csv", csv_buffer.getvalue())
-        else:
-            for filename, df in data.items():
-                # Convert df to a DataFrame if it's a list
-                if isinstance(df, list):
-                    df = pd.DataFrame(df)
-                # Convert each DataFrame to a CSV and add it to the zip file
-                csv_buffer = BytesIO()
-                df.to_csv(csv_buffer, index=False)
-                csv_buffer.seek(0)
-                zip_file.writestr(filename, csv_buffer.getvalue())
+# @dataflow_endpoint.route('/api/dataflow/showreportnet3', methods=['GET'])
+# @jwt_required()
+# def show_reportnet3():
+#     return jsonify({"showreportnet3": True})
 
-    # Get the bytes of the zip file
-    zip_buffer.seek(0)
+# @dataflow_endpoint.route('/api/dataflow/reportnet3/b', methods=['GET'])
+# @jwt_required_with_exporting_claim()
+# def dataflows_reportnet3_b():
+#     data = Dataflows_reportnet3.get_dataflowB()
+#     if not data:
+#         raise BadRequest("No data for dataflow B found")
+#     return jsonify(data)
 
-    # Create a Flask response and set the appropriate headers
-    response = Response(zip_buffer.read(), mimetype='application/zip')
-    response.headers['Content-Disposition'] = 'attachment; filename=reportnet3_dataflow.zip'
-    zip_buffer.close()
+# @dataflow_endpoint.route('/api/dataflow/reportnet3/d/processes', methods=['GET'])
+# @jwt_required_with_exporting_claim()
+# def dataflows_reportnet3_d_processes():
+#     data = Dataflows_reportnet3.get_processes()
+#     if not data:
+#         raise BadRequest("No data for dataflow D Processes found")
+#     return jsonify(data)
 
-    return response
-
-
-@dataflow_endpoint.route('/api/dataflow/showreportnet3', methods=['GET'])
-@jwt_required()
-def show_reportnet3():
-    return jsonify({"showreportnet3": current_app.config['SHOWREPORTNET3']})
-
-
-@dataflow_endpoint.route('/api/dataflow/reportnet3/b', methods=['GET'])
-@jwt_required_with_exporting_claim()
-def dataflows_reportnet3_b():
-    if not current_app.config['SHOWREPORTNET3']:
-        return jsonify({"msg": "Reportnet3 dataflow is not enabled"}), 403
-
-    data = Dataflows_reportnet3.get_dataflowB()
-    if not data:
-        raise BadRequest("No data for dataflow B found")
-
-    return jsonify(data)
-
-
-@dataflow_endpoint.route('/api/dataflow/reportnet3/d/processes', methods=['GET'])
-@jwt_required_with_exporting_claim()
-def dataflows_reportnet3_d_processes():
-    if not current_app.config['SHOWREPORTNET3']:
-        return jsonify({"msg": "Reportnet3 dataflow is not enabled"}), 403
-
-    data = Dataflows_reportnet3.get_processes()
-    if not data:
-        raise BadRequest("No data for dataflow D Processes found")
-
-    return jsonify(data)
-
-
-@dataflow_endpoint.route('/api/dataflow/reportnet3/d/samplingpoints', methods=['GET'])
-@jwt_required_with_exporting_claim()
-def dataflows_reportnet3_d_samplingpoints():
-    if not current_app.config['SHOWREPORTNET3']:
-        return jsonify({"msg": "Reportnet3 dataflow is not enabled"}), 403
-
-    data = Dataflows_reportnet3.get_samplingpoints()
-    if not data:
-        raise BadRequest("No data for dataflow D Samplingpoints found")
-
-    return jsonify(data)
+# @dataflow_endpoint.route('/api/dataflow/reportnet3/d/samplingpoints', methods=['GET'])
+# @jwt_required_with_exporting_claim()
+# def dataflows_reportnet3_d_samplingpoints():
+#     data = Dataflows_reportnet3.get_samplingpoints()
+#     if not data:
+#         raise BadRequest("No data for dataflow D Samplingpoints found")
+#     return jsonify(data)
