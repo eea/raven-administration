@@ -17,12 +17,12 @@ def exceedances():
               SELECT ed.id as exceedance_description_id
               FROM
                 assessmentdata ad,
-                assessmentregimes ar,
+                assessment_regimes ar,
                 attainments at,
                 exceedancedescriptions ed
               WHERE 1=1
-              AND ad.assessmentregime_id = ar.id
-              AND ar.id = at.assessmentregime_id
+              AND ad.assessment_regime_id = ar.id
+              AND ar.id = at.assessment_regime_id
               AND at.id = ed.attainment_id
           )
           SELECT
@@ -38,9 +38,9 @@ def exceedances():
               a.id as attainment_id,
               a.name as attainment,
               et.id::varchar as exceedance_type_id,
-              et.name as exceedance_type,
+              et.label as exceedance_type,
               ee.id::varchar as exceedance_description_id,
-              ee.name as exceedance_description,
+              ee.label as exceedance_description,
               ed.adjustment_type as adjustment_type_id,
               at.label as adjustment_type,
               ed.area_classification as area_classification_id,
@@ -75,9 +75,9 @@ def exceedances():
               a.id ,
               a.name,
               et.id::varchar,
-              et.name,
+              et.label,
               ee.id::varchar,
-              ee.name,
+              ee.label,
               ed.adjustment_type,
               at.label ,
               ed.area_classification,
@@ -106,7 +106,7 @@ def samplingpoints():
               po.notation as pollutant,
               t.label as timestep,
               u.notation as concentration,
-              ar.name as assessment_regime
+              ar.id as assessment_regime
           from
               stations s,
               eea_pollutants po,
@@ -114,7 +114,7 @@ def samplingpoints():
               eea_concentrations u,
               eea_times t,
               assessmentdata ad,
-              assessmentregimes ar,
+              assessment_regimes ar,
               attainments at
           where 1=1
           and sp.station_id = s.id
@@ -122,9 +122,9 @@ def samplingpoints():
           and sp.time_resolution_id = t.id
           and sp.unit_id = u.id
           and sp.id = ad.assessmentlocal_id
-          and ad.assessmentregime_id = ar.id
-          and at.assessmentregime_id = ar.id
-          order by ar.name, s.name, po.notation, t.label
+          and ad.assessment_regime_id = ar.id
+          and at.assessment_regime_id = ar.id
+          order by ar.id, s.name, po.notation, t.label
         """)
 
         samplingpoints = cursor.fetchall()

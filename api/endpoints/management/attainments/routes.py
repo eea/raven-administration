@@ -24,7 +24,7 @@ def attainments():
             a.assessmentregime_id as assessment_regime_id,
             a.comment ,
             count(e.id) as ed_count
-          from assessmentregimes ar, attainments a left join exceedancedescriptions e on a.id = e.attainment_id
+          from assessment_regimes ar, attainments a left join exceedancedescriptions e on a.id = e.attainment_id
           where a.assessmentregime_id = ar.id
           group by
             a.id,
@@ -34,8 +34,8 @@ def attainments():
             a.comment
           order by name
         """)
-        assessmentregimes = cursor.fetchall()
-        return jsonify(assessmentregimes)
+        assessment_regimes = cursor.fetchall()
+        return jsonify(assessment_regimes)
 
 
 @attainments_endpoint.route('/api/management/attainments/update', methods=['POST'])

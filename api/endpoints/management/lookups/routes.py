@@ -20,7 +20,7 @@ def areaclassifications():
 @jwt_required_with_management_claim()
 def exceedancedescriptions():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.name as label, r.id::varchar as value from eea_exceedancedescription r order by r.name")
+        cursor.execute("select r.label as label, r.id::varchar as value from eea_exceedancedescription r order by r.label")
         rows = cursor.fetchall()
         return jsonify(rows)
 
@@ -29,7 +29,7 @@ def exceedancedescriptions():
 @jwt_required_with_management_claim()
 def exceedancetypes():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.name as label, r.id::varchar as value from eea_exceedancetype r order by r.name")
+        cursor.execute("select r.label as label, r.id::varchar as value from eea_exceedancetype r order by r.label")
         rows = cursor.fetchall()
         return jsonify(rows)
 
@@ -295,7 +295,7 @@ def attainments():
 @jwt_required_with_management_claim()
 def assessmentregimes():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.name as label, r.id as value from assessmentregimes r order by r.name")
+        cursor.execute("select r.name as label, r.id as value from assessment_regimes r order by r.name")
         processes = cursor.fetchall()
         return jsonify(processes)
 

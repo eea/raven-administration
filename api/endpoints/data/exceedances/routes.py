@@ -313,8 +313,8 @@ def evaluate_regime():
 @jwt_required_with_data_claim()
 def get_years():
     """
-    Get available years from zones data.
-    Falls back to sampling_points data if no zones exist.
+    Get available years from assessment_regimes data.
+    Falls back to sampling_points data if no assessment regimes exist.
     
     Returns:
         JSON array of unique years
@@ -323,16 +323,17 @@ def get_years():
         GET /api/data/exceedances/years
     """
     with CursorFromPool() as cursor:
-        # First try to get years from zones
+        # First try to get years from assessment_regimes classification_year
         cursor.execute("""
-            SELECT DISTINCT year
-            FROM zones
-            ORDER BY year DESC
+            SELECT DISTINCT classification_year as year
+            FROM assessment_regimes
+            WHERE classification_year IS NOT NULL
+            ORDER BY classification_year DESC
         """)
         
         years = [row['year'] for row in cursor.fetchall()]
         
-        # If no zones exist, fall back to years from sampling points
+        # If no assessment regimes exist, fall back to years from sampling points
         if not years:
             cursor.execute("""
                 SELECT 
