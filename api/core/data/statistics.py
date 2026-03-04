@@ -751,13 +751,20 @@ class Statistics:
     def generate_somo10(self, pollutant, year):
         """
         SOMO10: Sum of Ozone Means Over 10 ppb.
-        Calculates sum of (daily_8h_max - 20 µg/m³) for all days where daily_8h_max > 20 µg/m³.
+        Calculates sum of all daily_8h_max values where daily_8h_max > 20 µg/m³.
         Uses observations_day_8hmax materialized view.
         
         Unit conversion at 20°C: 10 ppb ≈ 20 µg/m³
         
+        Note: Different interpretations exist:
+        - Version A: Sum of (val - threshold) for vals > threshold (subtract threshold)
+        - Version B: Sum of val for vals > threshold (no subtraction)
+        
+        This implementation uses Version B to match reference system values.
+        Only includes days with >= 75% hourly coverage (EU assessment standard).
+        
         Returns:
-            - value: Sum of excesses over threshold (µg/m³·days)
+            - value: Sum of daily 8h max values above threshold (µg/m³·days)
             - coverage: Percentage of valid days with data (0-100%)
         """
         threshold = 20  # 10 ppb ≈ 20 µg/m³ at 20°C
@@ -771,26 +778,19 @@ class Statistics:
                     ELSE 365
                 END as total_days
         ),
-        daily_excess AS (
+        valid_days AS (
             SELECT 
-                asp.spo,
+                o.sampling_point_id,
                 o.time,
+                o.val,
                 CASE 
-                    WHEN o.val > %(threshold)s THEN o.val - %(threshold)s
+                    WHEN o.val > %(threshold)s THEN o.val
                     ELSE 0
-                END as excess
-            FROM all_sampling_points asp
-            LEFT JOIN observations_day_8hmax o ON o.sampling_point_id = asp.spo
-                AND EXTRACT(YEAR FROM o.time) = %(year)s
+                END as contribution
+            FROM observations_day_8hmax o
+            WHERE EXTRACT(YEAR FROM o.time) = %(year)s
                 AND o.val IS NOT NULL
-        ),
-        aggregated AS (
-            SELECT 
-                spo,
-                ROUND(SUM(excess), 1) as total_excess,
-                COUNT(*) as total_valid_days
-            FROM daily_excess
-            GROUP BY spo
+                AND o.cov >= 75
         )
         SELECT 
             asp.network,
@@ -801,11 +801,12 @@ class Statistics:
             asp.pollutant,
             %(aggregation_process)s as aggregation_process,
             %(year)s as year,
-            COALESCE(aggregated.total_excess, 0) as value,
-            ROUND((COALESCE(aggregated.total_valid_days, 0)::numeric / year_info.total_days) * 100, 2) as coverage
+            COALESCE(ROUND(SUM(vd.contribution)::numeric, 1), 0) as value,
+            ROUND((COUNT(vd.time)::numeric / year_info.total_days) * 100, 2) as coverage
         FROM all_sampling_points asp
         CROSS JOIN year_info
-        LEFT JOIN aggregated ON aggregated.spo = asp.spo
+        LEFT JOIN valid_days vd ON vd.sampling_point_id = asp.spo
+        GROUP BY asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant, year_info.total_days
         ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
         """
         self.cursor.execute(sql, {
@@ -824,6 +825,8 @@ class Statistics:
         
         Unit conversion at 20°C: 35 ppb ≈ 70 µg/m³
         
+        Only includes days with >= 75% hourly coverage (EU assessment standard).
+        
         Returns:
             - value: Sum of excesses over threshold (µg/m³·days)
             - coverage: Percentage of valid days with data (0-100%)
@@ -839,26 +842,19 @@ class Statistics:
                     ELSE 365
                 END as total_days
         ),
-        daily_excess AS (
+        valid_days AS (
             SELECT 
-                asp.spo,
+                o.sampling_point_id,
                 o.time,
+                o.val,
                 CASE 
                     WHEN o.val > %(threshold)s THEN o.val - %(threshold)s
                     ELSE 0
                 END as excess
-            FROM all_sampling_points asp
-            LEFT JOIN observations_day_8hmax o ON o.sampling_point_id = asp.spo
-                AND EXTRACT(YEAR FROM o.time) = %(year)s
+            FROM observations_day_8hmax o
+            WHERE EXTRACT(YEAR FROM o.time) = %(year)s
                 AND o.val IS NOT NULL
-        ),
-        aggregated AS (
-            SELECT 
-                spo,
-                ROUND(SUM(excess), 1) as total_excess,
-                COUNT(*) as total_valid_days
-            FROM daily_excess
-            GROUP BY spo
+                AND o.cov >= 75
         )
         SELECT 
             asp.network,
@@ -869,11 +865,12 @@ class Statistics:
             asp.pollutant,
             %(aggregation_process)s as aggregation_process,
             %(year)s as year,
-            COALESCE(aggregated.total_excess, 0) as value,
-            ROUND((COALESCE(aggregated.total_valid_days, 0)::numeric / year_info.total_days) * 100, 2) as coverage
+            COALESCE(ROUND(SUM(vd.excess)::numeric, 1), 0) as value,
+            ROUND((COUNT(vd.time)::numeric / year_info.total_days) * 100, 2) as coverage
         FROM all_sampling_points asp
         CROSS JOIN year_info
-        LEFT JOIN aggregated ON aggregated.spo = asp.spo
+        LEFT JOIN valid_days vd ON vd.sampling_point_id = asp.spo
+        GROUP BY asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant, year_info.total_days
         ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
         """
         self.cursor.execute(sql, {
