@@ -253,8 +253,50 @@ class Statistics:
     # ============================================================================
 
     def generate_winter_avg(self, pollutant, year):
-        """Winter season average data."""
-        sql = self._get_simple_observation_data("observations_winter_season", pollutant, year)
+        """
+        Winter season average (Oct 1 - Mar 31) for ecosystem protection.
+        Uses daily means from observations_day with 75% coverage threshold (EU assessment standard).
+        Winter for year Y = Oct-Dec of year Y-1 + Jan-Mar of year Y.
+        
+        See: eea-raven/docs-nilu/winter-avg-calculation.md for methodology notes.
+        """
+        sql = f"""
+        WITH {self._get_all_sampling_points_cte(pollutant)},
+        winter_days AS (
+            -- Oct, Nov, Dec of previous year
+            SELECT sampling_point_id, time, val, cov
+            FROM observations_day
+            WHERE EXTRACT(YEAR FROM time) = %(year)s - 1
+              AND EXTRACT(MONTH FROM time) IN (10, 11, 12)
+              AND val IS NOT NULL
+            UNION ALL
+            -- Jan, Feb, Mar of current year
+            SELECT sampling_point_id, time, val, cov
+            FROM observations_day
+            WHERE EXTRACT(YEAR FROM time) = %(year)s
+              AND EXTRACT(MONTH FROM time) IN (1, 2, 3)
+              AND val IS NOT NULL
+        ),
+        expected_days AS (
+            -- Calculate expected winter days (182 or 183 if leap year in Feb)
+            SELECT CASE 
+                WHEN (%(year)s %% 4 = 0 AND %(year)s %% 100 <> 0) OR (%(year)s %% 400 = 0) 
+                THEN 183  -- leap year has 29 days in Feb
+                ELSE 182
+            END as total_days
+        )
+        SELECT 
+            asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant,
+            %(aggregation_process)s as aggregation_process,
+            %(year)s as year,
+            ROUND(AVG(CASE WHEN wd.cov >= 75 THEN wd.val END)::numeric, 3) as value,
+            ROUND((COUNT(CASE WHEN wd.cov >= 75 THEN 1 END)::numeric / ed.total_days) * 100, 2) as coverage
+        FROM all_sampling_points asp
+        CROSS JOIN expected_days ed
+        LEFT JOIN winter_days wd ON wd.sampling_point_id = asp.spo
+        GROUP BY asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant, ed.total_days
+        ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+        """
         self.cursor.execute(sql, {
             "aggregation_process": "winter-avg",
             "year": year,
@@ -466,6 +508,7 @@ class Statistics:
         Coverage is calculated as: (count of valid days / total days in year) * 100
         where valid days have cov >= 75% (sufficient hourly data).
         
+        Uses PERCENTILE_DISC (discrete) per EU regulatory standard - no interpolation.
         Note: For O3, use P1Y-dmax-per99 instead (99th percentile of daily 8h-max).
         """
         sql = f"""
@@ -481,7 +524,7 @@ class Statistics:
             asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant,
             %(aggregation_process)s as aggregation_process,
             %(year)s as year,
-            ROUND((PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY o.val))::numeric, 3) as value,
+            ROUND((PERCENTILE_DISC(0.99) WITHIN GROUP (ORDER BY o.val))::numeric, 3) as value,
             ROUND((COUNT(CASE WHEN o.cov >= %(coverage)s THEN 1 END)::numeric / year_info.total_days) * 100, 2) as coverage
         FROM all_sampling_points asp
         CROSS JOIN year_info
@@ -578,7 +621,7 @@ class Statistics:
         """
         Count of days where 8-hour daily max exceeds 10 mg/m³ (CO).
         Uses observations_day_8hmax materialized view.
-        No daily coverage check needed - 8h max already includes coverage validation.
+        Applies 75% coverage threshold for valid days.
         """
         sql = self._get_count_observation_data("observations_day_8hmax", pollutant, "val", ">")
         self.cursor.execute(sql, {
@@ -586,7 +629,7 @@ class Statistics:
             "year": year,
             "pollutant": pollutant,
             "threshold": 10,
-            "coverage": 0  # No daily coverage requirement - 8h-max has built-in validation
+            "coverage": 75  # Apply standard 75% coverage requirement
         })
         return self.cursor.fetchall()
 
@@ -1086,6 +1129,7 @@ class Statistics:
             percentile: Percentile to calculate (0.0-1.0, e.g., 0.99 for 99th percentile)
 
         Returns percentile value with coverage as percentage of valid observations (0-100%).
+        Uses PERCENTILE_DISC (discrete) per EU regulatory standard - no interpolation.
         """
         sql = f"""
         WITH {self._get_all_sampling_points_cte(pollutant)},
@@ -1100,7 +1144,7 @@ class Statistics:
             asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant,
             %(aggregation_process)s as aggregation_process,
             %(year)s as year,
-            ROUND(CAST(PERCENTILE_CONT({percentile}) WITHIN GROUP (ORDER BY o.{value_column}) AS numeric), 3) as value,
+            ROUND(CAST(PERCENTILE_DISC({percentile}) WITHIN GROUP (ORDER BY o.{value_column}) AS numeric), 3) as value,
             ROUND((COUNT(o.{value_column})::numeric / year_info.total_days) * 100, 2) as coverage
         FROM all_sampling_points asp
         CROSS JOIN year_info
@@ -1309,7 +1353,7 @@ class Statistics:
             asp.pollutant,
             %(aggregation_process)s as aggregation_process,
             %(year)s as year,
-            COUNT(CASE WHEN o.value > %(threshold)s THEN 1 END) as value,
+            COUNT(CASE WHEN ROUND(o.value::numeric, 0) > %(threshold)s THEN 1 END) as value,
             ROUND((COUNT(o.value)::numeric / expected_info.expected_hours) * 100, 2) as coverage
         FROM all_sampling_points asp
         CROSS JOIN expected_info
