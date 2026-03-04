@@ -309,15 +309,15 @@ class Statistics:
     def generate_p1y_day_max(self, pollutant, year):
         """
         Annual maximum of daily values (P1Y-day-max).
-        For O3 and CO: Uses daily 8-hour max values from observations_day_8hmax table.
-        For other pollutants: Uses daily means from observations_day table.
+        For O3: Uses daily 8-hour max values from observations_day_8hmax table.
+        For other pollutants (including CO): Uses daily means from observations_day table.
         
         Coverage is calculated as: (count of valid days / total days in year) * 100
         where valid days have cov >= 75% (sufficient hourly data).
         """
-        # O3 and CO use 8-hour daily max as the base for P1Y-day-max
-        if pollutant.upper() in ['O3', 'CO']:
-            # For O3/CO, get the maximum of daily 8h-max values
+        # Only O3 uses 8-hour daily max as the base for P1Y-day-max
+        if pollutant.upper() == 'O3':
+            # For O3, get the maximum of daily 8h-max values
             sql = f"""
             WITH {self._get_all_sampling_points_cte(pollutant)},
             year_info AS (
@@ -348,7 +348,7 @@ class Statistics:
                 "coverage": 75
             })
         else:
-            # Other pollutants use daily mean from observations_day
+            # All other pollutants (including CO) use daily mean from observations_day
             sql = f"""
             WITH {self._get_all_sampling_points_cte(pollutant)},
             year_info AS (
@@ -385,15 +385,15 @@ class Statistics:
     def generate_p1y_day_min(self, pollutant, year):
         """
         Annual minimum of daily values (P1Y-day-min).
-        For O3 and CO: Uses daily 8-hour max values from observations_day_8hmax table.
-        For other pollutants: Uses daily means from observations_day table.
+        For O3: Uses daily 8-hour max values from observations_day_8hmax table.
+        For other pollutants (including CO): Uses daily means from observations_day table.
         
         Coverage is calculated as: (count of valid days / total days in year) * 100
         where valid days have cov >= 75% (sufficient hourly data).
         """
-        # O3 and CO use 8-hour daily max as the base for P1Y-day-min
-        if pollutant.upper() in ['O3', 'CO']:
-            # For O3/CO, get the minimum of daily 8h-max values
+        # Only O3 uses 8-hour daily max as the base for P1Y-day-min
+        if pollutant.upper() == 'O3':
+            # For O3, get the minimum of daily 8h-max values
             sql = f"""
             WITH {self._get_all_sampling_points_cte(pollutant)},
             year_info AS (
@@ -424,7 +424,7 @@ class Statistics:
                 "coverage": 75
             })
         else:
-            # Other pollutants use daily mean from observations_day
+            # All other pollutants (including CO) use daily mean from observations_day
             sql = f"""
             WITH {self._get_all_sampling_points_cte(pollutant)},
             year_info AS (
@@ -1064,7 +1064,7 @@ class Statistics:
             asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant,
             %(aggregation_process)s as aggregation_process,
             %(year)s as year,
-            COUNT(CASE WHEN o.{value_column} {comparison_operator} %(threshold)s AND o.cov >= %(coverage)s THEN 1 END) as value,
+            COUNT(CASE WHEN ROUND(o.{value_column}::numeric, 0) {comparison_operator} %(threshold)s AND o.cov >= %(coverage)s THEN 1 END) as value,
             ROUND((COUNT(CASE WHEN o.cov >= %(coverage)s THEN 1 END)::numeric / expected_info.expected_count) * 100, 2) as coverage
         FROM all_sampling_points asp
         CROSS JOIN expected_info
