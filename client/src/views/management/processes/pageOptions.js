@@ -16,9 +16,9 @@ const pageOptions = (lookups) => ({
       pattern: "^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2}:\\d{2})?$",
       title: "Enter date in format YYYY-MM-DD or YYYY-MM-DD HH:MM:SS"
     },
-    { type: "text", label: "Data quality report ID", prop: "data_quality_report_id", placeholder: "str: Data quality report ID", required: true, default: null, enableInEdit: true, showInGrid: false },
-    { type: "text", label: "Equivalence demonstration report ID", prop: "equivalence_demonstration_report_id", placeholder: "str: Equivalence demonstration report ID", required: true, default: null, enableInEdit: true, showInGrid: false },
-    { type: "text", label: "Process documentation ID", prop: "process_documentation_id", placeholder: "str: Process documentation ID", required: true, default: null, enableInEdit: true, showInGrid: false },
+    { type: "lookup", label: "Data quality document", prop_id: "data_quality_document_id", prop: "data_quality_document", required: true, lookup: "data_quality_documents", default: null, enableInEdit: true, showInGrid: false },
+    { type: "lookup", label: "Equivalence demonstration document", prop_id: "equivalence_demonstration_document_id", prop: "equivalence_demonstration_document", required: true, lookup: "equivalence_demonstration_documents", default: null, enableInEdit: true, showInGrid: false },
+    { type: "lookup", label: "Process document", prop_id: "process_document_id", prop: "process_document", required: true, lookup: "process_documents", default: null, enableInEdit: true, showInGrid: false },
     { type: "lookup", label: "Measurement type", prop_id: "measurement_type_id", prop: "measurement_type", required: true, lookup: "measurement_types", default: null, enableInEdit: true, showInGrid: false },
     { type: "lookup", label: "Method", prop_id: "method_id", prop: "method", required: true, lookup: "methods", default: null, enableInEdit: true, showInGrid: false },
     { type: "lookup", label: "Equipment", prop_id: "equipment_id", prop: "equipment", required: true, lookup: "equipments", default: null, enableInEdit: true, showInGrid: false },
@@ -34,7 +34,7 @@ const pageOptions = (lookups) => ({
       required: false, 
       default: null, 
       enableInEdit: true, 
-      showInGrid: false,
+      showInGrid: true,
       pattern: "^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2}:\\d{2})?$",
       title: "Enter date in format YYYY-MM-DD or YYYY-MM-DD HH:MM:SS"
     }

@@ -7,7 +7,6 @@ class NetworkModel(RavenBaseModel):
     
     id: str
     name: str
-    report_id: str
     administration_level_id: str
 
     def __getitem__(self, key):

@@ -16,6 +16,7 @@ class StationModel(RavenBaseModel):
     supersite: bool
     area_classification_id: str
     network_id: str
+    document_id: str
 
     def __getitem__(self, key):
         return super().__getattribute__(key)

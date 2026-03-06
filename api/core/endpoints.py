@@ -38,6 +38,12 @@ class Endpoints:
         from endpoints.management.exceedances.routes import exceedances_endpoint
         app.register_blueprint(exceedances_endpoint)
 
+        from endpoints.management.assessmentregimezones.routes import assessmentregimezones_endpoint
+        app.register_blueprint(assessmentregimezones_endpoint)
+
+        from endpoints.management.documents.routes import documents_endpoint
+        app.register_blueprint(documents_endpoint)
+
         # PROCESSING
         from endpoints.processing.scale.routes import scale_endpoint
         app.register_blueprint(scale_endpoint)
