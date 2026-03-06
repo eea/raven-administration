@@ -17,7 +17,7 @@ def networks():
         with_network_sql, n_param = Q.with_networks_by_access_as_sql()
         cursor.execute(f"""            
             {with_network_sql}
-            SELECT n.id, n.name, n.report_id,
+            SELECT n.id, n.name,
                    n.administration_level_id, a.label as administration_level
             FROM networks n
             LEFT JOIN eea_administrativelevels a ON n.administration_level_id = a.id
@@ -53,7 +53,6 @@ def networks_update():
         sql = """ 
             UPDATE networks
             SET name = %(name)s,
-                report_id = %(report_id)s,
                 administration_level_id = %(administration_level_id)s
             WHERE id = %(id)s
         """
@@ -72,8 +71,8 @@ def networks_insert():
         model = NetworkModel(**request.json)
 
         sql = """ 
-            INSERT INTO networks (id, name, report_id, administration_level_id)
-            VALUES (%(id)s, %(name)s, %(report_id)s, %(administration_level_id)s)
+            INSERT INTO networks (id, name, administration_level_id)
+            VALUES (%(id)s, %(name)s, %(administration_level_id)s)
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:

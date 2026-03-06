@@ -19,11 +19,14 @@ def stations():
           SELECT st.id, st.eoi_code, st.name, st.national_code,
                  st.latitude, st.longitude, st.altitude, st.supersite,
                  st.area_classification_id, ac.label as area_classification,
-                 st.network_id, n.name as network
+                 st.network_id, n.name as network,
+                 st.document_id, d.id || ' - ' || COALESCE(dobj.label, '') as document
           FROM stations st
           LEFT JOIN eea_areaclassifications ac ON st.area_classification_id = ac.id
           INNER JOIN networks n ON st.network_id = n.id
           INNER JOIN network_access na ON n.id = na.id
+          LEFT JOIN documents d ON st.document_id = d.id
+          LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
           ORDER BY st.name, st.id
         """, n_param)
         stations = cursor.fetchall()
@@ -51,10 +54,20 @@ def stations_lookups():
         cursor.execute("SELECT id as value, label FROM eea_spocategory ORDER BY label")
         spocategories = cursor.fetchall()
         
+        cursor.execute("""
+            SELECT d.id as value, d.id || ' - ' || COALESCE(dobj.label, '') as label
+            FROM documents d
+            LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
+            WHERE d.datatable_id = 'station'
+            ORDER BY d.id
+        """)
+        documents = cursor.fetchall()
+        
         return jsonify({
             "networks": networks,
             "areaclassifications": areaclassifications,
-            "spocategories": spocategories
+            "spocategories": spocategories,
+            "documents": documents
         })
 
 
@@ -77,7 +90,8 @@ def stations_update():
                 altitude = %(altitude)s,
                 supersite = %(supersite)s,
                 area_classification_id = %(area_classification_id)s,
-                network_id = %(network_id)s
+                network_id = %(network_id)s,
+                document_id = %(document_id)s
             WHERE id = %(id)s
         """
         cursor.execute(sql, model)
@@ -98,9 +112,9 @@ def stations_insert():
 
         sql = """ 
             INSERT INTO stations (id, eoi_code, name, national_code, latitude, longitude, 
-                                 altitude, supersite, area_classification_id, network_id)
+                                 altitude, supersite, area_classification_id, network_id, document_id)
             VALUES (%(id)s, %(eoi_code)s, %(name)s, %(national_code)s, %(latitude)s, %(longitude)s,
-                   %(altitude)s, %(supersite)s, %(area_classification_id)s, %(network_id)s)
+                   %(altitude)s, %(supersite)s, %(area_classification_id)s, %(network_id)s, %(document_id)s)
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:

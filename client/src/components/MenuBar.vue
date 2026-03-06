@@ -34,15 +34,17 @@ const getmodules = () => {
       group: "Management",
       show: jwt.management,
       items: [
+        { name: "Documents", comp: "Documents", show: jwt.management && jwt.allnetworks },
         { name: "Authorities", comp: "Authorities", show: jwt.management && jwt.allnetworks },
         { name: "Zones", comp: "Zones", show: jwt.management && jwt.allnetworks },
         { name: "Networks", comp: "Networks", show: jwt.management },
         { name: "Stations", comp: "Stations", show: jwt.management },
         { name: "Sampling Points", comp: "SamplingPoints", show: jwt.management },
         { name: "Processes", comp: "Processes", show: jwt.management },
-        { name: "Assessment Regimes", comp: "AssessmentRegimes", show: jwt.management && jwt.allnetworks },
-        { name: "Attainments", comp: "Attainments", show: jwt.management && jwt.allnetworks },
-        { name: "Exceedances", comp: "Exceedances", show: jwt.management && jwt.allnetworks }
+        // { name: "Assessment Regimes", comp: "AssessmentRegimes", show: jwt.management && jwt.allnetworks },
+        // { name: "Attainments", comp: "Attainments", show: jwt.management && jwt.allnetworks },
+        // { name: "Exceedances", comp: "Exceedances", show: jwt.management && jwt.allnetworks },
+        { name: "Assessment Regime Zones", comp: "AssessmentRegimeZones", show: jwt.management && jwt.allnetworks }
       ]
     },
     {

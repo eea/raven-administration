@@ -22,9 +22,9 @@ def processes():
               pr.id,
               pr.activity_begin,
               pr.activity_end,
-              pr.data_quality_report_id,
-              pr.equivalence_demonstration_report_id,
-              pr.process_documentation_id,
+              pr.data_quality_document_id, dqr.id || ' - ' || COALESCE(dqr_obj.label, '') as data_quality_document,
+              pr.equivalence_demonstration_document_id, edr.id || ' - ' || COALESCE(edr_obj.label, '') as equivalence_demonstration_document,
+              pr.process_document_id, pd.id || ' - ' || COALESCE(pd_obj.label, '') as process_document,
               pr.measurement_type_id, mt.label as measurement_type,
               pr.method_id, mm.label as method,
               pr.equipment_id, me.label as equipment,
@@ -37,6 +37,12 @@ def processes():
               LEFT JOIN eea_measurementequipments me ON pr.equipment_id = me.id
               LEFT JOIN eea_analyticaltechnique at ON pr.analytical_technique_id = at.id
               LEFT JOIN eea_equivalencedemonstrated ed ON pr.equivalence_demonstrated_id = ed.id
+              LEFT JOIN documents dqr ON pr.data_quality_document_id = dqr.id
+              LEFT JOIN eea_documentobject dqr_obj ON dqr.documentobject_id = dqr_obj.id
+              LEFT JOIN documents edr ON pr.equivalence_demonstration_document_id = edr.id
+              LEFT JOIN eea_documentobject edr_obj ON edr.documentobject_id = edr_obj.id
+              LEFT JOIN documents pd ON pr.process_document_id = pd.id
+              LEFT JOIN eea_documentobject pd_obj ON pd.documentobject_id = pd_obj.id
               INNER JOIN sampling_points sp ON pr.sampling_point_id = sp.id
               INNER JOIN sampling_point_access spa ON sp.id = spa.id
           ORDER BY pr.id
@@ -75,13 +81,43 @@ def processes_lookups():
         cursor.execute("SELECT id as value, label FROM eea_equivalencedemonstrated ORDER BY label")
         equivalence_demonstrated = cursor.fetchall()
         
+        cursor.execute("""
+            SELECT d.id as value, d.id || ' - ' || COALESCE(dobj.label, '') as label
+            FROM documents d
+            LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
+            WHERE d.datatable_id = 'samplingprocess' AND d.documentobject_id = 'dataqualityreport'
+            ORDER BY d.id
+        """)
+        data_quality_reports = cursor.fetchall()
+        
+        cursor.execute("""
+            SELECT d.id as value, d.id || ' - ' || COALESCE(dobj.label, '') as label
+            FROM documents d
+            LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
+            WHERE d.datatable_id = 'samplingprocess' AND d.documentobject_id = 'equivalencedemonstrationreport'
+            ORDER BY d.id
+        """)
+        equivalence_demonstration_reports = cursor.fetchall()
+        
+        cursor.execute("""
+            SELECT d.id as value, d.id || ' - ' || COALESCE(dobj.label, '') as label
+            FROM documents d
+            LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
+            WHERE d.datatable_id = 'samplingprocess' AND d.documentobject_id = 'processdocumentation'
+            ORDER BY d.id
+        """)
+        process_documentations = cursor.fetchall()
+        
         return jsonify({
             "sampling_points": sampling_points,
             "measurement_types": measurement_types,
             "methods": methods,
             "equipments": equipments,
             "analytical_techniques": analytical_techniques,
-            "equivalence_demonstrated": equivalence_demonstrated
+            "equivalence_demonstrated": equivalence_demonstrated,
+            "data_quality_documents": data_quality_reports,
+            "equivalence_demonstration_documents": equivalence_demonstration_reports,
+            "process_documents": process_documentations
         })
 
 
@@ -99,9 +135,9 @@ def processes_update():
             SET 
               activity_begin = %(activity_begin)s,
               activity_end = %(activity_end)s,
-              data_quality_report_id = %(data_quality_report_id)s,
-              equivalence_demonstration_report_id = %(equivalence_demonstration_report_id)s,
-              process_documentation_id = %(process_documentation_id)s,
+              data_quality_document_id = %(data_quality_document_id)s,
+              equivalence_demonstration_document_id = %(equivalence_demonstration_document_id)s,
+              process_document_id = %(process_document_id)s,
               measurement_type_id = %(measurement_type_id)s,
               method_id = %(method_id)s,
               equipment_id = %(equipment_id)s,
@@ -129,14 +165,14 @@ def processes_insert():
         
         sql = """
           INSERT INTO processes (
-            id, activity_begin, activity_end, data_quality_report_id,
-            equivalence_demonstration_report_id, process_documentation_id,
+            id, activity_begin, activity_end, data_quality_document_id,
+            equivalence_demonstration_document_id, process_document_id,
             measurement_type_id, method_id, equipment_id,
             analytical_technique_id, equivalence_demonstrated_id, sampling_point_id
           )
           VALUES (
-            %(id)s, %(activity_begin)s, %(activity_end)s, %(data_quality_report_id)s,
-            %(equivalence_demonstration_report_id)s, %(process_documentation_id)s,
+            %(id)s, %(activity_begin)s, %(activity_end)s, %(data_quality_document_id)s,
+            %(equivalence_demonstration_document_id)s, %(process_document_id)s,
             %(measurement_type_id)s, %(method_id)s, %(equipment_id)s,
             %(analytical_technique_id)s, %(equivalence_demonstrated_id)s, %(sampling_point_id)s
           )            
