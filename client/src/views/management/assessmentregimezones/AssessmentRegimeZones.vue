@@ -129,20 +129,21 @@ const clearRows = async (row) => {
 };
 
 const columns = ref([
-  { field: "zone_id", headerName: "Zone Id", sortable: true, filter: true, width: 130 },
-  { field: "zone_name", headerName: "Zone Name", sortable: true, filter: true, width: 200 },
-  { field: "pollutant_name", headerName: "Pollutant Name", sortable: true, filter: true, width: 200 },
-  { field: "protection_target", headerName: "Protection Target", sortable: true, filter: true, width: 150 },
-  { field: "objective_type", headerName: "Objective Type", sortable: true, filter: true, width: 140 },
-  { field: "reporting_metric", headerName: "Reporting Metric", sortable: true, filter: true, width: 150 },
-  { field: "classification_year", headerName: "Classification Year", sortable: true, filter: true, width: 150 },
-  { field: "classification_report_id", headerName: "Classification Document", sortable: true, filter: true, width: 220 },
+  { field: "zone_id", headerName: "Zone Id", sortable: true, filter: true, minWidth: 100, flex: 1 },
+  { field: "zone_name", headerName: "Zone Name", sortable: true, filter: true, minWidth: 150, flex: 1.5 },
+  { field: "pollutant_name", headerName: "Pollutant Name", sortable: true, filter: true, minWidth: 120, flex: 1 },
+  { field: "protection_target", headerName: "Protection Target", sortable: true, filter: true, minWidth: 120, flex: 1 },
+  { field: "objective_type", headerName: "Objective Type", sortable: true, filter: true, minWidth: 110, flex: 1 },
+  { field: "reporting_metric", headerName: "Reporting Metric", sortable: true, filter: true, minWidth: 120, flex: 1 },
+  { field: "classification_year", headerName: "Classification Year", sortable: true, filter: true, minWidth: 100, flex: 0.8 },
+  { field: "classification_report_id", headerName: "Classification Document", sortable: true, filter: true, minWidth: 150, flex: 1.5 },
   {
     field: "assessment_threshold_exceedance",
     headerName: "Threshold Exceedance",
     sortable: true,
     filter: true,
-    width: 220,
+    minWidth: 150,
+    flex: 1.5,
     valueGetter: (params) => {
       if (!params.data.assessment_threshold_exceedance) return null;
       const option = exceedanceOptions.value.find((opt) => opt.value === params.data.assessment_threshold_exceedance);
@@ -272,7 +273,7 @@ const showData = async () => {
     </container>
 
     <div class="w-full h-full text-xs mt-8">
-      <DataTable :data="data" :columns="columns" :filter="true" :responsive="false" :floating-filter="false" :getRowId="getRowId" selectionMode="multiRow" @grid-ready="onGridReady" @on-right-click="onContextMenu" />
+      <DataTable :data="data" :columns="columns" :filter="true" :floating-filter="false" :getRowId="getRowId" selectionMode="multiRow" @grid-ready="onGridReady" @on-right-click="onContextMenu" />
     </div>
   </common-layout>
 </template>
