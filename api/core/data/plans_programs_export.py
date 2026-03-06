@@ -164,22 +164,24 @@ class PlansAndProgramsExport:
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
         
         # Main query with spatial join for zones
+        # v4 schema: assessment_type is on assessmentdata, zones have no year
+        # v4 schema: stations have latitude/longitude columns directly (not PostGIS geom)
+        # v4 schema: processes table doesn't have uncertainty_estimate/detection_limit
         query = f"""
         SELECT 
             -- Sampling point & station
             sp.id as sampling_point_id,
             sp.id as sampling_point_code,
-            sp.assessment_type,
             st.name as station_name,
             st.eoi_code as station_code,
-            ST_X(st.geom) as longitude,
-            ST_Y(st.geom) as latitude,
+            st.longitude as longitude,
+            st.latitude as latitude,
             
-            -- Zone (spatial join)
+            -- Zone (via assessment_regimes) - v4 schema
             z.id as zone_id,
             z.code as zone_code,
             z.name as zone_name,
-            z.type as zone_category,
+            zc.notation as zone_category,
             
             -- Pollutant
             p.notation as pollutant,
@@ -190,22 +192,21 @@ class PlansAndProgramsExport:
             n.name as network_name,
             n.id as network_id,
             
-            -- Assessment type
+            -- Assessment type (from assessmentdata in v4 schema)
             eat.notation as assessment_type_notation,
-            eat.label as assessment_type_label,
-            
-            -- Uncertainty (if available)
-            proc.uncertainty_estimate,
-            proc.detection_limit
+            eat.label as assessment_type_label
             
         FROM sampling_points sp
         JOIN stations st ON sp.station_id = st.id
         JOIN eea_pollutants p ON sp.pollutant_id = p.id
         JOIN networks n ON st.network_id = n.id
-        JOIN eea_assessmenttypes eat ON sp.assessment_type = eat.id
-        LEFT JOIN zones z ON ST_Within(st.geom, z.geom) AND z.year = %(reportingyear)s
-        LEFT JOIN observing_capabilities oc ON oc.sampling_point_id = sp.id
-        LEFT JOIN processes proc ON proc.id = oc.process_id
+        -- v4: assessment_type is on assessmentdata, not sampling_points
+        LEFT JOIN assessmentdata ad ON ad.assessmentlocal_id = sp.id
+        LEFT JOIN eea_assessmenttypes eat ON ad.assessmenttype = eat.id
+        -- v4: zones have no year column, join via assessment_regimes
+        LEFT JOIN assessment_regimes ar ON ad.assessment_regime_id = ar.id
+        LEFT JOIN zones z ON ar.zone_id = z.id
+        LEFT JOIN eea_zonecategory zc ON z.zone_category_id = zc.id
         
         WHERE 1=1
           AND sp.from_time <= %(reportingyear_end)s::timestamp
@@ -283,44 +284,44 @@ class PlansAndProgramsExport:
                 "sr_id": sr_id,
                 "preliminaryreason": None,
                 
-                # Context for UI (not stored in DB)
-                "_context": {
-                    "zone": {
-                        "zoneid": row.get('zone_id'),
-                        "zonecode": zone_code,
-                        "zonename": zone_name,
-                        "zonecategory": row.get('zone_category')
-                    },
-                    "station": {
-                        "station_name": row['station_name'],
-                        "station_code": row['station_code'],
-                        "eoi_code": row['station_code'],
-                        "longitude": float(row['longitude']) if row.get('longitude') else None,
-                        "latitude": float(row['latitude']) if row.get('latitude') else None
-                    },
-                    "pollutant": {
-                        "notation": pollutant,
-                        "label": row['pollutant_label'],
-                        "eea_code": air_pollutant_code
-                    },
-                    "threshold": {
-                        "objective": None,  # TODO: Get from threshold data
-                        "objectivetype": None,
-                        "value": None,
-                        "unit": "µg/m³",
-                        "operator": ">",
-                        "directive": directive
-                    },
-                    "measurement": {
-                        "measured_value": None,  # TODO: Get from aggregation
-                        "coverage": None,
-                        "exceeded_by": None,
-                        "exceeded_by_percent": None
-                    },
-                    "network": {
-                        "network_name": row['network_name'],
-                        "network_id": row['network_id']
-                    }
+                # Nested context for UI display (expected by raven-plan-program import)
+                "zone": {
+                    "id": row.get('zone_id'),
+                    "code": zone_code,
+                    "name": zone_name,
+                    "category": row.get('zone_category'),
+                    "inspireId": f"{countrycode}.AQ.ZONE.{zone_code}" if zone_code else None
+                },
+                "station": {
+                    "name": row['station_name'],
+                    "code": row['station_code'],
+                    "eoi_code": row['station_code'],
+                    "inspireId": f"{countrycode}.AQ.STATION.{row['station_code']}" if row.get('station_code') else None,
+                    "longitude": float(row['longitude']) if row.get('longitude') else None,
+                    "latitude": float(row['latitude']) if row.get('latitude') else None
+                },
+                "pollutant": {
+                    "notation": pollutant,
+                    "label": row['pollutant_label'],
+                    "eea_code": air_pollutant_code
+                },
+                "threshold": {
+                    "objective": None,  # TODO: Get from threshold data
+                    "objectivetype": None,
+                    "value": None,
+                    "unit": "µg/m³",
+                    "operator": ">",
+                    "directive": directive
+                },
+                "measurement": {
+                    "value": None,  # TODO: Get from aggregation
+                    "coverage": None,
+                    "exceeded_by": None,
+                    "exceeded_by_percent": None
+                },
+                "network": {
+                    "name": row['network_name'],
+                    "id": row['network_id']
                 }
             }
         
@@ -338,15 +339,15 @@ class PlansAndProgramsExport:
     ) -> Dict:
         """Generate response metadata."""
         pollutants_exceeded = list(set([
-            exc['_context']['pollutant']['notation']
+            exc['pollutant']['notation']
             for exc in exceedances
             if exc.get('isexceedance') == 'yes'
         ]))
         
         zones_affected = len(set([
-            exc['_context']['zone']['zonecode']
+            exc['zone']['code']
             for exc in exceedances
-            if exc.get('isexceedance') == 'yes' and exc['_context']['zone']['zonecode']
+            if exc.get('isexceedance') == 'yes' and exc.get('zone', {}).get('code')
         ]))
         
         return {
@@ -368,14 +369,14 @@ class PlansAndProgramsExport:
             if exc.get('isexceedance') != 'yes':
                 continue
             
-            zone_code = exc['_context']['zone'].get('zonecode')
+            zone_code = exc.get('zone', {}).get('code')
             if not zone_code or zone_code == 'UNKNOWN':
                 continue
             
             if zone_code not in zones:
                 zones[zone_code] = {
-                    "zoneid": exc['_context']['zone'].get('zoneid'),
-                    "zonename": exc['_context']['zone'].get('zonename'),
+                    "zoneid": exc.get('zone', {}).get('id'),
+                    "zonename": exc.get('zone', {}).get('name'),
                     "exceedances_count": 0,
                     "pollutants": set(),
                     "worst_exceedance": None
@@ -383,16 +384,16 @@ class PlansAndProgramsExport:
             
             zone = zones[zone_code]
             zone['exceedances_count'] += 1
-            zone['pollutants'].add(exc['_context']['pollutant']['notation'])
+            zone['pollutants'].add(exc.get('pollutant', {}).get('notation'))
             
             # Track worst exceedance
-            exceeded_by_pct = exc['_context']['measurement'].get('exceeded_by_percent')
+            exceeded_by_pct = exc.get('measurement', {}).get('exceeded_by_percent')
             if exceeded_by_pct and (zone['worst_exceedance'] is None or 
                                     exceeded_by_pct > zone['worst_exceedance'].get('exceeded_by_percent', 0)):
                 zone['worst_exceedance'] = {
-                    "pollutant": exc['_context']['pollutant']['notation'],
+                    "pollutant": exc.get('pollutant', {}).get('notation'),
                     "value": exc.get('airpollutionlevel'),
-                    "threshold": exc['_context']['threshold'].get('value'),
+                    "threshold": exc.get('threshold', {}).get('value'),
                     "exceeded_by_percent": exceeded_by_pct
                 }
         

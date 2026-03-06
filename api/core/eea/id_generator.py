@@ -151,11 +151,10 @@ class EEAIDGenerator:
 
 def get_country_code_from_settings(cursor) -> Optional[str]:
     """
-    Extract country code from settings.namespace field.
+    Extract country code from settings table.
     
-    RAVEN instances are single-tenant per country. The country code is stored
-    in the settings.namespace field following the pattern:
-    "{COUNTRY_CODE}.{Organization}.{Domain}"
+    RAVEN v4 instances are single-tenant per country.
+    Country code is a FK in settings.country_code_id -> eea_countries.id
     
     Args:
         cursor: Database cursor (psycopg2)
@@ -164,24 +163,31 @@ def get_country_code_from_settings(cursor) -> Optional[str]:
         2-letter country code (uppercase) or None if not found
     
     Example:
-        >>> # settings.namespace = "AD.GovernAndorra.AQ"
+        >>> # settings.country_code_id = 'AD' (FK to eea_countries)
         >>> get_country_code_from_settings(cursor)
         'AD'
     
     Raises:
-        None - returns None if settings table is empty or namespace is invalid
+        None - returns None if settings table is empty or cannot be read
     """
     try:
-        cursor.execute("SELECT namespace FROM settings LIMIT 1")
+        cursor.execute("""
+            SELECT s.country_code_id, c.notation 
+            FROM settings s
+            LEFT JOIN eea_countries c ON s.country_code_id = c.id
+            LIMIT 1
+        """)
         row = cursor.fetchone()
         
-        if row and row['namespace']:
-            # Extract first part before dot: "AD.GovernAndorra.AQ" -> "AD"
-            namespace = str(row['namespace'])
-            parts = namespace.split('.')
-            if len(parts) > 0 and len(parts[0]) >= 2:
-                country_code = parts[0].upper()
-                return country_code
+        if row:
+            # notation from joined eea_countries table
+            notation = row.get('notation') if hasattr(row, 'get') else (row[1] if len(row) > 1 else None)
+            if notation:
+                return notation.upper()
+            # Fallback: country_code_id itself might be the code (e.g., 'NO')
+            country_code_id = row.get('country_code_id') if hasattr(row, 'get') else row[0]
+            if country_code_id:
+                return str(country_code_id).upper()
         
         return None
     except Exception:
