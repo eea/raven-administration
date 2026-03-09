@@ -139,7 +139,7 @@ class PlansAndProgramsExportRequest(BaseModel):
         return normalized
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "countrycode": "NO",
                 "reportingyear": 2024,
