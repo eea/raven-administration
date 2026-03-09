@@ -112,7 +112,7 @@ def import_assessmentregime():
     with CursorFromPool() as cursor:
 
         m = Management(cursor, "assessmentregime")
-        m.sql_select("select * from assessmentregimes")
+        m.sql_select("select * from assessment_regimes")
 
         md = Management(cursor, "assessmentdata")
         md.sql_select("select * from assessmentdata")

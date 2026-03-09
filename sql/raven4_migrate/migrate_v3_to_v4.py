@@ -312,15 +312,16 @@ class Migration:
         
         cur = self.target_conn.cursor()
         
-        # Tables to clear in reverse FK order (v4.4.0 names)
+        # Tables to clear in reverse FK order (v4.8.0 names)
         tables_to_clear = [
             'notifications_samplingpoints', 'notifications_runs', 'notifications',
             'aqi', 'statistics', 'directives',
             'exceedingmethods', 'exceedancedescriptions', 'attainments',
-            'assessmentdata', 'assessment_regimes', 'zones',
+            'assessmentdata', 'assessment_regimes', 'assessmentregime_zones', 'zones',
             'autovalidated_series', 'converted_series', 'calculated_series', 'scaling_points',
             'observations', 'processes', 'sampling_points',
             'stations', 'groupnetwork', 'networks', 'authorities',
+            'documents',  # v4.8.0: centralized document references
             'usergroup', 'users', '"group"', 'settings'
         ]
         
@@ -516,14 +517,14 @@ class Migration:
         tgt.close()
     
     def migrate_networks(self):
-        """Migrate networks (v4.4.0 simplified: id, name, report_id, administration_level_id, timezone_id)"""
+        """Migrate networks (v4.8.0: id, name, administration_level_id, timezone_id - removed report_id)"""
         log("\n📋 Migrating networks...")
         
         src = self.source_conn.cursor()
         tgt = self.target_conn.cursor()
         
         # v3: id, name, media_monitored, responsible_authority_id, organisational, begin_position, end_position, aggregation_timezone
-        # v4: id, name, report_id, administration_level_id, timezone_id
+        # v4.8.0: id, name, administration_level_id, timezone_id (report_id moved to stations.document_id)
         src.execute("SELECT id, name, organisational, aggregation_timezone FROM networks")
         rows = src.fetchall()
         
@@ -570,7 +571,7 @@ class Migration:
         tgt.close()
     
     def migrate_stations(self):
-        """Migrate stations (v4.4.0: id, eoi_code, name, national_code, lat, lon, alt, supersite, area_classification_id, network_id)"""
+        """Migrate stations (v4.8.0: id, eoi_code, name, national_code, lat, lon, alt, supersite, area_classification_id, document_id, network_id)"""
         log("\n📋 Migrating stations...")
         
         src = self.source_conn.cursor()
@@ -580,7 +581,8 @@ class Migration:
         #     media_monitored, mobile, measurement_regime, area_classification, distance_junction,
         #     traffic_volume, heavy_duty_fraction, street_width, height_facades, geom, municipality,
         #     eoi_code, city_code
-        # v4.4.0: id, eoi_code, name, national_code, lat, lon, alt, supersite, area_classification_id, network_id
+        # v4.8.0: id, eoi_code, name, national_code, lat, lon, alt, supersite, area_classification_id, document_id, network_id
+        # Note: document_id will be NULL - needs to be populated separately via documents table
         src.execute("""
             SELECT id, eoi_code, name, national_station_code, 
                    ST_Y(geom) as latitude, ST_X(geom) as longitude, ST_Z(geom) as altitude,
@@ -596,11 +598,11 @@ class Migration:
             
             tgt.execute("""
                 INSERT INTO stations (id, eoi_code, name, national_code, latitude, longitude, altitude, 
-                                      supersite, area_classification_id, network_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                      supersite, area_classification_id, document_id, network_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (id_val, eoi, name, national_code, lat, lon, alt, 
-                  False, area_classification_id, network_id))
+                  False, area_classification_id, None, network_id))  # document_id = NULL
         
         self.stats['stations'] = len(rows)
         log(f"   ✓ {len(rows)} rows")
@@ -689,24 +691,22 @@ class Migration:
         tgt.close()
     
     def migrate_processes_with_observing_capabilities(self):
-        """Migrate processes (v4.4.0 simplified)"""
+        """Migrate processes (v4.8.0: with 3 document references)"""
         log("\n📋 Migrating processes...")
         
         src = self.source_conn.cursor()
         tgt = self.target_conn.cursor()
         
-        # v4.4.0: id, activity_begin, activity_end, data_quality_report_id, 
-        #         equivalence_demonstration_report_id, process_documentation_id,
+        # v4.8.0: id, activity_begin, activity_end, 
+        #         data_quality_document_id, equivalence_demonstration_document_id, process_document_id,
         #         measurement_type_id, method_id, equipment_id, analytical_technique_id,
         #         equivalence_demonstrated_id, sampling_point_id
+        # Note: document_ids will be NULL - needs to be populated separately via documents table
         src.execute("""
             SELECT DISTINCT ON (p.id)
                 p.id,
                 oc.begin_position as activity_begin,
                 oc.end_position as activity_end,
-                p.qa_report as data_quality_report_id,
-                p.equiv_demonstration_report,
-                p.documentation as process_documentation_id,
                 p.measurement_type,
                 p.measurement_method,
                 p.measurement_equipment,
@@ -720,8 +720,7 @@ class Migration:
         rows = src.fetchall()
         
         for row in rows:
-            (id_val, activity_begin, activity_end, data_quality_report_id,
-             equiv_demo_report, process_doc_id, meas_type_uri, meas_method_uri,
+            (id_val, activity_begin, activity_end, meas_type_uri, meas_method_uri,
              meas_equip_uri, analytical_tech, equiv_demo_uri, sampling_point_id) = row
             
             # Transform URI FKs to notation
@@ -733,15 +732,15 @@ class Migration:
             
             tgt.execute("""
                 INSERT INTO processes 
-                (id, activity_begin, activity_end, data_quality_report_id,
-                 equivalence_demonstration_report_id, process_documentation_id,
+                (id, activity_begin, activity_end, 
+                 data_quality_document_id, equivalence_demonstration_document_id, process_document_id,
                  measurement_type_id, method_id, equipment_id, analytical_technique_id,
                  equivalence_demonstrated_id, sampling_point_id)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (
-                id_val, activity_begin, activity_end, data_quality_report_id,
-                equiv_demo_report, process_doc_id,
+                id_val, activity_begin, activity_end, 
+                None, None, None,  # 3 document_ids = NULL
                 measurement_type_id, method_id, equipment_id, None,  # analytical_technique_id
                 equivalence_demonstrated_id, sampling_point_id
             ))

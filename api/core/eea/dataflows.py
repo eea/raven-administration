@@ -364,7 +364,7 @@ class Dataflows:
     def get_observing_capabilities(sampling_point_id: str):
         with CursorFromPool() as cursor:
             cursor.execute("""
-                select oc.*, sp.pollutant
+                select oc.*, sp.pollutant_id
                 from observing_capabilities oc, sampling_points sp
                 where oc.sampling_point_id = sp.id
                 and sp.id =   %(sampling_point_id)s
