@@ -53,7 +53,6 @@ if [ -f /app/.env ]; then
     # Extract only CRON-related variables and remove carriage returns
     CRON_NOTIFICATIONS_ENABLED=$(grep -E "^CRON_NOTIFICATIONS_ENABLED" /app/.env | cut -d'=' -f2 | tr -d ' \r\n')
     CRON_NOTIFICATIONS_SCHEDULE=$(grep -E "^CRON_NOTIFICATIONS_SCHEDULE" /app/.env | cut -d'=' -f2- | tr -d '\r')
-    CRON_AGGREGATION_ENABLED=$(grep -E "^CRON_AGGREGATION_ENABLED" /app/.env | cut -d'=' -f2 | tr -d ' \r\n')
     CRON_AGGREGATION_SCHEDULE=$(grep -E "^CRON_AGGREGATION_SCHEDULE" /app/.env | cut -d'=' -f2- | tr -d '\r')
 fi
 
@@ -73,17 +72,12 @@ else
     echo "⚠️  Notifications job disabled"
 fi
 
-# Add aggregation job if enabled
-AGGREGATION_ENABLED=${CRON_AGGREGATION_ENABLED:-false}
+# Add aggregation job (always enabled)
 AGGREGATION_SCHEDULE=${CRON_AGGREGATION_SCHEDULE:-"30 2 * * *"}
 
-if [ "$AGGREGATION_ENABLED" = "true" ] || [ "$AGGREGATION_ENABLED" = "1" ] || [ "$AGGREGATION_ENABLED" = "yes" ] || [ "$AGGREGATION_ENABLED" = "on" ]; then
-    echo "# Run aggregation - Schedule: $AGGREGATION_SCHEDULE" >> /tmp/crontab
-    echo "$AGGREGATION_SCHEDULE cd /app && /usr/local/bin/python3 cron/refresh_views.py >> /var/log/cron/refresh_views.log 2>&1" >> /tmp/crontab
-    echo "✅ Aggregation job enabled with schedule: $AGGREGATION_SCHEDULE"
-else
-    echo "⚠️  Aggregation job disabled"
-fi
+echo "# Run aggregation - Schedule: $AGGREGATION_SCHEDULE" >> /tmp/crontab
+echo "$AGGREGATION_SCHEDULE cd /app && /usr/local/bin/python3 cron/refresh_views.py >> /var/log/cron/refresh_views.log 2>&1" >> /tmp/crontab
+echo "✅ Aggregation job enabled with schedule: $AGGREGATION_SCHEDULE"
 
 # Install the generated crontab
 if [ -s /tmp/crontab ]; then

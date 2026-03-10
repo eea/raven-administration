@@ -26,17 +26,24 @@ services:
     ports:
       - ${CLIENT_PORT:-80}:80
     restart: always
-  rnotebook:
+  # rnotebook:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.rnotebook
+  #   image: ${CONTAINER_NAME_RNOTEBOOK:-raven-rnotebook}
+  #   container_name: ${CONTAINER_NAME_RNOTEBOOK:-raven-rnotebook}
+  #   environment:
+  #     - R_PORT=${R_PORT:-8888}
+  #     - R_WORKDIR=${R_WORKDIR:-/srv/workspace}
+  #   ports:
+  #     - ${R_PORT:-8888}:${R_PORT:-8888}
+  #   restart: always
+  cron:
     build:
       context: .
-      dockerfile: Dockerfile.rnotebook
-    image: ${CONTAINER_NAME_RNOTEBOOK:-raven-rnotebook}
-    container_name: ${CONTAINER_NAME_RNOTEBOOK:-raven-rnotebook}
-    environment:
-      - R_PORT=${R_PORT:-8888}
-      - R_WORKDIR=${R_WORKDIR:-/srv/workspace}
-    ports:
-      - ${R_PORT:-8888}:${R_PORT:-8888}
+      dockerfile: Dockerfile.cron
+    image: ${CONTAINER_NAME_CRON:-raven-cron}
+    container_name: ${CONTAINER_NAME_CRON:-raven-cron}
     restart: always
 
 volumes:

@@ -6,12 +6,13 @@ The system is managed and developed by `NILU`, with support from `4sFera`, on th
 ## Requirements
 
 Python version `3.12+`  
-Node version `18.12.1`  
+Node version `24.5.0`  
 Postgres version `12+`  
 Postgis extension  
 NPM
 
 R requirements:
+
 - R must be installed and Rscript available on PATH.
 - Minimum required R packages: `plumber`, `jsonlite`
 - For using 4sfera code snippets: `RPostgres`, `DBI`, `tidyr`, `dplyr`, `lubridate`, `openair`, `ggplot2`
@@ -174,5 +175,5 @@ flask run
 npm run dev
 
 # from the r folder start r notebook backend server
-Rscript r/app.R   
+Rscript r/app.R
 ```
