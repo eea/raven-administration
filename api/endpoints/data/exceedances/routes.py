@@ -202,6 +202,19 @@ def evaluate_exceedances():
         # Get statistics for this pollutant and year
         statistics = Statistics(cursor)
         
+        # Objective type to protection target mapping
+        OBJECTTYPE_TO_PROTECTION = {
+            'LV': 'Health',
+            'ALT': 'Health',
+            'INT': 'Health',
+            'TV': 'Health',
+            'LTO': 'Health',
+            'CL': 'Vegetation',
+            'ECO': 'Health',
+            'ERT': 'Health',
+            'MO': 'Health'
+        }
+        
         # Get all aggregation processes for this pollutant from thresholds
         results = []
         
@@ -240,6 +253,7 @@ def evaluate_exceedances():
                                     'eoi': row.get('eoi', ''),
                                     'network': row.get('network', ''),
                                     'pollutant': pollutant,
+                                    'protection_target': OBJECTTYPE_TO_PROTECTION.get(objecttype, 'Health'),
                                     'objecttype': objecttype,
                                     'objective': obj_name,
                                     'statistic': stat,
