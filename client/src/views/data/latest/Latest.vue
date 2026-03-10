@@ -14,13 +14,11 @@ import { compare, filterList, downloadCsv } from "../../../helpers/utils";
 import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import DataTable from "../../../components/DataTable.vue";
-import CMenu from "../../../components/CMenu.vue";
 
 const q = ref("");
 const data = ref([]);
-const contextMenuRef = ref(null);
 const selected = ref({});
-const currentGridEvent = ref(null);
+const currentContextData = ref(null);
 const aqi_type = ref(localStorage.getItem("aqi_type") || "eea");
 const showAqiToggle = ref(false);
 
@@ -105,30 +103,24 @@ const getRowStyle = (params) => {
   return style;
 };
 
-const onRowClick = (row) => {
-  selected.value = {};
-};
-
-const onContextMenu = (row, e, gridEvent) => {
-  currentGridEvent.value = gridEvent;
-  contextMenuRef.value.showMenu(row, e);
-};
-
-const onMenuClick = ({ action, data }) => {
-  selected.value = data;
+const onContextMenuAction = ({ action, data }) => {
+  currentContextData.value = data;
+  if (data?.row) {
+    selected.value = data.row;
+  }
 
   if (action === "copy-cell") {
     copyToClipboard();
-  } else {
+  } else if (action === "Historical" || action === "Validate" || action === "Scale") {
     onGoto(action);
   }
 };
 
 const copyToClipboard = async () => {
-  if (!currentGridEvent.value?.value) return;
+  if (!currentContextData.value?.gridEvent?.value) return;
 
   try {
-    const cellValue = String(currentGridEvent.value.value);
+    const cellValue = String(currentContextData.value.gridEvent.value);
     await navigator.clipboard.writeText(cellValue);
     console.log("Copied cell value to clipboard:", cellValue);
   } catch (err) {
@@ -151,28 +143,6 @@ const onGoto = (name) => {
 
 <template>
   <CommonLayout>
-    <CMenu ref="contextMenuRef" @on-click="onMenuClick" v-slot="{ handleAction }">
-      <div class="px-2 font-bold">Menu:</div>
-      <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="handleAction('Historical')">
-        <icon-plot class="text-nord15 self-center" />
-        <div class="self-center ml-1">Plot data</div>
-      </div>
-      <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="handleAction('Validate')">
-        <icon-validate class="text-nord12 self-center" />
-        <div class="self-center ml-1">Validate data</div>
-      </div>
-      <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="handleAction('Scale')">
-        <icon-scale class="text-nord10 self-center" />
-        <div class="self-center ml-1">Scale data</div>
-      </div>
-      <div class="border-t border-nord4 pt-1">
-        <div class="pl-2 pr-4 py-1 flex cursor-pointer hover:bg-gray-100" @click="handleAction('copy-cell')">
-          <icon-copy class="text-nord8 text-sm self-center" />
-          <div class="self-center ml-1">Copy cell value</div>
-        </div>
-      </div>
-    </CMenu>
-
     <ToolBar title="Latest data" :show-column-picker="false" :show-add="false" v-model:q="q" @download-click="onDownload">
       <div class="self-center flex gap-2 ml-10" v-if="showAqiToggle">
         <div class="flex items-center gap-1">
@@ -187,7 +157,27 @@ const onGoto = (name) => {
     </ToolBar>
 
     <div class="flex-1 min-h-0">
-      <DataTable :data="cmp_data" :columns="columns" :get-row-style="getRowStyle" :filter="true" :floating-filter="false" @on-right-click="onContextMenu" @cell-clicked="onRowClick" />
+      <DataTable :data="cmp_data" :columns="columns" :get-row-style="getRowStyle" :filter="true" :floating-filter="false" @context-menu-action="onContextMenuAction">
+        <template #context-menu-items="{ handleAction }">
+          <div class="px-2 font-bold text-sm text-nord3">Actions:</div>
+          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('Historical')">
+            <icon-plot class="text-nord15 self-center" />
+            <div class="self-center ml-1">Plot data</div>
+          </div>
+          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('Validate')">
+            <icon-validate class="text-nord12 self-center" />
+            <div class="self-center ml-1">Validate data</div>
+          </div>
+          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('Scale')">
+            <icon-scale class="text-nord10 self-center" />
+            <div class="self-center ml-1">Scale data</div>
+          </div>
+          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('copy-cell')">
+            <icon-copy class="text-nord8 text-sm self-center" />
+            <div class="self-center ml-1">Copy cell value</div>
+          </div>
+        </template>
+      </DataTable>
     </div>
   </CommonLayout>
 </template>

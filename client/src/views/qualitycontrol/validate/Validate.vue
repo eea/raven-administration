@@ -11,7 +11,6 @@ import DatetimePicker from "../../../components/DatetimePicker.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import DataTable from "../../../components/DataTable.vue";
-import CMenu from "../../../components/CMenu.vue";
 
 import IconCircle from "~icons/ph/circle-duotone";
 import IconLink from "~icons/ph/link-simple-duotone";
@@ -29,7 +28,6 @@ const totime = ref(new Date());
 const selectedId = ref();
 
 const timevalues = ref([]);
-const menuRef = ref(null);
 const gridApi = ref(null);
 const showValidOnly = ref(false);
 
@@ -137,9 +135,12 @@ const onDownload = () => {
   }
 };
 
-const onMenuClick = async ({ action, data }) => {
-  const flag = parseInt(action);
-  await onValidate(flag, data);
+const onContextMenuAction = async ({ action, data }) => {
+  // Handle validation flag actions
+  if (["-99", "-1", "1", "2", "3"].includes(action)) {
+    const flag = parseInt(action);
+    await onValidate(flag, data?.row);
+  }
 };
 
 const onValidate = async (flag, row) => {
@@ -201,34 +202,6 @@ const onValidate = async (flag, row) => {
   }
 };
 
-const onContextMenu = (row, e) => {
-  // Select the row if it's not already selected
-  if (gridApi.value) {
-    const selectedRows = gridApi.value.getSelectedRows();
-    const isRowSelected = selectedRows.some((r) => r.id === row.id);
-
-    if (!isRowSelected) {
-      // If Ctrl key is held, add to selection; otherwise replace selection
-      if (e.ctrlKey) {
-        gridApi.value.forEachNode((node) => {
-          if (node.data.id === row.id) {
-            node.setSelected(true);
-          }
-        });
-      } else {
-        gridApi.value.deselectAll();
-        gridApi.value.forEachNode((node) => {
-          if (node.data.id === row.id) {
-            node.setSelected(true);
-          }
-        });
-      }
-    }
-  }
-
-  menuRef.value?.showMenu(row, e);
-};
-
 const onGridReady = (api) => {
   gridApi.value = api;
 };
@@ -258,7 +231,7 @@ const onDatapointSelection = (event, sel, chart) => {
       }
     });
   }
-  menuRef.value?.showMenu(row, event.native);
+  // Note: Chart selection doesn't trigger context menu - user must right-click on table
 };
 
 const getRowId = (params) => String(params.data.id);
@@ -266,32 +239,6 @@ const getRowId = (params) => String(params.data.id);
 
 <template>
   <common-layout>
-    <c-menu ref="menuRef" @on-click="onMenuClick">
-      <template #default="{ handleAction }">
-        <div class="px-2 font-bold">Set validation to:</div>
-        <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="handleAction('-99')">
-          <icon-circle class="text-nord11 text-base self-center" />
-          <div class="self-center ml-1">Not valid due to station maintenance or calibration (-99)</div>
-        </div>
-        <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="handleAction('-1')">
-          <icon-circle class="text-nord11 text-base self-center" />
-          <div class="self-center ml-1">Not valid (-1)</div>
-        </div>
-        <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="handleAction('1')">
-          <icon-circle class="text-nord14 text-base self-center" />
-          <div class="self-center ml-1">Valid (1)</div>
-        </div>
-        <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="handleAction('2')">
-          <icon-circle class="text-nord14 text-base self-center" />
-          <div class="self-center ml-1">Valid, but below detection limit measurement value given (2)</div>
-        </div>
-        <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="handleAction('3')">
-          <icon-circle class="text-nord14 text-base self-center" />
-          <div class="self-center ml-1">Valid, but below detection limit and number replaced by 0.5*detection limit (3)</div>
-        </div>
-      </template>
-    </c-menu>
-
     <tool-bar title="Validate" :show-filter="false" :show-add="false" :show-column-picker="false" @download-click="onDownload" />
 
     <container>
@@ -333,7 +280,31 @@ const getRowId = (params) => String(params.data.id);
       </container>
 
       <div class="h-full">
-        <DataTable :data="timevalues" :columns="columns" :get-row-style="getRowStyle" :filter="false" :floating-filter="false" selection-mode="multiRow" :get-row-id="getRowId" @on-right-click="onContextMenu" @grid-ready="onGridReady" />
+        <DataTable :data="timevalues" :columns="columns" :get-row-style="getRowStyle" :filter="false" :floating-filter="false" selection-mode="multiRow" :get-row-id="getRowId" @context-menu-action="onContextMenuAction" @grid-ready="onGridReady">
+          <template #context-menu-items="{ handleAction }">
+            <div class="px-2 font-bold text-sm text-nord3">Set validation to:</div>
+            <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('-99')">
+              <icon-circle class="text-nord11 text-base self-center" />
+              <div class="self-center ml-1">Not valid due to maintenance (-99)</div>
+            </div>
+            <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('-1')">
+              <icon-circle class="text-nord11 text-base self-center" />
+              <div class="self-center ml-1">Not valid (-1)</div>
+            </div>
+            <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('1')">
+              <icon-circle class="text-nord14 text-base self-center" />
+              <div class="self-center ml-1">Valid (1)</div>
+            </div>
+            <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('2')">
+              <icon-circle class="text-nord14 text-base self-center" />
+              <div class="self-center ml-1">Valid, below detection limit (2)</div>
+            </div>
+            <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('3')">
+              <icon-circle class="text-nord14 text-base self-center" />
+              <div class="self-center ml-1">Valid, 0.5*detection limit (3)</div>
+            </div>
+          </template>
+        </DataTable>
       </div>
     </div>
   </common-layout>

@@ -3,6 +3,8 @@ import { AllCommunityModule, ModuleRegistry, ClientSideRowModelModule, TooltipMo
 import { AgGridVue } from "ag-grid-vue3";
 import { ref, watch, computed } from "vue";
 import { themeQuartz } from "ag-grid-community";
+import CMenu from "./CMenu.vue";
+import { rowsToCsv, columnHeadersToCsv, copyToClipboard } from "../helpers/csvUtils.js";
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule, TooltipModule]);
 
@@ -78,10 +80,13 @@ const highlightRenderer = (params) => {
   return highlighted;
 };
 
-const emit = defineEmits(["on-double-click", "on-right-click", "selection-changed", "grid-ready"]);
+const emit = defineEmits(["on-double-click", "selection-changed", "grid-ready", "context-menu-action"]);
 
 const colDefs = ref([]);
 const gridApi = ref(null);
+const builtinMenuRef = ref(null);
+const contextData = ref(null);
+
 defineExpose({ gridApi });
 
 const hasEditableColumns = computed(() => {
@@ -171,20 +176,88 @@ watch(
 );
 
 const onClicked = (event) => {
-  const { detail, button } = event.event; // Extract properties
-  // console.log('click', event);
+  const { detail, button, ctrlKey } = event.event; // Extract properties
 
-  // Right-click (button === 2)
+  // Right-click (button === 2) - show unified context menu
   if (button === 2) {
-    emit("on-right-click", event.data, event.event, event);
+    // Ensure the right-clicked row is selected for consistent UX with bulk operations
+    if (gridApi.value && event.data) {
+      const selectedRows = gridApi.value.getSelectedRows();
+      const isRowSelected = selectedRows.some((r) => r === event.data);
+
+      if (!isRowSelected) {
+        if (ctrlKey) {
+          // Ctrl+right-click: add to existing selection
+          gridApi.value.forEachNode((node) => {
+            if (node.data === event.data) {
+              node.setSelected(true);
+            }
+          });
+        } else {
+          // Plain right-click: replace selection with clicked row
+          gridApi.value.deselectAll();
+          gridApi.value.forEachNode((node) => {
+            if (node.data === event.data) {
+              node.setSelected(true);
+            }
+          });
+        }
+      }
+    }
+
+    contextData.value = { row: event.data, event: event.event, gridEvent: event };
+    builtinMenuRef.value?.showMenu(contextData.value, event.event);
     return;
   }
   // Double-click
   if (detail === 2) {
-    // console.log("Double Click:", event.data);
     emit("on-double-click", event.data, event.event, event);
     return;
   }
+};
+
+/**
+ * Get visible columns from the grid API
+ */
+const getVisibleColumns = () => {
+  if (!gridApi.value) return [];
+  return gridApi.value.getAllDisplayedColumns().map((col) => col.getColDef());
+};
+
+/**
+ * Copy selected rows (or right-clicked row) as CSV to clipboard
+ */
+const copyRowsAsCsv = async () => {
+  const selectedRows = gridApi.value?.getSelectedRows() || [];
+  const rowsToCopy = selectedRows.length > 0 ? selectedRows : contextData.value?.row ? [contextData.value.row] : [];
+
+  if (rowsToCopy.length === 0) return false;
+
+  const visibleColumns = getVisibleColumns();
+  const csv = rowsToCsv(rowsToCopy, visibleColumns);
+  return await copyToClipboard(csv);
+};
+
+/**
+ * Copy column headers as CSV to clipboard
+ */
+const copyHeadersAsCsv = async () => {
+  const visibleColumns = getVisibleColumns();
+  const csv = columnHeadersToCsv(visibleColumns);
+  return await copyToClipboard(csv);
+};
+
+/**
+ * Handle built-in context menu actions
+ */
+const handleBuiltinAction = async (action) => {
+  if (action === "copy-rows-csv") {
+    await copyRowsAsCsv();
+  } else if (action === "copy-headers-csv") {
+    await copyHeadersAsCsv();
+  }
+  emit("context-menu-action", { action, data: contextData.value });
+  builtinMenuRef.value?.hideMenu();
 };
 
 const onSelectionChanged = (event) => {
@@ -206,4 +279,21 @@ const onGridReady = (params) => {
 
 <template>
   <ag-grid-vue @selection-changed="onSelectionChanged" :rowSelection="rowSelection" :getRowId="getRowId" :tooltipShowDelay="0" :tooltipHideDelay="10000" :tooltipShowMode="'whenTruncated'" style="width: 100%; height: 100%" :loading="loading" :getRowStyle="getRowStyle" :defaultColDef="defaultColDef" :columnDefs="colDefs" :rowData="data" :theme="myTheme" :suppressClickEdit="false" :suppressRowTransform="true" :suppressColumnVirtualisation="false" :immutableData="false" :suppressCellFlash="true" @grid-ready="onGridReady" @cell-context-menu="onClicked" @cell-clicked="onClicked" oncontextmenu="return false;"></ag-grid-vue>
+
+  <!-- Unified context menu: custom items first, then built-in CSV options -->
+  <CMenu ref="builtinMenuRef" @on-click="({ action }) => handleBuiltinAction(action)">
+    <template #default="{ handleAction }">
+      <!-- Custom items from parent component (shown first) -->
+      <slot name="context-menu-items" :handleAction="handleBuiltinAction" :contextData="contextData" :gridApi="gridApi" />
+      <!-- Separator and built-in items -->
+      <div class="border-t border-nord4 mt-1 pt-1">
+        <div @click="handleAction('copy-rows-csv')" class="px-4 py-1.5 hover:bg-nord6 cursor-pointer whitespace-nowrap">
+          📋 Copy rows as CSV
+        </div>
+        <div @click="handleAction('copy-headers-csv')" class="px-4 py-1.5 hover:bg-nord6 cursor-pointer whitespace-nowrap">
+          📝 Copy headers as CSV
+        </div>
+      </div>
+    </template>
+  </CMenu>
 </template>

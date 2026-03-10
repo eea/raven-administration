@@ -4,7 +4,6 @@ import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import DataTable from "../../../components/DataTable.vue";
-import CMenu from "../../../components/CMenu.vue";
 
 import Service from "./service";
 import { month, downloadCsv } from "../../../helpers/utils";
@@ -21,7 +20,6 @@ const datasets = ref([]);
 const stations = ref([]);
 const q = ref("");
 
-const menuRef = ref(null);
 const selected = ref({});
 
 const showTable = ref(false);
@@ -91,7 +89,11 @@ const cmp_years = computed(() => {
 const cmp_datasets = computed(() => filterList(q.value, datasets.value));
 
 // EVENTS //
-const onMenuClick = async ({ action }) => {
+const onContextMenuAction = async ({ action, data }) => {
+  if (data?.row) {
+    selected.value = data.row;
+  }
+
   if (action === "verified") {
     await onSetLevel(1);
   } else if (action === "pre-verified") {
@@ -107,11 +109,6 @@ const onSetLevel = async (level) => {
   await Service.flag(data);
   await load();
   Eventy.showHideMessage("Verification flag updated", "success");
-};
-
-const onContextMenu = (row, e) => {
-  selected.value = row;
-  menuRef.value?.showMenu(row, e);
 };
 
 const onDownload = () => {
@@ -132,24 +129,6 @@ const onDownload = () => {
 
 <template>
   <common-layout>
-    <c-menu ref="menuRef" @on-click="onMenuClick">
-      <template #default="{ handleAction }">
-        <div class="px-2 font-bold">Menu:</div>
-        <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="handleAction('verified')" v-if="selected && (selected.pre_verified > 0 || selected.not_verified > 0)">
-          <icon-circle class="text-nord14 text-base self-center" />
-          <div class="self-center ml-1">Set to verified</div>
-        </div>
-        <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="handleAction('pre-verified')" v-if="selected && (selected.verified > 0 || selected.not_verified > 0)">
-          <icon-circle class="text-nord13 text-base self-center" />
-          <div class="self-center ml-1">Set to pre verified</div>
-        </div>
-        <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="handleAction('not-verified')" v-if="selected && (selected.pre_verified > 0 || selected.verified > 0)">
-          <icon-circle class="text-nord11 text-base self-center" />
-          <div class="self-center ml-1">Set to not verified</div>
-        </div>
-      </template>
-    </c-menu>
-
     <tool-bar title="Verify" v-model:q="q" :show-filter="true" :show-add="false" :show-column-picker="false" @download-click="onDownload" />
 
     <container>
@@ -178,7 +157,23 @@ const onDownload = () => {
     </container>
 
     <div class="mt-4 h-full" v-if="showTable">
-      <DataTable :data="cmp_datasets" :columns="columns" :get-row-style="getRowStyle" :filter="false" :floating-filter="false" @on-right-click="onContextMenu" />
+      <DataTable :data="cmp_datasets" :columns="columns" :get-row-style="getRowStyle" :filter="false" :floating-filter="false" @context-menu-action="onContextMenuAction">
+        <template #context-menu-items="{ handleAction, contextData }">
+          <div class="px-2 font-bold text-sm text-nord3">Set verification:</div>
+          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('verified')" v-if="contextData?.row && (contextData.row.pre_verified > 0 || contextData.row.not_verified > 0)">
+            <icon-circle class="text-nord14 text-base self-center" />
+            <div class="self-center ml-1">Set to verified</div>
+          </div>
+          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('pre-verified')" v-if="contextData?.row && (contextData.row.verified > 0 || contextData.row.not_verified > 0)">
+            <icon-circle class="text-nord13 text-base self-center" />
+            <div class="self-center ml-1">Set to pre verified</div>
+          </div>
+          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('not-verified')" v-if="contextData?.row && (contextData.row.pre_verified > 0 || contextData.row.verified > 0)">
+            <icon-circle class="text-nord11 text-base self-center" />
+            <div class="self-center ml-1">Set to not verified</div>
+          </div>
+        </template>
+      </DataTable>
     </div>
   </common-layout>
 </template>

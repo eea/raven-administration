@@ -7,7 +7,6 @@ import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import Confirm from "../../../components/Confirm.vue";
 import DataTable from "../../../components/DataTable.vue";
-import CMenuCrud from "../../../components/CMenuCrud.vue";
 
 import Chart from "chart.js/auto";
 import "chartjs-adapter-luxon";
@@ -15,6 +14,9 @@ import Plot from "./plot";
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
 import Crud from "./Crud.vue";
+
+import IconEdit from "~icons/ph/pencil-simple-duotone";
+import IconTrash from "~icons/ph/trash-duotone";
 import IconDuplicate from "~icons/ic/twotone-content-copy";
 
 const timeserieId = ref("");
@@ -24,7 +26,6 @@ const showPlotAndTable = ref(false);
 const showCrud = ref(false);
 const isEdit = ref(false);
 const selected = ref({});
-const menuRef = ref();
 const showConfirm = ref(false);
 
 const scalingpointsColumns = [
@@ -114,12 +115,7 @@ const onSaveCrud = async (o) => {
   close();
 };
 
-const onDelete = () => {
-  if (showConfirm.value) selected.value = {};
-  showConfirm.value = !showConfirm.value;
-};
-
-const onSaveDelete = async (o) => {
+const onSaveDelete = async () => {
   Eventy.showMessage("Deleting scaling point. Please wait", "loading");
   showConfirm.value = false;
   await Service.delete(selected.value);
@@ -134,21 +130,16 @@ const close = () => {
   showConfirm.value = false;
 };
 
-const onContextMenu = (row, e) => {
-  selected.value = row;
-  if (menuRef.value) {
-    menuRef.value.showMenu(row, e);
-  }
-};
-
 const onRowDoubleClick = (row) => {
   selected.value = row;
   isEdit.value = true;
   showCrud.value = true;
 };
 
-const onMenuClick = ({ action, data }) => {
-  selected.value = data;
+const onContextMenuAction = ({ action, data }) => {
+  if (data?.row) {
+    selected.value = data.row;
+  }
 
   if (action === "edit") {
     isEdit.value = true;
@@ -175,14 +166,6 @@ const cls_timeseries = (hasscalingpoint) => {
 <template>
   <common-layout>
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete the scaling point?" @close="close" @ok="onSaveDelete" />
-    <c-menu-crud ref="menuRef" @on-menu-click="onMenuClick">
-      <template #extra-items="{ handleAction }">
-        <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="handleAction('duplicate')">
-          <icon-duplicate class="text-nord12 text-sm self-center" />
-          <div class="self-center ml-1">Duplicate</div>
-        </div>
-      </template>
-    </c-menu-crud>
     <tool-bar title="Scale" :show-filter="false" @add-click="onShowAdd" :show-download="false" :show-column-picker="false" />
     <Crud :show="showCrud" :obj="selected" :is-edit="isEdit" @close="close" @save="onSaveCrud" />
 
@@ -208,7 +191,22 @@ const cls_timeseries = (hasscalingpoint) => {
     </div>
 
     <div class="mt-4 min-h-96 flex-1" v-if="showPlotAndTable">
-      <DataTable :columns="scalingpointsColumns" :data="cmp_scalingpoints" :filter="false" :floating-filter="false" :responsive="true" @on-right-click="onContextMenu" @on-double-click="onRowDoubleClick" />
+      <DataTable :columns="scalingpointsColumns" :data="cmp_scalingpoints" :filter="false" :floating-filter="false" :responsive="true" @context-menu-action="onContextMenuAction" @on-double-click="onRowDoubleClick">
+        <template #context-menu-items="{ handleAction }">
+          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('edit')">
+            <icon-edit class="text-nord10 text-base self-center" />
+            <div class="self-center ml-1">Edit</div>
+          </div>
+          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('delete')">
+            <icon-trash class="text-nord11 text-base self-center" />
+            <div class="self-center ml-1">Delete</div>
+          </div>
+          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('duplicate')">
+            <icon-duplicate class="text-nord12 text-base self-center" />
+            <div class="self-center ml-1">Duplicate</div>
+          </div>
+        </template>
+      </DataTable>
     </div>
   </common-layout>
 </template>
