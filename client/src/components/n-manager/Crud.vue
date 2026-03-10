@@ -71,6 +71,23 @@ const title = computed(() => {
   const entityName = props.options?.entityName || "Item";
   return props.isEdit ? `Edit ${entityName}` : `Create ${entityName}`;
 });
+
+const isFormValid = computed(() => {
+  return cmp_required_properties.value.every((p) => {
+    const value = obj.value[p.prop] || obj.value[p.prop_id];
+
+    // For checkboxes, undefined/false/true are all valid (undefined = unchecked)
+    if (p.type === "checkbox") {
+      return true;
+    }
+
+    // For numbers, 0 is valid
+    if (typeof value === "number") return true;
+
+    // For other types, check if not empty
+    return value !== null && value !== undefined && value !== "";
+  });
+});
 </script>
 
 <template>
@@ -147,7 +164,7 @@ const title = computed(() => {
     <!-- Footer Section (Always Visible) -->
     <div class="border-t border-gray-300 mt-4"></div>
     <div class="flex justify-end pt-2 gap-4">
-      <button class="button" @click="handleSave">Save</button>
+      <button class="button" @click="handleSave" :disabled="!isFormValid">Save</button>
       <button class="button" @click="handleClose">Cancel</button>
     </div>
   </popup>
