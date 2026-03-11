@@ -145,7 +145,7 @@ def convert_download():
             and p.station_id = st.id
             and p.pollutant_id = po.id
             and p.time_resolution_id = ti.id
-            order by st.name, po.notation, ti.label
+            order by LOWER(st.name), po.notation, ti.label
         """, n_param)
         conversions = cursor.fetchall()
         return download_csv(conversions, "conversions.csv")

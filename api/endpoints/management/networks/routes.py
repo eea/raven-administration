@@ -22,7 +22,7 @@ def networks():
             FROM networks n
             LEFT JOIN eea_administrativelevels a ON n.administration_level_id = a.id
             INNER JOIN network_access na ON n.id = na.id
-            ORDER BY n.name, n.id
+            ORDER BY LOWER(n.name), n.id
         """, n_param)
         networks = cursor.fetchall()
         return jsonify(networks)

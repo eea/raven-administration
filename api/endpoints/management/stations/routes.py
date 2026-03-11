@@ -27,7 +27,7 @@ def stations():
           INNER JOIN network_access na ON n.id = na.id
           LEFT JOIN documents d ON st.document_id = d.id
           LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
-          ORDER BY st.name, st.id
+          ORDER BY LOWER(st.name), st.id
         """, n_param)
         stations = cursor.fetchall()
         return jsonify(stations)
@@ -44,7 +44,7 @@ def stations_lookups():
             SELECT n.id as value, n.name as label
             FROM networks n, network_access na
             WHERE n.id = na.id
-            ORDER BY n.name
+            ORDER BY LOWER(n.name)
         """, n_param)
         networks = cursor.fetchall()
         

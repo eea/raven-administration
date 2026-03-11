@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import Popup from "../../../components/Popup.vue";
 import DatetimePicker from "../../../components/DatetimePicker.vue";
 
@@ -35,6 +35,12 @@ const onSave = () => {
   }
   emit("save", Object.assign({}, _obj.value));
 };
+
+const isEmpty = (val) => val === null || val === undefined || val === "";
+
+const isFormValid = computed(() => {
+  return !isEmpty(_obj.value.zero_point) && !isEmpty(_obj.value.span_value) && !isEmpty(_obj.value.gas_concentration) && !!_obj.value.timestamp;
+});
 </script>
 
 <template>
@@ -59,7 +65,7 @@ const onSave = () => {
 
     <!-- BUTTONS -->
     <div class="flex justify-end gap-4 mt-4">
-      <button class="button" :disabled="!_obj.zero_point || !_obj.span_value || !_obj.gas_concentration || !_obj.timestamp" @click="onSave">Save</button>
+      <button class="button" :disabled="!isFormValid" @click="onSave">Save</button>
       <button class="button" @click="$emit('close')">Cancel</button>
     </div>
   </popup>

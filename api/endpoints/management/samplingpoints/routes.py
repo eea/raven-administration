@@ -39,7 +39,7 @@ def samplingpoints():
               LEFT JOIN eea_spocategory sc ON sp.spo_category_id = sc.id
               INNER JOIN stations st ON sp.station_id = st.id
               INNER JOIN sampling_point_access spa ON sp.id = spa.id
-          ORDER BY st.name, COALESCE(NULLIF(p.notation, ''), p.label)
+          ORDER BY LOWER(st.name), COALESCE(NULLIF(p.notation, ''), p.label)
         """, n_param)
         samplingpoints = cursor.fetchall()
         return jsonify(samplingpoints)
@@ -57,7 +57,7 @@ def samplingpoints_lookups():
             FROM stations st
             INNER JOIN networks n ON st.network_id = n.id
             INNER JOIN network_access na ON n.id = na.id
-            ORDER BY st.name
+            ORDER BY LOWER(st.name)
         """, n_param)
         stations = cursor.fetchall()
         

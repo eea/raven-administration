@@ -48,7 +48,7 @@ class Scaling:
     def ReScale(cursor, use_scalingpoint, sampling_point_id, zero, span, gas, timestamp, old_timestamp=None):
         minmax = Scaling.__minmax__(cursor, sampling_point_id, timestamp, old_timestamp)
         df_values = Scaling.__get_imported_observations(cursor, sampling_point_id, minmax["min"], minmax["max"])
-        Common.validate_dataframe(df_values, cursor)
+        Common.validate_dataframe(df_values)
         df_values = Common.add_timeserie_info(cursor, df_values)
         return Scaling.Scale(cursor, df_values, {"sampling_point_id": sampling_point_id, "zero_point": zero, "span_value": span, "gas_concentration": gas, "timestamp": timestamp, "old_timestamp": old_timestamp, "use_scalingpoint": use_scalingpoint})
 
@@ -105,10 +105,10 @@ class Scaling:
             where o.sampling_point_id = %(sampling_point_id)s
         """
 
-        if min != None:
+        if min is not None:
             sql = sql + " and extract(epoch from o.to_time)*1000 >= %(min)s"
 
-        if max != None:
+        if max is not None:
             sql = sql + " and extract(epoch from o.to_time)*1000 < %(max)s"
 
         sql = sql + " order by o.to_time"

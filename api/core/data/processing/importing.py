@@ -29,7 +29,7 @@ class Importing:
         # - DoFlagging
         # - Upsert inserts
 
-        Common.validate_dataframe(df_values, cursor)
+        Common.validate_dataframe(df_values)
         Importing.set_import_value(df_values)
         df_values = Common.add_timeserie_info(cursor, df_values)
         Importing.verify_values(cursor, df_values)
@@ -80,25 +80,26 @@ class Importing:
             f = df_errors.iloc[0]
             raise Exception(f"Imported values does not match timestep. First error is at {f.sampling_point_id} {f.from_time} {f.to_time} {f.ts_timestep}")
 
-        # Check if all imported timestamps match the configured timezone
-        expected_offset_minutes = Common.get_settings_timezone(cursor)
-        actual_offsets = df_values["from_time"].apply(lambda t: t.utcoffset().total_seconds() / 60).unique()
-        if len(actual_offsets) > 1:
-            raise Exception(f"Imported data contains multiple timezones. All timestamps must have the same timezone.")
-        if len(actual_offsets) > 0 and actual_offsets[0] != expected_offset_minutes:
-            # Get timezone ID for error message
-            cursor.execute("SELECT tz.id FROM settings s JOIN eea_timezones tz ON s.timezone_id = tz.id LIMIT 1")
-            tz_row = cursor.fetchone()
-            expected_tz = tz_row["id"] if tz_row else "UTC"
-            actual_offset_hours = int(actual_offsets[0] / 60)
-            actual_tz = f"UTC{actual_offset_hours:+03d}".replace("+00", "")  # Format as UTC+01 or UTC-05
-            if actual_tz == "UTC":
-                actual_tz = "UTC"
-            raise Exception(f"Imported data timezone ({actual_tz}) does not match configured timezone ({expected_tz}). Please check your data or update settings.")
-
-        # Check if any are verified values
-        # if len(df_values[df_values["observationverification_id"] == 1]) > 0:
-        #     raise Exception("Imported values cannot be verified")
+        # Check timezone only if timestamps are tz-aware (user provided timezone info)
+        if df_values["from_time"].dt.tz is not None:
+            expected_offset_minutes = Common.get_settings_timezone(cursor)
+            actual_offsets = df_values["from_time"].apply(lambda t: t.utcoffset().total_seconds() / 60).unique()
+            if len(actual_offsets) > 1:
+                raise Exception("Imported data contains multiple timezones. All timestamps must have the same timezone.")
+            if len(actual_offsets) > 0 and actual_offsets[0] != expected_offset_minutes:
+                def offset_to_tz_string(offset_minutes):
+                    if offset_minutes == 0:
+                        return "UTC"
+                    hours = int(offset_minutes / 60)
+                    return f"UTC{hours:+03d}"
+                
+                expected_tz = offset_to_tz_string(expected_offset_minutes)
+                actual_tz = offset_to_tz_string(actual_offsets[0])
+                raise Exception(f"Imported data timezone ({actual_tz}) does not match configured timezone ({expected_tz}). Please check your data or update settings.")
+            
+            # Strip timezone after validation - database stores tz-naive timestamps
+            df_values["from_time"] = df_values["from_time"].dt.tz_localize(None)
+            df_values["to_time"] = df_values["to_time"].dt.tz_localize(None)
 
         printcol(f"- Verifying values took {time.perf_counter() - bench} seconds")
 
@@ -126,22 +127,21 @@ class Importing:
                 AND t.to_time = s.to_time
                 RETURNING t.sampling_point_id, t.from_time, t.to_time
             )
-            INSERT INTO observations (sampling_point_id, from_time, to_time, value, observationverification_id, observationvalidity_id, import_value,scaled_value, touched)
-            SELECT v.*, now() as touched
-            FROM source v
+            INSERT INTO observations (sampling_point_id, from_time, to_time, value, observationverification_id, observationvalidity_id, import_value, scaled_value, touched)
+            SELECT s.sampling_point_id, s.from_time, s.to_time, s.value, s.observationverification_id, s.observationvalidity_id, s.import_value, s.scaled_value, now()
+            FROM source s
             WHERE NOT EXISTS (
                 SELECT 1
                 FROM updates u
-                WHERE u.sampling_point_id = v.sampling_point_id
-                AND u.from_time = v.from_time
-                and u.to_time = v.to_time 
+                WHERE u.sampling_point_id = s.sampling_point_id
+                AND u.from_time = s.from_time
+                AND u.to_time = s.to_time
             )
         """
 
-        # tic = time.perf_counter()
         d = Importing.__data2io__(df_values)
         cols = ('sampling_point_id', 'from_time', 'to_time', 'value', 'observationverification_id', 'observationvalidity_id', 'import_value', 'scaled_value')
-        cursor.execute('CREATE TEMP TABLE source(sampling_point_id varchar(100), from_time varchar(25), to_time varchar(25),value numeric(255,5), observationverification_id integer,observationvalidity_id integer, import_value numeric(255,5), scaled_value numeric(255,5)) ON COMMIT DROP;')
+        cursor.execute('CREATE TEMP TABLE source(sampling_point_id varchar(100), from_time timestamp, to_time timestamp, value numeric(255,5), observationverification_id integer, observationvalidity_id integer, import_value numeric(255,5), scaled_value numeric(255,5)) ON COMMIT DROP;')
         cursor.copy_from(d, 'source', columns=cols, null='None')
         cursor.execute(sql)
         cursor.execute('DROP TABLE source')

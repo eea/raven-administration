@@ -70,8 +70,8 @@ def import_logger():
 
         df = df.rename(columns={"fromTime": "begin_position", "toTime": "end_position", "logger_id": "sampling_point_id"})
 
-        df.drop(['validity'], axis=1)
-        df.reset_index(drop=True)
+        df = df.drop(['validity'], axis=1)
+        df = df.reset_index(drop=True)
 
         # Import values
         Importing.Import(cursor, df)

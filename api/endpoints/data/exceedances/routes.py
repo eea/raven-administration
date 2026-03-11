@@ -59,7 +59,7 @@ def get_sampling_points():
             JOIN stations st ON sp.station_id = st.id
             JOIN networks n ON st.network_id = n.id
             {where_clause}
-            ORDER BY p.notation, st.name, sp.code
+            ORDER BY p.notation, LOWER(st.name), sp.code
         """, params)
         
         sampling_points = cursor.fetchall()

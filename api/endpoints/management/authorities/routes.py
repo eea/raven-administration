@@ -26,7 +26,7 @@ def authorities():
           LEFT JOIN eea_authorityinstance i ON a.instance_id = i.id
           LEFT JOIN eea_authorityobject o ON a.object_id = o.id
           LEFT JOIN eea_authoritystatus s ON a.status_id = s.id
-          ORDER BY a.organisation_name, a.person_name
+          ORDER BY LOWER(a.organisation_name), LOWER(a.person_name)
         """)
         authorities = cursor.fetchall()
         return jsonify(authorities)

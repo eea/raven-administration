@@ -39,7 +39,7 @@ class Q:
                 and sp.pollutant_id = p.id
                 and sp.time_resolution_id = t.id
                 and sp.unit_id = u.id
-                order by s.name, p.notation, t.label
+                order by LOWER(s.name), p.notation, t.label
             """, n_param)
             return cursor.fetchall()
 
@@ -74,7 +74,7 @@ class Q:
                         and sp.to_time is not null
                     GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label), sp.from_time,  sp.to_time, t.label, u.notation
                 ) aa
-                order by label
+                order by LOWER(label)
             """, n_param)
             return cursor.fetchall()
 
