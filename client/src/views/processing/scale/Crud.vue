@@ -39,7 +39,13 @@ const onSave = () => {
 const isEmpty = (val) => val === null || val === undefined || val === "";
 
 const isFormValid = computed(() => {
-  return !isEmpty(_obj.value.zero_point) && !isEmpty(_obj.value.span_value) && !isEmpty(_obj.value.gas_concentration) && !!_obj.value.timestamp;
+  const hasRequired = !isEmpty(_obj.value.zero_point) && !isEmpty(_obj.value.span_value) && !isEmpty(_obj.value.gas_concentration) && !!_obj.value.timestamp;
+  const spanNotEqualZero = Number(_obj.value.zero_point) !== Number(_obj.value.span_value);
+  return hasRequired && spanNotEqualZero;
+});
+
+const showSpanError = computed(() => {
+  return !isEmpty(_obj.value.zero_point) && !isEmpty(_obj.value.span_value) && Number(_obj.value.zero_point) === Number(_obj.value.span_value);
 });
 </script>
 
@@ -52,7 +58,8 @@ const isFormValid = computed(() => {
     </div>
     <div class="mb-2">
       <div class="font-bold">Span value:</div>
-      <input type="number" class="input w-full" v-model="_obj.span_value" placeholder="float: Span value" />
+      <input type="number" class="input w-full" :class="{ 'border-red-500': showSpanError }" v-model="_obj.span_value" placeholder="float: Span value" />
+      <div v-if="showSpanError" class="text-red-500 text-sm mt-1">Span value cannot equal zero point</div>
     </div>
     <div class="mb-2">
       <div class="font-bold">Gas concentration:</div>

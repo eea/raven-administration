@@ -71,11 +71,6 @@ def autovalidate_update():
 @jwt_required_with_processing_claim()
 def autovalidate_pollutants():
     with CursorFromPool() as cursor:
-        cursor.execute("""
-            select p.notation || ' - ' || p.label as label, p.id as value
-            from eea_pollutants p
-            where p.id not in (select a.pollutant_id from autovalidated_series a)
-            order by p.notation
-        """)
-        pollutants = cursor.fetchall()
-        return jsonify(pollutants)
+        cursor.execute("SELECT pollutant_id FROM autovalidated_series")
+        existing = [row["pollutant_id"] for row in cursor.fetchall()]
+    return jsonify(Q.pollutants_lookup(exclude_ids=existing if existing else None))

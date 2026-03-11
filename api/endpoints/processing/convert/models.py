@@ -6,7 +6,6 @@ from typing import Optional
 class InsertModel(BaseModel):
     sampling_point_id: str
     source_id: str
-    target_id: str
     factor: float
     createdby: Optional[str] = None
 
@@ -17,7 +16,6 @@ class InsertModel(BaseModel):
 class UpdateModel(BaseModel):
     id: int
     source_id: str
-    target_id: str
     factor: float
 
     def __getitem__(self, key):

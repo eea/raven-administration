@@ -48,6 +48,9 @@ def update():
         if Q.has_no_access(model.sampling_point_id):
             raise BadRequest("Access denied for samplingpoint")
 
+        if model.zero_point == model.span_value:
+            raise BadRequest("Zero point and span value cannot be the same")
+
         model.createdby = get_name()
         current_timestamp = model.current_timestamp if model.current_timestamp is not None else model.timestamp
 
@@ -75,6 +78,9 @@ def insert():
 
         if Q.has_no_access(model.sampling_point_id):
             raise BadRequest("Access denied for samplingpoint")
+
+        if model.zero_point == model.span_value:
+            raise BadRequest("Zero point and span value cannot be the same")
 
         values = Scaling.ReScale(cursor, True, model.sampling_point_id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, model.timestamp)
 

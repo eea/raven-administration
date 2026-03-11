@@ -61,8 +61,7 @@ def samplingpoints_lookups():
         """, n_param)
         stations = cursor.fetchall()
         
-        cursor.execute("SELECT id as value, COALESCE(NULLIF(notation, ''), label) as label FROM eea_pollutants ORDER BY COALESCE(NULLIF(notation, ''), label)")
-        pollutants = cursor.fetchall()
+        pollutants = Q.pollutants_lookup()
         
         cursor.execute("SELECT id as value, label FROM eea_times ORDER BY label")
         time_resolutions = cursor.fetchall()

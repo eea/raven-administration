@@ -42,7 +42,7 @@ class Importing:
     def process_scaled_values(cursor, df_values: DataFrame, doFlagging: bool = True):
         df_values = Calculating.calculate(cursor, df_values)  # Rethink function for better performance
         Converting.convert(cursor, df_values)
-        df_values = Filling.fillinmissing(cursor, df_values)  # Use pandas more active for better performance?
+        df_values = Filling.fillinmissing(cursor, df_values)
 
         if doFlagging:
             Flagging.flag(cursor, df_values)
@@ -58,7 +58,7 @@ class Importing:
     @staticmethod
     def verify_values(cursor: any, df_values: DataFrame):
         from core.data.processing.common import Common
-        
+
         bench = time.perf_counter()
         # Check for duplicate datetimes
         if len(df_values[df_values[['sampling_point_id', 'from_time', 'to_time']].duplicated()]) > 0:
@@ -92,11 +92,11 @@ class Importing:
                         return "UTC"
                     hours = int(offset_minutes / 60)
                     return f"UTC{hours:+03d}"
-                
+
                 expected_tz = offset_to_tz_string(expected_offset_minutes)
                 actual_tz = offset_to_tz_string(actual_offsets[0])
                 raise Exception(f"Imported data timezone ({actual_tz}) does not match configured timezone ({expected_tz}). Please check your data or update settings.")
-            
+
             # Strip timezone after validation - database stores tz-naive timestamps
             df_values["from_time"] = df_values["from_time"].dt.tz_localize(None)
             df_values["to_time"] = df_values["to_time"].dt.tz_localize(None)

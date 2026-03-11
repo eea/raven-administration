@@ -13,9 +13,9 @@ class Calculating:
         calculated_values = []
         calculated_timeseries = Calculating.__calculated_timeseries__(cursor)
 
-        primaries = map(lambda x: x["primary"], calculated_timeseries)
-        secondaries = map(lambda x: x["secondary"], calculated_timeseries)
-        calculated_ids = list(primaries) + list(secondaries)
+        primaries = list(map(lambda x: x["primary"], calculated_timeseries))
+        secondaries = list(map(lambda x: x["secondary"], calculated_timeseries))
+        calculated_ids = primaries + secondaries
         filtered_values = df_values[df_values.sampling_point_id.isin(calculated_ids)]
         if filtered_values.empty:
             printcol(f"- Calculating took {time.perf_counter() - bench} seconds")
@@ -23,37 +23,42 @@ class Calculating:
 
         grouped_values = filtered_values.groupby("to_time")
 
-        to_time_min = filtered_values.to_time.min().strftime('%Y-%m-%dT%H:%M:%S%z')
-        to_time_max = filtered_values.to_time.max().strftime('%Y-%m-%dT%H:%M:%S%z')
-        ids = filtered_values.sampling_point_id.unique()
+        to_time_min = filtered_values.to_time.min()
+        to_time_max = filtered_values.to_time.max()
 
-        scaled_db_values = Calculating.__get_all_scaled_value_from_db__(cursor, tuple(ids), to_time_min, to_time_max)
+        # Fetch DB values for ALL calculation IDs (not just imported ones)
+        scaled_db_values = Calculating.__get_all_scaled_value_from_db__(cursor, tuple(calculated_ids), to_time_min, to_time_max)
 
         for key, group in grouped_values:
             for cs in calculated_timeseries:
                 pri = group[(group["sampling_point_id"] == cs["primary"])]
                 sec = group[(group["sampling_point_id"] == cs["secondary"])]
-                to_time_str = key.strftime('%Y-%m-%dT%H:%M:%S%z')
-                to_time_str = "{0}:{1}".format(to_time_str[:-2], to_time_str[-2:])
 
                 if pri.empty and sec.empty:
                     continue
 
                 elif not pri.empty and not sec.empty:
-                    calculated_value = Calculating.__create_observation__(cs["result"], pri.iloc[0]["value"], sec.iloc[0]["value"], cs["operator"], pri.iloc[0]["observationvalidity_id"], sec.iloc[0]["observationvalidity_id"], pri.iloc[0]["from_time"], pri.iloc[0]["to_time"])
-                    calculated_values.append(calculated_value)
+                    pri_val = pri.iloc[0]["scaled_value"]
+                    sec_val = sec.iloc[0]["scaled_value"]
+                    if pri_val is not None and sec_val is not None:
+                        calculated_value = Calculating.__create_observation__(cs["result"], pri_val, sec_val, cs["operator"], pri.iloc[0]["observationvalidity_id"], sec.iloc[0]["observationvalidity_id"], pri.iloc[0]["from_time"], pri.iloc[0]["to_time"])
+                        calculated_values.append(calculated_value)
 
                 elif not pri.empty:
-                    obs = next(filter(lambda x: x["sampling_point_id"] == cs["secondary"] and x["to_time"] == to_time_str, scaled_db_values), None)
-                    if obs is not None:
-                        calculated_value = Calculating.__create_observation__(cs["result"], pri.iloc[0]["value"], obs["value"], cs["operator"], pri.iloc[0]["observationvalidity_id"], obs["observationvalidity_id"], pri.iloc[0]["from_time"], pri.iloc[0]["to_time"])
-                        calculated_values.append(calculated_value)
+                    pri_val = pri.iloc[0]["scaled_value"]
+                    if pri_val is not None:
+                        obs = next(filter(lambda x: x["sampling_point_id"] == cs["secondary"] and pd.Timestamp(x["to_time"]) == key, scaled_db_values), None)
+                        if obs is not None and obs["value"] is not None:
+                            calculated_value = Calculating.__create_observation__(cs["result"], pri_val, obs["value"], cs["operator"], pri.iloc[0]["observationvalidity_id"], obs["observationvalidity_id"], pri.iloc[0]["from_time"], pri.iloc[0]["to_time"])
+                            calculated_values.append(calculated_value)
 
                 elif not sec.empty:
-                    obs = next(filter(lambda x: x["sampling_point_id"] == cs["primary"] and x["to_time"] == to_time_str, scaled_db_values), None)
-                    if obs is not None:
-                        calculated_value = Calculating.__create_observation__(cs["result"], obs["value"], sec.iloc[0]["value"], cs["operator"], obs["observationvalidity_id"], sec.iloc[0]["observationvalidity_id"], sec.iloc[0]["from_time"], sec.iloc[0]["to_time"])
-                        calculated_values.append(calculated_value)
+                    sec_val = sec.iloc[0]["scaled_value"]
+                    if sec_val is not None:
+                        obs = next(filter(lambda x: x["sampling_point_id"] == cs["primary"] and pd.Timestamp(x["to_time"]) == key, scaled_db_values), None)
+                        if obs is not None and obs["value"] is not None:
+                            calculated_value = Calculating.__create_observation__(cs["result"], obs["value"], sec_val, cs["operator"], obs["observationvalidity_id"], sec.iloc[0]["observationvalidity_id"], sec.iloc[0]["from_time"], sec.iloc[0]["to_time"])
+                            calculated_values.append(calculated_value)
 
         printcol(f"- Calculating took {time.perf_counter() - bench} seconds")
 

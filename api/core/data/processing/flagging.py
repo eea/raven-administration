@@ -50,15 +50,15 @@ class Flagging:
         return cursor.fetchall()
 
     @staticmethod
-    def __get_value_from_db__(cursor: any, sampling_point_id, dt_from, value):
+    def __get_value_from_db__(cursor: any, sampling_point_id, from_time, value):
         sql = """
             select o.sampling_point_id, o.from_time, o.to_time, o.value, o.observationverification_id, o.observationvalidity_id, o.import_value, o.scaled_value
             from observations o
             where o.sampling_point_id = %(id)s
-            and extract(epoch from o.from_time) = %(dt_from)s
+            and o.from_time = %(from_time)s
             and o.value = %(value)s
         """
-        cursor.execute(sql, {"id": sampling_point_id, "dt_from": dt_from, "value": value})
+        cursor.execute(sql, {"id": sampling_point_id, "from_time": from_time, "value": value})
         row = cursor.fetchone()
         if row is not None:
             row["from_time"] = pd.to_datetime(row["from_time"])
@@ -87,7 +87,7 @@ class Flagging:
             gaps = df_serie[(df_serie.from_time.diff().dt.total_seconds().fillna(0) > serie["timestep"])].index
             for i in gaps:
                 first = df_serie[["value", "from_time", "to_time"]].loc[i]
-                edge_values = edge_values + Flagging.__find_previous_db_values__(cursor, serie["sampling_point_id"], first.value, first.from_time.timestamp(), serie["rep"], serie["timestep"])
+                edge_values = edge_values + Flagging.__find_previous_db_values__(cursor, serie["sampling_point_id"], first.value, first.from_time, serie["rep"], serie["timestep"])
 
         if len(edge_values) > 0:
             df_edge_values = pd.DataFrame(edge_values)
@@ -106,25 +106,25 @@ class Flagging:
     @staticmethod
     def __find_before_and_after_db_values(cursor: any, sampling_point_id, rep, timestep, first, last):
         # first
-        dt_from = first.from_time.timestamp()
+        from_time = first.from_time
         value = first.value
-        values_first = Flagging.__find_previous_db_values__(cursor, sampling_point_id, value, dt_from, rep, timestep)
+        values_first = Flagging.__find_previous_db_values__(cursor, sampling_point_id, value, from_time, rep, timestep)
 
         # last
-        dt_from = last.from_time.timestamp()
+        from_time = last.from_time
         value = last.value
-        values_last = Flagging.__find_next_db_values__(cursor, sampling_point_id, value, dt_from, rep, timestep)
+        values_last = Flagging.__find_next_db_values__(cursor, sampling_point_id, value, from_time, rep, timestep)
 
         return values_first + values_last
 
     @staticmethod
-    def __find_previous_db_values__(cursor: any, sampling_point_id, value, dt_from, rep, timestep):
+    def __find_previous_db_values__(cursor: any, sampling_point_id, value, from_time, rep, timestep):
         edge_values = []
         stop = False
         iterations = 0
         while not stop:
-            dt_from = dt_from - timestep
-            obs = Flagging.__get_value_from_db__(cursor, sampling_point_id, dt_from, value)
+            from_time = from_time - pd.Timedelta(seconds=timestep)
+            obs = Flagging.__get_value_from_db__(cursor, sampling_point_id, from_time, value)
             if obs is None:
                 stop = True
             else:
@@ -135,13 +135,13 @@ class Flagging:
         return edge_values
 
     @staticmethod
-    def __find_next_db_values__(cursor: any, sampling_point_id, value, dt_from, rep, timestep=3600):
+    def __find_next_db_values__(cursor: any, sampling_point_id, value, from_time, rep, timestep=3600):
         edge_values = []
         stop = False
         iterations = 0
         while not stop:
-            dt_from = dt_from + timestep
-            obs = Flagging.__get_value_from_db__(cursor, sampling_point_id, dt_from, value)
+            from_time = from_time + pd.Timedelta(seconds=timestep)
+            obs = Flagging.__get_value_from_db__(cursor, sampling_point_id, from_time, value)
             if obs is None:
                 stop = True
             else:
