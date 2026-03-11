@@ -13,7 +13,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(["update:selected", "on-right-click", "on-dbl-click"]);
+const emit = defineEmits(["update:selected", "on-dbl-click", "context-menu-action"]);
 
 // Map properties to DataTable column format
 const columns = computed(() => {
@@ -24,7 +24,6 @@ const columns = computed(() => {
         field: prop.prop,
         headerName: prop.label,
         sortable: true
-        // tooltipField: prop.prop
       };
 
       // Handle width and flex
@@ -53,10 +52,12 @@ const columns = computed(() => {
     });
 });
 
-const onRightClick = (data, event, gridEvent) => {
-  // Select the row and emit event with data and event
-  emit("update:selected", [klona(data)]);
-  emit("on-right-click", data, event, gridEvent);
+const onContextMenuAction = ({ action, data }) => {
+  // Select the row when context menu is used
+  if (data?.row) {
+    emit("update:selected", [klona(data.row)]);
+  }
+  emit("context-menu-action", { action, data });
 };
 
 const onDoubleClick = (data, event, gridEvent) => {
@@ -67,7 +68,11 @@ const onDoubleClick = (data, event, gridEvent) => {
 </script>
 
 <template>
-  <DataTable :data="values" :columns="columns" :filter="true" :floating-filter="false" :responsive="true" :get-row-style="getRowStyle" @on-right-click="onRightClick" @on-double-click="onDoubleClick" />
+  <DataTable :data="values" :columns="columns" :filter="true" :floating-filter="false" :responsive="true" :get-row-style="getRowStyle" @context-menu-action="onContextMenuAction" @on-double-click="onDoubleClick">
+    <template #context-menu-items="slotProps">
+      <slot name="context-menu-items" v-bind="slotProps" />
+    </template>
+  </DataTable>
 </template>
 
 <style scoped></style>

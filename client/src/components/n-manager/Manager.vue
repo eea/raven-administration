@@ -3,11 +3,12 @@ import { computed, onMounted, ref } from "vue";
 import Eventy from "../../helpers/eventy";
 import Crud from "./Crud.vue";
 import GridDataTable from "./GridDataTable.vue";
-import CMenuCrud from "../CMenuCrud.vue";
 import useFilter from "../../composables/useFilter";
 import Confirm from "../Confirm.vue";
 import ToolBar from "../ToolBar.vue";
 import CommonLayout from "../CommonLayout.vue";
+import IconEdit from "~icons/ph/pencil-simple-duotone";
+import IconDelete from "~icons/ph/trash-duotone";
 import IconCopy from "~icons/ic/twotone-content-copy";
 
 const props = defineProps({
@@ -17,10 +18,6 @@ const props = defineProps({
   crudComponent: {
     type: [String, Object],
     default: Crud
-  },
-  contextMenuComponent: {
-    type: [String, Object],
-    default: null
   },
   showDownloadButton: {
     type: Boolean,
@@ -39,16 +36,13 @@ const showAdd = ref(false);
 
 const selected = ref([]);
 
-const showContextmenu = ref(false);
 const showConfirm = ref(false);
-const contextMenuRef = ref(null);
-const currentGridEvent = ref(null);
+const currentContextData = ref(null);
 
 const { q, filteredList } = useFilter(data);
 
 onMounted(async () => {
   await loadData();
-  //console.log(props.options.lookups["organizations"]);
 });
 
 const loadData = async () => {
@@ -99,22 +93,14 @@ const onDownload = async () => {
   document.body.removeChild(link);
 };
 
-const onRightClick = (data, event, gridEvent) => {
-  currentGridEvent.value = gridEvent;
-  if (contextMenuRef.value) {
-    contextMenuRef.value.showMenu(data, event);
-    showContextmenu.value = true;
-  }
-};
-
-const onMenuClick = ({ action, data }) => {
-  showContextmenu.value = false;
+const onContextMenuAction = ({ action, data }) => {
+  currentContextData.value = data;
 
   if (action === "edit") {
-    selected.value = [data];
+    selected.value = data?.row ? [data.row] : [];
     showEdit.value = true;
   } else if (action === "delete") {
-    selected.value = [data];
+    selected.value = data?.row ? [data.row] : [];
     showConfirm.value = true;
   } else if (action === "copy-cell") {
     copyToClipboard();
@@ -122,10 +108,10 @@ const onMenuClick = ({ action, data }) => {
 };
 
 const copyToClipboard = async () => {
-  if (!currentGridEvent.value?.value) return;
+  if (!currentContextData.value?.gridEvent?.value) return;
 
   try {
-    const cellValue = String(currentGridEvent.value.value);
+    const cellValue = String(currentContextData.value.gridEvent.value);
     await navigator.clipboard.writeText(cellValue);
     console.log("Copied cell value to clipboard:", cellValue);
   } catch (err) {
@@ -169,7 +155,6 @@ const saveDelete = async (o) => {
 const close = () => {
   showEdit.value = false;
   showAdd.value = false;
-  showContextmenu.value = false;
   showConfirm.value = false;
   selected.value = [];
 };
@@ -183,23 +168,28 @@ const cmp_properties = computed(() => {
 <template>
   <common-layout>
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete?" @close="close" @ok="saveDelete" />
-    <c-menu-crud ref="contextMenuRef" @click-outside="close" @on-menu-click="onMenuClick">
-      <template #extra-items="{ handleAction }">
-        <div class="border-t border-nord4 pt-1">
-          <div class="pl-2 pr-4 py-1 flex cursor-pointer hover:bg-gray-100" @click="handleAction('copy-cell')">
-            <icon-copy class="text-nord9 text-sm self-center" />
-            <div class="self-center ml-1">Copy cell value</div>
-          </div>
-        </div>
-      </template>
-    </c-menu-crud>
 
     <component v-if="showAddButton" :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" @close="close" @save="saveAdd" />
     <component :is="crudComponent" :is-edit="true" :show="showEdit" :options="options" :selected-value="selected[0]" @close="close" @save="saveEdit" />
 
     <tool-bar :title="name" v-model:q="q" :show-add="showAddButton" :show-download="showDownloadButton" @add-click="showAdd = true" @download-click="onDownload" />
 
-    <grid-data-table v-model:selected="selected" :properties="cmp_properties" :values="filteredList" :get-row-style="options.getRowStyle" @on-right-click="onRightClick" @on-dbl-click="onDoubleClick" />
+    <grid-data-table v-model:selected="selected" :properties="cmp_properties" :values="filteredList" :get-row-style="options.getRowStyle" @context-menu-action="onContextMenuAction" @on-dbl-click="onDoubleClick">
+      <template #context-menu-items="{ handleAction, contextData }">
+        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('edit')">
+          <icon-edit class="text-nord10 text-base self-center" />
+          <div class="self-center ml-1">Edit</div>
+        </div>
+        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('delete')">
+          <icon-delete class="text-nord11 text-base self-center" />
+          <div class="self-center ml-1">Delete</div>
+        </div>
+        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('copy-cell')">
+          <icon-copy class="text-nord9 text-sm self-center" />
+          <div class="self-center ml-1">Copy cell value</div>
+        </div>
+      </template>
+    </grid-data-table>
   </common-layout>
 </template>
 

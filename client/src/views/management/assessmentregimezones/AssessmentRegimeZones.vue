@@ -4,7 +4,6 @@ import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import DataTable from "../../../components/DataTable.vue";
-import CMenu from "../../../components/CMenu.vue";
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
 
@@ -15,7 +14,6 @@ const loading = ref(false);
 const exceedanceOptions = ref([]);
 const documentOptions = ref([]);
 const gridApi = ref(null);
-const menuRef = ref(null);
 const selectedReportId = ref("");
 const selectedThreshold = ref("");
 
@@ -27,37 +25,11 @@ const getRowId = (params) => {
   return `${params.data.zone_id}_${params.data.environmental_objective_id}`;
 };
 
-const onContextMenu = (row, e) => {
-  if (gridApi.value) {
-    const selectedRows = gridApi.value.getSelectedRows();
-    const isRowSelected = selectedRows.some((r) => r === row);
-
-    if (!isRowSelected) {
-      if (e.ctrlKey) {
-        gridApi.value.forEachNode((node) => {
-          if (node.data === row) {
-            node.setSelected(true);
-          }
-        });
-      } else {
-        gridApi.value.deselectAll();
-        gridApi.value.forEachNode((node) => {
-          if (node.data === row) {
-            node.setSelected(true);
-          }
-        });
-      }
-    }
-  }
-
-  menuRef.value?.showMenu(row, e);
-};
-
-const onMenuClick = async ({ action, data: rowData }) => {
+const onContextMenuAction = async ({ action, data: rowData }) => {
   if (action === "update") {
-    await updateRows(rowData);
+    await updateRows(rowData?.row);
   } else if (action === "clear") {
-    await clearRows(rowData);
+    await clearRows(rowData?.row);
   }
 };
 
@@ -91,7 +63,6 @@ const updateRows = async (row) => {
     Eventy.showHideMessage("Error saving changes", "error", 3000);
   }
 
-  menuRef.value?.hideMenu();
   selectedReportId.value = "";
   selectedThreshold.value = "";
   gridApi.value.deselectAll();
@@ -122,7 +93,6 @@ const clearRows = async (row) => {
     Eventy.showHideMessage("Error saving changes", "error", 3000);
   }
 
-  menuRef.value?.hideMenu();
   selectedReportId.value = "";
   selectedThreshold.value = "";
   gridApi.value.deselectAll();
@@ -191,55 +161,6 @@ const showData = async () => {
 
 <template>
   <common-layout>
-    <c-menu ref="menuRef" @on-click="onMenuClick">
-      <template #default="{ handleAction }">
-        <div class="px-2 py-2">
-          <div class="text-xs font-bold mb-1">Threshold exceedance:</div>
-          <select v-model="selectedThreshold" class="select w-full text-sm" @click.stop>
-            <option value="">-- Select threshold --</option>
-            <option v-for="option in exceedanceOptions" :key="option.value" :value="option.value">
-              {{ option.text }}
-            </option>
-          </select>
-        </div>
-
-        <div class="px-2 py-4">
-          <div class="text-xs font-bold mb-1">Classification document:</div>
-          <select v-model="selectedReportId" class="select w-full text-sm" @click.stop>
-            <option value="">-- Select document --</option>
-            <option v-for="doc in documentOptions" :key="doc.value" :value="doc.value">
-              {{ doc.text }}
-            </option>
-          </select>
-        </div>
-
-        <div class="border-t border-nord4 mt-1 pt-4 px-2 pb-2 flex gap-2">
-          <button
-            class="button button-sm flex-1"
-            @click="
-              (e) => {
-                e.stopPropagation();
-                handleAction('clear');
-              }
-            "
-          >
-            Clear Rows
-          </button>
-          <button
-            class="button button-sm button-primary flex-1"
-            @click="
-              (e) => {
-                e.stopPropagation();
-                handleAction('update');
-              }
-            "
-          >
-            Update Rows
-          </button>
-        </div>
-      </template>
-    </c-menu>
-
     <tool-bar title="Assessment Regime Zones" :show-column-picker="false" :show-add="false" :show-download="false" :show-filter="false" />
 
     <container>
@@ -273,7 +194,54 @@ const showData = async () => {
     </container>
 
     <div class="w-full h-full text-xs mt-8">
-      <DataTable :data="data" :columns="columns" :filter="true" :floating-filter="false" :getRowId="getRowId" selectionMode="multiRow" @grid-ready="onGridReady" @on-right-click="onContextMenu" />
+      <DataTable :data="data" :columns="columns" :filter="true" :floating-filter="false" :getRowId="getRowId" selectionMode="multiRow" @grid-ready="onGridReady" @context-menu-action="onContextMenuAction">
+        <template #context-menu-items="{ handleAction }">
+          <div class="px-2 py-2">
+            <div class="text-xs font-bold mb-1">Threshold exceedance:</div>
+            <select v-model="selectedThreshold" class="select w-full text-sm" @click.stop>
+              <option value="">-- Select threshold --</option>
+              <option v-for="option in exceedanceOptions" :key="option.value" :value="option.value">
+                {{ option.text }}
+              </option>
+            </select>
+          </div>
+
+          <div class="px-2 py-4">
+            <div class="text-xs font-bold mb-1">Classification document:</div>
+            <select v-model="selectedReportId" class="select w-full text-sm" @click.stop>
+              <option value="">-- Select document --</option>
+              <option v-for="doc in documentOptions" :key="doc.value" :value="doc.value">
+                {{ doc.text }}
+              </option>
+            </select>
+          </div>
+
+          <div class="border-t border-nord4 mt-1 pt-4 px-2 pb-2 flex gap-2">
+            <button
+              class="button button-sm flex-1"
+              @click="
+                (e) => {
+                  e.stopPropagation();
+                  handleAction('clear');
+                }
+              "
+            >
+              Clear Rows
+            </button>
+            <button
+              class="button button-sm button-primary flex-1"
+              @click="
+                (e) => {
+                  e.stopPropagation();
+                  handleAction('update');
+                }
+              "
+            >
+              Update Rows
+            </button>
+          </div>
+        </template>
+      </DataTable>
     </div>
   </common-layout>
 </template>

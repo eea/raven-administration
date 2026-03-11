@@ -44,35 +44,24 @@ export const columns = [
   },
   {
     headerName: "Protection Target",
-    field: "objecttype",
+    field: "protection_target",
     filter: "agTextColumnFilter",
     sortable: true,
-    width: 140,
-    valueFormatter: (params) => {
-      const labels = {
-        LV: "Health",
-        ALT: "Health",
-        INT: "Health",
-        TV: "Health",
-        LTO: "Health",
-        CL: "Vegetation"
-      };
-      return labels[params.value] || "Health";
-    }
+    width: 140
   },
   {
     headerName: "Objective Type",
-    field: "objective",
+    field: "objecttype",
     filter: "agTextColumnFilter",
     sortable: true,
-    width: 180
+    width: 140
   },
   {
     headerName: "Reporting Metric",
-    field: "statistic",
+    field: "objective",
     filter: "agTextColumnFilter",
     sortable: true,
-    width: 160
+    width: 220
   },
   {
     headerName: "Air Pollution Level",
