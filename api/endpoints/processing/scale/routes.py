@@ -56,12 +56,13 @@ def update():
 
         values = Scaling.ReScale(cursor, True, model.sampling_point_id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, current_timestamp)
 
-        if len(values[values["observationverification_id"] == 1]) > 0:
+        if not values.empty and len(values[values["observationverification_id"] == 1]) > 0:
             raise Exception("Cannot scale values with verification flag 1")
 
-        values = Importing.process_scaled_values(cursor, values, False)
+        if not values.empty:
+            values = Importing.process_scaled_values(cursor, values, False)
 
-        rows = Helper.editScalingPoint(cursor, model.id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, model.createdby, values.to_dict("records"))
+        rows = Helper.editScalingPoint(cursor, model.id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, model.createdby, values.to_dict("records") if not values.empty else [])
 
         if rows == 0:
             raise BadRequest(description="Could not update.")
@@ -84,11 +85,13 @@ def insert():
 
         values = Scaling.ReScale(cursor, True, model.sampling_point_id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, model.timestamp)
 
-        if len(values[values["observationverification_id"] == 1]) > 0:
+        if not values.empty and len(values[values["observationverification_id"] == 1]) > 0:
             raise Exception("Cannot scale values with verification flag 1")
 
-        values = Importing.process_scaled_values(cursor, values, False)
-        rows = Helper.addScalingPoint(cursor, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, model.sampling_point_id, model.createdby, values.to_dict("records"))
+        if not values.empty:
+            values = Importing.process_scaled_values(cursor, values, False)
+
+        rows = Helper.addScalingPoint(cursor, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, model.sampling_point_id, model.createdby, values.to_dict("records") if not values.empty else [])
 
         if rows == 0:
             raise BadRequest(description="Could not insert.")
@@ -108,11 +111,13 @@ def delete():
 
         values = Scaling.ReScale(cursor, False, sp["sampling_point_id"], sp["zero_point"], sp["span_value"], sp["gas_concentration"], sp["timestamp"], sp["timestamp"])
 
-        if len(values[values["observationverification_id"] == 1]) > 0:
+        if not values.empty and len(values[values["observationverification_id"] == 1]) > 0:
             raise Exception("Cannot scale values with verification flag 1")
 
-        values = Importing.process_scaled_values(cursor, values, False)
-        rows = Helper.removeScalingPoint(cursor, model.id, values.to_dict("records"))
+        if not values.empty:
+            values = Importing.process_scaled_values(cursor, values, False)
+
+        rows = Helper.removeScalingPoint(cursor, model.id, values.to_dict("records") if not values.empty else [])
 
         if rows == 0:
             raise BadRequest(description="Could not delete.")
@@ -133,6 +138,9 @@ def preview():
         current_timestamp = model.current_timestamp if model.current_timestamp is not None else model.timestamp
 
         values = Scaling.ReScale(cursor, True, model.sampling_point_id, model.zero_point, model.span_value, model.gas_concentration, model.timestamp, current_timestamp)
+
+        if values.empty:
+            return {"message": "No observations found in the affected time range", "values": []}
 
         hasVerifiedValues = len(values[values["observationverification_id"] == 1]) > 0
 

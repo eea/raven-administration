@@ -54,7 +54,7 @@ export default {
 </script>
 
 <template>
-  <VueDatePicker :model-value="normalizedValue" @update:model-value="handleUpdate" v-bind="$attrs" model-type="yyyy-MM-dd HH:mm:ss" :time-config="{ enableMinutes: false, is24: true, timePickerInline: true }" :format="'yyyy-MM-dd, HH'" teleport="body" />
+  <VueDatePicker :model-value="normalizedValue" @update:model-value="handleUpdate" v-bind="$attrs" model-type="yyyy-MM-dd HH:mm:ss" :time-config="{ enableMinutes: false, is24: true, timePickerInline: true }" :formats="{ input: 'yyyy-MM-dd, HH', preview: 'yyyy-MM-dd, HH' }" teleport="body" />
 </template>
 
 <style>

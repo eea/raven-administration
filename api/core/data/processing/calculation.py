@@ -26,8 +26,10 @@ class Calculating:
         to_time_min = filtered_values.to_time.min()
         to_time_max = filtered_values.to_time.max()
 
-        # Fetch DB values for ALL calculation IDs (not just imported ones)
         scaled_db_values = Calculating.__get_all_scaled_value_from_db__(cursor, tuple(calculated_ids), to_time_min, to_time_max)
+
+        # Build lookup dict for O(1) access instead of O(n) filtering
+        db_lookup = {(r["sampling_point_id"], pd.Timestamp(r["to_time"])): r for r in scaled_db_values}
 
         for key, group in grouped_values:
             for cs in calculated_timeseries:
@@ -47,7 +49,7 @@ class Calculating:
                 elif not pri.empty:
                     pri_val = pri.iloc[0]["scaled_value"]
                     if pri_val is not None:
-                        obs = next(filter(lambda x: x["sampling_point_id"] == cs["secondary"] and pd.Timestamp(x["to_time"]) == key, scaled_db_values), None)
+                        obs = db_lookup.get((cs["secondary"], key))
                         if obs is not None and obs["value"] is not None:
                             calculated_value = Calculating.__create_observation__(cs["result"], pri_val, obs["value"], cs["operator"], pri.iloc[0]["observationvalidity_id"], obs["observationvalidity_id"], pri.iloc[0]["from_time"], pri.iloc[0]["to_time"])
                             calculated_values.append(calculated_value)
@@ -55,7 +57,7 @@ class Calculating:
                 elif not sec.empty:
                     sec_val = sec.iloc[0]["scaled_value"]
                     if sec_val is not None:
-                        obs = next(filter(lambda x: x["sampling_point_id"] == cs["primary"] and pd.Timestamp(x["to_time"]) == key, scaled_db_values), None)
+                        obs = db_lookup.get((cs["primary"], key))
                         if obs is not None and obs["value"] is not None:
                             calculated_value = Calculating.__create_observation__(cs["result"], obs["value"], sec_val, cs["operator"], obs["observationvalidity_id"], sec.iloc[0]["observationvalidity_id"], sec.iloc[0]["from_time"], sec.iloc[0]["to_time"])
                             calculated_values.append(calculated_value)
