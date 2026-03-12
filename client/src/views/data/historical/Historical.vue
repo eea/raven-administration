@@ -213,12 +213,12 @@ const onTimeseriesSelectionChanged = (rows) => {
     <c-menu ref="menuRef" @on-click="onMenuClick">
       <template #default="{ handleAction }">
         <div class="px-2 font-bold">Presets:</div>
-        <div class="border-l-2 border-nord14 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('This week')">This week</div>
-        <div class="border-l-2 border-nord14 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('Last week')">Last week</div>
-        <div class="border-l-2 border-nord11 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('This month')">This month</div>
-        <div class="border-l-2 border-nord11 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('Last month')">Last month</div>
-        <div class="border-l-2 border-nord15 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('This year')">This year</div>
-        <div class="border-l-2 border-nord15 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('Last year')">Last year</div>
+        <div class="border-l-2 border-nord14 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('This week')">This week</div>
+        <div class="border-l-2 border-nord14 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('Last week')">Last week</div>
+        <div class="border-l-2 border-nord11 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('This month')">This month</div>
+        <div class="border-l-2 border-nord11 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('Last month')">Last month</div>
+        <div class="border-l-2 border-nord15 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('This year')">This year</div>
+        <div class="border-l-2 border-nord15 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('Last year')">Last year</div>
       </template>
     </c-menu>
 

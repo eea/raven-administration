@@ -68,7 +68,7 @@ const onDoubleClick = (data, event, gridEvent) => {
 </script>
 
 <template>
-  <DataTable :data="values" :columns="columns" :filter="true" :floating-filter="false" :responsive="true" :get-row-style="getRowStyle" @context-menu-action="onContextMenuAction" @on-double-click="onDoubleClick">
+  <DataTable :data="values" :columns="columns" :filter="true" :floating-filter="false" :responsive="true" :get-row-style="getRowStyle" :show-copy-options="true" @context-menu-action="onContextMenuAction" @on-double-click="onDoubleClick">
     <template #context-menu-items="slotProps">
       <slot name="context-menu-items" v-bind="slotProps" />
     </template>

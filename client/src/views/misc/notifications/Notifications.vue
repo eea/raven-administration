@@ -1,11 +1,11 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted } from "vue";
 import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
-import CMenuCrud from "../../../components/CMenuCrud.vue";
 import Confirm from "../../../components/Confirm.vue";
 import Popup from "../../../components/Popup.vue";
 import DataTable from "../../../components/DataTable.vue";
+import CMenuItems from "../../../components/CMenuItems.vue";
 import Crud from "./Crud.vue";
 
 import Service from "./service";
@@ -18,10 +18,21 @@ const logs = ref([]);
 const missingSamplingPoints = ref([]);
 const showCrud = ref(false);
 const selectedRow = ref(null);
-const contextMenuRef = ref(null);
 const showConfirm = ref(false);
 const errorMessage = ref("");
 const showErrorPopup = ref(false);
+
+const notificationsColumns = [
+  {
+    field: "enabled",
+    headerName: "",
+    width: 40,
+    maxWidth: 40,
+    cellRenderer: (params) => `<input type="checkbox" ${params.value ? "checked" : ""} disabled />`
+  },
+  { field: "name", headerName: "Name", flex: 1 },
+  { field: "emails", headerName: "Emails", flex: 2 }
+];
 
 const missingSamplingPointsColumns = [
   { field: "spo", headerName: "SPO", flex: 2 },
@@ -58,8 +69,10 @@ const onCloseCrud = async (isSaved) => {
   if (isSaved) notifications.value = await Service.get();
 };
 
-const onMenuClick = ({ action, data }) => {
-  selectedRow.value = data;
+const onContextMenuAction = ({ action, data }) => {
+  if (data?.row) {
+    selectedRow.value = data.row;
+  }
   if (action === "edit") {
     showCrud.value = true;
   } else if (action === "delete") {
@@ -67,15 +80,13 @@ const onMenuClick = ({ action, data }) => {
   }
 };
 
-const onSaveDelete = async (id) => {
+const onSaveDelete = async () => {
   if (!selectedRow.value) return;
   await Service.delete({ name: selectedRow.value.name });
   await onCloseCrud(true);
 };
 
 const onCloseErrorPopup = () => {
-  console.log("close error popup");
-
   showErrorPopup.value = false;
   errorMessage.value = "";
 };
@@ -90,35 +101,26 @@ const onOpenErrorPopup = (msg) => {
   <common-layout>
     <popup :show="showErrorPopup" title="Notifications error" @on-close="onCloseErrorPopup">{{ errorMessage }}</popup>
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete the notification?" @close="onCloseCrud" @ok="onSaveDelete" />
-    <CMenuCrud ref="contextMenuRef" @on-menu-click="onMenuClick" />
     <Crud :data="selectedRow" :sampling-points="samplingPoints" :show="showCrud" @on-close="onCloseCrud" />
     <tool-bar title="Notifications" :show-column-picker="false" :show-add="true" :show-download="false" :show-filter="false" @add-click="onOpenCrud" />
 
-    <div>
-      <table class="table">
-        <tr>
-          <th></th>
-          <th>Name</th>
-          <th>Emails</th>
-        </tr>
-        <tr v-for="n in notifications" :key="n.id" @dblclick="onOpenCrud(n)" @contextmenu.prevent="contextMenuRef.showMenu(n, $event)">
-          <td class="w-4"><input type="checkbox" class="align-middle" v-model="n.enabled" :disabled="true" /></td>
-          <td>{{ n.name }}</td>
-          <td>{{ n.emails }}</td>
-        </tr>
-      </table>
+    <div class="min-h-36">
+      <DataTable :data="notifications" :columns="notificationsColumns" :filter="false" :floating-filter="false" @on-double-click="onOpenCrud" @context-menu-action="onContextMenuAction">
+        <template #context-menu-items="{ handleAction }">
+          <CMenuItems @edit="handleAction('edit')" @delete="handleAction('delete')" />
+        </template>
+      </DataTable>
     </div>
 
     <div class="mt-8">
       <div class="text-base font-bold self-center">Last 5 email notifications</div>
       <table class="table">
         <tr>
-          <th>Email sendt</th>
+          <th>Email sent</th>
           <th>Missing sampling points</th>
           <th>Notifications sent</th>
           <th>Notifications failed</th>
           <th>Email server</th>
-          <!-- <th>Execution time (ms)</th> -->
           <th>Status</th>
           <th></th>
         </tr>
@@ -128,10 +130,9 @@ const onOpenErrorPopup = (msg) => {
           <td>{{ p.notifications_sent }}</td>
           <td>{{ p.notifications_failed }}</td>
           <td>{{ p.smtp_server }}</td>
-          <!-- <td>{{ p.execution_time_ms }}</td> -->
           <td>{{ p.status }}</td>
           <td>
-            <IconError v-if="p.error_message" class="text-nord11 text-lg" @click="onOpenErrorPopup(p.error_message || 'No error message available')" />
+            <IconError v-if="p.error_message" class="text-nord11 text-lg cursor-pointer" @click="onOpenErrorPopup(p.error_message || 'No error message available')" />
           </td>
         </tr>
       </table>

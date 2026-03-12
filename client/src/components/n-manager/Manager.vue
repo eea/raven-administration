@@ -7,9 +7,7 @@ import useFilter from "../../composables/useFilter";
 import Confirm from "../Confirm.vue";
 import ToolBar from "../ToolBar.vue";
 import CommonLayout from "../CommonLayout.vue";
-import IconEdit from "~icons/ph/pencil-simple-duotone";
-import IconDelete from "~icons/ph/trash-duotone";
-import IconCopy from "~icons/ic/twotone-content-copy";
+import CMenuItems from "../CMenuItems.vue";
 
 const props = defineProps({
   name: String,
@@ -37,7 +35,6 @@ const showAdd = ref(false);
 const selected = ref([]);
 
 const showConfirm = ref(false);
-const currentContextData = ref(null);
 
 const { q, filteredList } = useFilter(data);
 
@@ -94,28 +91,12 @@ const onDownload = async () => {
 };
 
 const onContextMenuAction = ({ action, data }) => {
-  currentContextData.value = data;
-
   if (action === "edit") {
     selected.value = data?.row ? [data.row] : [];
     showEdit.value = true;
   } else if (action === "delete") {
     selected.value = data?.row ? [data.row] : [];
     showConfirm.value = true;
-  } else if (action === "copy-cell") {
-    copyToClipboard();
-  }
-};
-
-const copyToClipboard = async () => {
-  if (!currentContextData.value?.gridEvent?.value) return;
-
-  try {
-    const cellValue = String(currentContextData.value.gridEvent.value);
-    await navigator.clipboard.writeText(cellValue);
-    console.log("Copied cell value to clipboard:", cellValue);
-  } catch (err) {
-    console.error("Failed to copy to clipboard:", err);
   }
 };
 
@@ -176,18 +157,7 @@ const cmp_properties = computed(() => {
 
     <grid-data-table v-model:selected="selected" :properties="cmp_properties" :values="filteredList" :get-row-style="options.getRowStyle" @context-menu-action="onContextMenuAction" @on-dbl-click="onDoubleClick">
       <template #context-menu-items="{ handleAction, contextData }">
-        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('edit')">
-          <icon-edit class="text-nord10 text-base self-center" />
-          <div class="self-center ml-1">Edit</div>
-        </div>
-        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('delete')">
-          <icon-delete class="text-nord11 text-base self-center" />
-          <div class="self-center ml-1">Delete</div>
-        </div>
-        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('copy-cell')">
-          <icon-copy class="text-nord9 text-sm self-center" />
-          <div class="self-center ml-1">Copy cell value</div>
-        </div>
+        <CMenuItems @edit="handleAction('edit')" @delete="handleAction('delete')" />
       </template>
     </grid-data-table>
   </common-layout>

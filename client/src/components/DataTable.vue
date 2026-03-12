@@ -4,7 +4,11 @@ import { AgGridVue } from "ag-grid-vue3";
 import { ref, watch, computed } from "vue";
 import { themeQuartz } from "ag-grid-community";
 import CMenu from "./CMenu.vue";
-import { rowsToCsv, columnHeadersToCsv, copyToClipboard } from "../helpers/csvUtils.js";
+import { rowsToCsv, columnHeadersToCsv, copyToClipboard, copyCellValue } from "../helpers/utilsCopy.js";
+import IconCopy from "~icons/ic/twotone-content-copy";
+// import IconCopyCell from "~icons/ic/twotone-content-copy";
+// import IconCopyRows from "~icons/ic/twotone-content-paste";
+// import IconCopyHeaders from "~icons/ic/twotone-view-headline";
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule, TooltipModule]);
 
@@ -66,6 +70,11 @@ const props = defineProps({
     type: Number,
     required: false,
     default: 14
+  },
+  showCopyOptions: {
+    type: Boolean,
+    required: false,
+    default: false
   }
 });
 
@@ -214,6 +223,10 @@ const onClicked = (event) => {
     emit("on-double-click", event.data, event.event, event);
     return;
   }
+  // Single left-click - deselect if no selection mode enabled
+  if (detail === 1 && !props.selectionMode) {
+    gridApi.value?.deselectAll();
+  }
 };
 
 /**
@@ -248,17 +261,33 @@ const copyHeadersAsCsv = async () => {
 };
 
 /**
- * Handle built-in context menu actions
+ * Copy clicked cell value to clipboard
  */
-const handleBuiltinAction = async (action) => {
+const copyCell = async () => {
+  const cellValue = contextData.value?.gridEvent?.value;
+  return await copyCellValue(cellValue);
+};
+
+/**
+ * Handle context menu actions (both built-in and custom)
+ */
+const handleMenuAction = async (action) => {
   if (action === "copy-rows-csv") {
     await copyRowsAsCsv();
   } else if (action === "copy-headers-csv") {
     await copyHeadersAsCsv();
+  } else if (action === "copy-cell") {
+    await copyCell();
   }
   emit("context-menu-action", { action, data: contextData.value });
   builtinMenuRef.value?.hideMenu();
 };
+
+const hasCustomMenuItems = computed(() => {
+  return !!slots["context-menu-items"];
+});
+
+const slots = defineSlots();
 
 const onSelectionChanged = (event) => {
   emit("selection-changed", event.api.getSelectedRows());
@@ -280,20 +309,27 @@ const onGridReady = (params) => {
 <template>
   <ag-grid-vue @selection-changed="onSelectionChanged" :rowSelection="rowSelection" :getRowId="getRowId" :tooltipShowDelay="0" :tooltipHideDelay="10000" :tooltipShowMode="'whenTruncated'" style="width: 100%; height: 100%" :loading="loading" :getRowStyle="getRowStyle" :defaultColDef="defaultColDef" :columnDefs="colDefs" :rowData="data" :theme="myTheme" :suppressClickEdit="false" :suppressRowTransform="true" :suppressColumnVirtualisation="false" :immutableData="false" :suppressCellFlash="true" @grid-ready="onGridReady" @cell-context-menu="onClicked" @cell-clicked="onClicked" oncontextmenu="return false;"></ag-grid-vue>
 
-  <!-- Unified context menu: custom items first, then built-in CSV options -->
-  <CMenu ref="builtinMenuRef" @on-click="({ action }) => handleBuiltinAction(action)">
+  <!-- Context menu -->
+  <CMenu ref="builtinMenuRef" @on-click="({ action }) => handleMenuAction(action)">
     <template #default="{ handleAction }">
-      <!-- Custom items from parent component (shown first) -->
-      <slot name="context-menu-items" :handleAction="handleBuiltinAction" :contextData="contextData" :gridApi="gridApi" />
-      <!-- Separator and built-in items -->
-      <div class="border-t border-nord4 mt-1 pt-1">
-        <div @click="handleAction('copy-rows-csv')" class="px-4 py-1.5 hover:bg-nord6 cursor-pointer whitespace-nowrap">
-          📋 Copy rows as CSV
+      <!-- Custom items from parent -->
+      <slot name="context-menu-items" :handleAction="handleMenuAction" :contextData="contextData" :gridApi="gridApi" />
+      <!-- Built-in copy options -->
+      <template v-if="showCopyOptions">
+        <div v-if="hasCustomMenuItems" class="border-t border-nord4 mt-1 pt-1"></div>
+        <div @click="handleAction('copy-cell')" class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6 whitespace-nowrap">
+          <IconCopy class="text-nord9 text-base self-center" />
+          <div class="self-center ml-1">Copy cell value</div>
         </div>
-        <div @click="handleAction('copy-headers-csv')" class="px-4 py-1.5 hover:bg-nord6 cursor-pointer whitespace-nowrap">
-          📝 Copy headers as CSV
+        <div @click="handleAction('copy-rows-csv')" class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6 whitespace-nowrap">
+          <IconCopy class="text-nord9 text-base self-center" />
+          <div class="self-center ml-1">Copy rows as CSV</div>
         </div>
-      </div>
+        <div @click="handleAction('copy-headers-csv')" class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6 whitespace-nowrap">
+          <IconCopy class="text-nord9 text-base self-center" />
+          <div class="self-center ml-1">Copy headers as CSV</div>
+        </div>
+      </template>
     </template>
   </CMenu>
 </template>
