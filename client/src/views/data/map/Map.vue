@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref, watch, computed } from "vue";
 import "leaflet/dist/leaflet.css";
+import "leaflet"; // Ensure Leaflet is loaded before vue-leaflet
 import { LMap, LTileLayer, LCircleMarker, LTooltip } from "@vue-leaflet/vue-leaflet";
 import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
@@ -13,9 +14,17 @@ const map = ref(null);
 const stations = ref([]);
 const legends = ref([]);
 const aqi_type = ref(localStorage.getItem("aqi_type") || "eea");
+const mapReady = ref(false);
 
 const currentLegend = computed(() => legends.value[aqi_type.value] || []);
 const hasMultipleLegends = computed(() => Object.keys(legends.value).length > 1);
+
+const onMapReady = () => {
+  mapReady.value = true;
+  if (stations.value.length > 0) {
+    fit(stations.value.map((s) => [s.y, s.x]));
+  }
+};
 
 onMounted(async () => {
   legends.value = await Service.legend();
@@ -28,7 +37,9 @@ watch(aqi_type, (val) => {
 });
 
 const init = () => {
-  fit(stations.value.map((s) => [s.y, s.x]));
+  if (mapReady.value) {
+    fit(stations.value.map((s) => [s.y, s.x]));
+  }
 };
 
 const loadStations = async () => {
@@ -39,7 +50,10 @@ const loadStations = async () => {
 };
 
 const fit = (latlng) => {
-  if (map.value) map.value.leafletObject.fitBounds(latlng, { padding: [100, 100] });
+  if (map.value?.leafletObject && latlng.length > 0) {
+    console.log("Fitting map to stations");
+    map.value.leafletObject.fitBounds(latlng, { padding: [100, 100] });
+  }
 };
 
 const rectByAqi = (color, hideNoData) => {
@@ -60,13 +74,16 @@ const rectByAqi = (color, hideNoData) => {
   <common-layout>
     <tool-bar title="Map" :show-column-picker="false" :show-add="false" :show-download="false" :show-filter="false" />
     <div class="border border-nord4 h-full w-full flex-1">
-      <LMap ref="map" :zoom="2" :center="[0, 0]" :options="{ zoomControl: false, attributionControl: false }" class="relative">
+      <LMap ref="map" :zoom="2" :center="[0, 0]" :options="{ zoomControl: false, attributionControl: false }" class="relative" @ready="onMapReady">
         <LTileLayer :url="url" attribution="" layer-type="base" />
 
         <LCircleMarker v-for="station in stations" :key="station.id" :name="station.name" :radius="6 + station.aqi" :lat-lng="[station.y, station.x]" :color="station.aqi_color" :fill-opacity="0.7" :weight="2">
           <l-tooltip :options="{ interactive: true, offset: [15, 0], className: 'map-tooltip' }">
             <div class="font-bold text-xl">{{ station.name }}</div>
             <div class="text-base">{{ station.network }}</div>
+            <div v-if="station.area_classification" class="text-sm text-gray-500">
+              {{ station.area_classification }}
+            </div>
             <div class="w-full border-t border-gray-400 mt-2"></div>
             <table class="text-sm mt-2 w-full border-spacing-2">
               <tr v-for="timeserie in station.timeseries" :key="timeserie.id">
@@ -77,6 +94,7 @@ const rectByAqi = (color, hideNoData) => {
                 <td class="px-6">{{ timeserie.timestep }}</td>
                 <td class="px-3">{{ timeserie.value }}</td>
                 <td>{{ timeserie.unit }}</td>
+                <td v-if="timeserie.station_classification" class="pl-3 text-gray-500">{{ timeserie.station_classification }}</td>
               </tr>
             </table>
           </l-tooltip>

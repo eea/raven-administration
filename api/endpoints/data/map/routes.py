@@ -63,11 +63,13 @@ def map():
                 to_char(sp.from_time, 'yyyy-mm-dd HH24:mi') AS from_time,
                 to_char(sp.to_time,   'yyyy-mm-dd HH24:mi') AS to_time,
                 NULLIF(o.value, 'NaN')::double precision AS value,
-                o.validity_id,
-                o.verification_id,
+                o.observationvalidity_id AS validity_id,
+                o.observationverification_id AS verification_id,
                 COALESCE(NULLIF(p.notation, ''), p.label) AS pollutant,
                 t.label AS timestep,
                 u.notation AS unit,
+                ac.label AS area_classification,
+                sc.label AS station_classification,
                 {aqi_level},
                 {aqi_description},
                 {aqi_color}
@@ -78,8 +80,10 @@ def map():
             JOIN stations s               ON s.id                = sp.station_id
             JOIN network_access n         ON n.id                = s.network_id
             JOIN eea_concentrations u     ON sp.unit_id          = u.id
+            LEFT JOIN eea_areaclassifications ac ON s.area_classification_id = ac.id
+            LEFT JOIN eea_spocategory sc  ON sp.spo_category_id  = sc.id
             {join_aqi}
-            WHERE o.end_time = sp.to_time
+            WHERE o.to_time = sp.to_time
         """
         cursor.execute(sql, n_param)
         values = cursor.fetchall()
@@ -93,6 +97,7 @@ def map():
             "pollutant":         v["pollutant"],
             "timestep":          v["timestep"],
             "unit":              v["unit"],
+            "station_classification": v["station_classification"],
             "validity_id":       v["validity_id"],
             "verification_id":   v["verification_id"],
             "value":             v["value"],
@@ -106,6 +111,7 @@ def map():
                 "name":       v["name"],
                 "x":          v["x"],
                 "y":          v["y"],
+                "area_classification": v["area_classification"],
                 "timeseries": []
             }
 
