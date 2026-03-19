@@ -27,7 +27,7 @@ def processes():
               pr.process_document_id, pd.id || ' - ' || COALESCE(pd_obj.label, '') as process_document,
               pr.measurement_type_id, mt.label as measurement_type,
               pr.method_id, mm.label as method,
-              pr.equipment_id, me.label as equipment,
+              pr.equipment_id, COALESCE(NULLIF(me.notation, ''), me.label) as equipment,
               pr.analytical_technique_id, at.label as analytical_technique,
               pr.equivalence_demonstrated_id, ed.label as equivalence_demonstrated,
               pr.sampling_point_id, sp.id as sampling_point,
@@ -73,7 +73,7 @@ def processes_lookups():
         cursor.execute("SELECT id as value, label FROM eea_measurementmethods ORDER BY label")
         methods = cursor.fetchall()
         
-        cursor.execute("SELECT id as value, label FROM eea_measurementequipments ORDER BY label")
+        cursor.execute("SELECT id as value, COALESCE(NULLIF(notation, ''), label) as label FROM eea_measurementequipments ORDER BY LOWER(COALESCE(NULLIF(notation, ''), label))")
         equipments = cursor.fetchall()
         
         cursor.execute("SELECT id as value, label FROM eea_analyticaltechnique ORDER BY label")

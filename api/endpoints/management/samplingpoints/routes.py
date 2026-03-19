@@ -27,7 +27,7 @@ def samplingpoints():
               sp.private,
               sp.use_in_public_api,
               sp.pollutant_id, COALESCE(NULLIF(p.notation, ''), p.label) as pollutant,
-              sp.time_resolution_id, tr.label as time_resolution,
+              sp.time_resolution_id, COALESCE(NULLIF(tr.notation, ''), tr.label) as time_resolution,
               sp.unit_id, u.notation as unit,
               sp.station_id, st.name as station,
               sp.spo_category_id, sc.label as spo_category
@@ -63,7 +63,7 @@ def samplingpoints_lookups():
         
         pollutants = Q.pollutants_lookup()
         
-        cursor.execute("SELECT id as value, label FROM eea_times ORDER BY label")
+        cursor.execute("SELECT id as value, COALESCE(NULLIF(notation, ''), label) as label FROM eea_times ORDER BY COALESCE(NULLIF(notation, ''), label)")
         time_resolutions = cursor.fetchall()
         
         cursor.execute("SELECT id as value, notation as label FROM eea_concentrations ORDER BY notation")
