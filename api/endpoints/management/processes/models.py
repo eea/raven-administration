@@ -17,6 +17,7 @@ class ProcessModel(RavenBaseModel):
     analytical_technique_id: str
     equivalence_demonstrated_id: str
     sampling_point_id: str
+    equipment_identifier: Optional[str] = None
 
     @field_validator('activity_begin', 'activity_end')
     @classmethod
