@@ -115,6 +115,8 @@ class Mean:
                 r["timestep"] = t["timestep"]
                 r["lng"] = t["lng"]
                 r["lat"] = t["lat"]
+                r["equipment"] = t["equipment"]
+                r["equipment_identifier"] = t["equipment_identifier"]
 
         return rows
         # return MeanValues(meanvalues=rows)
@@ -122,14 +124,23 @@ class Mean:
     @staticmethod
     def GetTimeseries(ids: tuple, cursor: any):
         sql = """
-            select spo.id "sampling_point_id", sta.name "station", COALESCE(NULLIF(po.notation, ''), po.label) "component", ti.label "timestep", con.notation "unit", sta.longitude "lng", sta.latitude "lat"
-            from stations sta, sampling_points spo, eea_pollutants po, eea_times ti, eea_concentrations con
-            where 1=1
-            and sta.id = spo.station_id
-            and spo.pollutant_id = po.id
-            and spo.time_resolution_id = ti.id
-            and spo.unit_id = con.id
-            and spo.id in %(ids)s
+            SELECT spo.id "sampling_point_id", sta.name "station", COALESCE(NULLIF(po.notation, ''), po.label) "component", ti.notation "timestep", con.notation "unit", sta.longitude "lng", sta.latitude "lat",
+                   lp.equipment, lp.equipment_identifier
+            FROM stations sta
+            JOIN sampling_points spo ON sta.id = spo.station_id
+            JOIN eea_pollutants po ON spo.pollutant_id = po.id
+            JOIN eea_times ti ON spo.time_resolution_id = ti.id
+            JOIN eea_concentrations con ON spo.unit_id = con.id
+            LEFT JOIN (
+                SELECT DISTINCT ON (pr.sampling_point_id)
+                    pr.sampling_point_id,
+                    COALESCE(NULLIF(me.notation, ''), me.label) as equipment,
+                    pr.equipment_identifier
+                FROM processes pr
+                LEFT JOIN eea_measurementequipments me ON pr.equipment_id = me.id
+                ORDER BY pr.sampling_point_id, pr.activity_begin DESC
+            ) lp ON lp.sampling_point_id = spo.id
+            WHERE spo.id IN %(ids)s
         """
         cursor.execute(sql, {"ids": ids})
         return cursor.fetchall()

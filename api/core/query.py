@@ -56,7 +56,7 @@ class Q:
                       to_char(aa.totime, 'YYYY-MM-DD"T"HH24:MI:SS') as totime
                   FROM
                  (
-                  SELECT sp.id as sp, sp.id as value, s.name, COALESCE(NULLIF(po.notation, ''), po.label) as pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.label as timestep, u.notation as unit
+                  SELECT sp.id as sp, sp.id as value, s.name, COALESCE(NULLIF(po.notation, ''), po.label) as pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.notation as timestep, u.notation as unit
                     FROM
                         network_access n,
                         stations s,
@@ -86,26 +86,32 @@ class Q:
                 {with_network_sql}
                 SELECT aa.name as station, aa.pollutant, aa.timestep, aa.unit, aa.value as sampling_point_id,                   
                       to_char(aa.fromtime, 'YYYY-MM-DD"T"HH24:MI:SS') as fromtime,
-                      to_char(aa.totime, 'YYYY-MM-DD"T"HH24:MI:SS') as totime
+                      to_char(aa.totime, 'YYYY-MM-DD"T"HH24:MI:SS') as totime,
+                      aa.equipment, aa.equipment_identifier
                   FROM
                 (
-                  SELECT sp.id as sp, sp.id as value, s.name, COALESCE(NULLIF(po.notation, ''), po.label) as pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.label as timestep, u.notation as unit
-                    FROM
-                        network_access n,
-                        stations s,
-                        sampling_points sp,
-                        eea_pollutants po,
-                        eea_times t,
-                        eea_concentrations u
-                    WHERE 1=1
-                        and n.id = s.network_id
-                        and s.id = sp.station_id
-                        and sp.pollutant_id = po.id
-                        and sp.time_resolution_id = t.id
-                        and sp.unit_id = u.id
-                        and sp.from_time is not null
-                        and sp.to_time is not null
-                    GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label), sp.from_time,  sp.to_time, t.label, u.notation
+                  SELECT sp.id as sp, sp.id as value, s.name, COALESCE(NULLIF(po.notation, ''), po.label) as pollutant,
+                         sp.from_time as fromtime, sp.to_time as totime, t.notation as timestep, u.notation as unit,
+                         lp.equipment, lp.equipment_identifier
+                    FROM network_access n
+                    JOIN stations s ON n.id = s.network_id
+                    JOIN sampling_points sp ON s.id = sp.station_id
+                    JOIN eea_pollutants po ON sp.pollutant_id = po.id
+                    JOIN eea_times t ON sp.time_resolution_id = t.id
+                    JOIN eea_concentrations u ON sp.unit_id = u.id
+                    LEFT JOIN (
+                        SELECT DISTINCT ON (pr.sampling_point_id)
+                            pr.sampling_point_id,
+                            COALESCE(NULLIF(me.notation, ''), me.label) as equipment,
+                            pr.equipment_identifier
+                        FROM processes pr
+                        LEFT JOIN eea_measurementequipments me ON pr.equipment_id = me.id
+                        ORDER BY pr.sampling_point_id, pr.activity_begin DESC
+                    ) lp ON lp.sampling_point_id = sp.id
+                    WHERE sp.from_time is not null
+                      AND sp.to_time is not null
+                    GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label),
+                             sp.from_time, sp.to_time, t.notation, u.notation, lp.equipment, lp.equipment_identifier
                 ) aa
                 order by station, pollutant, timestep
             """, n_param)
