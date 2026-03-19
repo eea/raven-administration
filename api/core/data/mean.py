@@ -220,7 +220,7 @@ class Mean:
             ) C,
             sampling_points SP,  eea_times TM
             WHERE C.sampling_point_id = SP.id
-            AND SP.timestep = TM.id  
+            AND SP.time_resolution_id = TM.id  
         """
         return sql
 
@@ -267,7 +267,7 @@ class Mean:
             ) C,
             sampling_points SP, eea_times TM
             WHERE C.sampling_point_id = SP.id
-            AND SP.timestep = TM.id
+            AND SP.time_resolution_id = TM.id
         """
         return sql
 
@@ -310,7 +310,7 @@ class Mean:
             ) C,
             sampling_points SP, eea_times TM
             WHERE C.sampling_point_id = SP.id
-            AND SP.timestep = TM.id
+            AND SP.time_resolution_id = TM.id
             AND C.DATETIME >= %(fromTime)s
             ORDER BY SP.id,C.DATETIME
         """
@@ -365,7 +365,7 @@ class Mean:
             ) C,
             sampling_points SP, eea_times TM
             WHERE C.sampling_point_id = SP.id
-            AND SP.timestep = TM.id
+            AND SP.time_resolution_id = TM.id
         """
         return sql
 
@@ -412,7 +412,7 @@ class Mean:
                 ) C,
                 sampling_points SP, eea_times TM
                 WHERE C.sampling_point_id = SP.id
-                AND SP.timestep = TM.id
+                AND SP.time_resolution_id = TM.id
                 AND C.DATETIME >= %(fromTime)s
             ) B
             GROUP BY DATE_TRUNC('day',B.DATETIME), B.timestep, B.sampling_point_id
@@ -461,7 +461,7 @@ class Mean:
             sampling_points SP, eea_times TM
             WHERE C.sampling_point_id = SP.id
             AND C.DATETIME >= %(fromTime)s
-            AND SP.timestep = TM.id
+            AND SP.time_resolution_id = TM.id
         """
         return sql
 
@@ -508,7 +508,7 @@ class Mean:
             ) C,
             sampling_points SP,  eea_times TM
             WHERE C.sampling_point_id = SP.id
-            AND SP.timestep = TM.id
+            AND SP.time_resolution_id = TM.id
         """
         return sql
 
@@ -563,7 +563,7 @@ class Mean:
             ) C,
             sampling_points SP, eea_times TM
             WHERE C.sampling_point_id = SP.id
-            AND SP.timestep = TM.id
+            AND SP.time_resolution_id = TM.id
         """
         return sql
 
@@ -591,7 +591,7 @@ class Mean:
             (
                 select sp.id as "sampling_point_id", tm.timestep
                 from sampling_points SP, eea_times TM
-                WHERE SP.timestep = TM.id
+                WHERE SP.time_resolution_id = TM.id
             )
             SELECT
                 to_char (HOURCOUNT.DATETIME, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
@@ -672,7 +672,7 @@ class Mean:
             (
                 select sp.id as "sampling_point_id", tm.timestep
                 from sampling_points SP,  eea_times TM
-                WHERE SP.timestep = TM.id
+                WHERE SP.time_resolution_id = TM.id
             )
             SELECT
                 to_char (HOURCOUNT.DATETIME, 'YYYY-MM-DD HH24:MI:SS') as "datetime", 
@@ -758,7 +758,7 @@ class Mean:
             (
                 select sp.id  "sampling_point_id", tm.timestep
                 from sampling_points SP, eea_times TM
-                WHERE SP.timestep = TM.id
+                WHERE SP.time_resolution_id = TM.id
             )
             SELECT
               to_char (DATETIME, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
@@ -843,7 +843,7 @@ class Mean:
             ) C,
             sampling_points SP, eea_times TM
             WHERE C.sampling_point_id = SP.id
-            AND SP.timestep = TM.id
+            AND SP.time_resolution_id = TM.id
         """
         return sql
 
@@ -869,7 +869,7 @@ class Mean:
             (
                 select sp.id  "sampling_point_id", tm.timestep
                 from sampling_points SP, eea_times TM
-                WHERE SP.timestep = TM.id
+                WHERE SP.time_resolution_id = TM.id
             )
             SELECT
                 to_char (DATETIME, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
