@@ -154,8 +154,8 @@ class Mean:
         sql = """
             SELECT
                 to_char (o.to_time, 'YYYY-MM-DD HH24:MI:SS') as "datetime", 
+                to_char (o.from_time, 'YYYY-MM-DD HH24:MI:SS') as "datetime_begin",
                 CASE
-                    WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.import_value != -9900)
                     THEN  ROUND(o.import_value,%(fraction)s)::double PRECISION
                     ELSE NULL
                 END as "value",
@@ -179,6 +179,7 @@ class Mean:
         sql = """
             SELECT
                 to_char (o.to_time, 'YYYY-MM-DD HH24:MI:SS') as "datetime", 
+                to_char (o.from_time, 'YYYY-MM-DD HH24:MI:SS') as "datetime_begin",
                 CASE
                     WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900)
                     THEN  ROUND(o.value,%(fraction)s)::double PRECISION

@@ -30,6 +30,7 @@ const fromtime = ref(startOfWeek(new Date(), { weekStartsOn: 1 }));
 const totime = ref(new Date());
 const selectedIds = ref([]);
 const meantype = ref("0");
+const activeMeantype = ref("0");
 const coverage = ref(75);
 const plotType = ref("line");
 const beginAtZero = ref(false);
@@ -91,6 +92,8 @@ const plotData = async () => {
     verifiedOnly: verifiedOnly.value,
     useInvalidValues: useInvalidValues.value
   });
+
+  activeMeantype.value = meantype.value;
 
   var axes = getAxes(gridData.value);
   let config = Plot.config(axes, beginAtZero.value);
@@ -188,17 +191,21 @@ const timeseriesColumns = [
   { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true }
 ];
 
-const gridDataColumns = [
-  { field: "station", headerName: "Station", flex: 1, filter: true },
-  { field: "component", headerName: "Pollutant", flex: 0.5, filter: true },
-  { field: "timestep", headerName: "Timestep", flex: 0.5, filter: true },
-  { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
-  { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true },
-  { field: "datetime", headerName: "Datetime", flex: 1, filter: true, sort: "desc" },
-  { field: "actual_value", headerName: "Value", flex: 0.5, filter: true },
-  { field: "coverage", headerName: "Coverage", flex: 0.5, filter: true },
-  { field: "valid", headerName: "Valid", flex: 0.5, cellRenderer: (params) => (params.value ? "✓" : "✗"), cellStyle: (params) => ({ color: params.value ? "#a3be8c" : "#bf616a", fontWeight: "bold", textAlign: "center" }) }
-];
+const gridDataColumns = computed(() => {
+  const isRawOrOriginal = activeMeantype.value === "1000" || activeMeantype.value === "0";
+  return [
+    { field: "station", headerName: "Station", flex: 1, filter: true },
+    { field: "component", headerName: "Pollutant", flex: 0.5, filter: true },
+    { field: "timestep", headerName: "Timestep", flex: 0.5, filter: true },
+    { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
+    { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true },
+    { field: "datetime_begin", headerName: "From", flex: 1, filter: true, hide: !isRawOrOriginal },
+    { field: "datetime", headerName: isRawOrOriginal ? "To" : "Datetime", flex: 1, filter: true, sort: "desc" },
+    { field: "actual_value", headerName: "Value", flex: 0.5, filter: true },
+    { field: "coverage", headerName: "Coverage", flex: 0.5, filter: true },
+    { field: "valid", headerName: "Valid", flex: 0.5, cellRenderer: (params) => (params.value ? "✓" : "✗"), cellStyle: (params) => ({ color: params.value ? "#a3be8c" : "#bf616a", fontWeight: "bold", textAlign: "center" }) }
+  ];
+});
 
 const getRowStyle = (params) => {
   if (!params.data) return {};
