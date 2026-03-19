@@ -71,6 +71,9 @@ const Plot = {
     s.x = {
       type: "time",
       offset: true,
+      adapters: {
+        date: { zone: "UTC" }
+      },
       ticks: {
         major: {
           enabled: true

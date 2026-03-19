@@ -158,7 +158,7 @@ const formatValues = (meanvalues, axes) => {
   legendItems.value = [];
   grouped_values.forEach((p, i) => {
     const color = palette[i % palette.length];
-    const values = p[1].sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+    const values = p[1].sort((a, b) => a.datetime.localeCompare(b.datetime));
     values.forEach((row) => (row._color = color));
     const data = values.map((o) => {
       return { x: o.datetime.replace(" ", "T"), y: o.value };
