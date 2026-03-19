@@ -265,8 +265,8 @@ const onTimeseriesSelectionChanged = (rows) => {
           </select>
         </div>
         <div class="flex gap-2">
-          <div class="font-bold mb-1 self-center">Coverage {{ coverage }}%:</div>
-          <input type="range" min="0" max="100" step="1" v-model="coverage" class="self-center" />
+          <div class="font-bold mb-1 self-center">Coverage <span class="inline-block w-8 text-right">{{ coverage }}</span>%:</div>
+          <input type="range" min="0" max="100" step="1" v-model="coverage" class="self-center" :disabled="meantype === '1000' || meantype === '0'" :class="{ 'opacity-40': meantype === '1000' || meantype === '0' }" />
         </div>
       </div>
 
