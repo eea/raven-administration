@@ -195,10 +195,15 @@ const gridDataColumns = [
   { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
   { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true },
   { field: "datetime", headerName: "Datetime", flex: 1, filter: true, sort: "desc" },
-  { field: "value", headerName: "Value", flex: 0.5, filter: true },
+  { field: "actual_value", headerName: "Value", flex: 0.5, filter: true },
   { field: "coverage", headerName: "Coverage", flex: 0.5, filter: true },
   { field: "valid", headerName: "Valid", flex: 0.5, cellRenderer: (params) => (params.value ? "✓" : "✗"), cellStyle: (params) => ({ color: params.value ? "#a3be8c" : "#bf616a", fontWeight: "bold", textAlign: "center" }) }
 ];
+
+const getRowStyle = (params) => {
+  if (!params.data) return {};
+  return params.data.valid === false ? { background: "rgba(191, 97, 106, 0.1)" } : {};
+};
 
 const onTimeseriesGridReady = (params) => {
   timeseriesGridApi.value = params.api;
@@ -323,7 +328,7 @@ const onTimeseriesSelectionChanged = (rows) => {
       </div>
     </Container>
 
-    <Container v-show="showPlot" class="flex-1 mt-4 min-h-48"><DataTable :columns="gridDataColumns" :data="gridData"></DataTable></Container>
+    <Container v-show="showPlot" class="flex-1 mt-4 min-h-48"><DataTable :columns="gridDataColumns" :data="gridData" :get-row-style="getRowStyle"></DataTable></Container>
   </CommonLayout>
 </template>
 

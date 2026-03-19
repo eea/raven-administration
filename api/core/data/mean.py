@@ -159,6 +159,7 @@ class Mean:
                     THEN  ROUND(o.import_value,%(fraction)s)::double PRECISION
                     ELSE NULL
                 END as "value",
+                ROUND(o.import_value,%(fraction)s)::double PRECISION as "actual_value",
                 100 as "coverage",                   
                 1 as "cnt",                 
                 o.sampling_point_id as "sampling_point_id",   
@@ -183,6 +184,7 @@ class Mean:
                     THEN  ROUND(o.value,%(fraction)s)::double PRECISION
                     ELSE NULL
                 END as "value",
+                ROUND(o.value,%(fraction)s)::double PRECISION as "actual_value",
                 100 as "coverage",                   
                 1 as "cnt",                 
                 o.sampling_point_id as "sampling_point_id",   
@@ -221,6 +223,7 @@ class Mean:
                     WHEN ROUND(cnt/(3600/TM.timestep::float)*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                     ELSE NULL 
                 END "value",
+                ROUND(val,%(fraction)s)::double PRECISION "actual_value",
                 ROUND(cnt/(3600/TM.timestep::float)*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
@@ -268,6 +271,7 @@ class Mean:
                     WHEN ROUND(cnt/(86400/TM.timestep::float)*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                     ELSE NULL 
                 END "value",
+                ROUND(val,%(fraction)s)::double PRECISION "actual_value",
                 ROUND(cnt/(86400/TM.timestep::float)*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
@@ -315,6 +319,7 @@ class Mean:
                     WHEN ROUND(cnt/(28800/TM.timestep::float)*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                     ELSE NULL 
                 END "value",
+                ROUND(val,%(fraction)s)::double PRECISION "actual_value",
                 ROUND(cnt/(28800/TM.timestep::float)*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
@@ -360,6 +365,7 @@ class Mean:
                     WHEN ROUND(cnt*TM.timestep / ((extract(days from(DateTime + interval '12 month') - DateTime))*86400)::float*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION                        
                     ELSE NULL 
                 END "value",
+                ROUND(val,%(fraction)s)::double PRECISION "actual_value",
                 CASE TM.timestep
                     WHEN 31536000 THEN 
                         CASE cnt 
@@ -413,6 +419,7 @@ class Mean:
                     WHEN ROUND(COUNT(B.val)/(86400/B.timestep::float)*100) >= %(coverage)s THEN ROUND(MAX(B.val),%(fraction)s)::double PRECISION
                     ELSE NULL 
                 END "value",
+                ROUND(val,%(fraction)s)::double PRECISION "actual_value",
                 ROUND(COUNT(B.val)/(86400/B.timestep::float)*100) "coverage",
                 COUNT(B.val) "cnt",
                 B.sampling_point_id "sampling_point_id",
@@ -464,6 +471,7 @@ class Mean:
                     WHEN ROUND(cnt/(86400/TM.timestep::float)*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                     ELSE NULL 
                 END "value",
+                ROUND(val,%(fraction)s)::double PRECISION "actual_value",
                 ROUND(cnt/(86400/TM.timestep::float)*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
@@ -509,6 +517,7 @@ class Mean:
                     WHEN ROUND(cnt/(extract(days from (DateTime + interval '1 MONTH - 1 day'))/(1/(86400/TM.timestep::float)))*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                     ELSE NULL 
                 END "value",
+                ROUND(val,%(fraction)s)::double PRECISION "actual_value",
                 ROUND(cnt/(extract(days from (DateTime + interval '1 MONTH - 1 day'))/(1/(86400/TM.timestep::float)))*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
@@ -562,6 +571,7 @@ class Mean:
                             ELSE NULL 
                         END
                 END "value",
+                ROUND(val,%(fraction)s)::double PRECISION "actual_value",
                 CASE TM.timestep WHEN 31536000 THEN 
                     CASE WHEN cnt = 0 THEN 0 ELSE 100 END 
                     ELSE ROUND(cnt / ((extract(days from ((DateTime + interval '3 MONTH') - DateTime))) / (1 / (86400 / TM.timestep::float)) + ((extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float)) - (extract(days from ((DateTime + interval '9 MONTH') - DateTime))) / (1 / (86400 / TM.timestep::float)))) * 100) END "coverage",
@@ -623,6 +633,7 @@ class Mean:
                         ELSE ROUND(val,%(fraction)s)::double PRECISION
                     END 
                 END "value",
+                ROUND(val,%(fraction)s)::double PRECISION "actual_value",
                 CASE 
                 WHEN ROUND(HOURCOUNT / (1104/((3600/HOURCOUNT.timestep))) * 100) >= %(coverage)s THEN ROUND(val*(2196/((3600/HOURCOUNT.timestep)))/HOURCOUNT,%(fraction)s)::double PRECISION
                 ELSE NULL END "EstVal",
@@ -704,6 +715,7 @@ class Mean:
                         ELSE ROUND(val,%(fraction)s)::double PRECISION
                     END 
                 END "value",
+                ROUND(val,%(fraction)s)::double PRECISION "actual_value",
                 CASE 
                 WHEN ROUND(HOURCOUNT / (2196/((3600/HOURCOUNT.timestep))) * 100) >= %(coverage)s THEN ROUND(val*(2196/((3600/HOURCOUNT.timestep)))/HOURCOUNT,%(fraction)s)::double PRECISION
                 ELSE NULL END "EstVal",
@@ -788,7 +800,8 @@ class Mean:
                   ELSE 
                       CASE WHEN ROUND(cnt / ((extract(days from(DateTime + interval '3 month') - DateTime)) / (1 / (86400 / TS.timestep::float)) + ((extract(days from(DateTime + interval '12 month') - DateTime))  / (1 / (86400 / TS.timestep::float)) - (extract(days from(DateTime + interval '9 month') - DateTime)) / (1 / (86400 / TS.timestep::float)))) * 100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                       ELSE NULL END 
-              END "value",                       
+              END "value",
+                ROUND(val,%(fraction)s)::double PRECISION "actual_value",                       
               CASE TS.timestep WHEN 31536000 THEN CASE WHEN cnt = 0 THEN 0 ELSE 100 END ELSE ROUND(cnt / ((extract(days from(DateTime + interval '3 month') - DateTime)) / (1 / (86400 / TS.timestep::float)) + ((extract(days from(DateTime + interval '12 month') - DateTime))  / (1 / (86400 / TS.timestep::float)) - (extract(days from(DateTime + interval '9 month') - DateTime)) / (1 / (86400 / TS.timestep::float)))) * 100) END "coverage",
               cnt "cnt",
               TS.sampling_point_id "sampling_point_id",
@@ -842,6 +855,7 @@ class Mean:
                             ELSE NULL 
                         END
                 END "value",
+                ROUND(val,%(fraction)s)::double PRECISION "actual_value",
                 CASE TM.timestep WHEN 31536000 THEN 
                     CASE WHEN cnt = 0 THEN 0 ELSE 100 END 
                     ELSE ROUND(cnt / ( (extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float)) -(extract(days from ((DateTime + interval '3 MONTH') - DateTime))) / (1 / (86400 / TM.timestep::float))-((extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float))-(extract(days from ((DateTime + interval '9 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float)))) * 100) END "coverage",
@@ -896,6 +910,7 @@ class Mean:
                 CASE 
                     WHEN ROUND((cnt/cnt_total::float)*100) >= %(coverage)s THEN ROUND(val,%(fraction)s)::double PRECISION
                 ELSE NULL END "value",
+                ROUND(val,%(fraction)s)::double PRECISION "actual_value",
                 ROUND((cnt/cnt_total::float)*100) "coverage", 
                 TS.sampling_point_id "sampling_point_id",
                 999 "meantype" 
