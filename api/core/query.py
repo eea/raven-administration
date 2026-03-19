@@ -72,7 +72,7 @@ class Q:
                         and sp.unit_id = u.id
                         and sp.from_time is not null
                         and sp.to_time is not null
-                    GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label), sp.from_time,  sp.to_time, t.label, u.notation
+                    GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label), sp.from_time,  sp.to_time, t.notation, u.notation
                 ) aa
                 order by LOWER(aa.name), aa.pollutant, aa.timestep
             """, n_param)

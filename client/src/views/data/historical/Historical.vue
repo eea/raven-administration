@@ -188,6 +188,7 @@ const timeseriesColumns = [
 const gridDataColumns = [
   { field: "station", headerName: "Station", flex: 1, filter: true },
   { field: "component", headerName: "Component", flex: 0.5, filter: true },
+  { field: "timestep", headerName: "Timestep", flex: 0.5, filter: true },
   { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
   { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true },
   { field: "datetime", headerName: "Datetime", flex: 1, filter: true, sort: "desc" },
