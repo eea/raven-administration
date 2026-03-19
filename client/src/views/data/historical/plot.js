@@ -1,10 +1,28 @@
-import autocolors from "chartjs-plugin-autocolors";
+const palette = [
+  "#BF616A", // nord11 - red       (~0°)
+  "#29A0B1", // cyan               (~190°)
+  "#D08770", // nord12 - orange    (~20°)
+  "#5E81AC", // nord10 - deep blue (~215°)
+  "#EBCB8B", // nord13 - yellow    (~45°)
+  "#7060A8", // indigo             (~260°)
+  "#A3BE8C", // nord14 - green     (~100°)
+  "#B48EAD", // nord15 - purple    (~300°)
+  "#8FBCBB", // nord7  - teal      (~175°)
+  "#D47FA6", // dusty rose         (~330°)
+];
+
+const hexToRgba = (hex, alpha) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const Plot = {
   config: (axes, beginAtZero = false) => {
     return {
       type: "line",
       data: [],
-      plugins: [autocolors],
       options: {
         animation: false,
         responsive: true,
@@ -15,6 +33,7 @@ const Plot = {
           axis: "x"
         },
         plugins: {
+          legend: { display: false },
           tooltip: {
             backgroundColor: "#fff",
             borderColor: "#D8DEE9",
@@ -24,12 +43,8 @@ const Plot = {
           },
           zoom: {
             zoom: {
-              drag: {
-                enabled: true
-              },
-              pinch: {
-                enabled: true
-              },
+              wheel: { enabled: true },
+              pinch: { enabled: true },
               mode: "x",
               onZoomComplete({ chart }) {
                 chart.update("none");
@@ -37,8 +52,7 @@ const Plot = {
             },
             pan: {
               enabled: true,
-              mode: "x",
-              modifierKey: "ctrl"
+              mode: "x"
             }
           }
         },
@@ -85,9 +99,9 @@ const Plot = {
     return s;
   },
   dataset: (label, data, color, type = "line", axis = "y") => {
-    //if(!color)
-    let d = { label, data, type, yAxisID: axis };
+    let d = { label, data, type, yAxisID: axis, borderColor: color, backgroundColor: color };
     return d;
   }
 };
+export { palette };
 export default Plot;

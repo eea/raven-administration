@@ -6,7 +6,7 @@ import Service from "./service";
 import Chart from "chart.js/auto";
 import "chartjs-adapter-luxon";
 import zoomPlugin from "chartjs-plugin-zoom";
-import Plot from "./plot";
+import Plot, { palette } from "./plot";
 
 import { format, sub, isAfter, isBefore, startOfWeek } from "date-fns";
 import { groupBy } from "../../../helpers/utils";
@@ -44,6 +44,7 @@ const meantypeLabel = computed(() => {
 });
 
 const showPlot = ref(false);
+const legendItems = ref([]);
 
 const route = useRoute();
 const gridData = ref([]);
@@ -69,6 +70,9 @@ watch([beginAtZero, plotType], () => {
 const updateChart = () => {
   if (!chart || !gridData.value.length) return;
 
+  const xMin = chart.scales.x?.min;
+  const xMax = chart.scales.x?.max;
+
   chart.destroy();
 
   var axes = getAxes(gridData.value);
@@ -77,6 +81,10 @@ const updateChart = () => {
 
   chart.data = formatValues(gridData.value, axes);
   chart.update();
+
+  if (xMin !== undefined && xMax !== undefined) {
+    chart.zoomScale("x", { min: xMin, max: xMax }, "none");
+  }
 };
 
 const plotData = async () => {
@@ -147,8 +155,11 @@ const changeDates = (s) => {
 const formatValues = (meanvalues, axes) => {
   var grouped_values = groupBy(meanvalues, (p) => p.sampling_point_id);
   const series = [];
-  grouped_values.forEach((p) => {
+  legendItems.value = [];
+  grouped_values.forEach((p, i) => {
+    const color = palette[i % palette.length];
     const values = p[1].sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+    values.forEach((row) => (row._color = color));
     const data = values.map((o) => {
       return { x: o.datetime.replace(" ", "T"), y: o.value };
     });
@@ -156,7 +167,8 @@ const formatValues = (meanvalues, axes) => {
     const first = p[1][0];
     const equipmentPart = [first.equipment, first.equipment_identifier].filter(Boolean).join(" / ");
     const label = [first.station, first.component, first.unit, equipmentPart].filter(Boolean).join(" - ");
-    let serie = Plot.dataset(label, data, "#A3BE8C", plotType.value, axis);
+    legendItems.value.push({ color, label, hidden: false, sampling_point_id: p[0] });
+    let serie = Plot.dataset(label, data, color, plotType.value, axis);
     series.push(serie);
   });
   return { datasets: series };
@@ -168,6 +180,20 @@ const getAxes = (meanvalues) => {
 
 const onResetZoom = () => {
   if (chart) chart.resetZoom();
+};
+
+const filteredGridData = computed(() => {
+  const hiddenIds = new Set(legendItems.value.filter((l) => l.hidden).map((l) => l.sampling_point_id));
+  if (hiddenIds.size === 0) return gridData.value;
+  return gridData.value.filter((row) => !hiddenIds.has(row.sampling_point_id));
+});
+
+const toggleSeries = (i) => {
+  if (!chart) return;
+  const visible = chart.isDatasetVisible(i);
+  chart.setDatasetVisibility(i, !visible);
+  chart.update();
+  legendItems.value[i].hidden = visible;
 };
 
 const cmp_timeseries = computed(() => {
@@ -197,6 +223,7 @@ const timeseriesColumns = [
 const gridDataColumns = computed(() => {
   const isRawOrOriginal = activeMeantype.value === "1000" || activeMeantype.value === "0";
   return [
+    { field: "_color", headerName: "", width: 32, minWidth: 32, maxWidth: 32, flex: 0, sortable: false, filter: false, cellRenderer: (params) => params.value ? `<div style="width:8px;height:8px;border-radius:50%;background:${params.value};margin:auto;margin-top:8px"></div>` : "" },
     { field: "network", headerName: "Network", flex: 1, filter: true },
     { field: "station", headerName: "Station", flex: 1, filter: true },
     { field: "component", headerName: "Pollutant", flex: 0.5, filter: true },
@@ -251,8 +278,9 @@ const onTimeseriesSelectionChanged = (rows) => {
 
     <ToolBar title="Historical data" :show-add="false" :show-filter="false" @download-click="onDownload" />
 
-    <Container v-show="!collapsed">
-      <div class="flex gap-2">
+    <Transition name="collapse">
+      <Container v-show="!collapsed">
+        <div class="flex gap-2">
         <div>
           <div class="font-bold">From</div>
           <DatetimePicker v-model="fromtime" />
@@ -309,9 +337,11 @@ const onTimeseriesSelectionChanged = (rows) => {
       <div class="mt-6">
         <button class="button" @click="plotData" :disabled="selectedIds.length == 0">Plot data</button>
       </div>
-    </Container>
+      </Container>
+    </Transition>
 
-    <Container v-show="collapsed">
+    <Transition name="collapse">
+      <Container v-show="collapsed">
       <div class="flex flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-3 text-sm text-nord3">
           <span class="text-nord10 font-semibold">{{ format(fromtime, "yyyy-MM-dd HH:mm") }}</span>
@@ -344,10 +374,17 @@ const onTimeseriesSelectionChanged = (rows) => {
         </div>
       </div>
     </Container>
+    </Transition>
 
     <Container v-show="showPlot" class="mt-4 p-4! w-full h-96">
-      <div class="flex justify-between mb-2">
-        <div class="flex gap-6">
+      <div class="flex justify-between mb-2 gap-4">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <div v-for="(item, i) in legendItems" :key="item.label" class="flex items-center gap-1.5 cursor-pointer select-none" :style="{ opacity: item.hidden ? 0.35 : 1 }" @click="toggleSeries(i)">
+            <div :style="{ width: '8px', height: '8px', borderRadius: '50%', background: item.color, flexShrink: 0 }"></div>
+            <span class="text-xs text-nord3">{{ item.label }}</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-6 shrink-0">
           <div class="flex gap-2">
             <label class="self-center cursor-pointer font-bold" @click="beginAtZero = !beginAtZero">Start Y-axis at zero:</label>
             <input type="checkbox" class="self-center" v-model="beginAtZero" />
@@ -357,15 +394,30 @@ const onTimeseriesSelectionChanged = (rows) => {
             <input type="checkbox" class="self-center" :checked="plotType === 'bar'" @change="plotType = plotType === 'bar' ? 'line' : 'bar'" />
           </div>
         </div>
-        <button class="button" @click="onResetZoom">Reset zoom</button>
       </div>
       <div class="h-full w-full py-4">
-        <canvas id="chart"></canvas>
+        <canvas id="chart" @dblclick="onResetZoom" style="cursor: crosshair"></canvas>
       </div>
     </Container>
 
-    <Container v-show="showPlot" class="flex-1 mt-4 min-h-48"><DataTable :columns="gridDataColumns" :data="gridData" :get-row-style="getRowStyle"></DataTable></Container>
+    <Container v-show="showPlot" class="flex-1 mt-4 min-h-48"><DataTable :columns="gridDataColumns" :data="filteredGridData" :get-row-style="getRowStyle"></DataTable></Container>
   </CommonLayout>
 </template>
 
-<style></style>
+<style>
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
+}
+.collapse-enter-from,
+.collapse-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+.collapse-enter-to,
+.collapse-leave-from {
+  max-height: 800px;
+  opacity: 1;
+}
+</style>
