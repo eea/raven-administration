@@ -156,6 +156,7 @@ class Mean:
                 to_char (o.to_time, 'YYYY-MM-DD HH24:MI:SS') as "datetime", 
                 to_char (o.from_time, 'YYYY-MM-DD HH24:MI:SS') as "datetime_begin",
                 CASE
+                    WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.import_value != -9900)
                     THEN  ROUND(o.import_value,%(fraction)s)::double PRECISION
                     ELSE NULL
                 END as "value",
@@ -164,7 +165,8 @@ class Mean:
                 1 as "cnt",                 
                 o.sampling_point_id as "sampling_point_id",   
                 o.observationvalidity_id as "observationvalidity_id",
-                0 "meantype"             
+                1000 "meantype",
+                'raw' as "meantype_string"
             FROM
                 observations o
             WHERE 1=1
@@ -190,7 +192,8 @@ class Mean:
                 1 as "cnt",                 
                 o.sampling_point_id as "sampling_point_id",   
                 o.observationvalidity_id as "observationvalidity_id",
-                0 "meantype"             
+                0 "meantype",
+                'original' as "meantype_string"
             FROM
                 observations o
             WHERE 1=1
@@ -228,7 +231,8 @@ class Mean:
                 ROUND(cnt/(3600/TM.timestep::float)*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
-                1 "meantype"                    
+                1 "meantype",
+                'hour' as "meantype_string"                    
             FROM
             (
                 SELECT 
@@ -276,7 +280,8 @@ class Mean:
                 ROUND(cnt/(86400/TM.timestep::float)*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
-                2 "meantype"                      
+                2 "meantype",
+                'day' as "meantype_string"                      
             FROM
             (
                 SELECT 
@@ -324,7 +329,8 @@ class Mean:
                 ROUND(cnt/(28800/TM.timestep::float)*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
-                3 "meantype"     
+                3 "meantype",
+                'moving 8 hour' as "meantype_string"     
             FROM
             (
                 SELECT 
@@ -376,7 +382,8 @@ class Mean:
                 END "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
-                4 "meantype"                      
+                4 "meantype",
+                'year' as "meantype_string"                      
             FROM
             (
                 SELECT 
@@ -420,11 +427,12 @@ class Mean:
                     WHEN ROUND(COUNT(B.val)/(86400/B.timestep::float)*100) >= %(coverage)s THEN ROUND(MAX(B.val),%(fraction)s)::double PRECISION
                     ELSE NULL 
                 END "value",
-                ROUND(val,%(fraction)s)::double PRECISION "actual_value",
+                ROUND(MAX(B.val),%(fraction)s)::double PRECISION "actual_value",
                 ROUND(COUNT(B.val)/(86400/B.timestep::float)*100) "coverage",
                 COUNT(B.val) "cnt",
                 B.sampling_point_id "sampling_point_id",
-                6 "meantype" 
+                6 "meantype",
+                'moving 8 hour max' as "meantype_string"
             FROM
             ( 
                 SELECT C.DATETIME, C.cnt, TM.timestep, C.sampling_point_id,
@@ -476,7 +484,8 @@ class Mean:
                 ROUND(cnt/(86400/TM.timestep::float)*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
-                5 "meantype"                      
+                5 "meantype",
+                'moving 24 hour' as "meantype_string"                      
             FROM
             (
                 SELECT 
@@ -522,7 +531,8 @@ class Mean:
                 ROUND(cnt/(extract(days from (DateTime + interval '1 MONTH - 1 day'))/(1/(86400/TM.timestep::float)))*100) "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
-                7 "meantype"                      
+                7 "meantype",
+                'month' as "meantype_string"                      
             FROM
             (
                 SELECT 
@@ -578,7 +588,8 @@ class Mean:
                     ELSE ROUND(cnt / ((extract(days from ((DateTime + interval '3 MONTH') - DateTime))) / (1 / (86400 / TM.timestep::float)) + ((extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float)) - (extract(days from ((DateTime + interval '9 MONTH') - DateTime))) / (1 / (86400 / TM.timestep::float)))) * 100) END "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
-                8 "meantype"  
+                8 "meantype",
+                'winter year' as "meantype_string"  
             FROM
             (
                 SELECT 
@@ -641,7 +652,8 @@ class Mean:
                 ROUND(HOURCOUNT / (1104/((3600/HOURCOUNT.timestep))) * 100) "coverage",
                 HOURCOUNT "cnt",
                 HOURCOUNT.sampling_point_id "sampling_point_id",
-                9 "meantype"
+                9 "meantype",
+                'aot40 vegetation' as "meantype_string"
             FROM   
             timeseries TS,             
             (
@@ -723,7 +735,8 @@ class Mean:
                 ROUND(HOURCOUNT / (2196/((3600/HOURCOUNT.timestep))) * 100) "coverage",
                 HOURCOUNT "cnt",
                 HOURCOUNT.sampling_point_id "sampling_point_id",
-                10 "meantype"
+                10 "meantype",
+                'aot40 forest' as "meantype_string"
             FROM   
             timeseries TS,             
             (
@@ -806,7 +819,9 @@ class Mean:
               CASE TS.timestep WHEN 31536000 THEN CASE WHEN cnt = 0 THEN 0 ELSE 100 END ELSE ROUND(cnt / ((extract(days from(DateTime + interval '3 month') - DateTime)) / (1 / (86400 / TS.timestep::float)) + ((extract(days from(DateTime + interval '12 month') - DateTime))  / (1 / (86400 / TS.timestep::float)) - (extract(days from(DateTime + interval '9 month') - DateTime)) / (1 / (86400 / TS.timestep::float)))) * 100) END "coverage",
               cnt "cnt",
               TS.sampling_point_id "sampling_point_id",
-              11 "meantype"     
+              11 "meantype",
+                'winter season' as "meantype_string",
+                'hour' as "meantype_string"     
             FROM
             (
                 SELECT 
@@ -862,7 +877,9 @@ class Mean:
                     ELSE ROUND(cnt / ( (extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float)) -(extract(days from ((DateTime + interval '3 MONTH') - DateTime))) / (1 / (86400 / TM.timestep::float))-((extract(days from ((DateTime + interval '12 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float))-(extract(days from ((DateTime + interval '9 MONTH') - DateTime)))  / (1 / (86400 / TM.timestep::float)))) * 100) END "coverage",
                 CNT "cnt",
                 SP.ID "sampling_point_id",
-                12 "meantype"  
+                12 "meantype",
+                'summer year' as "meantype_string",
+                'day' as "meantype_string"  
             FROM
             (
                 SELECT 
@@ -914,7 +931,9 @@ class Mean:
                 ROUND(val,%(fraction)s)::double PRECISION "actual_value",
                 ROUND((cnt/cnt_total::float)*100) "coverage", 
                 TS.sampling_point_id "sampling_point_id",
-                999 "meantype" 
+                999 "meantype",
+                'aot40 vegetation' as "meantype_string",
+                'period' as "meantype_string" 
             FROM
             (
                 SELECT 

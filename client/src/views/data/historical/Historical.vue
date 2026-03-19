@@ -196,7 +196,7 @@ const gridDataColumns = computed(() => {
   return [
     { field: "station", headerName: "Station", flex: 1, filter: true },
     { field: "component", headerName: "Pollutant", flex: 0.5, filter: true },
-    { field: "timestep", headerName: "Timestep", flex: 0.5, filter: true },
+    { headerName: "Timestep", flex: 0.5, filter: true, valueGetter: (params) => (params.data?.meantype === 0 || params.data?.meantype === 1000) ? params.data?.timestep : params.data?.meantype_string },
     { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
     { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true },
     { field: "datetime_begin", headerName: "From", flex: 1, filter: true, hide: !isRawOrOriginal },
