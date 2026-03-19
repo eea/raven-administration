@@ -12,6 +12,7 @@ Key transformations:
 
 Usage:
     python migrate_v3_to_v4.py [--dry-run] [--batch-size=10000]
+    python migrate_v3_to_v4.py --init-only   # blank DB with schema + EEA lookups, no source DB needed
 
 The migration runs in a single transaction - if any part fails, nothing is committed.
 """
@@ -160,26 +161,28 @@ def extract_pollutant_id_from_uri(uri):
 class Migration:
     """Handle Raven v3 → v4 migration with transaction support"""
     
-    def __init__(self, dry_run=False, batch_size=10000, recreate_schema=False):
+    def __init__(self, dry_run=False, batch_size=10000, recreate_schema=False, init_only=False):
         self.dry_run = dry_run
         self.batch_size = batch_size
         self.recreate_schema = recreate_schema
+        self.init_only = init_only
         self.source_conn = None
         self.target_conn = None
         self.stats = {}
     
     def connect(self):
-        """Connect to both databases"""
-        log("Connecting to source database (ravendb)...")
-        self.source_conn = psycopg2.connect(**SOURCE_DB)
-        self.source_conn.set_session(readonly=True)
-        
+        """Connect to both databases (or only target when --init-only)"""
+        if not self.init_only:
+            log("Connecting to source database (ravendb)...")
+            self.source_conn = psycopg2.connect(**SOURCE_DB)
+            self.source_conn.set_session(readonly=True)
+
         log("Connecting to target database (ravendb4)...")
         self.target_conn = psycopg2.connect(**TARGET_DB)
         # Don't autocommit - we want transaction control
         self.target_conn.autocommit = False
-        
-        log("✓ Connected to both databases")
+
+        log("✓ Connected to target database" if self.init_only else "✓ Connected to both databases")
     
     def close(self):
         """Close connections"""
@@ -343,14 +346,24 @@ class Migration:
             self.connect()
             
             log("=" * 60)
-            log("RAVEN v3 → v4 DATA MIGRATION")
-            log(f"Mode: {'DRY RUN' if self.dry_run else 'LIVE'}")
-            log(f"Batch size: {self.batch_size:,}")
+            if self.init_only:
+                log("RAVEN v4 DATABASE INITIALISATION")
+            else:
+                log("RAVEN v3 → v4 DATA MIGRATION")
+                log(f"Mode: {'DRY RUN' if self.dry_run else 'LIVE'}")
+                log(f"Batch size: {self.batch_size:,}")
             log("=" * 60)
             
             # Setup: ensure schema and lookups exist
             self.setup_schema()
             self.populate_lookups()
+
+            if self.init_only:
+                log("\n💾 Committing schema and lookup tables...")
+                self.target_conn.commit()
+                log("✓ Blank database initialised successfully")
+                return
+
             self.clear_migration_tables()
             
             # Run migrations in order (respecting FK dependencies)
@@ -1233,9 +1246,12 @@ def main():
     parser.add_argument('--dry-run', action='store_true', help='Run without committing changes')
     parser.add_argument('--batch-size', type=int, default=10000, help='Batch size for observations')
     parser.add_argument('--recreate-schema', action='store_true', help='Drop and recreate schema')
+    parser.add_argument('--init-only', action='store_true',
+                        help='Create schema and populate EEA lookup tables only (no v3 source needed)')
     args = parser.parse_args()
     
-    migration = Migration(dry_run=args.dry_run, batch_size=args.batch_size, recreate_schema=args.recreate_schema)
+    migration = Migration(dry_run=args.dry_run, batch_size=args.batch_size,
+                          recreate_schema=args.recreate_schema, init_only=args.init_only)
     migration.run()
 
 
