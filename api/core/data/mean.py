@@ -98,6 +98,13 @@ class Mean:
         cursor.execute(m.Sql, m.Params)
         rows = cursor.fetchall()
 
+        is_raw_or_original = meanType in (MeanType.Raw, MeanType.Original)
+        for r in rows:
+            if is_raw_or_original:
+                r["valid"] = (r.get("observationvalidity_id") or 0) > 0
+            else:
+                r["valid"] = (r.get("coverage") or 0) >= coverage
+
         if addMetadata:
             timeseries = Mean.GetTimeseries(ids, cursor)
             for r in rows:
@@ -144,6 +151,7 @@ class Mean:
                 100 as "coverage",                   
                 1 as "cnt",                 
                 o.sampling_point_id as "sampling_point_id",   
+                o.observationvalidity_id as "observationvalidity_id",
                 0 "meantype"             
             FROM
                 observations o
@@ -167,6 +175,7 @@ class Mean:
                 100 as "coverage",                   
                 1 as "cnt",                 
                 o.sampling_point_id as "sampling_point_id",   
+                o.observationvalidity_id as "observationvalidity_id",
                 0 "meantype"             
             FROM
                 observations o
