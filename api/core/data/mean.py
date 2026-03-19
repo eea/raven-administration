@@ -109,6 +109,7 @@ class Mean:
             timeseries = Mean.GetTimeseries(ids, cursor)
             for r in rows:
                 t = next(filter(lambda x: x["sampling_point_id"] == r["sampling_point_id"], timeseries))
+                r["network"] = t["network"]
                 r["station"] = t["station"]
                 r["component"] = t["component"]
                 r["unit"] = t["unit"]
@@ -125,12 +126,13 @@ class Mean:
     def GetTimeseries(ids: tuple, cursor: any):
         sql = """
             SELECT spo.id "sampling_point_id", sta.name "station", COALESCE(NULLIF(po.notation, ''), po.label) "component", ti.notation "timestep", con.notation "unit", sta.longitude "lng", sta.latitude "lat",
-                   lp.equipment, lp.equipment_identifier
+                   net.name "network", lp.equipment, lp.equipment_identifier
             FROM stations sta
             JOIN sampling_points spo ON sta.id = spo.station_id
             JOIN eea_pollutants po ON spo.pollutant_id = po.id
             JOIN eea_times ti ON spo.time_resolution_id = ti.id
             JOIN eea_concentrations con ON spo.unit_id = con.id
+            JOIN networks net ON sta.network_id = net.id
             LEFT JOIN (
                 SELECT DISTINCT ON (pr.sampling_point_id)
                     pr.sampling_point_id,

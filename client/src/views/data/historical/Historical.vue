@@ -194,6 +194,7 @@ const timeseriesColumns = [
 const gridDataColumns = computed(() => {
   const isRawOrOriginal = activeMeantype.value === "1000" || activeMeantype.value === "0";
   return [
+    { field: "network", headerName: "Network", flex: 1, filter: true },
     { field: "station", headerName: "Station", flex: 1, filter: true },
     { field: "component", headerName: "Pollutant", flex: 0.5, filter: true },
     { headerName: "Timestep", flex: 0.5, filter: true, valueGetter: (params) => (params.data?.meantype === 0 || params.data?.meantype === 1000) ? params.data?.timestep : params.data?.meantype_string },

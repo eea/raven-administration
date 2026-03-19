@@ -17,7 +17,17 @@ def historical():
     with CursorFromPool() as cursor:
         m = ObservationModel(**request.json)
         sampling_point_ids = Q.sampling_point_ids_by_networks_access(m.sampling_point_ids)
-        meanvalues = Mean.Aggregate(cursor, MeanType(m.meantype), sampling_point_ids, m.from_dt, m.to_dt, m.coverage, 3, 3, True)
+        meantype = MeanType(m.meantype)
+        meanvalues = Mean.Aggregate(cursor, meantype, sampling_point_ids, m.from_dt, m.to_dt, m.coverage, 3, 3, True)
         df = pd.DataFrame.from_records(meanvalues)
         df_sorted = df.sort_values(["sampling_point_id", "datetime"])
-        return U.dataframe_to_csv_response(df_sorted, "observations.csv")
+
+        is_raw_or_original = meantype in (MeanType.Raw, MeanType.Original)
+        if is_raw_or_original:
+            df_out = df_sorted[["network", "station", "component", "unit", "timestep", "equipment", "equipment_identifier", "datetime_begin", "datetime", "actual_value", "valid"]]
+            df_out = df_out.rename(columns={"component": "pollutant", "datetime_begin": "fromtime", "datetime": "totime", "actual_value": "value"})
+        else:
+            df_out = df_sorted[["network", "station", "component", "unit", "meantype_string", "equipment", "equipment_identifier", "datetime", "actual_value", "coverage", "valid"]]
+            df_out = df_out.rename(columns={"component": "pollutant", "meantype_string": "timestep", "actual_value": "value"})
+
+        return U.dataframe_to_csv_response(df_out, "observations.csv")
