@@ -137,7 +137,7 @@ class Mean:
             SELECT
                 to_char (o.to_time, 'YYYY-MM-DD HH24:MI:SS') as "datetime", 
                 CASE
-                    WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.import_value != -9900)
+                    WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.import_value != -9900)
                     THEN  ROUND(o.import_value,%(fraction)s)::double PRECISION
                     ELSE NULL
                 END as "value",
@@ -160,7 +160,7 @@ class Mean:
             SELECT
                 to_char (o.to_time, 'YYYY-MM-DD HH24:MI:SS') as "datetime", 
                 CASE
-                    WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900)
+                    WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900)
                     THEN  ROUND(o.value,%(fraction)s)::double PRECISION
                     ELSE NULL
                 END as "value",
@@ -185,7 +185,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -232,7 +232,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -279,7 +279,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -324,7 +324,7 @@ class Mean:
                     SELECT 
                         o.from_time, o.to_time, o.sampling_point_id,
                         CASE 
-                            WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
+                            WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
                             ELSE NULL 
                         END val
                     FROM
@@ -377,7 +377,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -428,7 +428,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -473,7 +473,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -520,7 +520,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -575,7 +575,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -656,7 +656,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -743,7 +743,7 @@ class Mean:
                     END from_time,
                     o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -800,7 +800,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -855,7 +855,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -894,4 +894,3 @@ class Mean:
             WHERE C.sampling_point_id = TS.sampling_point_id
         """
         return sql
-
