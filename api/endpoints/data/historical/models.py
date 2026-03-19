@@ -10,8 +10,6 @@ class HistoricalModel(RavenBaseModel):
     to_dt: datetime
     meantype: int
     coverage: int
-    verifiedOnly: bool
-    useInvalidValues: bool
 
     @field_validator('sampling_point_ids')
     @classmethod

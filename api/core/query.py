@@ -113,7 +113,7 @@ class Q:
                     GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label),
                              sp.from_time, sp.to_time, t.notation, u.notation, lp.equipment, lp.equipment_identifier
                 ) aa
-                order by station, pollutant, timestep
+                order by LOWER(aa.name), LOWER(aa.pollutant), LOWER(aa.timestep)
             """, n_param)
             return cursor.fetchall()
 

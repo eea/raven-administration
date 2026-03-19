@@ -12,6 +12,8 @@ import { format, sub, isAfter, isBefore, startOfWeek } from "date-fns";
 import { groupBy } from "../../../helpers/utils";
 import Eventy from "../../../helpers/eventy";
 import IconCalendar from "~icons/ic/round-access-time";
+import IconModify from "~icons/material-symbols/tune";
+import IconReplot from "~icons/material-symbols/bar-chart";
 
 import CommonLayout from "../../../components/CommonLayout.vue";
 import CMenu from "../../../components/CMenu.vue";
@@ -34,8 +36,12 @@ const activeMeantype = ref("0");
 const coverage = ref(75);
 const plotType = ref("line");
 const beginAtZero = ref(false);
-const verifiedOnly = ref(false);
-const useInvalidValues = ref(false);
+const collapsed = ref(false);
+
+const meantypeLabel = computed(() => {
+  const labels = { 1000: "Raw", 0: "Original", 1: "Hour", 2: "Day", 5: "Moving 24 hour", 3: "Moving eight hour", 6: "Moving eight hour max", 7: "Month", 4: "Year", 8: "Winter year", 11: "Winter season", 12: "Summer year", 9: "AOT40 Vegetation", 10: "AOT40 forest protection", 999: "Period" };
+  return labels[meantype.value] || meantype.value;
+});
 
 const showPlot = ref(false);
 
@@ -88,12 +94,11 @@ const plotData = async () => {
     from_dt: format(fromtime.value, "yyyy-MM-dd HH:00"),
     to_dt: format(totime.value, "yyyy-MM-dd HH:00"),
     meantype: meantype.value,
-    coverage: coverage.value,
-    verifiedOnly: verifiedOnly.value,
-    useInvalidValues: useInvalidValues.value
+    coverage: coverage.value
   });
 
   activeMeantype.value = meantype.value;
+  collapsed.value = true;
 
   var axes = getAxes(gridData.value);
   let config = Plot.config(axes, beginAtZero.value);
@@ -112,9 +117,7 @@ const onDownload = async () => {
     from_dt: format(fromtime.value, "yyyy-MM-dd HH:00"),
     to_dt: format(totime.value, "yyyy-MM-dd HH:00"),
     meantype: meantype.value,
-    coverage: coverage.value,
-    verifiedOnly: verifiedOnly.value,
-    useInvalidValues: useInvalidValues.value
+    coverage: coverage.value
   });
   Eventy.hideMessage();
 };
@@ -197,7 +200,7 @@ const gridDataColumns = computed(() => {
     { field: "network", headerName: "Network", flex: 1, filter: true },
     { field: "station", headerName: "Station", flex: 1, filter: true },
     { field: "component", headerName: "Pollutant", flex: 0.5, filter: true },
-    { headerName: "Timestep", flex: 0.5, filter: true, valueGetter: (params) => (params.data?.meantype === 0 || params.data?.meantype === 1000) ? params.data?.timestep : params.data?.meantype_string },
+    { headerName: "Timestep", flex: 0.5, filter: true, valueGetter: (params) => (params.data?.meantype === 0 || params.data?.meantype === 1000 ? params.data?.timestep : params.data?.meantype_string) },
     { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
     { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true },
     { field: "datetime_begin", headerName: "From", flex: 1, filter: true, hide: !isRawOrOriginal },
@@ -246,7 +249,7 @@ const onTimeseriesSelectionChanged = (rows) => {
 
     <ToolBar title="Historical data" :show-add="false" :show-filter="false" @download-click="onDownload" />
 
-    <Container>
+    <Container v-show="!collapsed">
       <div class="flex gap-2">
         <div>
           <div class="font-bold">From</div>
@@ -296,17 +299,6 @@ const onTimeseriesSelectionChanged = (rows) => {
         </div>
       </div>
 
-      <div class="flex gap-6 bg-white border border-nord4 rounded p-2 self-start">
-        <div class="flex gap-2">
-          <label class="self-center cursor-pointer font-bold" @click="useInvalidValues = !useInvalidValues">Include invalid values:</label>
-          <input type="checkbox" class="self-center" v-model="useInvalidValues" />
-        </div>
-        <div class="flex gap-2">
-          <label class="self-center cursor-pointer font-bold" @click="verifiedOnly = !verifiedOnly">Use only verified values:</label>
-          <input type="checkbox" class="self-center" v-model="verifiedOnly" />
-        </div>
-      </div>
-
       <div class="h-64">
         <div class="font-bold">Sampling Points</div>
         <DataTable :font-size="11" :columns="timeseriesColumns" :data="cmp_timeseries" selection-mode="multiRow" :get-row-id="(params) => params.data.sampling_point_id" @grid-ready="onTimeseriesGridReady" @selection-changed="onTimeseriesSelectionChanged" />
@@ -314,6 +306,40 @@ const onTimeseriesSelectionChanged = (rows) => {
 
       <div class="mt-6">
         <button class="button" @click="plotData" :disabled="selectedIds.length == 0">Plot data</button>
+      </div>
+    </Container>
+
+    <Container v-show="collapsed">
+      <div class="flex flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3 text-sm text-nord3">
+          <span class="text-nord10 font-semibold">{{ format(fromtime, "yyyy-MM-dd HH:mm") }}</span>
+          <span class="text-nord4">→</span>
+          <span class="text-nord10 font-semibold">{{ format(totime, "yyyy-MM-dd HH:mm") }}</span>
+          <span class="text-nord4">|</span>
+          <span class="font-semibold text-nord2">{{ meantypeLabel }}</span>
+          <template v-if="meantypeLabel !== 'Raw' && meantypeLabel !== 'Original'">
+            <span class="text-nord4">|</span>
+            <span>
+              Coverage
+              <span class="font-semibold">{{ coverage }}%</span>
+            </span>
+          </template>
+          <span class="text-nord4">|</span>
+          <span>
+            <span class="font-semibold">{{ selectedIds.length }}</span>
+            sampling point{{ selectedIds.length !== 1 ? "s" : "" }}
+          </span>
+        </div>
+        <div class="flex gap-2">
+          <button class="button flex items-center gap-1.5" @click="collapsed = false">
+            <IconModify class="text-base" />
+            Modify
+          </button>
+          <button class="button flex items-center gap-1.5" @click="plotData" :disabled="selectedIds.length == 0">
+            <IconReplot class="text-base" />
+            Re-plot
+          </button>
+        </div>
       </div>
     </Container>
 
