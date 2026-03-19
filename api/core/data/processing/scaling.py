@@ -48,7 +48,9 @@ class Scaling:
     def ReScale(cursor, use_scalingpoint, sampling_point_id, zero, span, gas, timestamp, old_timestamp=None):
         minmax = Scaling.__minmax__(cursor, sampling_point_id, timestamp, old_timestamp)
         df_values = Scaling.__get_imported_observations(cursor, sampling_point_id, minmax["min"], minmax["max"])
-        Common.validate_dataframe(df_values, cursor)
+        if df_values.empty:
+            return df_values
+        Common.validate_dataframe(df_values)
         df_values = Common.add_timeserie_info(cursor, df_values)
         return Scaling.Scale(cursor, df_values, {"sampling_point_id": sampling_point_id, "zero_point": zero, "span_value": span, "gas_concentration": gas, "timestamp": timestamp, "old_timestamp": old_timestamp, "use_scalingpoint": use_scalingpoint})
 
@@ -56,8 +58,8 @@ class Scaling:
     def __minmax__(cursor, sampling_point_id, timestamp, old_timestamp):
         sql = """
           select
-              min(extract(epoch from f.timestamp)*1000) as min,
-              max(extract(epoch from t.timestamp)*1000) as max
+              min(f.timestamp) as min,
+              max(t.timestamp) as max
           from
           (
               select s.id, s.timestamp, lead(s.id) over (order by s.timestamp asc) as next
@@ -98,18 +100,16 @@ class Scaling:
               o.observationvalidity_id, 
               o.import_value::DOUBLE PRECISION, 
               o.import_value::DOUBLE PRECISION as value, 
-              null as scaled_value,
-              extract(epoch from o.to_time)*1000 as to_epoch, 
-              extract(epoch from o.from_time)*1000 as from_epoch
+              null as scaled_value
             from observations o 
             where o.sampling_point_id = %(sampling_point_id)s
         """
 
-        if min != None:
-            sql = sql + " and extract(epoch from o.to_time)*1000 >= %(min)s"
+        if min is not None:
+            sql = sql + " and o.to_time >= %(min)s"
 
-        if max != None:
-            sql = sql + " and extract(epoch from o.to_time)*1000 < %(max)s"
+        if max is not None:
+            sql = sql + " and o.to_time < %(max)s"
 
         sql = sql + " order by o.to_time"
 

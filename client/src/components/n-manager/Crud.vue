@@ -74,15 +74,17 @@ const title = computed(() => {
 
 const isFormValid = computed(() => {
   return cmp_required_properties.value.every((p) => {
-    const value = obj.value[p.prop] || obj.value[p.prop_id];
+    const value = obj.value[p.prop] ?? obj.value[p.prop_id];
 
     // For checkboxes, undefined/false/true are all valid (undefined = unchecked)
     if (p.type === "checkbox") {
       return true;
     }
 
-    // For numbers, 0 is valid
-    if (typeof value === "number") return true;
+    // For numbers, 0 is valid (check string "0" too since input returns string)
+    if (p.type === "number") {
+      return value !== null && value !== undefined && value !== "";
+    }
 
     // For other types, check if not empty
     return value !== null && value !== undefined && value !== "";

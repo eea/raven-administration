@@ -2,14 +2,13 @@
 import IconValidate from "~icons/material-symbols/fact-check";
 import IconPlot from "~icons/material-symbols/bar-chart";
 import IconScale from "~icons/uil/process";
-import IconCopy from "~icons/ic/twotone-content-copy";
 
 import { useRouter } from "vue-router";
 import { ref, computed, onMounted, watch } from "vue";
 
 import { format, sub, add } from "date-fns";
 import Service from "./service";
-import { compare, filterList, downloadCsv } from "../../../helpers/utils";
+import { filterList, downloadCsv } from "../../../helpers/utils";
 
 import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
@@ -18,7 +17,6 @@ import DataTable from "../../../components/DataTable.vue";
 const q = ref("");
 const data = ref([]);
 const selected = ref({});
-const currentContextData = ref(null);
 const aqi_type = ref(localStorage.getItem("aqi_type") || "eea");
 const showAqiToggle = ref(false);
 
@@ -90,41 +88,22 @@ const cmp_data = computed(() => filterList(q.value, data.value));
 
 const getRowStyle = (params) => {
   const row = params.data;
-  let style = {};
+  if (!row) return null;
 
   if (row.observationvalidity_id && row.observationvalidity_id !== 1) {
-    style.backgroundColor = "#bf616a1a"; // bg-nord11/10
+    return { backgroundColor: "#bf616a1a" }; // bg-nord11/10
   }
 
-  if (compare(selected.value, row)) {
-    style.backgroundColor = "#81a1c133"; // selected highlight
-  }
-
-  return style;
+  return null;
 };
 
 const onContextMenuAction = ({ action, data }) => {
-  currentContextData.value = data;
   if (data?.row) {
     selected.value = data.row;
   }
 
-  if (action === "copy-cell") {
-    copyToClipboard();
-  } else if (action === "Historical" || action === "Validate" || action === "Scale") {
+  if (action === "Historical" || action === "Validate" || action === "Scale") {
     onGoto(action);
-  }
-};
-
-const copyToClipboard = async () => {
-  if (!currentContextData.value?.gridEvent?.value) return;
-
-  try {
-    const cellValue = String(currentContextData.value.gridEvent.value);
-    await navigator.clipboard.writeText(cellValue);
-    console.log("Copied cell value to clipboard:", cellValue);
-  } catch (err) {
-    console.error("Failed to copy to clipboard:", err);
   }
 };
 
@@ -157,9 +136,9 @@ const onGoto = (name) => {
     </ToolBar>
 
     <div class="flex-1 min-h-0">
-      <DataTable :data="cmp_data" :columns="columns" :get-row-style="getRowStyle" :filter="true" :floating-filter="false" @context-menu-action="onContextMenuAction">
+      <DataTable :data="cmp_data" :columns="columns" :get-row-style="getRowStyle" :filter="true" :floating-filter="false" :show-copy-options="true" @context-menu-action="onContextMenuAction">
         <template #context-menu-items="{ handleAction }">
-          <div class="px-2 font-bold text-sm text-nord3">Actions:</div>
+          <div class="px-2 font-bold text-base text-nord3">Menu:</div>
           <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('Historical')">
             <icon-plot class="text-nord15 self-center" />
             <div class="self-center ml-1">Plot data</div>
@@ -171,10 +150,6 @@ const onGoto = (name) => {
           <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('Scale')">
             <icon-scale class="text-nord10 self-center" />
             <div class="self-center ml-1">Scale data</div>
-          </div>
-          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('copy-cell')">
-            <icon-copy class="text-nord8 text-sm self-center" />
-            <div class="self-center ml-1">Copy cell value</div>
           </div>
         </template>
       </DataTable>

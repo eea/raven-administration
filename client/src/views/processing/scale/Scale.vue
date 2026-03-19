@@ -7,6 +7,7 @@ import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import Confirm from "../../../components/Confirm.vue";
 import DataTable from "../../../components/DataTable.vue";
+import CMenuItems from "../../../components/CMenuItems.vue";
 
 import Chart from "chart.js/auto";
 import "chartjs-adapter-luxon";
@@ -15,8 +16,6 @@ import Service from "./service";
 import Eventy from "../../../helpers/eventy";
 import Crud from "./Crud.vue";
 
-import IconEdit from "~icons/ph/pencil-simple-duotone";
-import IconTrash from "~icons/ph/trash-duotone";
 import IconDuplicate from "~icons/ic/twotone-content-copy";
 
 const timeserieId = ref("");
@@ -193,14 +192,7 @@ const cls_timeseries = (hasscalingpoint) => {
     <div class="mt-4 min-h-96 flex-1" v-if="showPlotAndTable">
       <DataTable :columns="scalingpointsColumns" :data="cmp_scalingpoints" :filter="false" :floating-filter="false" :responsive="true" @context-menu-action="onContextMenuAction" @on-double-click="onRowDoubleClick">
         <template #context-menu-items="{ handleAction }">
-          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('edit')">
-            <icon-edit class="text-nord10 text-base self-center" />
-            <div class="self-center ml-1">Edit</div>
-          </div>
-          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('delete')">
-            <icon-trash class="text-nord11 text-base self-center" />
-            <div class="self-center ml-1">Delete</div>
-          </div>
+          <CMenuItems @edit="handleAction('edit')" @delete="handleAction('delete')" />
           <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('duplicate')">
             <icon-duplicate class="text-nord12 text-base self-center" />
             <div class="self-center ml-1">Duplicate</div>

@@ -39,7 +39,7 @@ class Q:
                 and sp.pollutant_id = p.id
                 and sp.time_resolution_id = t.id
                 and sp.unit_id = u.id
-                order by s.name, p.notation, t.label
+                order by LOWER(s.name), p.notation, t.label
             """, n_param)
             return cursor.fetchall()
 
@@ -74,7 +74,7 @@ class Q:
                         and sp.to_time is not null
                     GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label), sp.from_time,  sp.to_time, t.label, u.notation
                 ) aa
-                order by label
+                order by LOWER(aa.name), aa.pollutant, aa.timestep
             """, n_param)
             return cursor.fetchall()
 
@@ -197,3 +197,16 @@ class Q:
         sql = f"""delete from {table} where id in %(ids)s"""
         cursor.execute(sql, {"ids": tuple(model.ids)})
         return cursor.rowcount
+
+    @staticmethod
+    def pollutants_lookup(exclude_ids=None):
+        """Centralized pollutant lookup - uses notation if available, otherwise label"""
+        with CursorFromPool() as cursor:
+            exclude_clause = "WHERE id NOT IN %(exclude_ids)s" if exclude_ids else ""
+            cursor.execute(f"""
+                SELECT id as value, COALESCE(NULLIF(notation, ''), label) as label 
+                FROM eea_pollutants 
+                {exclude_clause}
+                ORDER BY LOWER(COALESCE(NULLIF(notation, ''), label))
+            """, {"exclude_ids": tuple(exclude_ids)} if exclude_ids else {})
+            return cursor.fetchall()

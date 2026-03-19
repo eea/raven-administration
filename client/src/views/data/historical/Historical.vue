@@ -186,9 +186,10 @@ const timeseriesColumns = [
 const gridDataColumns = [
   { field: "station", headerName: "Station", flex: 1, filter: true },
   { field: "component", headerName: "Component", flex: 1, filter: true },
-  { field: "datetime", headerName: "Datetime", flex: 1, filter: true },
-  { field: "value", headerName: "Value", flex: 1, filter: true },
-  { field: "coverage", headerName: "Coverage", flex: 1, filter: true }
+  { field: "datetime", headerName: "Datetime", flex: 1, filter: true, sort: "desc" },
+  { field: "value", headerName: "Value", flex: 0.5, filter: true },
+  { field: "coverage", headerName: "Coverage", flex: 0.5, filter: true },
+  { field: "valid", headerName: "Valid", flex: 0.5, cellRenderer: (params) => (params.value ? "✓" : "✗"), cellStyle: (params) => ({ color: params.value ? "#a3be8c" : "#bf616a", fontWeight: "bold", textAlign: "center" }) }
 ];
 
 const onTimeseriesGridReady = (params) => {
@@ -213,12 +214,12 @@ const onTimeseriesSelectionChanged = (rows) => {
     <c-menu ref="menuRef" @on-click="onMenuClick">
       <template #default="{ handleAction }">
         <div class="px-2 font-bold">Presets:</div>
-        <div class="border-l-2 border-nord14 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('This week')">This week</div>
-        <div class="border-l-2 border-nord14 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('Last week')">Last week</div>
-        <div class="border-l-2 border-nord11 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('This month')">This month</div>
-        <div class="border-l-2 border-nord11 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('Last month')">Last month</div>
-        <div class="border-l-2 border-nord15 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('This year')">This year</div>
-        <div class="border-l-2 border-nord15 pl-2 pr-4 py-2 cursor-pointer hover:bg-gray-100" @click="handleAction('Last year')">Last year</div>
+        <div class="border-l-2 border-nord14 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('This week')">This week</div>
+        <div class="border-l-2 border-nord14 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('Last week')">Last week</div>
+        <div class="border-l-2 border-nord11 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('This month')">This month</div>
+        <div class="border-l-2 border-nord11 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('Last month')">Last month</div>
+        <div class="border-l-2 border-nord15 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('This year')">This year</div>
+        <div class="border-l-2 border-nord15 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('Last year')">Last year</div>
       </template>
     </c-menu>
 
@@ -265,8 +266,12 @@ const onTimeseriesSelectionChanged = (rows) => {
           </select>
         </div>
         <div class="flex gap-2">
-          <div class="font-bold mb-1 self-center">Coverage {{ coverage }}%:</div>
-          <input type="range" min="0" max="100" step="1" v-model="coverage" class="self-center" />
+          <div class="font-bold mb-1 self-center">
+            Coverage
+            <span class="inline-block w-8 text-right">{{ coverage }}</span>
+            %:
+          </div>
+          <input type="range" min="0" max="100" step="1" v-model="coverage" class="self-center" :disabled="meantype === '1000' || meantype === '0'" :class="{ 'opacity-40': meantype === '1000' || meantype === '0' }" />
         </div>
       </div>
 

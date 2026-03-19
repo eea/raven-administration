@@ -45,12 +45,48 @@ class Helper:
 
     @staticmethod
     def _insertScaledValues(cursor, values):
-        sql = """            
-            update observations
-            set value = %(value)s,scaled_value = %(scaled_value)s,touched = now()
-            where id = %(id)s
         """
-        cursor.executemany(sql, values)
+        Bulk update observations using COPY to temp table + UPDATE JOIN.
+        Much faster than executemany for large datasets.
+        """
+        if not values or len(values) == 0:
+            return 0
+
+        # Create temp table
+        cursor.execute("""
+            CREATE TEMP TABLE temp_scaled_values (
+                id INTEGER,
+                value DOUBLE PRECISION,
+                scaled_value DOUBLE PRECISION
+            ) ON COMMIT DROP
+        """)
+
+        # Use COPY to bulk load data into temp table
+        buffer = io.StringIO()
+        import math
+        for row in values:
+            # Skip rows with missing id (NaN from pandas)
+            row_id = row["id"]
+            if row_id is None or (isinstance(row_id, float) and math.isnan(row_id)):
+                continue
+            obs_id = int(row_id)
+            val = row["value"] if row["value"] is not None else "\\N"
+            scaled = row["scaled_value"] if row["scaled_value"] is not None else "\\N"
+            buffer.write(f"{obs_id}\t{val}\t{scaled}\n")
+        buffer.seek(0)
+
+        cursor.copy_from(buffer, "temp_scaled_values", columns=("id", "value", "scaled_value"))
+
+        # Bulk update using JOIN
+        cursor.execute("""
+            UPDATE observations o
+            SET value = t.value,
+                scaled_value = t.scaled_value,
+                touched = now()
+            FROM temp_scaled_values t
+            WHERE o.id = t.id
+        """)
+
         return cursor.rowcount
 
     @staticmethod
@@ -78,11 +114,11 @@ class Helper:
         return Helper._addScalingPoint(cursor, zero_point=zero_point, span_value=span_value, gas_concentration=gas_concentration, timestamp=timestamp, sampling_point_id=sampling_point_id, createdby=createdby, observations=observations)
 
     @staticmethod
-    def _removeScalingPoint(curosr, **kwargs):
-        rows = Helper._deleteScalingPoint(curosr, kwargs["id"])
+    def _removeScalingPoint(cursor, **kwargs):
+        rows = Helper._deleteScalingPoint(cursor, kwargs["id"])
         if rows == 0:
             raise Exception("Could not delete scaling point with id " + kwargs["id"])
-        Helper._insertScaledValues(curosr, kwargs["observations"])
+        Helper._insertScaledValues(cursor, kwargs["observations"])
         return rows
 
     @staticmethod

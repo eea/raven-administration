@@ -20,17 +20,16 @@ def convert():
                 cs.id, cs.sampling_point_id, cs.factor::double PRECISION as factor,
                 st.id as sta_id, st.name as station, po.notation as pollutant,
                 s.notation as source, cs.source as source_id,
-                t.notation as target, cs.target as target_id,
+                sp_unit.notation as target,
                 cs.createdby, ti.label as timestep
-            from converted_series cs, eea_concentrations s, eea_concentrations t, stations st, sampling_points p,  eea_pollutants po, eea_times ti, network_access n
-            where 1=1
-            and n.id = st.network_id
-            and cs.source = s.id
-            and cs.target = t.id
-            and cs.sampling_point_id = p.id
-            and p.station_id = st.id
-            and p.pollutant_id = po.id
-            and p.time_resolution_id = ti.id
+            from converted_series cs
+            join eea_concentrations s on cs.source = s.id
+            join sampling_points p on cs.sampling_point_id = p.id
+            join eea_concentrations sp_unit on p.unit_id = sp_unit.id
+            join stations st on p.station_id = st.id
+            join eea_pollutants po on p.pollutant_id = po.id
+            join eea_times ti on p.time_resolution_id = ti.id
+            join network_access n on n.id = st.network_id
         """, n_param)
         convertions = cursor.fetchall()
         return jsonify(convertions)
@@ -45,10 +44,18 @@ def convert_insert():
         if Q.has_no_access(model.sampling_point_id):
             raise BadRequest("Access denied for samplingpoint")
 
+        # Validate source unit is different from sampling point's unit
+        cursor.execute("SELECT unit_id FROM sampling_points WHERE id = %(sampling_point_id)s", model)
+        sp = cursor.fetchone()
+        if sp and sp["unit_id"] == model.source_id:
+            raise BadRequest("Source unit cannot be the same as the sampling point's unit")
+
         model.createdby = get_name()
         sql = """ 
-             insert into converted_series ("sampling_point_id", "source", "target", "factor", createdby) 
-            values (%(sampling_point_id)s,%(source_id)s,%(target_id)s,%(factor)s, %(createdby)s)
+            INSERT INTO converted_series (sampling_point_id, source, target, factor, createdby) 
+            SELECT %(sampling_point_id)s, %(source_id)s, sp.unit_id, %(factor)s, %(createdby)s
+            FROM sampling_points sp
+            WHERE sp.id = %(sampling_point_id)s
         """
         cursor.execute(sql, model)
         return jsonify({"success": True})
@@ -86,11 +93,10 @@ def convert_update():
             raise BadRequest("Access denied for samplingpoint")
 
         sql = """ 
-            update converted_series
-            set "source" = %(source_id)s,
-            "target" = %(target_id)s,
-            "factor" = %(factor)s
-            where id = %(id)s
+            UPDATE converted_series
+            SET source = %(source_id)s,
+                factor = %(factor)s
+            WHERE id = %(id)s
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:
@@ -117,8 +123,23 @@ def convert_units():
 @convert_endpoint.route("/api/processing/convert/timeseries", methods=['GET'])
 @jwt_required_with_processing_claim()
 def convert_timeseries():
-    timeseries = Q.timeseries_by_access()
-    return jsonify(timeseries)
+    with CursorFromPool() as cursor:
+        with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+        cursor.execute(f"""
+            {with_network_sql}
+            SELECT CONCAT(s.name, ', ', p.notation, ', ', t.label, ', ', u.notation) as label, 
+                   sp.id as value,
+                   u.id as unit_id
+            FROM sampling_points sp
+            JOIN stations s ON sp.station_id = s.id
+            JOIN network_access n ON n.id = s.network_id
+            JOIN eea_pollutants p ON sp.pollutant_id = p.id
+            JOIN eea_times t ON sp.time_resolution_id = t.id
+            JOIN eea_concentrations u ON sp.unit_id = u.id
+            WHERE sp.id NOT IN (SELECT sampling_point_id FROM converted_series)
+            ORDER BY LOWER(s.name), p.notation, t.label
+        """, n_param)
+        return jsonify(cursor.fetchall())
 
 
 @convert_endpoint.route("/api/processing/convert/download", methods=['GET'])
@@ -145,7 +166,7 @@ def convert_download():
             and p.station_id = st.id
             and p.pollutant_id = po.id
             and p.time_resolution_id = ti.id
-            order by st.name, po.notation, ti.label
+            order by LOWER(st.name), po.notation, ti.label
         """, n_param)
         conversions = cursor.fetchall()
         return download_csv(conversions, "conversions.csv")

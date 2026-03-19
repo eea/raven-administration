@@ -22,28 +22,29 @@ class Common:
         return 0  # Default to UTC if no settings
 
     @staticmethod
-    def validate_dataframe(df_values: DataFrame, cursor=None):
+    def validate_dataframe(df_values: DataFrame):
         bench = time.perf_counter()
-        # Skip validation if dataframe is empty
         if df_values.empty:
             printcol(f"- Validating datatypes took {time.perf_counter() - bench} seconds (empty dataframe)")
             return
-        # Validations raises an exception if it fails
+        
+        # Map old column names to new column names for backwards compatibility
+        column_mapping = {
+            "begin_position": "from_time",
+            "end_position": "to_time",
+            "verification_flag": "observationverification_id",
+            "validation_flag": "observationvalidity_id"
+        }
+        df_values.rename(columns={k: v for k, v in column_mapping.items() if k in df_values.columns}, inplace=True)
+        
+        # Convert datatypes
         df_values["from_time"] = pd.to_datetime(df_values["from_time"])
         df_values["to_time"] = pd.to_datetime(df_values["to_time"])
+        df_values["sampling_point_id"] = df_values["sampling_point_id"].astype(str)
+        df_values["value"] = df_values["value"].astype(float)
+        df_values["observationverification_id"] = df_values["observationverification_id"].astype(int)
+        df_values["observationvalidity_id"] = df_values["observationvalidity_id"].astype(int)
         
-        # Localize naive timestamps to the configured timezone
-        if cursor is not None:
-            tz_offset_minutes = Common.get_settings_timezone(cursor)
-            import pytz
-            tz = pytz.FixedOffset(tz_offset_minutes)
-            df_values["from_time"] = df_values["from_time"].dt.tz_localize(tz)
-            df_values["to_time"] = df_values["to_time"].dt.tz_localize(tz)
-        
-        df_values.sampling_point_id.astype(str)
-        df_values.value = df_values.value.astype(float)
-        df_values.observationverification_id.astype(int)
-        df_values.observationvalidity_id.astype(int)
         printcol(f"- Validating datatypes took {time.perf_counter() - bench} seconds")
 
     @staticmethod
@@ -75,7 +76,7 @@ class Common:
         new_table = []
         for key, group in grouped:
             timeserie = next(filter(lambda t: t["sampling_point_id"] == key, timeseries), None)
-            if timeserie != None:
+            if timeserie is not None:
                 group["ts_from_epoch"] = timeserie["from_time"]
                 group["ts_to_epoch"] = timeserie["to_time"]
                 group["ts_timestep"] = timeserie["timestep"]

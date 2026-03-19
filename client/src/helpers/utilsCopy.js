@@ -1,5 +1,5 @@
 /**
- * CSV utility functions for clipboard operations
+ * Copy/clipboard utility functions
  */
 
 /**
@@ -86,4 +86,14 @@ export async function copyToClipboard(text) {
     console.error('Failed to copy to clipboard:', err);
     return false;
   }
+}
+
+/**
+ * Copy a cell value to clipboard
+ * @param {*} value - The cell value to copy
+ * @returns {Promise<boolean>} True if successful
+ */
+export async function copyCellValue(value) {
+  if (value === undefined || value === null) return false;
+  return await copyToClipboard(String(value));
 }

@@ -98,6 +98,13 @@ class Mean:
         cursor.execute(m.Sql, m.Params)
         rows = cursor.fetchall()
 
+        is_raw_or_original = meanType in (MeanType.Raw, MeanType.Original)
+        for r in rows:
+            if is_raw_or_original:
+                r["valid"] = (r.get("observationvalidity_id") or 0) > 0
+            else:
+                r["valid"] = (r.get("coverage") or 0) >= coverage
+
         if addMetadata:
             timeseries = Mean.GetTimeseries(ids, cursor)
             for r in rows:
@@ -137,13 +144,14 @@ class Mean:
             SELECT
                 to_char (o.to_time, 'YYYY-MM-DD HH24:MI:SS') as "datetime", 
                 CASE
-                    WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.import_value != -9900)
+                    WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.import_value != -9900)
                     THEN  ROUND(o.import_value,%(fraction)s)::double PRECISION
                     ELSE NULL
                 END as "value",
                 100 as "coverage",                   
                 1 as "cnt",                 
                 o.sampling_point_id as "sampling_point_id",   
+                o.observationvalidity_id as "observationvalidity_id",
                 0 "meantype"             
             FROM
                 observations o
@@ -160,13 +168,14 @@ class Mean:
             SELECT
                 to_char (o.to_time, 'YYYY-MM-DD HH24:MI:SS') as "datetime", 
                 CASE
-                    WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900)
+                    WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900)
                     THEN  ROUND(o.value,%(fraction)s)::double PRECISION
                     ELSE NULL
                 END as "value",
                 100 as "coverage",                   
                 1 as "cnt",                 
                 o.sampling_point_id as "sampling_point_id",   
+                o.observationvalidity_id as "observationvalidity_id",
                 0 "meantype"             
             FROM
                 observations o
@@ -185,7 +194,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -220,7 +229,7 @@ class Mean:
             ) C,
             sampling_points SP,  eea_times TM
             WHERE C.sampling_point_id = SP.id
-            AND SP.timestep = TM.id  
+            AND SP.time_resolution_id = TM.id  
         """
         return sql
 
@@ -232,7 +241,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -267,7 +276,7 @@ class Mean:
             ) C,
             sampling_points SP, eea_times TM
             WHERE C.sampling_point_id = SP.id
-            AND SP.timestep = TM.id
+            AND SP.time_resolution_id = TM.id
         """
         return sql
 
@@ -279,7 +288,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -310,7 +319,7 @@ class Mean:
             ) C,
             sampling_points SP, eea_times TM
             WHERE C.sampling_point_id = SP.id
-            AND SP.timestep = TM.id
+            AND SP.time_resolution_id = TM.id
             AND C.DATETIME >= %(fromTime)s
             ORDER BY SP.id,C.DATETIME
         """
@@ -324,7 +333,7 @@ class Mean:
                     SELECT 
                         o.from_time, o.to_time, o.sampling_point_id,
                         CASE 
-                            WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
+                            WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
                             ELSE NULL 
                         END val
                     FROM
@@ -365,7 +374,7 @@ class Mean:
             ) C,
             sampling_points SP, eea_times TM
             WHERE C.sampling_point_id = SP.id
-            AND SP.timestep = TM.id
+            AND SP.time_resolution_id = TM.id
         """
         return sql
 
@@ -377,7 +386,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -412,7 +421,7 @@ class Mean:
                 ) C,
                 sampling_points SP, eea_times TM
                 WHERE C.sampling_point_id = SP.id
-                AND SP.timestep = TM.id
+                AND SP.time_resolution_id = TM.id
                 AND C.DATETIME >= %(fromTime)s
             ) B
             GROUP BY DATE_TRUNC('day',B.DATETIME), B.timestep, B.sampling_point_id
@@ -428,7 +437,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -461,7 +470,7 @@ class Mean:
             sampling_points SP, eea_times TM
             WHERE C.sampling_point_id = SP.id
             AND C.DATETIME >= %(fromTime)s
-            AND SP.timestep = TM.id
+            AND SP.time_resolution_id = TM.id
         """
         return sql
 
@@ -473,7 +482,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -508,7 +517,7 @@ class Mean:
             ) C,
             sampling_points SP,  eea_times TM
             WHERE C.sampling_point_id = SP.id
-            AND SP.timestep = TM.id
+            AND SP.time_resolution_id = TM.id
         """
         return sql
 
@@ -520,7 +529,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -563,7 +572,7 @@ class Mean:
             ) C,
             sampling_points SP, eea_times TM
             WHERE C.sampling_point_id = SP.id
-            AND SP.timestep = TM.id
+            AND SP.time_resolution_id = TM.id
         """
         return sql
 
@@ -575,7 +584,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -591,7 +600,7 @@ class Mean:
             (
                 select sp.id as "sampling_point_id", tm.timestep
                 from sampling_points SP, eea_times TM
-                WHERE SP.timestep = TM.id
+                WHERE SP.time_resolution_id = TM.id
             )
             SELECT
                 to_char (HOURCOUNT.DATETIME, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
@@ -656,7 +665,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -672,7 +681,7 @@ class Mean:
             (
                 select sp.id as "sampling_point_id", tm.timestep
                 from sampling_points SP,  eea_times TM
-                WHERE SP.timestep = TM.id
+                WHERE SP.time_resolution_id = TM.id
             )
             SELECT
                 to_char (HOURCOUNT.DATETIME, 'YYYY-MM-DD HH24:MI:SS') as "datetime", 
@@ -743,7 +752,7 @@ class Mean:
                     END from_time,
                     o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s)  AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -758,7 +767,7 @@ class Mean:
             (
                 select sp.id  "sampling_point_id", tm.timestep
                 from sampling_points SP, eea_times TM
-                WHERE SP.timestep = TM.id
+                WHERE SP.time_resolution_id = TM.id
             )
             SELECT
               to_char (DATETIME, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
@@ -800,7 +809,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -843,7 +852,7 @@ class Mean:
             ) C,
             sampling_points SP, eea_times TM
             WHERE C.sampling_point_id = SP.id
-            AND SP.timestep = TM.id
+            AND SP.time_resolution_id = TM.id
         """
         return sql
 
@@ -855,7 +864,7 @@ class Mean:
                 SELECT 
                     o.from_time, o.to_time, o.sampling_point_id,
                     CASE 
-                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
+                        WHEN o.observationverification_id <= %(verificationFlag)s AND (o.observationvalidity_id in (1,2,3,4) or %(useInvalidValues)s) AND (o.value != -9900) THEN  o.value
                         ELSE NULL 
                     END val
                 FROM
@@ -869,7 +878,7 @@ class Mean:
             (
                 select sp.id  "sampling_point_id", tm.timestep
                 from sampling_points SP, eea_times TM
-                WHERE SP.timestep = TM.id
+                WHERE SP.time_resolution_id = TM.id
             )
             SELECT
                 to_char (DATETIME, 'YYYY-MM-DD HH24:MI:SS') as "datetime",
@@ -894,4 +903,3 @@ class Mean:
             WHERE C.sampling_point_id = TS.sampling_point_id
         """
         return sql
-

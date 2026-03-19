@@ -159,7 +159,7 @@ const onDownload = () => {
     <div class="mt-4 h-full" v-if="showTable">
       <DataTable :data="cmp_datasets" :columns="columns" :get-row-style="getRowStyle" :filter="false" :floating-filter="false" @context-menu-action="onContextMenuAction">
         <template #context-menu-items="{ handleAction, contextData }">
-          <div class="px-2 font-bold text-sm text-nord3">Set verification:</div>
+          <div class="px-2 font-bold text-base text-nord3">Set verification:</div>
           <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('verified')" v-if="contextData?.row && (contextData.row.pre_verified > 0 || contextData.row.not_verified > 0)">
             <icon-circle class="text-nord14 text-base self-center" />
             <div class="self-center ml-1">Set to verified</div>

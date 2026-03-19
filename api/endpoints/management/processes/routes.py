@@ -30,7 +30,8 @@ def processes():
               pr.equipment_id, me.label as equipment,
               pr.analytical_technique_id, at.label as analytical_technique,
               pr.equivalence_demonstrated_id, ed.label as equivalence_demonstrated,
-              pr.sampling_point_id, sp.id as sampling_point
+              pr.sampling_point_id, sp.id as sampling_point,
+              pr.equipment_identifier
           FROM processes pr
               LEFT JOIN eea_measurementtypes mt ON pr.measurement_type_id = mt.id
               LEFT JOIN eea_measurementmethods mm ON pr.method_id = mm.id
@@ -143,7 +144,8 @@ def processes_update():
               equipment_id = %(equipment_id)s,
               analytical_technique_id = %(analytical_technique_id)s,
               equivalence_demonstrated_id = %(equivalence_demonstrated_id)s,
-              sampling_point_id = %(sampling_point_id)s
+              sampling_point_id = %(sampling_point_id)s,
+              equipment_identifier = %(equipment_identifier)s
             WHERE id = %(id)s
         """
 
@@ -168,14 +170,16 @@ def processes_insert():
             id, activity_begin, activity_end, data_quality_document_id,
             equivalence_demonstration_document_id, process_document_id,
             measurement_type_id, method_id, equipment_id,
-            analytical_technique_id, equivalence_demonstrated_id, sampling_point_id
+            analytical_technique_id, equivalence_demonstrated_id, sampling_point_id,
+            equipment_identifier
           )
           VALUES (
             %(id)s, %(activity_begin)s, %(activity_end)s, %(data_quality_document_id)s,
             %(equivalence_demonstration_document_id)s, %(process_document_id)s,
             %(measurement_type_id)s, %(method_id)s, %(equipment_id)s,
-            %(analytical_technique_id)s, %(equivalence_demonstrated_id)s, %(sampling_point_id)s
-          )            
+            %(analytical_technique_id)s, %(equivalence_demonstrated_id)s, %(sampling_point_id)s,
+            %(equipment_identifier)s
+          )
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:

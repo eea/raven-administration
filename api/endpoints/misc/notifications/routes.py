@@ -21,7 +21,7 @@ def notifications():
             FROM notifications n
             LEFT JOIN notifications_samplingpoints ns ON n.name = ns.notification_id
             GROUP BY n.name
-            ORDER BY n.name
+            ORDER BY LOWER(n.name)
 
         """
         cursor.execute(sql)

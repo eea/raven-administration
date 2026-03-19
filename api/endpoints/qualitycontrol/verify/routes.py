@@ -69,7 +69,7 @@ def stations():
             and from_time is not null
             and to_time is not null
             group by st.id, st.name
-            order by st.name
+            order by LOWER(st.name)
         """, n_param)
         stations = cursor.fetchall()
         return jsonify(stations)

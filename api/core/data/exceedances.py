@@ -526,7 +526,7 @@ class Exceedances:
             SELECT id, name, code, population, area
             FROM zones
             WHERE year = %s
-            ORDER BY name
+            ORDER BY LOWER(name)
         """, (year,))
         
         return self.cursor.fetchall()

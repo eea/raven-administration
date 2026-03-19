@@ -282,7 +282,7 @@ const getRowId = (params) => String(params.data.id);
       <div class="h-full">
         <DataTable :data="timevalues" :columns="columns" :get-row-style="getRowStyle" :filter="false" :floating-filter="false" selection-mode="multiRow" :get-row-id="getRowId" @context-menu-action="onContextMenuAction" @grid-ready="onGridReady">
           <template #context-menu-items="{ handleAction }">
-            <div class="px-2 font-bold text-sm text-nord3">Set validation to:</div>
+            <div class="px-2 font-bold text-base text-nord3">Set validation to:</div>
             <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('-99')">
               <icon-circle class="text-nord11 text-base self-center" />
               <div class="self-center ml-1">Not valid due to maintenance (-99)</div>
