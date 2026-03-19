@@ -147,7 +147,10 @@ const formatValues = (meanvalues, axes) => {
       return { x: o.datetime.replace(" ", "T"), y: o.value };
     });
     var axis = axes.find((a) => a == values[0].unit);
-    let serie = Plot.dataset(p[1][0].station + " - " + p[1][0].component + " - " + p[1][0].unit, data, "#A3BE8C", plotType.value, axis);
+    const first = p[1][0];
+    const equipmentPart = [first.equipment, first.equipment_identifier].filter(Boolean).join(" / ");
+    const label = [first.station, first.component, first.unit, equipmentPart].filter(Boolean).join(" - ");
+    let serie = Plot.dataset(label, data, "#A3BE8C", plotType.value, axis);
     series.push(serie);
   });
   return { datasets: series };
@@ -187,7 +190,7 @@ const timeseriesColumns = [
 
 const gridDataColumns = [
   { field: "station", headerName: "Station", flex: 1, filter: true },
-  { field: "component", headerName: "Component", flex: 0.5, filter: true },
+  { field: "component", headerName: "Pollutant", flex: 0.5, filter: true },
   { field: "timestep", headerName: "Timestep", flex: 0.5, filter: true },
   { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
   { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true },
