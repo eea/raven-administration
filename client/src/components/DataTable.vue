@@ -89,7 +89,7 @@ const highlightRenderer = (params) => {
   return highlighted;
 };
 
-const emit = defineEmits(["on-double-click", "selection-changed", "grid-ready", "context-menu-action"]);
+const emit = defineEmits(["on-double-click", "selection-changed", "grid-ready", "first-data-rendered", "context-menu-action"]);
 
 const colDefs = ref([]);
 const gridApi = ref(null);
@@ -294,9 +294,8 @@ const onSelectionChanged = (event) => {
 };
 
 const onGridReady = (params) => {
-  gridApi.value = params.api; // Store API reference
+  gridApi.value = params.api;
 
-  // Only call sizeColumnsToFit if no flex columns are defined
   const hasFlexColumns = colDefs.value.some((col) => col.flex);
   if (!hasFlexColumns) {
     params.api.sizeColumnsToFit();
@@ -304,10 +303,14 @@ const onGridReady = (params) => {
 
   emit("grid-ready", params.api);
 };
+
+const onFirstDataRendered = (params) => {
+  emit("first-data-rendered", params.api);
+};
 </script>
 
 <template>
-  <ag-grid-vue @selection-changed="onSelectionChanged" :rowSelection="rowSelection" :getRowId="getRowId" :tooltipShowDelay="0" :tooltipHideDelay="10000" :tooltipShowMode="'whenTruncated'" style="width: 100%; height: 100%" :loading="loading" :getRowStyle="getRowStyle" :defaultColDef="defaultColDef" :columnDefs="colDefs" :rowData="data" :theme="myTheme" :suppressClickEdit="false" :suppressRowTransform="true" :suppressColumnVirtualisation="false" :immutableData="false" :suppressCellFlash="true" @grid-ready="onGridReady" @cell-context-menu="onClicked" @cell-clicked="onClicked" oncontextmenu="return false;"></ag-grid-vue>
+  <ag-grid-vue @selection-changed="onSelectionChanged" :rowSelection="rowSelection" :getRowId="getRowId" :tooltipShowDelay="0" :tooltipHideDelay="10000" :tooltipShowMode="'whenTruncated'" style="width: 100%; height: 100%" :loading="loading" :getRowStyle="getRowStyle" :defaultColDef="defaultColDef" :columnDefs="colDefs" :rowData="data" :theme="myTheme" :suppressClickEdit="false" :suppressRowTransform="true" :suppressColumnVirtualisation="false" :immutableData="false" :suppressCellFlash="true" @grid-ready="onGridReady" @first-data-rendered="onFirstDataRendered" @cell-context-menu="onClicked" @cell-clicked="onClicked" oncontextmenu="return false;"></ag-grid-vue>
 
   <!-- Context menu -->
   <CMenu ref="builtinMenuRef" @on-click="({ action }) => handleMenuAction(action)">

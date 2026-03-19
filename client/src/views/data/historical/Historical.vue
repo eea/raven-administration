@@ -216,11 +216,13 @@ const getRowStyle = (params) => {
   return params.data.valid === false ? { background: "rgba(191, 97, 106, 0.1)" } : {};
 };
 
-const onTimeseriesGridReady = (params) => {
-  timeseriesGridApi.value = params.api;
-  // Set initial selection if selectedIds is populated (from query params)
+const onTimeseriesGridReady = (api) => {
+  timeseriesGridApi.value = api;
+};
+
+const onTimeseriesFirstDataRendered = (api) => {
   if (selectedIds.value.length > 0) {
-    params.api.forEachNode((node) => {
+    api.forEachNode((node) => {
       if (selectedIds.value.includes(node.data.sampling_point_id)) {
         node.setSelected(true);
       }
@@ -301,7 +303,7 @@ const onTimeseriesSelectionChanged = (rows) => {
 
       <div class="h-64">
         <div class="font-bold">Sampling Points</div>
-        <DataTable :font-size="11" :columns="timeseriesColumns" :data="cmp_timeseries" selection-mode="multiRow" :get-row-id="(params) => params.data.sampling_point_id" @grid-ready="onTimeseriesGridReady" @selection-changed="onTimeseriesSelectionChanged" />
+        <DataTable :font-size="11" :columns="timeseriesColumns" :data="cmp_timeseries" selection-mode="multiRow" :get-row-id="(params) => params.data.sampling_point_id" @grid-ready="onTimeseriesGridReady" @first-data-rendered="onTimeseriesFirstDataRendered" @selection-changed="onTimeseriesSelectionChanged" />
       </div>
 
       <div class="mt-6">
