@@ -156,17 +156,24 @@ const changeDates = (s) => {
 
 const formatValues = (meanvalues, axes) => {
   var grouped_values = groupBy(meanvalues, (p) => p.sampling_point_id);
+
+  // Build shared sorted timeline across all series
+  const allTimestamps = [...new Set(meanvalues.map((o) => o.datetime))].sort();
+
   const series = [];
   legendItems.value = [];
   grouped_values.forEach((p, i) => {
     const color = palette[i % palette.length];
-    const values = p[1].sort((a, b) => a.datetime.localeCompare(b.datetime));
+    const values = p[1];
     values.forEach((row) => (row._color = color));
-    const data = values.map((o) => {
-      return { x: o.datetime.replace(" ", "T"), y: o.value };
+    const byDatetime = new Map(values.map((o) => [o.datetime, o]));
+    // Align to shared timeline so mode:"index" works across different-length series
+    const data = allTimestamps.map((ts) => {
+      const o = byDatetime.get(ts);
+      return { x: ts.replace(" ", "T"), y: o ? o.value : null };
     });
     var axis = axes.find((a) => a == values[0].unit);
-    const first = p[1][0];
+    const first = values[0];
     const equipmentPart = [first.equipment, first.equipment_identifier].filter(Boolean).join(" / ");
     const label = [first.station, first.component, first.unit, equipmentPart].filter(Boolean).join(" - ");
     legendItems.value.push({ color, label, hidden: false, sampling_point_id: p[0] });

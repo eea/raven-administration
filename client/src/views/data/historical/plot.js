@@ -62,6 +62,9 @@ const Plot = {
             pointRadius: 1,
             pointHoverRadius: 3,
             borderWidth: 2
+          },
+          bar: {
+            borderWidth: 1
           }
         }
       }
