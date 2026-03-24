@@ -27,7 +27,7 @@ def assessmentregimes():
                   s.name as station,
                   po.notation as pollutant,
                   po.uri as pollutant_id,
-                  t.label as timestep,
+                  COALESCE(NULLIF(t.notation, ''), t.label) as timestep,
                   u.notation as concentration
               from
                   stations s,
@@ -123,7 +123,7 @@ def samplingpoints():
               s.name as station,
               po.notation as pollutant,
               po.uri as pollutant_id,
-              t.label as timestep,
+              COALESCE(NULLIF(t.notation, ''), t.label) as timestep,
               u.notation as concentration
           from
               stations s,

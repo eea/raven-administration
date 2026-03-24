@@ -21,9 +21,9 @@ def zones():
             z.name, 
             z.area, 
             z.zone_type_id, 
-            zt.label as zone_type,
+            zt.notation as zone_type,
             z.zone_category_id,
-            zc.label as zone_category,
+            COALESCE(NULLIF(zc.notation, ''), zc.label) as zone_category,
             ST_AsGeoJSON(z.geom) as geojson          
           from zones z
           left join eea_zonetypes zt on z.zone_type_id = zt.id

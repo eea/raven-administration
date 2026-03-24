@@ -38,17 +38,17 @@ def exceedances():
               a.id as attainment_id,
               a.name as attainment,
               et.id::varchar as exceedance_type_id,
-              et.label as exceedance_type,
+              COALESCE(NULLIF(et.notation, ''), et.label) as exceedance_type,
               ee.id::varchar as exceedance_description_id,
-              ee.label as exceedance_description,
+              COALESCE(NULLIF(ee.notation, ''), ee.label) as exceedance_description,
               ed.adjustment_type as adjustment_type_id,
-              at.label as adjustment_type,
+              COALESCE(NULLIF(at.notation, ''), at.label) as adjustment_type,
               ed.area_classification as area_classification_id,
               ac.notation as area_classification,
               ed.exceedance_reason as reason_id,
-              er.label as reason,
+              COALESCE(NULLIF(er.notation, ''), er.label) as reason,
               ed.adjustment_source as adjustment_source_id,
-              es.label as adjustment_source
+              COALESCE(NULLIF(es.notation, ''), es.label) as adjustment_source
           FROM
               attainments a,
               eea_exceedancetype et,
@@ -104,7 +104,7 @@ def samplingpoints():
               s.name as station,
               sp.id as sampling_point_id,
               po.notation as pollutant,
-              t.label as timestep,
+              COALESCE(NULLIF(t.notation, ''), t.label) as timestep,
               u.notation as concentration,
               ar.id as assessment_regime
           from

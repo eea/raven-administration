@@ -17,7 +17,7 @@ def get_authorities_csv(country_code):
                 a.id as authority_instance_id,
                 ai.notation as object,
                 a.email,
-                ai.label as authority_instance,
+                COALESCE(NULLIF(ai.notation, ''), ai.label) as authority_instance,
                 a.organisation_name,
                 a.organisation_url,
                 a.organisation_address,

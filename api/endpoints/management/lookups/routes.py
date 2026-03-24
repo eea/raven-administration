@@ -11,7 +11,7 @@ management_endpoint = Blueprint('management', __name__)
 @jwt_required_with_management_claim()
 def areaclassifications():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_areaclassifications r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_areaclassifications r order by r.notation, r.label")
         areaclassifications = cursor.fetchall()
         return jsonify(areaclassifications)
 
@@ -20,7 +20,7 @@ def areaclassifications():
 @jwt_required_with_management_claim()
 def exceedancedescriptions():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id::varchar as value from eea_exceedancedescription r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id::varchar as value from eea_exceedancedescription r order by r.notation, r.label")
         rows = cursor.fetchall()
         return jsonify(rows)
 
@@ -29,7 +29,7 @@ def exceedancedescriptions():
 @jwt_required_with_management_claim()
 def exceedancetypes():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id::varchar as value from eea_exceedancetype r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id::varchar as value from eea_exceedancetype r order by r.notation, r.label")
         rows = cursor.fetchall()
         return jsonify(rows)
 
@@ -38,7 +38,7 @@ def exceedancetypes():
 @jwt_required_with_management_claim()
 def adjustmentsourcetypes():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_adjustmentsourcetype r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_adjustmentsourcetype r order by r.notation, r.label")
         rows = cursor.fetchall()
         return jsonify(rows)
 
@@ -47,7 +47,7 @@ def adjustmentsourcetypes():
 @jwt_required_with_management_claim()
 def adjustmenttypes():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_adjustmenttypes r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_adjustmenttypes r order by r.notation, r.label")
         rows = cursor.fetchall()
         return jsonify(rows)
 
@@ -56,7 +56,7 @@ def adjustmenttypes():
 @jwt_required_with_management_claim()
 def reasons():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_exceedancereason r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_exceedancereason r order by r.notation, r.label")
         rows = cursor.fetchall()
         return jsonify(rows)
 
@@ -74,7 +74,7 @@ def exceedances():
 @jwt_required_with_management_claim()
 def assessmenttypes():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_assessmenttypes r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_assessmenttypes r order by r.notation, r.label")
         assessmenttypes = cursor.fetchall()
         return jsonify(assessmenttypes)
 
@@ -101,7 +101,7 @@ def concentrations():
 @jwt_required_with_management_claim()
 def equivdemonstrations():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_equivalencedemonstrated r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_equivalencedemonstrated r order by r.notation, r.label")
         equivdemonstrations = cursor.fetchall()
         return jsonify(equivdemonstrations)
 
@@ -110,7 +110,7 @@ def equivdemonstrations():
 @jwt_required_with_management_claim()
 def levels():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_organisationallevels r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_organisationallevels r order by r.notation, r.label")
         authorities = cursor.fetchall()
         return jsonify(authorities)
 
@@ -119,7 +119,7 @@ def levels():
 @jwt_required_with_management_claim()
 def media():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_mediavalues r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_mediavalues r order by r.notation, r.label")
         authorities = cursor.fetchall()
         return jsonify(authorities)
 
@@ -128,7 +128,7 @@ def media():
 @jwt_required_with_management_claim()
 def measurementequipment():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_measurementequipments r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_measurementequipments r order by r.notation, r.label")
         measurementequipment = cursor.fetchall()
         return jsonify(measurementequipment)
 
@@ -137,7 +137,7 @@ def measurementequipment():
 @jwt_required_with_management_claim()
 def measurement_methods():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_measurementmethods r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_measurementmethods r order by r.notation, r.label")
         measurement_methods = cursor.fetchall()
         return jsonify(measurement_methods)
 
@@ -146,7 +146,7 @@ def measurement_methods():
 @jwt_required_with_management_claim()
 def measurementregimes():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_measurementregimevalues r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_measurementregimevalues r order by r.notation, r.label")
         measurementregimes = cursor.fetchall()
         return jsonify(measurementregimes)
 
@@ -155,7 +155,7 @@ def measurementregimes():
 @jwt_required_with_management_claim()
 def measurementtypes():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_measurementtypes r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_measurementtypes r order by r.notation, r.label")
         measurementtypes = cursor.fetchall()
         return jsonify(measurementtypes)
 
@@ -191,7 +191,7 @@ def protectiontargets():
 @jwt_required_with_management_claim()
 def processtypevalues():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_processtypevalues r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_processtypevalues r order by r.notation, r.label")
         processtypevalues = cursor.fetchall()
         return jsonify(processtypevalues)
 
@@ -200,7 +200,7 @@ def processtypevalues():
 @jwt_required_with_management_claim()
 def pollutants():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.uri as value from eea_pollutants r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.uri as value from eea_pollutants r order by r.notation, r.label")
         pollutants = cursor.fetchall()
         return jsonify(pollutants)
 
@@ -228,7 +228,7 @@ def responsibleauthorities():
 @jwt_required_with_management_claim()
 def resultnaturevalues():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_resultnaturevalues r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_resultnaturevalues r order by r.notation, r.label")
         resultnaturevalues = cursor.fetchall()
         return jsonify(resultnaturevalues)
 
@@ -237,7 +237,7 @@ def resultnaturevalues():
 @jwt_required_with_management_claim()
 def station_classifications():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_stationclassifications r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_stationclassifications r order by r.notation, r.label")
         station_classifications = cursor.fetchall()
         return jsonify(station_classifications)
 
@@ -246,7 +246,7 @@ def station_classifications():
 @jwt_required_with_management_claim()
 def zones_types():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_zonetypes r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_zonetypes r order by r.notation, r.label")
         rows = cursor.fetchall()
         return jsonify(rows)
 
@@ -255,7 +255,7 @@ def zones_types():
 @jwt_required_with_management_claim()
 def zones_categories():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.label as label, r.id as value from eea_zonecategory r order by r.label")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_zonecategory r order by r.notation, r.label")
         rows = cursor.fetchall()
         return jsonify(rows)
 
@@ -273,10 +273,10 @@ def timesteps():
     type = request.args.get("type", default="aq", type=str)
     with CursorFromPool() as cursor:
         cursor.execute("""
-        select r.label as label, r.id as value
+        select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value
         from eea_times r
         where r.uri ~ %(type)s
-        order by r.label
+        order by r.notation, r.label
         """, {"type": "vocabulary/" + type})
         timesteps = cursor.fetchall()
         return jsonify(timesteps)

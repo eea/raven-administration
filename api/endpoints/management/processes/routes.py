@@ -25,11 +25,11 @@ def processes():
               pr.data_quality_document_id, dqr.id || ' - ' || COALESCE(dqr_obj.label, '') as data_quality_document,
               pr.equivalence_demonstration_document_id, edr.id || ' - ' || COALESCE(edr_obj.label, '') as equivalence_demonstration_document,
               pr.process_document_id, pd.id || ' - ' || COALESCE(pd_obj.label, '') as process_document,
-              pr.measurement_type_id, mt.label as measurement_type,
-              pr.method_id, mm.label as method,
+              pr.measurement_type_id, COALESCE(NULLIF(mt.notation, ''), mt.label) as measurement_type,
+              pr.method_id, COALESCE(NULLIF(mm.notation, ''), mm.label) as method,
               pr.equipment_id, COALESCE(NULLIF(me.notation, ''), me.label) as equipment,
-              pr.analytical_technique_id, at.label as analytical_technique,
-              pr.equivalence_demonstrated_id, ed.label as equivalence_demonstrated,
+              pr.analytical_technique_id, COALESCE(NULLIF(at.notation, ''), at.label) as analytical_technique,
+              pr.equivalence_demonstrated_id, COALESCE(NULLIF(ed.notation, ''), ed.label) as equivalence_demonstrated,
               pr.sampling_point_id, sp.id as sampling_point,
               pr.equipment_identifier
           FROM processes pr

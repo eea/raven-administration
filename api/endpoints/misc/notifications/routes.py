@@ -65,7 +65,7 @@ def missing_values():
                 s.name as station, 
                 COALESCE(NULLIF(p.notation, ''), p.label) as pollutant, 
                 c.notation as concentration, 
-                t.label as timestep, 
+                COALESCE(NULLIF(t.notation, ''), t.label) as timestep, 
                 to_char(sp.to_time,'yyyy-mm-dd HH24:mi') as totime
             from sampling_points sp
             join stations s on sp.station_id = s.id
@@ -93,7 +93,7 @@ def sampling_points():
                 s.name as station, 
                 COALESCE(NULLIF(p.notation, ''), p.label) as pollutant, 
                 c.notation as concentration, 
-                t.label as timestep
+                COALESCE(NULLIF(t.notation, ''), t.label) as timestep
             from sampling_points sp
             join stations s on sp.station_id = s.id
             join eea_pollutants p on sp.pollutant_id = p.id

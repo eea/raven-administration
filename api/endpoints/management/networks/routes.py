@@ -18,7 +18,7 @@ def networks():
         cursor.execute(f"""            
             {with_network_sql}
             SELECT n.id, n.name,
-                   n.administration_level_id, a.label as administration_level
+                   n.administration_level_id, COALESCE(NULLIF(a.notation, ''), a.label) as administration_level
             FROM networks n
             LEFT JOIN eea_administrativelevels a ON n.administration_level_id = a.id
             INNER JOIN network_access na ON n.id = na.id

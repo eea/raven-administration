@@ -182,7 +182,7 @@ def get_document_options():
         cursor.execute("""
             SELECT
                 d.id as value,
-                d.id || ' - ' || dobj.label as text
+                d.id || ' - ' || COALESCE(NULLIF(dobj.notation, ''), dobj.label) as text
             FROM documents d
             LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
             WHERE d.datatable_id = 'assessmentregimezone'

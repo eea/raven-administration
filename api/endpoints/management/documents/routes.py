@@ -46,9 +46,9 @@ def get_all():
         cursor.execute("""
             SELECT 
                 d.id,
-                dt.label as datatable_label,
+                COALESCE(NULLIF(dt.notation, ''), dt.label) as datatable_label,
                 d.datatable_id,
-                dobj.label as documentobject_label,
+                COALESCE(NULLIF(dobj.notation, ''), dobj.label) as documentobject_label,
                 d.documentobject_id,
                 d.documentattachment,
                 d.created_at

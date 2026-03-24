@@ -13,7 +13,7 @@ def aqi():
         sql = """
             select 
                 COALESCE(NULLIF(p.notation, ''), p.label) as pollutant,
-                t.label as timestep, 
+                COALESCE(NULLIF(t.notation, ''), t.label) as timestep, 
                 i.level, 
                 i.description, 
                 i.color, 

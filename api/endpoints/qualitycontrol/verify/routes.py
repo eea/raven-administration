@@ -34,7 +34,7 @@ def datasets():
                     COALESCE (min(aa.c) FILTER (WHERE observationverification_id = 3),0) AS not_verified								
                 from 
                 (
-                  select s.name, p.id, EXTRACT(year FROM o.from_time) as year,EXTRACT(month FROM o.from_time) as month, COALESCE(NULLIF(po.notation, ''), po.label) pollutant, t.label as timestep, o.observationverification_id, count(*) as c
+                  select s.name, p.id, EXTRACT(year FROM o.from_time) as year,EXTRACT(month FROM o.from_time) as month, COALESCE(NULLIF(po.notation, ''), po.label) pollutant, COALESCE(NULLIF(t.notation, ''), t.label) as timestep, o.observationverification_id, count(*) as c
                   from stations s, sampling_points p, observations o,  eea_pollutants po, eea_times t, network_access n
                   where EXTRACT(year FROM o.from_time) = %(year)s
                   and n.id = s.network_id

@@ -21,7 +21,7 @@ def convert():
                 st.id as sta_id, st.name as station, po.notation as pollutant,
                 s.notation as source, cs.source as source_id,
                 sp_unit.notation as target,
-                cs.createdby, ti.label as timestep
+                cs.createdby, COALESCE(NULLIF(ti.notation, ''), ti.label) as timestep
             from converted_series cs
             join eea_concentrations s on cs.source = s.id
             join sampling_points p on cs.sampling_point_id = p.id
@@ -153,7 +153,7 @@ def convert_download():
         cursor.execute(f"""
             {with_network_sql}
             select
-                st.name as station, po.notation as pollutant, ti.label as timestep,
+                st.name as station, po.notation as pollutant, COALESCE(NULLIF(ti.notation, ''), ti.label) as timestep,
                 s.notation as source,
                 t.notation as target,
                 cs.factor::double PRECISION as factor

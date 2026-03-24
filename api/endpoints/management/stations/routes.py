@@ -18,7 +18,7 @@ def stations():
           {with_network_sql} 
           SELECT st.id, st.eoi_code, st.name, st.national_code,
                  st.latitude, st.longitude, st.altitude, st.supersite,
-                 st.area_classification_id, ac.label as area_classification,
+                 st.area_classification_id, COALESCE(NULLIF(ac.notation, ''), ac.label) as area_classification,
                  st.network_id, n.name as network,
                  st.document_id, d.id || ' - ' || COALESCE(dobj.label, '') as document
           FROM stations st

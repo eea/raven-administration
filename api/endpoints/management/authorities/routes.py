@@ -19,9 +19,9 @@ def authorities():
         cursor.execute("""          
           SELECT a.id, a.person_name, a.email, a.organisation_name, a.organisation_url, 
                  a.organisation_address, 
-                 a.instance_id, i.label as instance,
-                 a.object_id, o.label as object,
-                 a.status_id, s.label as status
+                 a.instance_id, COALESCE(NULLIF(i.notation, ''), i.label) as instance,
+                 a.object_id, COALESCE(NULLIF(o.notation, ''), o.label) as object,
+                 a.status_id, COALESCE(NULLIF(s.notation, ''), s.label) as status
           FROM authorities a 
           LEFT JOIN eea_authorityinstance i ON a.instance_id = i.id
           LEFT JOIN eea_authorityobject o ON a.object_id = o.id

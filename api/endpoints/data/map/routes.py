@@ -66,10 +66,10 @@ def map():
                 o.observationvalidity_id AS validity_id,
                 o.observationverification_id AS verification_id,
                 COALESCE(NULLIF(p.notation, ''), p.label) AS pollutant,
-                t.label AS timestep,
+                COALESCE(NULLIF(t.notation, ''), t.label) AS timestep,
                 u.notation AS unit,
-                ac.label AS area_classification,
-                sc.label AS station_classification,
+        ac.notation as area_classification,
+                sc.notation as station_classification,
                 {aqi_level},
                 {aqi_description},
                 {aqi_color}
