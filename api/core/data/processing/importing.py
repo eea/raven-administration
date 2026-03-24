@@ -51,6 +51,8 @@ class Importing:
     @staticmethod
     def set_import_value(df_values: DataFrame):
         bench = time.perf_counter()
+        # Replace empty strings, None, and NaN with the sentinel value -9900
+        df_values["value"] = pd.to_numeric(df_values["value"], errors="coerce").fillna(-9900)
         df_values["import_value"] = df_values["value"]
         df_values["scaled_value"] = None
         printcol(f"- Setting import value took {time.perf_counter() - bench} seconds")
