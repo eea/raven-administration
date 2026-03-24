@@ -20,10 +20,12 @@ def latest():
                 o.observationvalidity_id,
                 o.observationverification_id,
                 COALESCE(NULLIF(p.notation, ''), p.label) AS pollutant,
-                t.label              AS timestep,
+                t.notation           AS timestep,
                 s.name               AS station,
                 n.name               AS network,
                 u.notation           AS unit,
+                COALESCE(NULLIF(me.notation, ''), me.label) AS equipment,
+                pr.equipment_identifier,
                 CASE
                     WHEN sp.to_time > NOW() - INTERVAL '3 hours'  THEN 0
                     WHEN sp.to_time > NOW() - INTERVAL '6 months' THEN 1
@@ -46,6 +48,15 @@ def latest():
                 JOIN stations            s  ON sp.station_id       = s.id
                 JOIN network_access      n  ON s.network_id        = n.id
                 JOIN eea_concentrations  u  ON sp.unit_id          = u.id
+                LEFT JOIN (
+                    SELECT DISTINCT ON (pr.sampling_point_id)
+                        pr.sampling_point_id,
+                        pr.equipment_identifier,
+                        pr.equipment_id
+                    FROM processes pr
+                    ORDER BY pr.sampling_point_id, pr.activity_begin DESC
+                ) pr ON pr.sampling_point_id = sp.id
+                LEFT JOIN eea_measurementequipments me ON me.id = pr.equipment_id
                 
                 LEFT JOIN public.aqi AS a_local
                     ON a_local.pollutant_id    = sp.pollutant_id

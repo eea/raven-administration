@@ -10,6 +10,7 @@ import Plot, { palette } from "./plot";
 
 import { format, sub, isAfter, isBefore, startOfWeek } from "date-fns";
 import { groupBy } from "../../../helpers/utils";
+import { datetimeCellRenderer, granularityFromHistoricalRow } from "../../../helpers/datetimeHighlight";
 import Eventy from "../../../helpers/eventy";
 import IconCalendar from "~icons/ic/round-access-time";
 import IconModify from "~icons/material-symbols/tune";
@@ -230,8 +231,8 @@ const gridDataColumns = computed(() => {
     { headerName: "Timestep", flex: 0.5, filter: true, valueGetter: (params) => (params.data?.meantype === 0 || params.data?.meantype === 1000 ? params.data?.timestep : params.data?.meantype_string) },
     { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
     { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true },
-    { field: "datetime_begin", headerName: "From", flex: 1, filter: true, hide: !isRawOrOriginal },
-    { field: "datetime", headerName: isRawOrOriginal ? "To" : "Datetime", flex: 1, filter: true, sort: "desc" },
+    { field: "datetime_begin", headerName: "From", flex: 1, filter: true, hide: !isRawOrOriginal, cellRenderer: datetimeCellRenderer(granularityFromHistoricalRow) },
+    { field: "datetime", headerName: isRawOrOriginal ? "To" : "Datetime", flex: 1, filter: true, sort: "desc", cellRenderer: datetimeCellRenderer(granularityFromHistoricalRow) },
     { field: "actual_value", headerName: "Value", flex: 0.5, filter: true },
     { field: "coverage", headerName: "Coverage", flex: 0.5, filter: true },
     { field: "valid", headerName: "Valid", flex: 0.5, cellRenderer: (params) => (params.value ? "✓" : "✗"), cellStyle: (params) => ({ color: params.value ? "#a3be8c" : "#bf616a", fontWeight: "bold", textAlign: "center" }) }

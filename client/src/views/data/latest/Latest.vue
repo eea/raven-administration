@@ -9,6 +9,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { format, sub, add } from "date-fns";
 import Service from "./service";
 import { filterList, downloadCsv } from "../../../helpers/utils";
+import { datetimeCellRenderer, granularityFromTimestep } from "../../../helpers/datetimeHighlight";
 
 import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
@@ -29,11 +30,12 @@ const createColumns = () => {
     { field: "station", headerName: "Station", flex: 1 },
     { field: "pollutant", headerName: "Pollutant/Meteo", flex: 1 },
     { field: "timestep", headerName: "Timestep", flex: 0.8 },
-    { field: "from_time", headerName: "First date", flex: 1 },
+    { field: "from_time", headerName: "First date", flex: 1, cellRenderer: datetimeCellRenderer((row) => granularityFromTimestep(row?.timestep)) },
     {
       field: "to_time",
       headerName: "Latest date",
       flex: 1,
+      cellRenderer: datetimeCellRenderer((row) => granularityFromTimestep(row?.timestep)),
       cellStyle: (params) => {
         if (params.data.status == 1) return { color: "#d08770" };
         if (params.data.status == 2) return { color: "#bf616a" };
