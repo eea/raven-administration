@@ -200,7 +200,7 @@ def processtypevalues():
 @jwt_required_with_management_claim()
 def pollutants():
     with CursorFromPool() as cursor:
-        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.uri as value from eea_pollutants r order by LOWER(r.notation), LOWER(r.label)")
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) || ' (' || r.id || ')' as label, r.uri as value from eea_pollutants r order by LOWER(r.notation), LOWER(r.label)")
         pollutants = cursor.fetchall()
         return jsonify(pollutants)
 
@@ -210,7 +210,7 @@ def pollutants():
 def aqipollutants():
     with CursorFromPool() as cursor:
         pollutants_to_select = ['PM10', 'PM2.5', 'NO2', 'O3', 'SO2']
-        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_pollutants r where r.notation in %(pollutants_to_select)s order by r.notation", {"pollutants_to_select": tuple(pollutants_to_select)})
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) || ' (' || r.id || ')' as label, r.id as value from eea_pollutants r where r.notation in %(pollutants_to_select)s order by r.notation", {"pollutants_to_select": tuple(pollutants_to_select)})
         pollutants = cursor.fetchall()
         return jsonify(pollutants)
 
