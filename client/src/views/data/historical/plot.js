@@ -29,7 +29,7 @@ const Plot = {
         maintainAspectRatio: false,
         interaction: {
           intersect: false,
-          mode: "nearest",
+          mode: "index",
           axis: "x"
         },
         plugins: {
@@ -73,6 +73,20 @@ const Plot = {
       offset: true,
       adapters: {
         date: { zone: "UTC" }
+      },
+      time: {
+        tooltipFormat: "yyyy-MM-dd HH",
+        displayFormats: {
+          millisecond: "HH:mm:ss",
+          second: "HH:mm:ss",
+          minute: "yyyy-MM-dd HH:mm",
+          hour: "yyyy-MM-dd HH",
+          day: "yyyy-MM-dd",
+          week: "yyyy-MM-dd",
+          month: "yyyy-MM",
+          quarter: "yyyy-MM",
+          year: "yyyy"
+        }
       },
       ticks: {
         major: {
