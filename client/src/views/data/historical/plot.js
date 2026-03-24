@@ -19,9 +19,9 @@ const hexToRgba = (hex, alpha) => {
 };
 
 const Plot = {
-  config: (axes, beginAtZero = false) => {
+  config: (axes, beginAtZero = false, chartType = "line") => {
     return {
-      type: "line",
+      type: chartType,
       data: [],
       options: {
         animation: false,
@@ -60,6 +60,7 @@ const Plot = {
         datasets: {
           line: {
             pointRadius: 1,
+            pointHoverRadius: 3,
             borderWidth: 2
           }
         }
@@ -120,5 +121,5 @@ const Plot = {
     return d;
   }
 };
-export { palette };
+export { palette, hexToRgba };
 export default Plot;

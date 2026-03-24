@@ -6,7 +6,7 @@ import Service from "./service";
 import Chart from "chart.js/auto";
 import "chartjs-adapter-luxon";
 import zoomPlugin from "chartjs-plugin-zoom";
-import Plot, { palette } from "./plot";
+import Plot, { palette, hexToRgba } from "./plot";
 
 import { format, sub, isAfter, isBefore, startOfWeek } from "date-fns";
 import { groupBy } from "../../../helpers/utils";
@@ -46,6 +46,7 @@ const meantypeLabel = computed(() => {
 
 const showPlot = ref(false);
 const legendItems = ref([]);
+const hoveredLegendIndex = ref(-1);
 
 const route = useRoute();
 const gridData = ref([]);
@@ -77,7 +78,7 @@ const updateChart = () => {
   chart.destroy();
 
   var axes = getAxes(gridData.value);
-  let config = Plot.config(axes, beginAtZero.value);
+  let config = Plot.config(axes, beginAtZero.value, plotType.value);
   chart = new Chart("chart", config);
 
   chart.data = formatValues(gridData.value, axes);
@@ -110,7 +111,7 @@ const plotData = async () => {
   collapsed.value = true;
 
   var axes = getAxes(gridData.value);
-  let config = Plot.config(axes, beginAtZero.value);
+  let config = Plot.config(axes, beginAtZero.value, plotType.value);
   chart = new Chart("chart", config);
 
   chart.data = formatValues(gridData.value, axes);
@@ -195,6 +196,50 @@ const toggleSeries = (i) => {
   chart.setDatasetVisibility(i, !visible);
   chart.update();
   legendItems.value[i].hidden = visible;
+};
+
+const onLegendHover = (i) => {
+  if (!chart || legendItems.value[i].hidden) return;
+  hoveredLegendIndex.value = i;
+  chart.data.datasets.forEach((dataset, idx) => {
+    const color = legendItems.value[idx].color;
+    const faded = hexToRgba(color, 0.2);
+    const isBar = dataset.type === "bar";
+    if (idx === i) {
+      dataset.borderColor = color;
+      dataset.backgroundColor = color;
+      dataset.pointBackgroundColor = color;
+      dataset.pointBorderColor = color;
+      dataset.borderWidth = 3;
+      dataset.pointRadius = 1;
+      dataset.pointHoverRadius = 3;
+    } else {
+      dataset.borderColor = faded;
+      dataset.backgroundColor = faded;
+      dataset.pointBackgroundColor = faded;
+      dataset.pointBorderColor = faded;
+      dataset.borderWidth = 1;
+      dataset.pointRadius = 0;
+      dataset.pointHoverRadius = 0;
+    }
+  });
+  chart.update();
+};
+
+const onLegendLeave = () => {
+  if (!chart) return;
+  hoveredLegendIndex.value = -1;
+  chart.data.datasets.forEach((dataset, idx) => {
+    const color = legendItems.value[idx].color;
+    dataset.borderColor = color;
+    dataset.backgroundColor = color;
+    dataset.pointBackgroundColor = color;
+    dataset.pointBorderColor = color;
+    dataset.borderWidth = 2;
+    dataset.pointRadius = 1;
+    dataset.pointHoverRadius = 3;
+  });
+  chart.update();
 };
 
 const cmp_timeseries = computed(() => {
@@ -380,7 +425,7 @@ const onTimeseriesSelectionChanged = (rows) => {
     <Container v-show="showPlot" class="mt-4 p-4! w-full h-96">
       <div class="flex justify-between mb-2 gap-4">
         <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <div v-for="(item, i) in legendItems" :key="item.label" class="flex items-center gap-1.5 cursor-pointer select-none" :style="{ opacity: item.hidden ? 0.35 : 1 }" @click="toggleSeries(i)">
+          <div v-for="(item, i) in legendItems" :key="item.label" class="flex items-center gap-1.5 cursor-pointer select-none" :style="{ opacity: item.hidden ? 0.35 : (hoveredLegendIndex === -1 || hoveredLegendIndex === i ? 1 : 0.35) }" @click="toggleSeries(i)" @mouseenter="onLegendHover(i)" @mouseleave="onLegendLeave">
             <div :style="{ width: '8px', height: '8px', borderRadius: '50%', background: item.color, flexShrink: 0 }"></div>
             <span class="text-xs text-nord3">{{ item.label }}</span>
           </div>
