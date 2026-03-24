@@ -22,7 +22,7 @@ class Q:
                 and sp.pollutant_id = p.id
                 and sp.time_resolution_id = t.id
                 and sp.unit_id = u.id
-                order by s.name, p.notation, t.label
+                order by LOWER(s.name), LOWER(p.notation), LOWER(t.label)
             """)
             return cursor.fetchall()
 
@@ -39,7 +39,7 @@ class Q:
                 and sp.pollutant_id = p.id
                 and sp.time_resolution_id = t.id
                 and sp.unit_id = u.id
-                order by LOWER(s.name), p.notation, t.label
+                order by LOWER(s.name), LOWER(p.notation), LOWER(t.label)
             """, n_param)
             return cursor.fetchall()
 
@@ -120,7 +120,7 @@ class Q:
     @staticmethod
     def timezones():
         with CursorFromPool() as cursor:
-            cursor.execute("select r.notation as label, r.id as value from eea_timezones r order by r.notation")
+            cursor.execute("select r.notation as label, r.id as value from eea_timezones r order by LOWER(r.notation)")
             return cursor.fetchall()
 
     @staticmethod
@@ -210,7 +210,7 @@ class Q:
         with CursorFromPool() as cursor:
             exclude_clause = "WHERE id NOT IN %(exclude_ids)s" if exclude_ids else ""
             cursor.execute(f"""
-                SELECT id as value, COALESCE(NULLIF(notation, ''), label) as label 
+                SELECT id as value, COALESCE(NULLIF(notation, ''), label) || ' (' || id || ')' as label 
                 FROM eea_pollutants 
                 {exclude_clause}
                 ORDER BY LOWER(COALESCE(NULLIF(notation, ''), label))

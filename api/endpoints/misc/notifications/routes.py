@@ -74,7 +74,7 @@ def missing_values():
             join eea_times t on sp.time_resolution_id = t.id
             where sp.to_time is not null
             and sp.to_time < now() - interval '3 hours'
-            order by station, pollutant
+            order by LOWER(station), LOWER(pollutant)
 
         """
         cursor.execute(sql)
@@ -99,7 +99,7 @@ def sampling_points():
             join eea_pollutants p on sp.pollutant_id = p.id
             join eea_concentrations c on sp.unit_id = c.id
             join eea_times t on sp.time_resolution_id = t.id
-            order by station, pollutant
+            order by LOWER(station), LOWER(pollutant)
         """
         cursor.execute(sql)
         rows = cursor.fetchall()

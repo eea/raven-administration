@@ -59,7 +59,7 @@ def statistics_pollutants_and_aggregation_process():
         JOIN eea_aggregationprocess ap
           ON s.aggregation_process_id = ap.id
         GROUP BY pol.notation
-        ORDER BY pollutant;
+        ORDER BY LOWER(pollutant);
         """)
         result = cursor.fetchall()
 

@@ -339,7 +339,7 @@ class Statistics:
                 AND EXTRACT(YEAR FROM o.time) = %(year)s
                 AND o.val IS NOT NULL
             GROUP BY asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant, year_info.total_days
-            ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+            ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
             """
             self.cursor.execute(sql, {
                 "aggregation_process": "P1Y-day-max",
@@ -370,7 +370,7 @@ class Statistics:
                 AND EXTRACT(YEAR FROM o.time) = %(year)s
                 AND o.val IS NOT NULL
             GROUP BY asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant, year_info.total_days
-            ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+            ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
             """
             self.cursor.execute(sql, {
                 "aggregation_process": "P1Y-day-max",
@@ -415,7 +415,7 @@ class Statistics:
                 AND EXTRACT(YEAR FROM o.time) = %(year)s
                 AND o.val IS NOT NULL
             GROUP BY asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant, year_info.total_days
-            ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+            ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
             """
             self.cursor.execute(sql, {
                 "aggregation_process": "P1Y-day-min",
@@ -446,7 +446,7 @@ class Statistics:
                 AND EXTRACT(YEAR FROM o.time) = %(year)s
                 AND o.val IS NOT NULL
             GROUP BY asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant, year_info.total_days
-            ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+            ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
             """
             self.cursor.execute(sql, {
                 "aggregation_process": "P1Y-day-min",
@@ -490,7 +490,7 @@ class Statistics:
             AND o.val IS NOT NULL
             AND o.cov >= %(coverage)s
         GROUP BY asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant, year_info.total_days
-        ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+        ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
         """
         self.cursor.execute(sql, {
             "aggregation_process": "P1Y-P1D-per99",
@@ -692,7 +692,7 @@ class Statistics:
             ROUND((COALESCE(aggregated.years_with_data, 0)::numeric / 3) * 100, 2) as coverage
         FROM all_sampling_points asp
         LEFT JOIN aggregated ON aggregated.spo = asp.spo
-        ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+        ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
         """
         self.cursor.execute(sql, {
             "aggregation_process": "P3Y-dmaxAbove120",
@@ -763,7 +763,7 @@ class Statistics:
         FROM all_sampling_points asp
         CROSS JOIN year_info
         LEFT JOIN aggregated ON aggregated.spo = asp.spo
-        ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+        ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
         """
         self.cursor.execute(sql, {
             "aggregation_process": "SOMO10",
@@ -831,7 +831,7 @@ class Statistics:
         FROM all_sampling_points asp
         CROSS JOIN year_info
         LEFT JOIN aggregated ON aggregated.spo = asp.spo
-        ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+        ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
         """
         self.cursor.execute(sql, {
             "aggregation_process": "SOMO35",
@@ -979,7 +979,7 @@ class Statistics:
             COALESCE(yc.years_available, ARRAY[]::integer[]) as years_available
         FROM all_sampling_points asp
         LEFT JOIN yearly_counts yc ON asp.spo = yc.spo
-        ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+        ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
         """
 
         self.cursor.execute(sql, {
@@ -1032,7 +1032,7 @@ class Statistics:
         FROM all_sampling_points asp
         LEFT JOIN {table_name} o ON o.sampling_point_id = asp.spo 
             AND EXTRACT(YEAR FROM o.time) = %(year)s
-        ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+        ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
         """
         return sql
 
@@ -1072,7 +1072,7 @@ class Statistics:
             AND EXTRACT(YEAR FROM o.time) = %(year)s
             AND o.{value_column} IS NOT NULL
         GROUP BY asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant, expected_info.expected_count
-        ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+        ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
         """
         return sql
 
@@ -1108,7 +1108,7 @@ class Statistics:
             AND EXTRACT(YEAR FROM o.time) = %(year)s
             AND o.{value_column} IS NOT NULL
         GROUP BY asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant, year_info.total_days
-        ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+        ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
         """
         return sql
 
@@ -1142,7 +1142,7 @@ class Statistics:
             JOIN {table_name} o ON o.sampling_point_id = asp.spo 
                 AND EXTRACT(YEAR FROM o.time) = %(year)s
                 AND o.val IS NOT NULL
-            ORDER BY asp.spo, o.time
+            ORDER BY LOWER(asp.spo), o.time
         ),
         valid_day_counts AS (
             SELECT 
@@ -1186,7 +1186,7 @@ class Statistics:
         CROSS JOIN expected_info
         LEFT JOIN period_counts pc ON asp.spo = pc.spo
         LEFT JOIN valid_day_counts vdc ON asp.spo = vdc.spo
-        ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+        ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
         """
 
         return sql
@@ -1278,7 +1278,7 @@ class Statistics:
         FROM all_sampling_points asp
         CROSS JOIN expected_info
         LEFT JOIN aggregated ON aggregated.spo = asp.spo
-        ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+        ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
         """
         return sql
 
@@ -1318,7 +1318,7 @@ class Statistics:
             AND o.value IS NOT NULL
             AND o.validation_flag >= 1
         GROUP BY asp.network, asp.eoi, asp.station, asp.code, asp.spo, asp.pollutant, expected_info.expected_hours
-        ORDER BY asp.network, asp.station, asp.spo, asp.pollutant;
+        ORDER BY LOWER(asp.network), LOWER(asp.station), LOWER(asp.spo), LOWER(asp.pollutant);
         """
         return sql
 

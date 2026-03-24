@@ -17,7 +17,7 @@ def autovalidate():
             select v.id, v.min, v.max, v.rep, v.enabled, p.notation as pollutant, p.id as pollutant_id
             from autovalidated_series v, eea_pollutants p
             where v.pollutant_id = p.id
-            order by p.notation
+            order by LOWER(p.notation)
         """)
         autovalidations = cursor.fetchall()
         return jsonify(autovalidations)

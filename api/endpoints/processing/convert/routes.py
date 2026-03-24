@@ -114,7 +114,7 @@ def convert_units():
         cursor.execute("""
             select p.notation as label, p.id as value
             from eea_concentrations p 
-            order by p.notation
+            order by LOWER(p.notation)
         """)
         units = cursor.fetchall()
         return jsonify(units)
@@ -137,7 +137,7 @@ def convert_timeseries():
             JOIN eea_times t ON sp.time_resolution_id = t.id
             JOIN eea_concentrations u ON sp.unit_id = u.id
             WHERE sp.id NOT IN (SELECT sampling_point_id FROM converted_series)
-            ORDER BY LOWER(s.name), p.notation, t.label
+            ORDER BY LOWER(s.name), LOWER(p.notation), LOWER(t.label)
         """, n_param)
         return jsonify(cursor.fetchall())
 
@@ -166,7 +166,7 @@ def convert_download():
             and p.station_id = st.id
             and p.pollutant_id = po.id
             and p.time_resolution_id = ti.id
-            order by LOWER(st.name), po.notation, ti.label
+            order by LOWER(st.name), LOWER(po.notation), LOWER(ti.label)
         """, n_param)
         conversions = cursor.fetchall()
         return download_csv(conversions, "conversions.csv")

@@ -26,7 +26,7 @@ def preagg():
             select 'aot40 forrest' as type, round(avg(cov)) as avg_cov, count(*) as count_val, count(distinct sampling_point_id) count_sp, to_char(min(time),'yyyy-mm-dd HH24:mi') as first_time, to_char(max(time),'yyyy-mm-dd HH24:mi') as last_time, to_char(max(created),'yyyy-mm-dd HH24:mi') as created from observations_aot40f
             union
             select 'day 8h max' as type, round(avg(cov)) as avg_cov, count(*) as count_val, count(distinct sampling_point_id) count_sp, to_char(min(time),'yyyy-mm-dd HH24:mi') as first_time, to_char(max(time),'yyyy-mm-dd HH24:mi') as last_time, to_char(max(created),'yyyy-mm-dd HH24:mi') as created from observations_day_8hmax
-            order by type
+            order by LOWER(type)
         """
         cursor.execute(sql)
         values = cursor.fetchall()

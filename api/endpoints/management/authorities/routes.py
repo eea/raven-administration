@@ -37,13 +37,13 @@ def authorities():
 @jwt_required_with_allnetworks_claim()
 def authorities_lookups():
     with CursorFromPool() as cursor:
-        cursor.execute("SELECT id as value, label FROM eea_authorityinstance ORDER BY label")
+        cursor.execute("SELECT id as value, label FROM eea_authorityinstance ORDER BY LOWER(label)")
         instances = cursor.fetchall()
         
-        cursor.execute("SELECT id as value, label FROM eea_authorityobject ORDER BY label")
+        cursor.execute("SELECT id as value, label FROM eea_authorityobject ORDER BY LOWER(label)")
         objects = cursor.fetchall()
         
-        cursor.execute("SELECT id as value, label FROM eea_authoritystatus ORDER BY label")
+        cursor.execute("SELECT id as value, label FROM eea_authoritystatus ORDER BY LOWER(label)")
         statuses = cursor.fetchall()
         
         return jsonify({

@@ -86,7 +86,7 @@ def exceedances():
               er.label,
               ed.adjustment_source,
               es.label
-          ORDER BY a.name
+          ORDER BY LOWER(a.name)
         """)
 
         exceedances = cursor.fetchall()

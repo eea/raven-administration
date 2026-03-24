@@ -168,7 +168,7 @@ def timeseries():
                 and sp.unit_id = u.id
                 and sp.from_time is not null
                 and sp.to_time is not null
-                order by s.name, p.notation, t.label
+                order by LOWER(s.name), LOWER(p.notation), LOWER(t.label)
             ),
             scaling_points_with_timeseries as (
                 select distinct sampling_point_id as id from scaling_points

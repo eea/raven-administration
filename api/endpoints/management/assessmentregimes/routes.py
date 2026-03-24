@@ -99,7 +99,7 @@ def assessmentregimes():
               ar.thresholdclassificationyear,
               ar.thresholdclassificationreport ,
               ar.include
-          ORDER BY z.name, po.notation, ar.objecttype, ar.reportingmetric, ar.protectiontarget, ar.thresholdclassificationyear
+          ORDER BY LOWER(z.name), LOWER(po.notation), ar.objecttype, ar.reportingmetric, ar.protectiontarget, ar.thresholdclassificationyear
         """
         )
 
@@ -136,7 +136,7 @@ def samplingpoints():
           and sp.pollutant_id = po.id
           and sp.time_resolution_id = t.id
           and sp.unit_id = u.id
-          order by s.name, po.notation, t.label
+          order by LOWER(s.name), LOWER(po.notation), LOWER(t.label)
         """)
 
         assessmentregimes = cursor.fetchall()

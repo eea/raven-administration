@@ -48,10 +48,10 @@ def stations_lookups():
         """, n_param)
         networks = cursor.fetchall()
         
-        cursor.execute("SELECT id as value, label FROM eea_areaclassifications ORDER BY label")
+        cursor.execute("SELECT id as value, label FROM eea_areaclassifications ORDER BY LOWER(label)")
         areaclassifications = cursor.fetchall()
         
-        cursor.execute("SELECT id as value, label FROM eea_spocategory ORDER BY label")
+        cursor.execute("SELECT id as value, label FROM eea_spocategory ORDER BY LOWER(label)")
         spocategories = cursor.fetchall()
         
         cursor.execute("""

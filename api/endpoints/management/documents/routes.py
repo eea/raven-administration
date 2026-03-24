@@ -20,7 +20,7 @@ def get_lookups():
         cursor.execute("""
             SELECT id as value, label
             FROM eea_datatable
-            ORDER BY label
+            ORDER BY LOWER(label)
         """)
         datatables = cursor.fetchall()
 
@@ -28,7 +28,7 @@ def get_lookups():
         cursor.execute("""
             SELECT id as value, label
             FROM eea_documentobject
-            ORDER BY label
+            ORDER BY LOWER(label)
         """)
         documentobjects = cursor.fetchall()
 

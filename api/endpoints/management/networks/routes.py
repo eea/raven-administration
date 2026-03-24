@@ -33,7 +33,7 @@ def networks():
 @jwt_required_with_allnetworks_claim()
 def networks_lookups():
     with CursorFromPool() as cursor:
-        cursor.execute("SELECT id as value, label FROM eea_administrativelevels ORDER BY label")
+        cursor.execute("SELECT id as value, label FROM eea_administrativelevels ORDER BY LOWER(label)")
         levels = cursor.fetchall()
         
         return jsonify({

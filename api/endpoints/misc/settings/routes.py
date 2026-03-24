@@ -25,10 +25,10 @@ def settings():
 @jwt_required_with_allnetworks_claim()
 def settings_lookups():
     with CursorFromPool() as cursor:
-        cursor.execute("SELECT id as value, label FROM eea_countries ORDER BY label")
+        cursor.execute("SELECT id as value, label FROM eea_countries ORDER BY LOWER(label)")
         countries = cursor.fetchall()
         
-        cursor.execute("SELECT id as value, label FROM eea_timezones ORDER BY label")
+        cursor.execute("SELECT id as value, label FROM eea_timezones ORDER BY LOWER(label)")
         timezones = cursor.fetchall()
         
         return jsonify({

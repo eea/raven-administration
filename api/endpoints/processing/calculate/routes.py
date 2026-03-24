@@ -153,7 +153,7 @@ def calculate_download():
             and cs.primary = spo_pri.id
             and cs.secondary = spo_sec.id
             and cs.result = spo_res.id
-            order by spo_pri.station, spo_pri.notation
+            order by LOWER(spo_pri.station), LOWER(spo_pri.notation)
         """, n_param)
         calculations = cursor.fetchall()
         return download_csv(calculations, "calculations.csv")

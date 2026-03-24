@@ -67,19 +67,19 @@ def processes_lookups():
         """, n_param)
         sampling_points = cursor.fetchall()
         
-        cursor.execute("SELECT id as value, label FROM eea_measurementtypes ORDER BY label")
+        cursor.execute("SELECT id as value, label FROM eea_measurementtypes ORDER BY LOWER(label)")
         measurement_types = cursor.fetchall()
         
-        cursor.execute("SELECT id as value, label FROM eea_measurementmethods ORDER BY label")
+        cursor.execute("SELECT id as value, label FROM eea_measurementmethods ORDER BY LOWER(label)")
         methods = cursor.fetchall()
         
         cursor.execute("SELECT id as value, COALESCE(NULLIF(notation, ''), label) as label FROM eea_measurementequipments ORDER BY LOWER(COALESCE(NULLIF(notation, ''), label))")
         equipments = cursor.fetchall()
         
-        cursor.execute("SELECT id as value, label FROM eea_analyticaltechnique ORDER BY label")
+        cursor.execute("SELECT id as value, label FROM eea_analyticaltechnique ORDER BY LOWER(label)")
         analytical_techniques = cursor.fetchall()
         
-        cursor.execute("SELECT id as value, label FROM eea_equivalencedemonstrated ORDER BY label")
+        cursor.execute("SELECT id as value, label FROM eea_equivalencedemonstrated ORDER BY LOWER(label)")
         equivalence_demonstrated = cursor.fetchall()
         
         cursor.execute("""

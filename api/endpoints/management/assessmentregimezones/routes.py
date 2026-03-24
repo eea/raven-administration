@@ -167,7 +167,7 @@ def get_exceedance_options():
                 notation as text,
                 label
             FROM eea_assessmentthresholdexceedances
-            ORDER BY notation
+            ORDER BY LOWER(notation)
         """)
         options = cursor.fetchall()
         return jsonify(options)

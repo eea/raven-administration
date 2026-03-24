@@ -66,10 +66,10 @@ def samplingpoints_lookups():
         cursor.execute("SELECT id as value, COALESCE(NULLIF(notation, ''), label) as label FROM eea_times ORDER BY COALESCE(NULLIF(notation, ''), label)")
         time_resolutions = cursor.fetchall()
         
-        cursor.execute("SELECT id as value, notation as label FROM eea_concentrations ORDER BY notation")
+        cursor.execute("SELECT id as value, notation as label FROM eea_concentrations ORDER BY LOWER(notation)")
         units = cursor.fetchall()
         
-        cursor.execute("SELECT id as value, label FROM eea_spocategory ORDER BY label")
+        cursor.execute("SELECT id as value, label FROM eea_spocategory ORDER BY LOWER(label)")
         spocategories = cursor.fetchall()
         
         return jsonify({

@@ -32,7 +32,7 @@ def attainments():
             ar.name ,
             a.assessmentregime_id ,
             a.comment
-          order by name
+          order by LOWER(name)
         """)
         assessment_regimes = cursor.fetchall()
         return jsonify(assessment_regimes)

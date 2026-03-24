@@ -566,7 +566,7 @@ class Exceedances:
                 FROM assessmentregimes ar
                 JOIN eea_pollutants p ON p.uri = ar.pollutant
                 WHERE ar.zoneid = %s AND ar.include = true
-                ORDER BY p.notation, ar.objecttype, ar.reportingmetric
+                ORDER BY LOWER(p.notation), ar.objecttype, ar.reportingmetric
             """, (zone_id,))
         
         return self.cursor.fetchall()

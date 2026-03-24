@@ -68,7 +68,7 @@ def groups():
                 left join usergroup ug on ug.groupid = g.id
                 left join groupnetwork gn on gn.groupid = g.id
             group by g.id, g.name, g.management, g.data, g.exporting, g.processing, g.qualitycontrol, g.allnetworks, g.users
-            order by g.name
+            order by LOWER(g.name)
         """
         cursor.execute(sql)
         groups = cursor.fetchall()
@@ -107,7 +107,7 @@ def networks():
         sql = """
             select id as value, name as label
             from networks
-            order by name
+            order by LOWER(name)
         """
         cursor.execute(sql)
         networks = cursor.fetchall()
