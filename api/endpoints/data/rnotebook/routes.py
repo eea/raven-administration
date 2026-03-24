@@ -187,11 +187,13 @@ def r_import_file():
         return jsonify({"msg": str(e)}), 500
     
 @r_notebook_endpoint.route('/api/rnotebook/rfiles', methods=['GET'])
+@jwt_required()
 def list_rfiles():
     files = [f for f in os.listdir(RFILES_DIR) if f.endswith('.R')]
     return jsonify(files)
 
 @r_notebook_endpoint.route('/api/rnotebook/rfiles/<filename>', methods=['GET'])
+@jwt_required()
 def get_rfile(filename):
     path = os.path.join(RFILES_DIR, filename)
     if not os.path.isfile(path):
@@ -202,6 +204,7 @@ def get_rfile(filename):
     return jsonify({'filename': filename, 'content': content})
 
 @r_notebook_endpoint.route('/api/rnotebook/rfiles', methods=['POST'])
+@jwt_required()
 def save_rfile():
     data = request.get_json()
     filename = data.get('filename')
@@ -217,6 +220,7 @@ def save_rfile():
     return jsonify({'success': True, 'filename': filename})
 
 @r_notebook_endpoint.route('/api/rnotebook/rfiles/<filename>', methods=['PUT'])
+@jwt_required()
 def update_rfile(filename):
     data = request.get_json()
     content = data.get('content')
@@ -232,6 +236,7 @@ def update_rfile(filename):
     return jsonify({'success': True, 'filename': filename})
 
 @r_notebook_endpoint.route('/api/rnotebook/rfiles/<filename>', methods=['DELETE'])
+@jwt_required()
 def delete_rfile(filename):
     path = os.path.join(RFILES_DIR, filename)
     if not os.path.isfile(path):
