@@ -162,4 +162,4 @@ dmypy.json
 
 ddl*
 test_scripts*
-tmp
+tmp*
