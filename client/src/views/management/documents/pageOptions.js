@@ -7,7 +7,7 @@ const pageOptions = (lookups) => {
         prop: "id",
         required: true,
         default: null,
-        enableInEdit: false, // Cannot change ID after creation
+        enableInEdit: false,
         showInGrid: true
       },
       {
@@ -27,15 +27,6 @@ const pageOptions = (lookups) => {
         prop_id: "documentobject_id",
         prop: "documentobject_label",
         lookup: "documentobjects",
-        required: true,
-        default: null,
-        enableInEdit: true,
-        showInGrid: true
-      },
-      {
-        type: "text",
-        label: "Document Attachment",
-        prop: "documentattachment",
         required: true,
         default: null,
         enableInEdit: true,

@@ -50,7 +50,6 @@ def get_all():
                 d.datatable_id,
                 COALESCE(NULLIF(dobj.notation, ''), dobj.label) as documentobject_label,
                 d.documentobject_id,
-                d.documentattachment,
                 d.created_at
             FROM documents d
             LEFT JOIN eea_datatable dt ON d.datatable_id = dt.id
@@ -73,13 +72,11 @@ def insert():
             INSERT INTO documents (
                 id,
                 datatable_id,
-                documentobject_id,
-                documentattachment
+                documentobject_id
             ) VALUES (
                 %(id)s,
                 %(datatable_id)s,
-                %(documentobject_id)s,
-                %(documentattachment)s
+                %(documentobject_id)s
             )
         """, doc.dict())
 
@@ -103,8 +100,7 @@ def update():
             UPDATE documents
             SET 
                 datatable_id = %(datatable_id)s,
-                documentobject_id = %(documentobject_id)s,
-                documentattachment = %(documentattachment)s
+                documentobject_id = %(documentobject_id)s
             WHERE id = %(id)s
         """, doc.dict())
 
