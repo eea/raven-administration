@@ -3,6 +3,7 @@ import { computed, ref, watch, nextTick } from "vue";
 import Popup from "../../../components/Popup.vue";
 import { LMap, LTileLayer, LGeoJson } from "@vue-leaflet/vue-leaflet";
 import "leaflet/dist/leaflet.css";
+import Eventy from "../../../helpers/eventy";
 
 const props = defineProps({
   show: Boolean,
@@ -99,25 +100,21 @@ const handleFileUpload = async (event) => {
       const text = await file.text();
       const json = JSON.parse(text);
       
-      // Extract geometry from GeoJSON
       let geometry;
       if (json.type === 'FeatureCollection' && json.features && json.features.length > 0) {
-        // Take the first feature's geometry
         geometry = json.features[0].geometry;
       } else if (json.type === 'Feature' && json.geometry) {
-        // Single feature
         geometry = json.geometry;
       } else if (json.type && json.coordinates) {
-        // Already a geometry object
         geometry = json;
       } else {
-        alert("Invalid GeoJSON format. Must be a FeatureCollection, Feature, or Geometry.");
+        Eventy.showHideMessage("Invalid GeoJSON format. Must be a FeatureCollection, Feature, or Geometry.", "error", 6000);
         return;
       }
       
       obj.value.geojson = JSON.stringify(geometry);
     } catch (error) {
-      alert("Error reading GeoJSON file: " + error.message);
+      Eventy.showHideMessage("Error reading GeoJSON file: " + error.message, "error", 6000);
     }
   }
 };
@@ -143,21 +140,21 @@ const handleClose = () => {
     <div class="overflow-y-auto pr-2 max-h-[60vh]">
       <div class="mb-4 font-bold text-base border-b border-nord4">Required</div>
 
-        <div class="mb-2" v-for="p in props.options.properties">
-          <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
-            <div class="font-bold">{{ p.label }}:</div>
-            <input class="input w-full" v-model="obj[p.prop]" :disabled="true" />
+        <div class="mb-2" v-for="prop in props.options.properties" :key="prop.prop">
+          <div v-if="!prop.enableInEdit && prop.type != 'gridOnly' && isEdit">
+            <div class="font-bold">{{ prop.label }}:</div>
+            <input class="input w-full" v-model="obj[prop.prop]" :disabled="true" />
           </div>
 
           <div v-else>
-            <div v-if="p.type == 'text' || p.type == 'number'">
-              <div class="font-bold">{{ p.label }}:</div>
-              <input :type="p.type" class="input w-full" v-model="obj[p.prop]" :placeholder="p.placeholder" />
+            <div v-if="prop.type == 'text' || prop.type == 'number'">
+              <div class="font-bold">{{ prop.label }}:</div>
+              <input :type="prop.type" class="input w-full" v-model="obj[prop.prop]" :placeholder="prop.placeholder" />
             </div>
-            <div v-else-if="p.type == 'lookup'">
-              <div class="font-bold">{{ p.label }}:</div>
-              <select v-model="obj[p.prop_id]" class="select w-full">
-                <option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value">{{ p.label }}</option>
+            <div v-else-if="prop.type == 'lookup'">
+              <div class="font-bold">{{ prop.label }}:</div>
+              <select v-model="obj[prop.prop_id]" class="select w-full">
+                <option v-for="opt in options.lookups[prop.lookup]" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
             </div>
           </div>
@@ -213,7 +210,7 @@ const handleClose = () => {
     <!-- Footer Section (Always Visible) -->
     <div class="border-t border-gray-300 mt-4"></div>
     <div class="flex justify-end pt-2 gap-4">
-      <button class="button" @click="handleSave">Save</button>
+      <button class="button" @click="handleSave" :disabled="!geoJsonData">Save</button>
       <button class="button" @click="handleClose">Cancel</button>
     </div>
   </popup>
