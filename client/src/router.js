@@ -15,6 +15,7 @@ const Attainments = () => import("./views/management/attainments/Attainments.vue
 const Exceedances = () => import("./views/management/exceedances/Exceedances.vue");
 const AssessmentRegimeZones = () => import("./views/management/assessmentregimezones/AssessmentRegimeZones.vue");
 const Documents = () => import("./views/management/documents/Documents.vue");
+const SpatialRepresentativeness = () => import("./views/management/spatialrepresentativeness/SpatialRepresentativeness.vue");
 
 const Latest = () => import("./views/data/latest/Latest.vue");
 const Historical = () => import("./views/data/historical/Historical.vue");
@@ -59,6 +60,7 @@ const routes = [
   { path: "/management/exceedances", component: Exceedances, name: "Exceedances" },
   { path: "/management/assessmentregimezones", component: AssessmentRegimeZones, name: "AssessmentRegimeZones" },
   { path: "/management/documents", component: Documents, name: "Documents" },
+  { path: "/management/spatialrepresentativeness", component: SpatialRepresentativeness, name: "SpatialRepresentativeness" },
 
   { path: "/data/latest", component: Latest, name: "Latest" },
   { path: "/data/historical", component: Historical, name: "Historical" },

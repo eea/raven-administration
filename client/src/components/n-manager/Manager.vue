@@ -24,6 +24,10 @@ const props = defineProps({
   showAddButton: {
     type: Boolean,
     default: true
+  },
+  showDuplicate: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -31,6 +35,7 @@ const data = ref([]);
 
 const showEdit = ref(false);
 const showAdd = ref(false);
+const duplicateSource = ref(null);
 
 const selected = ref([]);
 
@@ -97,6 +102,9 @@ const onContextMenuAction = ({ action, data }) => {
   } else if (action === "delete") {
     selected.value = data?.row ? [data.row] : [];
     showConfirm.value = true;
+  } else if (action === "duplicate") {
+    duplicateSource.value = data?.row ? { ...data.row } : null;
+    showAdd.value = true;
   }
 };
 
@@ -138,6 +146,7 @@ const close = () => {
   showAdd.value = false;
   showConfirm.value = false;
   selected.value = [];
+  duplicateSource.value = null;
 };
 
 const cmp_properties = computed(() => {
@@ -150,14 +159,14 @@ const cmp_properties = computed(() => {
   <common-layout>
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete?" @close="close" @ok="saveDelete" />
 
-    <component v-if="showAddButton" :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" @close="close" @save="saveAdd" />
+    <component v-if="showAddButton" :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" :duplicate-source="duplicateSource" @close="close" @save="saveAdd" />
     <component :is="crudComponent" :is-edit="true" :show="showEdit" :options="options" :selected-value="selected[0]" @close="close" @save="saveEdit" />
 
     <tool-bar :title="name" v-model:q="q" :show-add="showAddButton" :show-download="showDownloadButton" @add-click="showAdd = true" @download-click="onDownload" />
 
     <grid-data-table v-model:selected="selected" :properties="cmp_properties" :values="filteredList" :get-row-style="options.getRowStyle" @context-menu-action="onContextMenuAction" @on-dbl-click="onDoubleClick">
       <template #context-menu-items="{ handleAction, contextData }">
-        <CMenuItems @edit="handleAction('edit')" @delete="handleAction('delete')" />
+        <CMenuItems :show-duplicate="showDuplicate" @edit="handleAction('edit')" @delete="handleAction('delete')" @duplicate="handleAction('duplicate')" />
       </template>
     </grid-data-table>
   </common-layout>
