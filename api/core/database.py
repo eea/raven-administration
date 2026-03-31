@@ -1,4 +1,4 @@
-from psycopg2 import pool
+from psycopg2 import pool, OperationalError
 from psycopg2.extras import RealDictCursor
 
 
@@ -12,7 +12,15 @@ class Database:
 
     @classmethod
     def get_connection(cls):
-        return cls.__connection_pool.getconn()
+        conn = cls.__connection_pool.getconn()
+        # If the connection was dropped while idle (e.g. server timeout / firewall),
+        # discard it and open a fresh one so the request doesn't crash.
+        try:
+            conn.cursor().execute("SELECT 1")
+        except OperationalError:
+            cls.__connection_pool.putconn(conn, close=True)
+            conn = cls.__connection_pool.getconn()
+        return conn
 
     @classmethod
     def return_connection(cls, connection):
