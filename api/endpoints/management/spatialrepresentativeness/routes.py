@@ -46,6 +46,10 @@ def _parse_to_wgs84(file, source_epsg=4326):
             gdf = gpd.read_file(os.path.join(tmpdir, shp_files[0]))
         elif filename.endswith(".parquet") or filename.endswith(".geoparquet"):
             gdf = gpd.read_parquet(filepath)
+        elif filename.endswith(".shp"):
+            import os as _os
+            _os.environ["SHAPE_RESTORE_SHX"] = "YES"
+            gdf = gpd.read_file(filepath)
         else:
             gdf = gpd.read_file(filepath)
 

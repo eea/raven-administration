@@ -16,7 +16,7 @@ const props = defineProps({
 
 const emit = defineEmits(["close", "save"]);
 
-const ACCEPT     = ".geojson,.json,.zip,.parquet,.geoparquet,.tif,.tiff";
+const ACCEPT     = ".geojson,.json,.gpkg,.shp,.zip,.parquet,.geoparquet,.tif,.tiff";
 const MAP_URL    = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 const MAX_PREVIEW = 2000;
 
@@ -212,7 +212,7 @@ const pointToLayer = (_, latlng) => {
           </span>
           <span v-else-if="!parsing && !isEdit" class="text-nord11 text-sm">No file selected</span>
         </div>
-        <div class="text-xs text-nord3 mb-3">GeoJSON · Shapefile (.zip) · GeoParquet · GeoTIFF → stored as EPSG:3035</div>
+        <div class="text-xs text-nord3 mb-3">GeoJSON · GeoPackage · Shapefile (.shp or .zip) · GeoParquet · GeoTIFF → stored as EPSG:3035</div>
 
         <!-- Map preview -->
         <div v-if="previewGeoJson" class="flex flex-col h-64 border border-nord4">
