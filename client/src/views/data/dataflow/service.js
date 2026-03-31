@@ -18,6 +18,8 @@ const Service = {
   downloadProcesses: async () => Download("/api/dataflow/csv/processes"),
   downloadMeasurements: async (year) => Download("/api/dataflow/csv/measurements", { year }),
   downloadZoneGeometry: async () => Download("/api/dataflow/csv/zonegeometry"),
+  downloadSpatialRepresentativeness: async () => Download("/api/dataflow/csv/spatialrepresentativeness"),
+  downloadSrAreaInline: async () => Download("/api/dataflow/csv/srareainline"),
   downloadAll: async (year) => Download("/api/dataflow/csv/download_all", year ? { year } : {})
 };
 

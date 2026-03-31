@@ -367,3 +367,75 @@ def get_zonegeometry_csv(country_code):
             })
         
         return csv_buffer.getvalue()
+
+
+def get_spatial_representativeness_csv(country_code):
+    """Generate SpatialRepresentativeness CSV export"""
+    with CursorFromPool() as cursor:
+        cursor.execute("""
+            SELECT
+                %s AS country_code,
+                sr.id AS sr_id,
+                sr.sr_application_id,
+                sr.application
+            FROM spatial_representativeness sr
+            ORDER BY sr.id
+        """, (country_code,))
+        rows = cursor.fetchall()
+
+    if not rows:
+        return ""
+
+    csv_buffer = StringIO()
+    fieldnames = ['CountryCode', 'SR Id', 'SR ApplicationId', 'SR Application',
+                  'ResultEncoding', 'SR AssessmentMethodId']
+    writer = csv.DictWriter(csv_buffer, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+    writer.writeheader()
+
+    for row in rows:
+        writer.writerow({
+            'CountryCode':           row['country_code'],
+            'SR Id':                 row['sr_id'],
+            'SR ApplicationId':      row['sr_application_id'],
+            'SR Application':        row['application'],
+            'ResultEncoding':        'inline',
+            'SR AssessmentMethodId': ''
+        })
+
+    return csv_buffer.getvalue()
+
+
+def get_sr_area_inline_csv(country_code):
+    """Generate SRAreaInline CSV export"""
+    with CursorFromPool() as cursor:
+        cursor.execute("""
+            SELECT
+                %s AS country_code,
+                sr.sr_application_id,
+                a.x,
+                a.y,
+                a.spatial_resolution
+            FROM sr_area_inline a
+            JOIN spatial_representativeness sr ON sr.id = a.spatial_representativeness_id
+            ORDER BY sr.sr_application_id, a.id
+        """, (country_code,))
+        rows = cursor.fetchall()
+
+    if not rows:
+        return ""
+
+    csv_buffer = StringIO()
+    fieldnames = ['CountryCode', 'SR_ApplicationId', 'X', 'Y', 'Spatial Resolution']
+    writer = csv.DictWriter(csv_buffer, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+    writer.writeheader()
+
+    for row in rows:
+        writer.writerow({
+            'CountryCode':      row['country_code'],
+            'SR_ApplicationId': row['sr_application_id'],
+            'X':                row['x'],
+            'Y':                row['y'],
+            'Spatial Resolution': row['spatial_resolution'] or ''
+        })
+
+    return csv_buffer.getvalue()

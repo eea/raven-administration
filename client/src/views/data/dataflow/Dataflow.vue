@@ -5,8 +5,10 @@ import Eventy from "../../../helpers/eventy";
 import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
+import IconDownload from "~icons/material-symbols/download";
 
 const isDownloading = ref(false);
+const downloadingKey = ref(null);
 const isLoadingYears = ref(true);
 const selectedYear = ref(null);
 const yearOptions = ref([]);
@@ -16,123 +18,56 @@ onMounted(async () => {
     isLoadingYears.value = true;
     const years = await Service.getAvailableYears();
     yearOptions.value = years;
-
-    // Default to last year (previous year from current)
-    const currentYear = new Date().getFullYear();
-    const lastYear = currentYear - 1;
-
-    if (years.includes(lastYear)) {
-      selectedYear.value = lastYear;
-    } else if (years.length > 0) {
-      // If last year not available, use the most recent year
-      selectedYear.value = years[0];
-    }
-  } catch (error) {
-    console.error("Failed to load available years:", error);
-    // Fallback to current year if API fails
-    const currentYear = new Date().getFullYear();
-    yearOptions.value = [currentYear];
-    selectedYear.value = currentYear;
+    const lastYear = new Date().getFullYear() - 1;
+    selectedYear.value = years.includes(lastYear) ? lastYear : years[0] ?? null;
+  } catch {
+    const y = new Date().getFullYear();
+    yearOptions.value = [y];
+    selectedYear.value = y;
   } finally {
     isLoadingYears.value = false;
   }
 });
 
-const downloadAuthorities = async () => {
-  try {
-    isDownloading.value = true;
-    Eventy.showMessage("Downloading Authority.csv...", "loading");
-    await Service.downloadAuthorities();
-    Eventy.hideMessage();
-  } catch (error) {
-    // Error already displayed by Request helper
-    console.error("Download failed:", error);
-  } finally {
-    isDownloading.value = false;
-  }
-};
+const exports = [
+  { key: "authorities",               label: "Authority",               description: "Contact details of responsible authorities and their area of responsibility.",                                                          fn: () => Service.downloadAuthorities() },
+  { key: "stations",                  label: "Station",                 description: "Air quality measuring stations — EoI codes, names, networks and operating time zones.",                                                  fn: () => Service.downloadStations() },
+  { key: "samplingpoints",            label: "SamplingPoint",           description: "Air quality sampling locations — identifiers, coordinates and area/location characteristics.",                                           fn: () => Service.downloadSamplingPoints() },
+  { key: "processes",                 label: "SamplingPointProcess",    description: "Measurement techniques and methodologies — equipment configuration, quality information and operational periods.",                        fn: () => Service.downloadProcesses() },
+  { key: "measurements",              label: "MeasurementResult",       description: "Air quality measurement values with time reference for the selected year, linked to sampling points.",                                    fn: () => Service.downloadMeasurements(selectedYear.value), yearDependent: true },
+  { key: "zonegeometry",              label: "ZoneGeometry",            description: "Air quality zone boundaries reported as GeoJSON geometries.",                                                                            fn: () => Service.downloadZoneGeometry() },
+  { key: "spatialrepresentativeness", label: "SpatialRepresentativeness", description: "Links the spatial representativeness area of a sampling point or exceedance extent to the compliance assessment method.",             fn: () => Service.downloadSpatialRepresentativeness() },
+  { key: "srareainline",              label: "SRAreaInline",            description: "Representativeness area as a set of EPSG:3035 grid cells for each sampling point declared for compliance assessments.",                  fn: () => Service.downloadSrAreaInline() },
+];
 
-const downloadStations = async () => {
+const download = async (exp) => {
+  isDownloading.value = true;
+  downloadingKey.value = exp.key;
+  const filename = exp.yearDependent ? `${exp.label}_${selectedYear.value}.csv` : `${exp.label}.csv`;
+  Eventy.showMessage(`Downloading ${filename}...`, "loading");
   try {
-    isDownloading.value = true;
-    Eventy.showMessage("Downloading Station.csv...", "loading");
-    await Service.downloadStations();
+    await exp.fn();
     Eventy.hideMessage();
-  } catch (error) {
-    // Error already displayed by Request helper
-    console.error("Download failed:", error);
+  } catch {
+    // error shown by request helper
   } finally {
     isDownloading.value = false;
-  }
-};
-
-const downloadSamplingPoints = async () => {
-  try {
-    isDownloading.value = true;
-    Eventy.showMessage("Downloading SamplingPoint.csv...", "loading");
-    await Service.downloadSamplingPoints();
-    Eventy.hideMessage();
-  } catch (error) {
-    // Error already displayed by Request helper
-    console.error("Download failed:", error);
-  } finally {
-    isDownloading.value = false;
-  }
-};
-
-const downloadProcesses = async () => {
-  try {
-    isDownloading.value = true;
-    Eventy.showMessage("Downloading SamplingPointProcess.csv...", "loading");
-    await Service.downloadProcesses();
-    Eventy.hideMessage();
-  } catch (error) {
-    // Error already displayed by Request helper
-    console.error("Download failed:", error);
-  } finally {
-    isDownloading.value = false;
-  }
-};
-
-const downloadMeasurements = async () => {
-  try {
-    isDownloading.value = true;
-    Eventy.showMessage(`Downloading MeasurementResult for ${selectedYear.value}...`, "loading");
-    await Service.downloadMeasurements(selectedYear.value);
-    Eventy.hideMessage();
-  } catch (error) {
-    // Error already displayed by Request helper
-    console.error("Download failed:", error);
-  } finally {
-    isDownloading.value = false;
-  }
-};
-
-const downloadZoneGeometry = async () => {
-  try {
-    isDownloading.value = true;
-    Eventy.showMessage("Downloading ZoneGeometry.csv...", "loading");
-    await Service.downloadZoneGeometry();
-    Eventy.hideMessage();
-  } catch (error) {
-    // Error already displayed by Request helper
-    console.error("Download failed:", error);
-  } finally {
-    isDownloading.value = false;
+    downloadingKey.value = null;
   }
 };
 
 const downloadAll = async () => {
+  isDownloading.value = true;
+  downloadingKey.value = "all";
+  Eventy.showMessage("Creating ZIP file with all exports. Please wait...", "loading");
   try {
-    isDownloading.value = true;
-    Eventy.showMessage("Creating ZIP file with all exports. Please wait...", "loading");
     await Service.downloadAll(selectedYear.value);
     Eventy.hideMessage();
-  } catch (error) {
-    // Error already displayed by Request helper
-    console.error("Download failed:", error);
+  } catch {
+    // error shown by request helper
   } finally {
     isDownloading.value = false;
+    downloadingKey.value = null;
   }
 };
 </script>
@@ -142,91 +77,46 @@ const downloadAll = async () => {
     <tool-bar title="Dataflow Export" :show-filter="false" :show-add="false" :show-column-picker="false" :show-download="false" />
 
     <container>
-      <!-- Year Selection -->
-      <div class="mb-6">
-        <div class="font-bold text-base mb-3">Reporting Year</div>
-        <select v-model="selectedYear" class="border border-gray-300 rounded px-3 py-2 w-48" :disabled="isDownloading || isLoadingYears">
-          <option v-if="isLoadingYears" disabled>Loading years...</option>
-          <option v-for="year in yearOptions" :key="year" :value="year">
-            {{ year }}
-          </option>
+      <!-- Year selector + Download All -->
+      <div class="flex items-center gap-4 mb-6">
+        <div class="font-bold">Reporting Year</div>
+        <select v-model="selectedYear" class="select" :disabled="isDownloading || isLoadingYears">
+          <option v-if="isLoadingYears" disabled>Loading...</option>
+          <option v-for="year in yearOptions" :key="year" :value="year">{{ year }}</option>
         </select>
-        <div class="text-xs text-gray-600 mt-1">Years are based on available data in sampling points</div>
+        <button class="button flex items-center gap-2 ml-auto" @click="downloadAll" :disabled="isDownloading">
+          <IconDownload class="text-base" />
+          {{ downloadingKey === "all" ? "Creating ZIP..." : "Download all (ZIP)" }}
+        </button>
       </div>
 
-      <div class="mb-6">
-        <div class="font-bold text-base mb-3">Individual Exports</div>
-        <div class="flex flex-wrap gap-3">
-          <button class="button" @click="downloadAuthorities" :disabled="isDownloading">Download Authority.csv</button>
-          <button class="button" @click="downloadStations" :disabled="isDownloading">Download Station.csv</button>
-          <button class="button" @click="downloadSamplingPoints" :disabled="isDownloading">Download SamplingPoint.csv</button>
-          <button class="button" @click="downloadProcesses" :disabled="isDownloading">Download SamplingPointProcess.csv</button>
-          <button class="button" @click="downloadMeasurements" :disabled="isDownloading">Download MeasurementResult ({{ selectedYear }}).csv</button>
-          <button class="button" @click="downloadZoneGeometry" :disabled="isDownloading">Download ZoneGeometry.csv</button>
-        </div>
-      </div>
-
-      <div class="border-t pt-6 mb-6">
-        <div class="font-bold text-base mb-3">Complete Export</div>
-        <div>
-          <button class="button bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6" @click="downloadAll" :disabled="isDownloading">Download All (ZIP) - {{ selectedYear }}</button>
-          <div class="text-xs text-gray-500 mt-2">Downloads a ZIP file containing all CSV exports including measurements for {{ selectedYear }}</div>
-        </div>
-      </div>
-
-      <div class="border-t pt-6">
-        <div class="font-bold text-sm mb-3">Available Exports:</div>
-        <ul class="text-sm space-y-2">
-          <li class="flex items-center gap-2">
-            <span class="text-green-600 font-bold">✓</span>
-            <span>
-              <strong>Authority</strong>
-              - Contact information for authorities
-            </span>
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="text-green-600 font-bold">✓</span>
-            <span>
-              <strong>Station</strong>
-              - Station metadata and location
-            </span>
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="text-green-600 font-bold">✓</span>
-            <span>
-              <strong>SamplingPoint</strong>
-              - Sampling point configuration
-            </span>
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="text-green-600 font-bold">✓</span>
-            <span>
-              <strong>SamplingPointProcess</strong>
-              - Process information
-            </span>
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="text-green-600 font-bold">✓</span>
-            <span>
-              <strong>MeasurementResult</strong>
-              - Observation data for selected year
-            </span>
-          </li>
-          <li class="flex items-center gap-2">
-            <span class="text-green-600 font-bold">✓</span>
-            <span>
-              <strong>ZoneGeometry</strong>
-              - Geographic zone boundaries (GeoJSON)
-            </span>
-          </li>
-        </ul>
-      </div>
+      <!-- Exports table -->
+      <table class="w-full text-sm border-collapse">
+        <thead>
+          <tr class="border-b border-nord4 text-left text-nord3">
+            <th class="py-2 pr-4 font-semibold w-56">File</th>
+            <th class="py-2 font-semibold">Description</th>
+            <th class="py-2 w-12"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="exp in exports" :key="exp.key" class="border-b border-nord6 hover:bg-nord6/50">
+            <td class="py-2 pr-4 font-medium">
+              {{ exp.label }}<span v-if="exp.yearDependent" class="text-nord3 font-normal">_{{ selectedYear }}</span>.csv
+            </td>
+            <td class="py-2 text-nord3">{{ exp.description }}</td>
+            <td class="py-2 text-right">
+              <button class="button py-1 px-2 flex items-center gap-1 ml-auto"
+                @click="download(exp)"
+                :disabled="isDownloading"
+                :title="`Download ${exp.label}.csv`">
+                <IconDownload class="text-base" />
+                <span v-if="downloadingKey === exp.key" class="text-xs">...</span>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </container>
   </common-layout>
 </template>
-
-<style scoped>
-.button:disabled {
-  cursor: not-allowed;
-}
-</style>

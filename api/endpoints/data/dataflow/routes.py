@@ -122,6 +122,32 @@ def export_zonegeometry_csv():
     return U.csv_response(csv_content, "ZoneGeometry.csv")
 
 
+@dataflow_endpoint.route("/api/dataflow/csv/spatialrepresentativeness", methods=['POST'])
+@jwt_required_with_exporting_claim()
+def export_spatial_representativeness():
+    """Export SpatialRepresentativeness as CSV matching Reportnet3 format"""
+    with CursorFromPool() as cursor:
+        cursor.execute("SELECT country_code_id FROM settings LIMIT 1")
+        settings_row = cursor.fetchone()
+        country_code = settings_row['country_code_id'] if settings_row else None
+
+    csv_content = DataflowExports.get_spatial_representativeness_csv(country_code)
+    return U.csv_response(csv_content, "SpatialRepresentativeness.csv")
+
+
+@dataflow_endpoint.route("/api/dataflow/csv/srareainline", methods=['POST'])
+@jwt_required_with_exporting_claim()
+def export_sr_area_inline():
+    """Export SRAreaInline as CSV matching Reportnet3 format"""
+    with CursorFromPool() as cursor:
+        cursor.execute("SELECT country_code_id FROM settings LIMIT 1")
+        settings_row = cursor.fetchone()
+        country_code = settings_row['country_code_id'] if settings_row else None
+
+    csv_content = DataflowExports.get_sr_area_inline_csv(country_code)
+    return U.csv_response(csv_content, "SRAreaInline.csv")
+
+
 @dataflow_endpoint.route("/api/dataflow/csv/download_all", methods=['POST'])
 @jwt_required_with_exporting_claim()
 def export_all_csv():
@@ -174,6 +200,16 @@ def export_all_csv():
         csv_content = DataflowExports.get_zonegeometry_csv(country_code)
         if csv_content:
             zip_file.writestr('ZoneGeometry.csv', csv_content)
+
+        # Add SpatialRepresentativeness CSV
+        csv_content = DataflowExports.get_spatial_representativeness_csv(country_code)
+        if csv_content:
+            zip_file.writestr('SpatialRepresentativeness.csv', csv_content)
+
+        # Add SRAreaInline CSV
+        csv_content = DataflowExports.get_sr_area_inline_csv(country_code)
+        if csv_content:
+            zip_file.writestr('SRAreaInline.csv', csv_content)
     
     # Prepare the ZIP file for download
     zip_buffer.seek(0)
