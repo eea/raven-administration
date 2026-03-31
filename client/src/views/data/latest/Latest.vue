@@ -2,6 +2,18 @@
 import IconValidate from "~icons/material-symbols/fact-check";
 import IconPlot from "~icons/material-symbols/bar-chart";
 import IconScale from "~icons/uil/process";
+import IconHeart from "~icons/mdi/heart";
+import IconHeartOutline from "~icons/mdi/heart-outline";
+import CircleHover from "../../../components/CircleHover.vue";
+import { ref as vref } from "vue";
+
+const PREF_KEY = "raven_default_view";
+const isDefault = vref(localStorage.getItem(PREF_KEY) === "Latest" || !localStorage.getItem(PREF_KEY));
+const toggleDefault = () => {
+  const val = "Latest";
+  localStorage.setItem(PREF_KEY, val);
+  isDefault.value = true;
+};
 
 import { useRouter } from "vue-router";
 import { ref, computed, onMounted, watch } from "vue";
@@ -125,6 +137,10 @@ const onGoto = (name) => {
 <template>
   <CommonLayout>
     <ToolBar title="Latest data" :show-column-picker="false" :show-add="false" v-model:q="q" @download-click="onDownload">
+      <CircleHover class="ml-1 self-center" @click="toggleDefault" :title="isDefault ? 'Opens here after login' : 'Open here after login'">
+        <icon-heart v-if="isDefault" class="text-nord10 text-sm self-center" />
+        <icon-heart-outline v-else class="text-nord3 text-sm self-center" />
+      </CircleHover>
       <div class="self-center flex gap-2 ml-10" v-if="showAqiToggle">
         <div class="flex items-center gap-1">
           <input v-model="aqi_type" type="radio" value="eea" id="aqi_eea" class="cursor-pointer accent-[#74992e]" />

@@ -18,6 +18,7 @@ const Documents = () => import("./views/management/documents/Documents.vue");
 const SpatialRepresentativeness = () => import("./views/management/spatialrepresentativeness/SpatialRepresentativeness.vue");
 
 const Latest = () => import("./views/data/latest/Latest.vue");
+const Dashboard = () => import("./views/data/dashboard/Dashboard.vue");
 const Historical = () => import("./views/data/historical/Historical.vue");
 const Dataflow = () => import("./views/data/dataflow/Dataflow.vue");
 const Statistics = () => import("./views/data/statistics/Statistics.vue");
@@ -46,7 +47,10 @@ const Forbidden = () => import("./views/forbidden/Forbidden.vue");
 const Notfound = () => import("./views/notfound/Notfound.vue");
 
 const routes = [
-  { path: "/", component: Latest, name: "Home" },
+  { path: "/", redirect: () => {
+    const pref = localStorage.getItem("raven_default_view");
+    return pref === "Dashboard" ? "/data/dashboard" : "/data/latest";
+  }, name: "Home" },
   { path: "/login", component: Login, name: "Login" },
 
   { path: "/management/authorities", component: Authorities, name: "Authorities" },
@@ -62,6 +66,7 @@ const routes = [
   { path: "/management/documents", component: Documents, name: "Documents" },
   { path: "/management/spatialrepresentativeness", component: SpatialRepresentativeness, name: "SpatialRepresentativeness" },
 
+  { path: "/data/dashboard", component: Dashboard, name: "Dashboard" },
   { path: "/data/latest", component: Latest, name: "Latest" },
   { path: "/data/historical", component: Historical, name: "Historical" },
   { path: "/data/dataflow", component: Dataflow, name: "Dataflow" },
