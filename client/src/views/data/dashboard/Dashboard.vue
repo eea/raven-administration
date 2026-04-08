@@ -1,9 +1,9 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import CommonLayout from "../../../components/CommonLayout.vue";
-import ToolBar      from "../../../components/ToolBar.vue";
-import Popup        from "../../../components/Popup.vue";
-import DataTable    from "../../../components/DataTable.vue";
+import ToolBar from "../../../components/ToolBar.vue";
+import Popup from "../../../components/Popup.vue";
+import DataTable from "../../../components/DataTable.vue";
 import DashboardPlot from "./DashboardPlot.vue";
 import Service from "./service";
 import IconHeart from "~icons/mdi/heart";
@@ -44,21 +44,21 @@ onMounted(async () => {
 });
 
 // ── Add / Edit popup ─────────────────────────────────────────────────────────
-const showPopup   = ref(false);
-const editingId   = ref(null);   // null = adding new
-const formTitle   = ref("");
-const formPreset  = ref("24h");
-const formIds     = ref(new Set());
-const formPlotType  = ref("line");
+const showPopup = ref(false);
+const editingId = ref(null); // null = adding new
+const formTitle = ref("");
+const formPreset = ref("24h");
+const formIds = ref(new Set());
+const formPlotType = ref("line");
 const formFullWidth = ref(false);
 
 const timeseriesColumns = [
-  { field: "station",              headerName: "Station",    flex: 1,   filter: true },
-  { field: "pollutant",            headerName: "Pollutant",  flex: 1,   filter: true },
-  { field: "timestep",             headerName: "Timestep",   flex: 0.7, filter: true },
-  { field: "unit",                 headerName: "Unit",       flex: 0.7, filter: true },
-  { field: "equipment",            headerName: "Equipment",  flex: 1,   filter: true },
-  { field: "equipment_identifier", headerName: "Eq. ID",     flex: 1,   filter: true },
+  { field: "station", headerName: "Station", flex: 1, filter: true },
+  { field: "pollutant", headerName: "Pollutant", flex: 1, filter: true },
+  { field: "timestep", headerName: "Timestep", flex: 0.7, filter: true },
+  { field: "unit", headerName: "Unit", flex: 0.7, filter: true },
+  { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
+  { field: "equipment_identifier", headerName: "Eq. ID", flex: 1, filter: true }
 ];
 
 const onGridFirstData = (api) => {
@@ -68,13 +68,15 @@ const onGridFirstData = (api) => {
 };
 
 const onSelectionChanged = (rows) => {
-  formIds.value = new Set(rows.map(r => r.sampling_point_id));
+  formIds.value = new Set(rows.map((r) => r.sampling_point_id));
 };
 
-const searchQuery    = ref("");
+const searchQuery = ref("");
 const timeseriesGrid = ref(null);
 
-const onGridReady = (api) => { timeseriesGrid.value = api; };
+const onGridReady = (api) => {
+  timeseriesGrid.value = api;
+};
 
 const onSearch = (q) => {
   searchQuery.value = q;
@@ -82,42 +84,44 @@ const onSearch = (q) => {
 };
 
 const openAdd = () => {
-  editingId.value  = null;
-  formTitle.value  = "";
+  editingId.value = null;
+  formTitle.value = "";
   formPreset.value = "24h";
-  formIds.value    = new Set();
-  formPlotType.value  = "line";
+  formIds.value = new Set();
+  formPlotType.value = "line";
   formFullWidth.value = false;
   searchQuery.value = "";
-  showPopup.value  = true;
+  showPopup.value = true;
 };
 
 const openEdit = (plot) => {
-  editingId.value   = plot.id;
-  formTitle.value   = plot.title;
-  formPreset.value  = plot.timePreset;
-  formIds.value     = new Set(plot.seriesIds);
-  formPlotType.value  = plot.plotType ?? "line";
+  editingId.value = plot.id;
+  formTitle.value = plot.title;
+  formPreset.value = plot.timePreset;
+  formIds.value = new Set(plot.seriesIds);
+  formPlotType.value = plot.plotType ?? "line";
   formFullWidth.value = plot.fullWidth ?? false;
   searchQuery.value = "";
-  showPopup.value   = true;
+  showPopup.value = true;
 };
 
-const closePopup = () => { showPopup.value = false; };
+const closePopup = () => {
+  showPopup.value = false;
+};
 
 const savePopup = () => {
   const config = {
-    title:      formTitle.value.trim() || "Untitled",
+    title: formTitle.value.trim() || "Untitled",
     timePreset: formPreset.value,
-    plotType:   formPlotType.value,
-    fullWidth:  formFullWidth.value,
-    seriesIds:  [...formIds.value],
+    plotType: formPlotType.value,
+    fullWidth: formFullWidth.value,
+    seriesIds: [...formIds.value]
   };
 
   if (editingId.value === null) {
     plots.value.push({ id: crypto.randomUUID(), ...config });
   } else {
-    const idx = plots.value.findIndex(p => p.id === editingId.value);
+    const idx = plots.value.findIndex((p) => p.id === editingId.value);
     if (idx !== -1) plots.value[idx] = { ...plots.value[idx], ...config };
   }
 
@@ -127,23 +131,22 @@ const savePopup = () => {
 
 // ── Plot events ───────────────────────────────────────────────────────────────
 const onUpdate = (updated) => {
-  const idx = plots.value.findIndex(p => p.id === updated.id);
-  if (idx !== -1) { plots.value[idx] = updated; savePlots(); }
+  const idx = plots.value.findIndex((p) => p.id === updated.id);
+  if (idx !== -1) {
+    plots.value[idx] = updated;
+    savePlots();
+  }
 };
 
 const onRemove = (id) => {
-  plots.value = plots.value.filter(p => p.id !== id);
+  plots.value = plots.value.filter((p) => p.id !== id);
   savePlots();
 };
 </script>
 
 <template>
   <common-layout>
-    <tool-bar
-      title="Dashboard"
-      :show-filter="false"
-      :show-download="false"
-      @add-click="openAdd">
+    <tool-bar title="Dashboard" :show-filter="false" :show-download="false" @add-click="openAdd">
       <CircleHover class="ml-1 self-center" @click="toggleDefault" :title="isDefault ? 'Opens here after login' : 'Open here after login'">
         <icon-heart v-if="isDefault" class="text-nord10 text-sm self-center" />
         <icon-heart-outline v-else class="text-nord3 text-sm self-center" />
@@ -152,15 +155,7 @@ const onRemove = (id) => {
 
     <!-- Responsive plot grid -->
     <div v-if="plots.length" class="p-3 grid gap-4 grid-cols-1 xl:grid-cols-2 items-start">
-      <dashboard-plot
-        v-for="(plot, i) in plots"
-        :key="plot.id"
-        :class="{ 'xl:col-span-2': plot.fullWidth || (!plot.fullWidth && plots.filter(p => !p.fullWidth).length % 2 !== 0 && i === plots.length - 1) }"
-        :plot="plot"
-        :all-timeseries="allTimeseries"
-        @update="onUpdate"
-        @remove="onRemove"
-        @edit="openEdit" />
+      <dashboard-plot v-for="(plot, i) in plots" :key="plot.id" :class="{ 'xl:col-span-2': plot.fullWidth || (!plot.fullWidth && plots.filter((p) => !p.fullWidth).length % 2 !== 0 && i === plots.length - 1) }" :plot="plot" :all-timeseries="allTimeseries" @update="onUpdate" @remove="onRemove" @edit="openEdit" />
     </div>
 
     <div v-else class="flex-1 flex flex-col items-center justify-center gap-3 text-nord3 select-none">
@@ -169,9 +164,8 @@ const onRemove = (id) => {
     </div>
 
     <!-- Add / Edit popup -->
-    <Popup :show="showPopup" :title="editingId ? 'Edit Plot' : 'Add Plot'" style="width:740px" @on-close="closePopup">
+    <Popup :show="showPopup" :title="editingId ? 'Edit Plot' : 'Add Plot'" style="width: 740px" @on-close="closePopup">
       <div class="flex flex-col gap-4 pt-1">
-
         <!-- Title -->
         <div class="flex flex-col gap-1">
           <label class="text-xs font-bold text-nord3 uppercase tracking-wide">Title</label>
@@ -182,13 +176,7 @@ const onRemove = (id) => {
         <div class="flex flex-col gap-1">
           <label class="text-xs font-bold text-nord3 uppercase tracking-wide">Time range</label>
           <div class="flex gap-2">
-            <button
-              v-for="p in PRESETS" :key="p"
-              class="px-3 py-1 rounded border text-sm font-mono transition-colors"
-              :class="formPreset === p
-                ? 'bg-nord10 text-white border-nord10'
-                : 'border-nord4 text-nord3 hover:border-nord10 hover:text-nord10'"
-              @click="formPreset = p">
+            <button v-for="p in PRESETS" :key="p" class="px-3 py-1 rounded border text-sm font-mono transition-colors" :class="formPreset === p ? 'bg-nord10 text-white border-nord10' : 'border-nord4 text-nord3 hover:border-nord10 hover:text-nord10'" @click="formPreset = p">
               {{ p }}
             </button>
           </div>
@@ -199,13 +187,7 @@ const onRemove = (id) => {
           <div class="flex flex-col gap-1">
             <label class="text-xs font-bold text-nord3 uppercase tracking-wide">Plot type</label>
             <div class="flex gap-2">
-              <button
-                v-for="t in ['line', 'bar']" :key="t"
-                class="px-4 py-1 rounded border text-sm capitalize transition-colors"
-                :class="formPlotType === t
-                  ? 'bg-nord10 text-white border-nord10'
-                  : 'border-nord4 text-nord3 hover:border-nord10 hover:text-nord10'"
-                @click="formPlotType = t">
+              <button v-for="t in ['line', 'bar']" :key="t" class="px-4 py-1 rounded border text-sm capitalize transition-colors" :class="formPlotType === t ? 'bg-nord10 text-white border-nord10' : 'border-nord4 text-nord3 hover:border-nord10 hover:text-nord10'" @click="formPlotType = t">
                 {{ t }}
               </button>
             </div>
@@ -214,12 +196,15 @@ const onRemove = (id) => {
             <label class="text-xs font-bold text-nord3 uppercase tracking-wide">Width</label>
             <div class="flex gap-2">
               <button
-                v-for="opt in [{ label: 'Auto', val: false }, { label: 'Full row', val: true }]" :key="opt.label"
+                v-for="opt in [
+                  { label: 'Auto', val: false },
+                  { label: 'Full row', val: true }
+                ]"
+                :key="opt.label"
                 class="px-4 py-1 rounded border text-sm transition-colors"
-                :class="formFullWidth === opt.val
-                  ? 'bg-nord10 text-white border-nord10'
-                  : 'border-nord4 text-nord3 hover:border-nord10 hover:text-nord10'"
-                @click="formFullWidth = opt.val">
+                :class="formFullWidth === opt.val ? 'bg-nord10 text-white border-nord10' : 'border-nord4 text-nord3 hover:border-nord10 hover:text-nord10'"
+                @click="formFullWidth = opt.val"
+              >
                 {{ opt.label }}
               </button>
             </div>
@@ -234,15 +219,7 @@ const onRemove = (id) => {
           </label>
           <input :value="searchQuery" class="input" placeholder="Search station, pollutant, timestep…" @input="onSearch($event.target.value)" />
           <div class="h-56">
-            <DataTable
-              :font-size="11"
-              :columns="timeseriesColumns"
-              :data="allTimeseries"
-              selection-mode="multiRow"
-              :get-row-id="(p) => p.data.sampling_point_id"
-              @grid-ready="onGridReady"
-              @first-data-rendered="onGridFirstData"
-              @selection-changed="onSelectionChanged" />
+            <DataTable :font-size="11" :columns="timeseriesColumns" :data="allTimeseries" selection-mode="multiRow" :get-row-id="(p) => p.data.sampling_point_id" @grid-ready="onGridReady" @first-data-rendered="onGridFirstData" @selection-changed="onSelectionChanged" />
           </div>
         </div>
 
@@ -253,10 +230,7 @@ const onRemove = (id) => {
             {{ editingId ? "Save" : "Add plot" }}
           </button>
         </div>
-
       </div>
     </Popup>
-
   </common-layout>
 </template>
-
