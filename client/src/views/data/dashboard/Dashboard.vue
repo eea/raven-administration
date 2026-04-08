@@ -164,8 +164,8 @@ const onRemove = (id) => {
     </div>
 
     <!-- Add / Edit popup -->
-    <Popup :show="showPopup" :title="editingId ? 'Edit Plot' : 'Add Plot'" style="width: 740px" @on-close="closePopup">
-      <div class="flex flex-col gap-4 pt-1">
+    <Popup :show="showPopup" :title="editingId ? 'Edit Plot' : 'Add Plot'" @on-close="closePopup" class="w-[90%]! h-[90%]!">
+      <div class="flex flex-col gap-4 pt-1 h-full">
         <!-- Title -->
         <div class="flex flex-col gap-1">
           <label class="text-xs font-bold text-nord3 uppercase tracking-wide">Title</label>
@@ -212,13 +212,13 @@ const onRemove = (id) => {
         </div>
 
         <!-- Series selector -->
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col gap-1 h-full">
           <label class="text-xs font-bold text-nord3 uppercase tracking-wide">
             Series
             <span v-if="formIds.size" class="ml-1 text-nord10 normal-case font-normal">({{ formIds.size }} selected)</span>
           </label>
           <input :value="searchQuery" class="input" placeholder="Search station, pollutant, timestep…" @input="onSearch($event.target.value)" />
-          <div class="h-56">
+          <div class="h-full">
             <DataTable :font-size="11" :columns="timeseriesColumns" :data="allTimeseries" selection-mode="multiRow" :get-row-id="(p) => p.data.sampling_point_id" @grid-ready="onGridReady" @first-data-rendered="onGridFirstData" @selection-changed="onSelectionChanged" />
           </div>
         </div>
