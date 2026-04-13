@@ -43,7 +43,7 @@ def datasets():
                   and p.id = o.sampling_point_id
                   and p.pollutant_id = po.id
                   and p.time_resolution_id = t.id
-                  group by s.name, EXTRACT(year FROM o.from_time), EXTRACT(month FROM o.from_time), o.observationverification_id, COALESCE(NULLIF(po.notation, ''), po.label), p.id, t.label
+                  group by s.name, EXTRACT(year FROM o.from_time), EXTRACT(month FROM o.from_time), o.observationverification_id, COALESCE(NULLIF(po.notation, ''), po.label), p.id, t.notation, t.label
                 ) aa
                 group by aa.name,aa.id, aa.year, aa.month, aa.pollutant, aa.timestep
             """, params)
