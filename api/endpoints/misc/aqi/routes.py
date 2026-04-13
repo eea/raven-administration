@@ -25,7 +25,7 @@ def aqi():
             join eea_pollutants p on i.pollutant_id = p.id
             join eea_times t on i.timestep = t.id
             where i.calculation_type = 'LOCAL'
-            order by LOWER(pollutant), LOWER(timestep), level
+            order by LOWER(COALESCE(NULLIF(p.notation, ''), p.label)), LOWER(COALESCE(NULLIF(t.notation, ''), t.label)), level
         """
         cursor.execute(sql)
         rows = cursor.fetchall()
