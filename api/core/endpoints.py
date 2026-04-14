@@ -64,6 +64,9 @@ class Endpoints:
         from endpoints.data.historical.routes import historical_endpoint
         app.register_blueprint(historical_endpoint)
 
+        from endpoints.data.dashboard.routes import dashboard_endpoint
+        app.register_blueprint(dashboard_endpoint)
+
         from endpoints.data.latest.routes import latest_endpoint
         app.register_blueprint(latest_endpoint)
 

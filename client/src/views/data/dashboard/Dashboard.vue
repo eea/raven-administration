@@ -6,6 +6,7 @@ import Popup from "../../../components/Popup.vue";
 import DataTable from "../../../components/DataTable.vue";
 import DashboardPlot from "./DashboardPlot.vue";
 import Service from "./service";
+import { datetimeCellRenderer, granularityFromTimestep } from "../../../helpers/datetimeHighlight";
 import IconHeart from "~icons/mdi/heart";
 import IconHeartOutline from "~icons/mdi/heart-outline";
 import CircleHover from "../../../components/CircleHover.vue";
@@ -40,7 +41,7 @@ const allTimeseries = ref([]);
 
 onMounted(async () => {
   loadPlots();
-  allTimeseries.value = await Service.timeseries();
+  allTimeseries.value = await Service.samplingPoints();
 });
 
 // ── Add / Edit popup ─────────────────────────────────────────────────────────
@@ -58,7 +59,12 @@ const timeseriesColumns = [
   { field: "timestep", headerName: "Timestep", flex: 0.7, filter: true },
   { field: "unit", headerName: "Unit", flex: 0.7, filter: true },
   { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
-  { field: "equipment_identifier", headerName: "Eq. ID", flex: 1, filter: true }
+  { field: "equipment_identifier", headerName: "Eq. ID", flex: 1, filter: true },
+  { field: "totime", headerName: "Latest date", flex: 1, filter: false, cellRenderer: (params) => {
+    if (!params.value) return "";
+    const fmt = params.value.replace("T", " ").slice(0, 16);
+    return datetimeCellRenderer((row) => granularityFromTimestep(row?.timestep))({ ...params, value: fmt });
+  }}
 ];
 
 const onGridFirstData = (api) => {

@@ -1,8 +1,8 @@
 import { Get, Post } from "../../../helpers/request";
 
 const Service = {
-  timeseries: async () => Get("/api/data/historical/timeseries"),
-  get:        async (data) => Post("/api/data/historical", data),
+  samplingPoints: async () => Get("/api/data/dashboard/sampling_points"),
+  get:            async (data) => Post("/api/data/dashboard", data),
 };
 
 export default Service;
