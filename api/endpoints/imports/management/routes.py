@@ -73,3 +73,14 @@ def import_processes():
         m.parse_file(request.files["file"])
         m.generic_insert()
         return jsonify({"success": True})
+
+
+@import_management_endpoint.route("/api/imports/documents", methods=["POST"])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def import_documents():
+    with CursorFromPool() as cursor:
+        m = Management(cursor, "documents")
+        m.parse_file(request.files["file"])
+        m.generic_insert()
+        return jsonify({"success": True})

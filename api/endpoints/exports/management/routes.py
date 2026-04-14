@@ -70,3 +70,13 @@ def export_processes():
         m = Management(cursor, "processes")
         m.generic_select()
         return U.dataframe_to_csv_response(m.df, "processes.csv")
+
+
+@export_management_endpoint.route("/api/exports/documents", methods=["GET"])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def export_documents():
+    with CursorFromPool() as cursor:
+        m = Management(cursor, "documents")
+        m.generic_select()
+        return U.dataframe_to_csv_response(m.df, "documents.csv")
