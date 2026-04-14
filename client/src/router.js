@@ -10,9 +10,6 @@ const Networks = () => import("./views/management/networks/Networks.vue");
 const Stations = () => import("./views/management/stations/Stations.vue");
 const SamplingPoints = () => import("./views/management/samplingpoints/Samplingpoints.vue");
 const Processes = () => import("./views/management/processes/Processes.vue");
-const AssessmentRegimes = () => import("./views/management/assessmentregimes/AssessmentRegimes.vue");
-const Attainments = () => import("./views/management/attainments/Attainments.vue");
-const Exceedances = () => import("./views/management/exceedances/Exceedances.vue");
 const AssessmentRegimeZones = () => import("./views/management/assessmentregimezones/AssessmentRegimeZones.vue");
 const Documents = () => import("./views/management/documents/Documents.vue");
 const SpatialRepresentativeness = () => import("./views/management/spatialrepresentativeness/SpatialRepresentativeness.vue");
@@ -59,9 +56,6 @@ const routes = [
   { path: "/management/stations", component: Stations, name: "Stations" },
   { path: "/management/samplingpoints", component: SamplingPoints, name: "SamplingPoints" },
   { path: "/management/processes", component: Processes, name: "Processes" },
-  { path: "/management/assessmentregimes", component: AssessmentRegimes, name: "AssessmentRegimes" },
-  { path: "/management/attainments", component: Attainments, name: "Attainments" },
-  { path: "/management/exceedances", component: Exceedances, name: "Exceedances" },
   { path: "/management/assessmentregimezones", component: AssessmentRegimeZones, name: "AssessmentRegimeZones" },
   { path: "/management/documents", component: Documents, name: "Documents" },
   { path: "/management/spatialrepresentativeness", component: SpatialRepresentativeness, name: "SpatialRepresentativeness" },

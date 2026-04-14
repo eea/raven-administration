@@ -88,6 +88,9 @@ class Management:
             elif row.data_type == "geometry":
                 self.df[self.df[row.column_name].notna()][row.column_name].apply(wkt.loads)
 
+            elif row.data_type in ("timestamp", "timestamptz", "date"):
+                pd.to_datetime(self.df[self.df[row.column_name].notna()][row.column_name])
+
             else:
                 raise Exception("Not implemented check for type: " + row.data_type)
 

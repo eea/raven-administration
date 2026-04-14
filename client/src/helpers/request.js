@@ -54,6 +54,15 @@ export const Download = async (url, data) => {
   return await Request(payload);
 };
 
+export const DownloadGet = async (url) => {
+  const payload = {
+    method: "get",
+    url: url,
+    responseType: "blob"
+  };
+  return await Request(payload);
+};
+
 export const Delete = async (url) => {
   const payload = {
     method: "delete",

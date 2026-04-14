@@ -1,4 +1,4 @@
-import { Get, Post, Upload, Download } from "../../../helpers/request";
+import { Get, Post, Upload , DownloadGet } from "../../../helpers/request";
 
 const Service = {
   get: async () => Get("/api/management/authorities"),
@@ -7,7 +7,7 @@ const Service = {
   insert: async (data) => Post("/api/management/authorities/insert", data),
   delete: async (data) => Post("/api/management/authorities/delete", data),
   upload: async (data) => Upload("/api/imports/authorities", data),
-  download: async () => Download("/api/exports/authorities")
+  download: async () => DownloadGet("/api/exports/authorities")
 };
 
 export default Service;

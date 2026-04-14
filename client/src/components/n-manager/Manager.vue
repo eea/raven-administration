@@ -31,6 +31,9 @@ const props = defineProps({
   }
 });
 
+const showUpload = computed(() => typeof props.service?.upload === "function");
+const fileInput = ref(null);
+
 const data = ref([]);
 
 const showEdit = ref(false);
@@ -57,42 +60,27 @@ const onDoubleClick = () => {
 };
 
 const onDownload = async () => {
-  // Export filtered data to CSV
-  if (!filteredList.value || filteredList.value.length === 0) {
-    return;
+  if (typeof props.service?.download === "function") {
+    await props.service.download();
   }
+};
 
-  const visibleProps = cmp_properties.value.filter((p) => p.showInGrid);
-  const headers = visibleProps.map((p) => p.label);
+const onUpload = () => {
+  fileInput.value.click();
+};
 
-  const rows = filteredList.value.map((row) => {
-    return visibleProps.map((prop) => {
-      let value = row[prop.prop];
-
-      // Handle different types
-      if (prop.type === "checkbox") {
-        value = value ? "true" : "false";
-      } else if (prop.type === "gridOnly" && prop.val_func) {
-        value = prop.val_func(row);
-      }
-
-      // Escape and quote
-      if (value == null) value = "";
-      value = String(value).replace(/"/g, '""');
-      return `"${value}"`;
-    });
-  });
-
-  const csv = [headers.map((h) => `"${h}"`).join(","), ...rows.map((r) => r.join(","))].join("\n");
-
-  const filename = `${props.options.csvName || props.name}.csv`;
-  const link = document.createElement("a");
-  link.style.display = "none";
-  link.setAttribute("href", "data:text/csv;charset=utf-8," + encodeURIComponent(csv));
-  link.setAttribute("download", filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+const onFileChange = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append("file", file);
+  try {
+    await props.service.upload(formData);
+    await loadData();
+    Eventy.showHideMessage(`${props.name} imported successfully`, "success", 5000);
+  } finally {
+    event.target.value = "";
+  }
 };
 
 const onContextMenuAction = ({ action, data }) => {
@@ -162,7 +150,8 @@ const cmp_properties = computed(() => {
     <component v-if="showAddButton" :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" :duplicate-source="duplicateSource" @close="close" @save="saveAdd" />
     <component :is="crudComponent" :is-edit="true" :show="showEdit" :options="options" :selected-value="selected[0]" @close="close" @save="saveEdit" />
 
-    <tool-bar :title="name" v-model:q="q" :show-add="showAddButton" :show-download="showDownloadButton" @add-click="showAdd = true" @download-click="onDownload" />
+    <tool-bar :title="name" v-model:q="q" :show-add="showAddButton" :show-download="showDownloadButton" :show-upload="showUpload" @add-click="showAdd = true" @download-click="onDownload" @upload-click="onUpload" />
+    <input ref="fileInput" type="file" accept=".csv,.gpkg" class="hidden" @change="onFileChange" />
 
     <grid-data-table v-model:selected="selected" :properties="cmp_properties" :values="filteredList" :get-row-style="options.getRowStyle" @context-menu-action="onContextMenuAction" @on-dbl-click="onDoubleClick">
       <template #context-menu-items="{ handleAction, contextData }">
