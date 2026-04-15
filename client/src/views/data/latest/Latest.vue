@@ -95,7 +95,8 @@ watch(aqi_type, (val) => {
 });
 
 const loadData = async () => {
-  data.value = await Service.get();
+  const result = await Service.get();
+  if (result) data.value = result;
 };
 
 const cmp_data = computed(() => filterList(q.value, data.value));
