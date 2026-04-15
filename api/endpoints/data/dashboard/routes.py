@@ -53,5 +53,7 @@ def dashboard():
     with CursorFromPool() as cursor:
         m = HistoricalModel(**request.json)
         sampling_point_ids = Q.sampling_point_ids_by_networks_access(m.sampling_point_ids)
+        if not sampling_point_ids:
+            return jsonify([])
         meanvalues = Mean.Aggregate(cursor, MeanType(m.meantype), sampling_point_ids, m.from_dt, m.to_dt, m.coverage, 3, 3, True)
         return jsonify(meanvalues)
