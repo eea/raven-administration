@@ -20,12 +20,12 @@ const Interceptor = {
         } else return response;
       },
       (error) => {
-        if (401 === error.response.status || 422 === error.response.status) {
+        if (error.response && (401 === error.response.status || 422 === error.response.status)) {
           Auth.signout();
           window.location.href = "/login";
-        } else if (403 === error.response.status) {
+        } else if (error.response && 403 === error.response.status) {
           window.location.href = "/forbidden";
-        } else if (404 === error.response.status && !error.response.request.responseURL.toLowerCase().includes("api")) {
+        } else if (error.response && 404 === error.response.status && !error.response.request.responseURL.toLowerCase().includes("api")) {
           window.location.href = "/notfound";
         } else {
           return Promise.reject(error);

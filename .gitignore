@@ -163,3 +163,8 @@ dmypy.json
 ddl*
 test_scripts*
 tmp*
+
+# Plugin system – private plugin packages, never commit to public EEA repo
+api/plugins/
+client/src/plugins/
+client/test-results

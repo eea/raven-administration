@@ -250,9 +250,9 @@ class Migration:
         
         log("   Creating schema...")
         
-        # Find schema file relative to this script
+        # Find schema file relative to this script (canonical schema in raven-admin/sql/)
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        schema_file = os.path.join(script_dir, '..', '..', '..', '..', 'raven-rn3-db', 'schema_v4.sql')
+        schema_file = os.path.join(script_dir, '..', 'schema.sql')
         
         if not os.path.exists(schema_file):
             raise FileNotFoundError(f"Schema file not found: {schema_file}")

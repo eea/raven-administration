@@ -4,12 +4,18 @@ import { useRouter } from "vue-router";
 import Auth from "../helpers/auth";
 import IconLogout from "~icons/ic/outline-logout";
 import IconNewVersion from "~icons/material-symbols/download-for-offline-rounded";
+import IconPlugin from "~icons/ic/baseline-extension";
 import { jwtDecode } from "jwt-decode";
 import Version from "../helpers/version";
+import { Get } from "../helpers/request";
 
 const router = useRouter();
 const modules = ref([]);
 const version = ref({ current: "-", isLatest: true });
+const pluginStatus = ref({});
+
+// Plugin modules – resolved at build time. Empty when no plugins installed.
+const pluginModules = import.meta.glob("../plugins/*/index.js", { eager: true });
 
 const props = defineProps({
   show: Boolean
@@ -21,9 +27,21 @@ watch(
 );
 
 onMounted(async () => {
-  modules.value = getmodules();
   version.value = await Version.get();
+  await loadPluginStatus();
+  modules.value = getmodules();
 });
+
+const loadPluginStatus = async () => {
+  if (!Auth.isAuth()) return;
+  try {
+    const list = await Get("/api/misc/plugins");
+    // Build a lookup by plugin id: { nilu: { enabled: true, ... }, ... }
+    pluginStatus.value = Object.fromEntries((list ?? []).map((p) => [p.id, p]));
+  } catch {
+    pluginStatus.value = {};
+  }
+};
 
 const getmodules = () => {
   var token = sessionStorage.getItem("token");
@@ -88,7 +106,8 @@ const getmodules = () => {
         { name: "Settings", comp: "Settings", show: jwt.management && jwt.allnetworks },
         { name: "Pre aggregation", comp: "PreAggregation", show: jwt.management && jwt.allnetworks },
         { name: "Local AQI", comp: "Aqi", show: jwt.management && jwt.allnetworks },
-        { name: "Notifications", comp: "Notifications", show: jwt.management && jwt.allnetworks }
+        { name: "Notifications", comp: "Notifications", show: jwt.management && jwt.allnetworks },
+        { name: "Plugins", comp: "PluginManager", show: jwt.management && jwt.allnetworks }
       ]
     },
     {
@@ -98,7 +117,13 @@ const getmodules = () => {
         { name: "Users", comp: "Users", show: jwt.users },
         { name: "Groups", comp: "Groups", show: jwt.users }
       ]
-    }
+    },
+    // Plugin-contributed menu groups
+    ...Object.values(pluginModules).flatMap((m) => {
+      const pid = m.pluginId;
+      const isEnabled = pid ? (pluginStatus.value[pid]?.enabled ?? true) : true;
+      return isEnabled ? (m.getMenuGroups?.(jwt) ?? m.menuGroups ?? []) : [];
+    })
   ];
 };
 
@@ -120,6 +145,13 @@ const signout = async () => {
 <template>
   <div class="border border-nord4 flex flex-col justify-between bg-gray-50 select-none" v-show="show">
     <div class="overflow-y-auto">
+      <!-- RESTART REQUIRED ALERT -->
+      <div v-if="Object.values(pluginStatus).some((p) => p.restart_required)" class="pt-2 px-1">
+        <div class="border py-2 pl-1 pr-2 text-sm bg-nord13/20 flex gap-1 border-nord4 cursor-pointer" @click="goto('PluginManager')">
+          <icon-plugin class="self-center text-nord13" />
+          <div class="font-bold">Plugin rebuild required</div>
+        </div>
+      </div>
       <!-- NEW VERSION ALERT -->
       <div v-if="!version.isLatest" class="pt-2 px-1">
         <div class="border py-2 pl-1 pr-2 text-sm bg-nord11/10 flex gap-1 border-nord4 hover:bg-nord11/20 cursor-pointer" @click="goto_git_changelog">

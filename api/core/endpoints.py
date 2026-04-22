@@ -129,3 +129,7 @@ class Endpoints:
         # VERSION
         from endpoints.version.routes import version_endpoint
         app.register_blueprint(version_endpoint)
+
+        # PLUGIN MANAGER
+        from endpoints.misc.plugins.routes import plugins_manager_endpoint
+        app.register_blueprint(plugins_manager_endpoint)

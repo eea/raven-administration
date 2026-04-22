@@ -43,8 +43,15 @@ const Notifications = () => import("./views/misc/notifications/Notifications.vue
 const Users = () => import("./views/access/users/Users.vue");
 const Groups = () => import("./views/access/groups/Groups.vue");
 
+const PluginManager = () => import("./views/misc/plugins/Plugins.vue");
+
 const Forbidden = () => import("./views/forbidden/Forbidden.vue");
 const Notfound = () => import("./views/notfound/Notfound.vue");
+
+// Plugin routes – resolved at build time via Vite glob import.
+// Returns {} (empty object) when no plugins are installed, so pluginRoutes stays [].
+const pluginModules = import.meta.glob("./plugins/*/index.js", { eager: true });
+const pluginRoutes = Object.values(pluginModules).flatMap((m) => m.routes ?? []);
 
 const routes = [
   { path: "/", redirect: () => {
@@ -88,9 +95,12 @@ const routes = [
   { path: "/misc/preaggregation", component: PreAggregation, name: "PreAggregation" },
   { path: "/misc/aqi", component: Aqi, name: "Aqi" },
   { path: "/misc/notifications", component: Notifications, name: "Notifications" },
+  { path: "/misc/plugins", component: PluginManager, name: "PluginManager" },
 
   { path: "/acess/users", component: Users, name: "Users" },
   { path: "/acess/groups", component: Groups, name: "Groups" },
+
+  ...pluginRoutes,
 
   { path: "/forbidden", component: Forbidden, name: "Forbidden" },
   { path: "/:pathMatch(.*)*", component: Notfound }
