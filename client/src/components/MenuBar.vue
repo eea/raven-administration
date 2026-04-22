@@ -59,9 +59,6 @@ const getmodules = () => {
         { name: "Stations", comp: "Stations", show: jwt.management },
         { name: "Sampling Points", comp: "SamplingPoints", show: jwt.management },
         { name: "Processes", comp: "Processes", show: jwt.management },
-        // { name: "Assessment Regimes", comp: "AssessmentRegimes", show: jwt.management && jwt.allnetworks },
-        // { name: "Attainments", comp: "Attainments", show: jwt.management && jwt.allnetworks },
-        // { name: "Exceedances", comp: "Exceedances", show: jwt.management && jwt.allnetworks },
         { name: "Assessment Regime Zones", comp: "AssessmentRegimeZones", show: jwt.management && jwt.allnetworks },
         { name: "Spatial Representativeness", comp: "SpatialRepresentativeness", show: jwt.management }
       ]

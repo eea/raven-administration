@@ -5,9 +5,6 @@ from core.jwt_ext_custom import (
     jwt_required_with_allnetworks_claim,
     jwt_required_with_management_claim,
 )
-import pandas as pd
-import json
-import ast
 
 import_management_endpoint = Blueprint("import_management", __name__)
 
@@ -17,7 +14,7 @@ import_management_endpoint = Blueprint("import_management", __name__)
 @jwt_required_with_allnetworks_claim()
 def import_authorities():
     with CursorFromPool() as cursor:
-        m = Management(cursor, "responsible_authorities")
+        m = Management(cursor, "authorities")
         m.parse_file(request.files["file"])
         m.generic_insert()
         return jsonify({"success": True})
@@ -26,12 +23,12 @@ def import_authorities():
 @import_management_endpoint.route("/api/imports/zones", methods=["POST"])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
-def zones_test():
+def import_zones():
     with CursorFromPool() as cursor:
         m = Management(cursor, "zones")
         m.parse_file(request.files["file"])
         m.generic_insert()
-    return jsonify({"success": True})
+        return jsonify({"success": True})
 
 
 @import_management_endpoint.route("/api/imports/networks", methods=["POST"])
@@ -67,30 +64,6 @@ def import_sampling_points():
         return jsonify({"success": True})
 
 
-@import_management_endpoint.route(
-    "/api/imports/observing_capabilities", methods=["POST"]
-)
-@jwt_required_with_management_claim()
-@jwt_required_with_allnetworks_claim()
-def import_observing_capabilities():
-    with CursorFromPool() as cursor:
-        m = Management(cursor, "observing_capabilities")
-        m.parse_file(request.files["file"])
-        m.generic_insert()
-        return jsonify({"success": True})
-
-
-@import_management_endpoint.route("/api/imports/samples", methods=["POST"])
-@jwt_required_with_management_claim()
-@jwt_required_with_allnetworks_claim()
-def import_samples():
-    with CursorFromPool() as cursor:
-        m = Management(cursor, "samples")
-        m.parse_file(request.files["file"])
-        m.generic_insert()
-        return jsonify({"success": True})
-
-
 @import_management_endpoint.route("/api/imports/processes", methods=["POST"])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
@@ -102,41 +75,12 @@ def import_processes():
         return jsonify({"success": True})
 
 
-@import_management_endpoint.route("/api/imports/attainments", methods=["POST"])
+@import_management_endpoint.route("/api/imports/documents", methods=["POST"])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
-def import_attainments():
+def import_documents():
     with CursorFromPool() as cursor:
-        m = Management(cursor, "attainments")
+        m = Management(cursor, "documents")
         m.parse_file(request.files["file"])
-        m.generic_insert()
-        return jsonify({"success": True})
-
-
-@import_management_endpoint.route("/api/imports/assessmentregime", methods=["POST"])
-@jwt_required_with_management_claim()
-@jwt_required_with_allnetworks_claim()
-def import_assessmentregime():
-    # Expecting two files
-    with CursorFromPool() as cursor:
-        m = Management(cursor, "assessmentregimes")
-        m.parse_file(request.files["file1"])
-
-        md = Management(cursor, "assessmentdata")
-        md.parse_file(request.files["file2"])
-
-        m.generic_insert()
-        md.generic_insert()
-        return jsonify({"success": True})
-
-
-@import_management_endpoint.route("/api/imports/exceedances", methods=["POST"])
-@jwt_required_with_management_claim()
-@jwt_required_with_allnetworks_claim()
-def import_exceedances():
-    with CursorFromPool() as cursor:
-        m = Management(cursor, "exceedancedescriptions")
-        m.parse_file(request.files["file"])
-
         m.generic_insert()
         return jsonify({"success": True})

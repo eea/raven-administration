@@ -29,15 +29,6 @@ class Endpoints:
         from endpoints.management.processes.routes import processes_endpoint
         app.register_blueprint(processes_endpoint)
 
-        from endpoints.management.assessmentregimes.routes import assessmentregimes_endpoint
-        app.register_blueprint(assessmentregimes_endpoint)
-
-        from endpoints.management.attainments.routes import attainments_endpoint
-        app.register_blueprint(attainments_endpoint)
-
-        from endpoints.management.exceedances.routes import exceedances_endpoint
-        app.register_blueprint(exceedances_endpoint)
-
         from endpoints.management.assessmentregimezones.routes import assessmentregimezones_endpoint
         app.register_blueprint(assessmentregimezones_endpoint)
 

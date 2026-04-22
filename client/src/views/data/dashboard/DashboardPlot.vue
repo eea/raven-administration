@@ -24,10 +24,10 @@ const emit = defineEmits(["update", "remove", "edit"]);
 const PRESETS = [
   { key: "6h",  label: "6h",  hours: 6,   meantype: 0 },
   { key: "12h", label: "12h", hours: 12,  meantype: 0 },
-  { key: "24h", label: "24h", hours: 24,  meantype: 1 },
-  { key: "3d",  label: "3d",  hours: 72,  meantype: 1 },
-  { key: "7d",  label: "7d",  hours: 168, meantype: 1 },
-  { key: "14d", label: "14d", hours: 336, meantype: 1 },
+  { key: "24h", label: "24h", hours: 24,  meantype: 0 },
+  { key: "3d",  label: "3d",  hours: 72,  meantype: 0 },
+  { key: "7d",  label: "7d",  hours: 168, meantype: 0 },
+  { key: "14d", label: "14d", hours: 336, meantype: 0 },
 ];
 
 const loading         = ref(false);

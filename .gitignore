@@ -168,3 +168,5 @@ tmp*
 api/plugins/
 client/src/plugins/
 client/test-results
+
+plan
