@@ -57,6 +57,16 @@ def serve_plugin_client(plugin_id: str):
     return current_app.response_class(content, mimetype='application/javascript')
 
 
+@plugins_manager_endpoint.route('/api/misc/plugins/<plugin_id>/public-config', methods=['GET'])
+def plugin_public_config(plugin_id: str):
+    """Public endpoint (no auth): returns the stored config JSONB for any plugin.
+    Frontend-only plugins use this to read their settings without needing Python backend code."""
+    plugin = PluginRegistry.get(plugin_id)
+    if plugin is None:
+        raise NotFound(f'Plugin {plugin_id!r} not found')
+    return jsonify(plugin['config'] or {})
+
+
 @plugins_manager_endpoint.route('/api/misc/plugins/catalog', methods=['GET'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
