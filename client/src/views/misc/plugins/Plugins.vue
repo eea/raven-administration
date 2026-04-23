@@ -67,7 +67,6 @@ const install = async (catalogEntry) => {
     Eventy.showHideMessage("Plugin installed. Reload the page to activate it.", "success", 5000);
   }
 };
-};
 
 const openConfig = async (plugin) => {
   configPlugin.value = plugin;
