@@ -1,0 +1,10 @@
+client/node_modules
+client/dist
+api/__pycache__
+api/**/__pycache__
+api/.pytest_cache
+**/*.pyc
+**/*.pyo
+.git
+.gitignore
+.env.example

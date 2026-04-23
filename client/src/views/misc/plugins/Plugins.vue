@@ -5,17 +5,19 @@ import Popup from "../../../components/Popup.vue";
 import Eventy from "../../../helpers/eventy";
 import PluginService from "./service";
 
-// Plugin modules from installed frontend plugins (build-time glob)
+// Plugin modules from installed frontend plugins (build-time glob — dev mode / Docker Compose)
 const pluginModules = import.meta.glob("../../../plugins/*/index.js", { eager: true });
-const frontendPluginIds = new Set(
-  Object.values(pluginModules).map((m) => m.pluginId).filter(Boolean)
-);
+const frontendPluginIds = computed(() => new Set([
+  ...Object.values(pluginModules).map((m) => m.pluginId).filter(Boolean),
+  ...Object.keys(window.__ravenPlugins || {}),
+]));
 
 const installed = ref([]);
 const catalog = ref([]);
 const configPlugin = ref(null);
 const configData = ref({});
 const showConfig = ref(false);
+const restarting = ref(false);
 
 onMounted(async () => {
   await refresh();
@@ -51,7 +53,7 @@ const toggle = async (plugin) => {
 
 const install = async (catalogEntry) => {
   Eventy.showMessage("Installing plugin, please wait...", "loading");
-  await PluginService.install({
+  const result = await PluginService.install({
     id: catalogEntry.id,
     name: catalogEntry.name,
     version: catalogEntry.version,
@@ -59,7 +61,12 @@ const install = async (catalogEntry) => {
     download_url: catalogEntry.download_url,
   });
   await refresh();
-  Eventy.showHideMessage("Plugin installed. Rebuild & restart required.", "success", 8000);
+  if (result?.restart_required) {
+    Eventy.showHideMessage("Plugin installed. Restart the server to activate backend changes.", "success", 8000);
+  } else {
+    Eventy.showHideMessage("Plugin installed. Reload the page to activate it.", "success", 5000);
+  }
+};
 };
 
 const openConfig = async (plugin) => {
@@ -81,6 +88,25 @@ const closeConfig = () => {
   configData.value = {};
 };
 
+const restartServer = async () => {
+  restarting.value = true;
+  Eventy.showMessage("Restarting server, please wait…", "loading");
+  try {
+    await PluginService.restart();
+    Eventy.showHideMessage("Server restarting. Page will reload shortly…", "success", 6000);
+    // Wait a few seconds for the container to come back up, then reload
+    setTimeout(() => window.location.reload(), 5000);
+  } catch (err) {
+    const msg = err?.response?.data?.description ?? err?.message ?? "Unknown error";
+    Eventy.showHideMessage(msg, "error", 12000);
+    restarting.value = false;
+  }
+};
+
+const rebuild = async () => {
+  window.location.reload();
+};
+
 const onImageField = (key, event) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -94,8 +120,10 @@ const onImageField = (key, event) => {
   reader.readAsDataURL(file);
 };
 
-// Get configSchema from the installed frontend plugin module (if present)
+// Get configSchema from runtime-loaded global registry, then fall back to build-time glob
 const getConfigSchema = (pluginId) => {
+  const runtime = window.__ravenPlugins?.[pluginId]?.configSchema;
+  if (runtime) return runtime;
   const mod = Object.values(pluginModules).find((m) => m.pluginId === pluginId);
   return mod?.configSchema ?? [];
 };
@@ -134,13 +162,20 @@ const getConfigSchema = (pluginId) => {
     <div class="p-4 flex flex-col gap-6 max-w-4xl">
       <div class="text-xl font-bold">Plugin Manager</div>
 
-      <!-- Rebuild required banner -->
-      <div v-if="anyRestartRequired" class="border border-nord13 bg-nord13/10 rounded p-3 flex gap-3 items-center">
-        <div class="text-nord13 font-bold text-lg">⚠</div>
-        <div>
-          <div class="font-bold">Rebuild &amp; Restart required</div>
-          <div class="text-sm text-nord3">One or more plugins were installed or updated. Rebuild the Docker image and restart to apply frontend changes.</div>
+      <!-- Server restart required banner (backend plugin installed) -->
+      <div v-if="anyRestartRequired" class="border border-nord13 bg-nord13/10 rounded p-3 flex gap-4 items-center">
+        <div class="text-nord13 font-bold text-xl shrink-0">⚠</div>
+        <div class="flex-1">
+          <div class="font-bold">Server restart required</div>
+          <div class="text-sm text-nord3">
+            A plugin with backend code was installed. The server must restart to register the new API endpoints.
+            In Kubernetes, run: <code class="bg-nord6 px-1 rounded">kubectl rollout restart deployment/raven-api</code>
+          </div>
         </div>
+        <button class="button shrink-0" :disabled="restarting" @click="restartServer" title="Docker deployments only">
+          <span v-if="restarting">⏳ Restarting…</span>
+          <span v-else>🔄 Restart Server</span>
+        </button>
       </div>
 
       <!-- Installed plugins -->

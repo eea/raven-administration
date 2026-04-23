@@ -1,11 +1,30 @@
 FROM python:3.12-slim
-RUN apt update
-RUN apt -y install
-WORKDIR /app
+
+# Copy Node.js from the official image (avoids apt/nodesource network flakiness).
+# npm/npx must be symlinks so their internal relative requires resolve correctly.
+COPY --from=node:20-slim /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:20-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
+    ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx && \
+    chmod +x /usr/local/lib/node_modules/npm/bin/npm-cli.js \
+             /usr/local/lib/node_modules/npm/bin/npx-cli.js
+
+# Copy client source and pre-install npm dependencies
+WORKDIR /app/client
+COPY client/package*.json ./
+RUN npm install
+COPY client/ ./
+
+# Python API
+WORKDIR /app/api
 COPY api/requirements.txt .
 RUN pip install -r requirements.txt
-COPY .env ../
 COPY api/ ./
+COPY .env /app/.env
+
 ENV PYTHONUNBUFFERED=1
 EXPOSE 5000
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "3", "--threads", "2", "--timeout", "3600", "app:app"]
+
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]

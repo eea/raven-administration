@@ -3,6 +3,7 @@ import App from "./App.vue";
 import "./assets/style.css";
 // import "./assets/n-elements.css";
 import { disableTextSelectOnShiftDown } from "./helpers/utils";
+import "./helpers/branding"; // ensure window.__ravenBranding is set before plugins load
 
 // INTERCEPT
 import intercetor from "./helpers/interceptor";
@@ -28,4 +29,27 @@ disableTextSelectOnShiftDown();
 import router from "./router";
 app.use(router);
 
+// Load runtime plugins (from the API) before mounting so branding/etc apply before first paint.
+// This works in both Docker Compose and Kubernetes — no build step required.
+async function loadRuntimePlugins() {
+  try {
+    const resp = await fetch("/api/misc/plugins/enabled");
+    if (!resp.ok) return;
+    const plugins = await resp.json();
+    for (const p of plugins) {
+      if (!p.has_client) continue;
+      await new Promise((resolve) => {
+        const script = document.createElement("script");
+        script.src = `/api/plugins/${p.id}/client.js`;
+        script.onload = resolve;
+        script.onerror = resolve; // non-fatal — continue loading other plugins
+        document.head.appendChild(script);
+      });
+    }
+  } catch {
+    // Non-fatal: app works without plugins
+  }
+}
+
+await loadRuntimePlugins();
 app.mount("#app");

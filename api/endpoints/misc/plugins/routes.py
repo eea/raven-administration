@@ -1,12 +1,13 @@
 import json
 import os
+import signal
 import zipfile
 import tempfile
 import shutil
 import logging
 
 import requests
-from flask import jsonify, Blueprint, request
+from flask import jsonify, Blueprint, request, current_app
 from werkzeug.exceptions import BadRequest, NotFound
 from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 from core.plugin_registry import PluginRegistry
@@ -26,6 +27,34 @@ _CLIENT_PLUGINS_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), '
 def list_plugins():
     plugins = PluginRegistry.list_all()
     return jsonify(plugins)
+
+
+@plugins_manager_endpoint.route('/api/misc/plugins/enabled', methods=['GET'])
+def list_enabled_plugins():
+    """Public endpoint: returns enabled plugin IDs with has_client flag.
+    Used by the frontend to inject runtime plugin scripts without a build step."""
+    from core.database import CursorFromPool
+    with CursorFromPool() as cursor:
+        cursor.execute("SELECT id FROM plugin_registry WHERE enabled = TRUE ORDER BY name")
+        rows = cursor.fetchall()
+    result = []
+    for row in rows:
+        pid = row['id']
+        has_client = os.path.isfile(os.path.join(_API_PLUGINS_DIR, pid, 'client.js'))
+        result.append({'id': pid, 'has_client': has_client})
+    return jsonify(result)
+
+
+@plugins_manager_endpoint.route('/api/plugins/<plugin_id>/client.js', methods=['GET'])
+def serve_plugin_client(plugin_id: str):
+    """Public endpoint: serves a plugin's client-side JS for runtime loading.
+    Allows plugins to work in Kubernetes without rebuilding the Docker image."""
+    client_js = os.path.join(_API_PLUGINS_DIR, plugin_id, 'client.js')
+    if not os.path.isfile(client_js):
+        return ('', 404)
+    with open(client_js, 'r', encoding='utf-8') as f:
+        content = f.read()
+    return current_app.response_class(content, mimetype='application/javascript')
 
 
 @plugins_manager_endpoint.route('/api/misc/plugins/catalog', methods=['GET'])
@@ -77,6 +106,11 @@ def install_plugin():
         extracted_api = os.path.join(tmp_dir, 'api')
         extracted_client = os.path.join(tmp_dir, 'client')
 
+        # Detect whether the plugin has Python backend code — requires a gunicorn restart.
+        has_backend = os.path.isdir(extracted_api) and os.path.isfile(
+            os.path.join(extracted_api, '__init__.py')
+        )
+
         if os.path.isdir(extracted_api):
             dest_api = os.path.join(_API_PLUGINS_DIR, plugin_id)
             if os.path.exists(dest_api):
@@ -85,31 +119,46 @@ def install_plugin():
             logger.info(f'Plugin {plugin_id}: backend files installed to {dest_api}')
 
         if os.path.isdir(extracted_client):
-            dest_client = os.path.join(_CLIENT_PLUGINS_DIR, plugin_id)
-            if os.path.exists(dest_client):
-                shutil.rmtree(dest_client)
-            shutil.copytree(extracted_client, dest_client)
-            logger.info(f'Plugin {plugin_id}: frontend files installed to {dest_client}')
+            # Store client.js in the API plugins dir so it can be served at runtime
+            # (works in both Docker Compose and Kubernetes without a rebuild)
+            client_index = os.path.join(extracted_client, 'index.js')
+            if os.path.isfile(client_index):
+                dest_api_dir = os.path.join(_API_PLUGINS_DIR, plugin_id)
+                os.makedirs(dest_api_dir, exist_ok=True)
+                shutil.copy2(client_index, os.path.join(dest_api_dir, 'client.js'))
+                logger.info(f'Plugin {plugin_id}: client.js stored for runtime serving')
 
-    # Register in DB (or upsert)
-    with_cursor_insert = f"""
+            # Also copy to client/src/plugins/ for dev-mode Vite build (optional, may not exist in K8s)
+            try:
+                dest_client = os.path.join(_CLIENT_PLUGINS_DIR, plugin_id)
+                if os.path.exists(dest_client):
+                    shutil.rmtree(dest_client)
+                shutil.copytree(extracted_client, dest_client)
+                logger.info(f'Plugin {plugin_id}: frontend files installed to {dest_client}')
+            except OSError:
+                logger.info(f'Plugin {plugin_id}: client/src/plugins not available (runtime-only mode)')
+
+    # restart_required = True only for plugins with Python backend code (__init__.py).
+    # Frontend-only plugins are served dynamically and activate on a simple page reload.
+    upsert_sql = """
         INSERT INTO plugin_registry (id, name, version, description, restart_required)
-        VALUES (%(id)s, %(name)s, %(version)s, %(description)s, TRUE)
+        VALUES (%(id)s, %(name)s, %(version)s, %(description)s, %(restart_required)s)
         ON CONFLICT (id) DO UPDATE
             SET name = EXCLUDED.name,
                 version = EXCLUDED.version,
                 description = EXCLUDED.description,
-                restart_required = TRUE,
+                restart_required = EXCLUDED.restart_required,
                 updated_at = NOW()
     """
     from core.database import CursorFromPool
     with CursorFromPool() as cursor:
-        cursor.execute(with_cursor_insert, {
+        cursor.execute(upsert_sql, {
             "id": plugin_id, "name": name,
-            "version": version, "description": description
+            "version": version, "description": description,
+            "restart_required": has_backend,
         })
 
-    return jsonify({"success": True, "restart_required": True})
+    return jsonify({"success": True, "restart_required": has_backend})
 
 
 @plugins_manager_endpoint.route('/api/misc/plugins/<plugin_id>/enable', methods=['POST'])
@@ -153,4 +202,30 @@ def save_plugin_config(plugin_id: str):
         raise NotFound(f'Plugin {plugin_id} not found')
     config = request.json or {}
     PluginRegistry.set_config_json(plugin_id, json.dumps(config))
+    return jsonify({"success": True})
+
+
+@plugins_manager_endpoint.route('/api/misc/plugins/restart', methods=['POST'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def restart_server():
+    """Restart the gunicorn server to load newly installed backend plugin code.
+    Works in Docker (restart: always brings it back). Returns 400 in K8s/unknown environments."""
+    # Heuristic: a shared client-dist volume mounted at /app/client/dist indicates Docker Compose.
+    # In K8s the API pod has no client source — the restart must be done via kubectl/ArgoCD.
+    is_docker = os.path.isdir('/app/client/dist')
+    if not is_docker:
+        raise BadRequest(
+            'Server restart via API is only supported in Docker deployments. '
+            'In Kubernetes, restart the raven-api pod via ArgoCD or: '
+            'kubectl rollout restart deployment/raven-api'
+        )
+
+    from core.database import CursorFromPool
+    with CursorFromPool() as cursor:
+        cursor.execute("UPDATE plugin_registry SET restart_required = FALSE, updated_at = NOW()")
+
+    logger.info('Restarting gunicorn via SIGTERM on parent process')
+    # Send SIGTERM to the gunicorn master. Docker restart:always will bring the container back.
+    os.kill(os.getppid(), signal.SIGTERM)
     return jsonify({"success": True})

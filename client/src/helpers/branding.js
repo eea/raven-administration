@@ -5,3 +5,6 @@ export const branding = reactive({
   subtitle: "Administration",
   tabTitle: "Raven",
 });
+
+// Expose globally so standalone runtime-loaded plugin scripts can write to the reactive store
+window.__ravenBranding = branding;
