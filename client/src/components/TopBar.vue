@@ -1,5 +1,7 @@
 <script setup>
+import { watchEffect } from "vue";
 import IconMenu from "~icons/fa-solid/bars";
+import { branding } from "../helpers/branding";
 
 const props = defineProps({
   "hide-menu-button": {
@@ -8,6 +10,10 @@ const props = defineProps({
   }
 });
 const emit = defineEmits(["on-click"]);
+
+watchEffect(() => {
+  document.title = branding.tabTitle;
+});
 </script>
 
 <template>
@@ -18,8 +24,8 @@ const emit = defineEmits(["on-click"]);
       </div>
     </div>
     <div class="self-center flex gap-1 mr-1 text-base">
-      <div class="self-center">Raven4</div>
-      <div class="self-center text-nord15">Administration</div>
+      <div class="self-center">{{ branding.appName }}</div>
+      <div class="self-center text-nord15">{{ branding.subtitle }}</div>
     </div>
   </div>
 </template>

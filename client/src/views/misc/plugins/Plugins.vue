@@ -81,6 +81,19 @@ const closeConfig = () => {
   configData.value = {};
 };
 
+const onImageField = (key, event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 100 * 1024) {
+    Eventy.showHideMessage("Image too large. Please use an image under 100 KB.", "error", 5000);
+    event.target.value = "";
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => { configData.value[key] = e.target.result; };
+  reader.readAsDataURL(file);
+};
+
 // Get configSchema from the installed frontend plugin module (if present)
 const getConfigSchema = (pluginId) => {
   const mod = Object.values(pluginModules).find((m) => m.pluginId === pluginId);
@@ -100,6 +113,12 @@ const getConfigSchema = (pluginId) => {
           <div v-else-if="field.type === 'checkbox'" class="flex gap-2 cursor-pointer" @click="configData[field.key] = !configData[field.key]">
             <input type="checkbox" :checked="configData[field.key]" class="self-center" readonly />
             <span class="self-center text-sm text-nord3">{{ field.label }}</span>
+          </div>
+          <div v-else-if="field.type === 'image'" class="flex flex-col gap-2">
+            <img v-if="configData[field.key]" :src="configData[field.key]" class="h-10 w-10 object-contain border border-nord4 rounded" />
+            <input type="file" accept="image/*" class="input w-full" @change="onImageField(field.key, $event)" />
+            <div class="text-xs text-nord3">Max 100 KB. Changes take effect after saving and reloading the page.</div>
+            <button v-if="configData[field.key]" class="button text-xs self-start" @click="configData[field.key] = ''">Remove image</button>
           </div>
         </div>
       </div>
