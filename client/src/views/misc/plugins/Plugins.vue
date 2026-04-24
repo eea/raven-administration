@@ -34,6 +34,27 @@ const refresh = async () => {
 
 const anyRestartRequired = computed(() => installed.value.some((p) => p.restart_required));
 
+// Compare two semver strings; returns true if a > b
+const semverGt = (a, b) => {
+  const parse = (v) => String(v ?? '0').split(/[-+]/)[0].split('.').map((n) => parseInt(n) || 0);
+  const [av, bv] = [parse(a), parse(b)];
+  for (let i = 0; i < 3; i++) {
+    if ((av[i] ?? 0) > (bv[i] ?? 0)) return true;
+    if ((av[i] ?? 0) < (bv[i] ?? 0)) return false;
+  }
+  return false;
+};
+
+// Map of plugin_id → catalog entry for installed plugins that have a newer version available
+const updatable = computed(() => {
+  const map = {};
+  for (const p of installed.value) {
+    const newer = catalog.value.find((c) => c.id === p.id && semverGt(c.version, p.version));
+    if (newer) map[p.id] = newer;
+  }
+  return map;
+});
+
 // Catalog entries that are NOT yet installed
 const available = computed(() => {
   const installedIds = new Set(installed.value.map((p) => p.id));
@@ -190,11 +211,16 @@ const getConfigSchema = (pluginId) => {
                 <div class="text-xs text-nord3 bg-nord5 px-2 py-0.5 rounded">v{{ plugin.version }}</div>
                 <div v-if="plugin.restart_required" class="text-xs text-nord13 bg-nord13/10 px-2 py-0.5 rounded font-bold">restart required</div>
                 <div v-if="!frontendPluginIds.has(plugin.id)" class="text-xs text-nord9 bg-nord9/10 px-2 py-0.5 rounded">backend only</div>
+                <div v-if="updatable[plugin.id]" class="text-xs text-nord14 bg-nord14/10 px-2 py-0.5 rounded font-bold">update available</div>
               </div>
               <div class="text-sm text-nord3 mt-1">{{ plugin.description }}</div>
             </div>
             <div class="flex gap-2 items-center shrink-0">
               <button class="button text-sm" @click="openConfig(plugin)" title="Configure">⚙️ Config</button>
+              <button v-if="updatable[plugin.id]" class="button text-sm"
+                      @click="install(updatable[plugin.id])" :title="`Update to v${updatable[plugin.id].version}`">
+                🆙 v{{ updatable[plugin.id].version }}
+              </button>
               <div class="flex items-center gap-2 cursor-pointer" @click="toggle(plugin)">
                 <div class="text-sm">{{ plugin.enabled ? 'Enabled' : 'Disabled' }}</div>
                 <div :class="['w-10 h-5 rounded-full transition-colors', plugin.enabled ? 'bg-nord14' : 'bg-nord4']" class="relative">
