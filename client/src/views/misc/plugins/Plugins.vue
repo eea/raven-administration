@@ -21,6 +21,7 @@ const restarting = ref(false);
 
 onMounted(async () => {
   await refresh();
+  await loadPluginScripts();
 });
 
 const refresh = async () => {
@@ -29,6 +30,13 @@ const refresh = async () => {
     catalog.value = await PluginService.catalog();
   } catch {
     catalog.value = [];
+  }
+};
+
+// Load client.js for all installed plugins so configSchema is available in the config popup
+const loadPluginScripts = async () => {
+  for (const plugin of installed.value) {
+    await injectPluginScript(plugin.id);
   }
 };
 
