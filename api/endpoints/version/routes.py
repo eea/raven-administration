@@ -1,9 +1,10 @@
 from flask import jsonify, Blueprint, request
 from flask_jwt_extended import create_access_token
 import requests
+import os
 
 version_endpoint = Blueprint('version', __name__)
-current_version = "4.0.0-beta40"
+current_version = os.environ.get("APP_VERSION", "dev")
 
 
 @version_endpoint.route('/api/version', methods=['GET'])
