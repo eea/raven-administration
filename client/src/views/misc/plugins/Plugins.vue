@@ -61,6 +61,14 @@ const available = computed(() => {
   return catalog.value.filter((c) => !installedIds.has(c.id));
 });
 
+const injectPluginScript = (pluginId) => new Promise((resolve) => {
+  const s = document.createElement("script");
+  s.src = `/api/plugins/${pluginId}/client.js?t=${Date.now()}`;
+  s.onload = resolve;
+  s.onerror = resolve; // non-fatal
+  document.head.appendChild(s);
+});
+
 const toggle = async (plugin) => {
   Eventy.showMessage("Updating plugin...", "loading");
   if (plugin.enabled) {
@@ -69,6 +77,7 @@ const toggle = async (plugin) => {
     await PluginService.enable(plugin.id);
   }
   await refresh();
+  Eventy.emit("plugins-updated");
   Eventy.showHideMessage("Plugin updated", "success", 3000);
 };
 
@@ -82,9 +91,11 @@ const install = async (catalogEntry) => {
     download_url: catalogEntry.download_url,
   });
   await refresh();
+  Eventy.emit("plugins-updated");
   if (result?.restart_required) {
     Eventy.showHideMessage("Plugin installed. Restart the server to activate backend changes.", "success", 8000);
   } else {
+    await injectPluginScript(catalogEntry.id);
     Eventy.showHideMessage("Plugin installed. Reload the page to activate it.", "success", 5000);
   }
 };

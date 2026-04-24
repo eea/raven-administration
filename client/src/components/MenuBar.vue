@@ -7,6 +7,7 @@ import IconNewVersion from "~icons/material-symbols/download-for-offline-rounded
 import IconPlugin from "~icons/ic/baseline-extension";
 import { jwtDecode } from "jwt-decode";
 import Version from "../helpers/version";
+import Eventy from "../helpers/eventy";
 import { Get } from "../helpers/request";
 
 const router = useRouter();
@@ -30,6 +31,7 @@ onMounted(async () => {
   version.value = await Version.get();
   await loadPluginStatus();
   modules.value = getmodules();
+  Eventy.listen("plugins-updated", loadPluginStatus);
 });
 
 const loadPluginStatus = async () => {
@@ -146,7 +148,7 @@ const signout = async () => {
       <div v-if="Object.values(pluginStatus).some((p) => p.restart_required)" class="pt-2 px-1">
         <div class="border py-2 pl-1 pr-2 text-sm bg-nord13/20 flex gap-1 border-nord4 cursor-pointer" @click="goto('PluginManager')">
           <icon-plugin class="self-center text-nord13" />
-          <div class="font-bold">Plugin rebuild required</div>
+          <div class="font-bold">Server restart required</div>
         </div>
       </div>
       <!-- NEW VERSION ALERT -->
