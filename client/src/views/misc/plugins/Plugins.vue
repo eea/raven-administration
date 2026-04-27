@@ -7,9 +7,13 @@ import PluginService from "./service";
 
 // Plugin modules from installed frontend plugins (build-time glob — dev mode / Docker Compose)
 const pluginModules = import.meta.glob("../../../plugins/*/index.js", { eager: true });
+
+// Reactive set of plugin IDs whose client.js has been successfully loaded at runtime
+const loadedPluginIds = ref(new Set());
+
 const frontendPluginIds = computed(() => new Set([
   ...Object.values(pluginModules).map((m) => m.pluginId).filter(Boolean),
-  ...Object.keys(window.__ravenPlugins || {}),
+  ...loadedPluginIds.value,
 ]));
 
 const installed = ref([]);
@@ -37,6 +41,10 @@ const refresh = async () => {
 const loadPluginScripts = async () => {
   for (const plugin of installed.value) {
     await injectPluginScript(plugin.id);
+    if (window.__ravenPlugins?.[plugin.id]) {
+      // Reassign to new Set to trigger Vue reactivity
+      loadedPluginIds.value = new Set([...loadedPluginIds.value, plugin.id]);
+    }
   }
 };
 
@@ -159,8 +167,10 @@ const onImageField = (key, event) => {
   reader.readAsDataURL(file);
 };
 
-// Get configSchema from runtime-loaded global registry, then fall back to build-time glob
+// Get configSchema from runtime-loaded global registry, then fall back to build-time glob.
+// Reading loadedPluginIds.value makes this reactive — reruns when scripts finish loading.
 const getConfigSchema = (pluginId) => {
+  void loadedPluginIds.value; // reactive dependency — re-evaluates when scripts load
   const runtime = window.__ravenPlugins?.[pluginId]?.configSchema;
   if (runtime) return runtime;
   const mod = Object.values(pluginModules).find((m) => m.pluginId === pluginId);

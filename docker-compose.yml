@@ -7,6 +7,7 @@ services:
     container_name: ${CONTAINER_NAME_API:-raven-api}
     sysctls:
       - net.ipv4.tcp_keepalive_time=200
+    env_file: .env
     environment:
       - RFILES_DIR=/app/rfiles
       - R_API_URL=http://rnotebook:8888
