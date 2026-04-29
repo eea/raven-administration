@@ -245,7 +245,7 @@ const getConfigSchema = (pluginId) => {
               <div class="text-sm text-nord3 mt-1">{{ plugin.description }}</div>
             </div>
             <div class="flex gap-2 items-center shrink-0">
-              <button class="button text-sm" @click="openConfig(plugin)" title="Configure">⚙️ Config</button>
+              <button v-if="getConfigSchema(plugin.id).length > 0" class="button text-sm" @click="openConfig(plugin)" title="Configure">⚙️ Config</button>
               <button v-if="updatable[plugin.id]" class="button text-sm"
                       @click="install(updatable[plugin.id])" :title="`Update to v${updatable[plugin.id].version}`">
                 🆙 v{{ updatable[plugin.id].version }}

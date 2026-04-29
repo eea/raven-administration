@@ -125,6 +125,10 @@ const isFormValid = computed(() => {
                 <div class="font-bold">{{ p.label }}:</div>
                 <DatetimePicker v-model="obj[p.prop]" />
               </div>
+              <div v-else-if="p.type == 'textarea'">
+                <div class="font-bold">{{ p.label }}:</div>
+                <textarea class="input w-full" v-model="obj[p.prop]" :placeholder="p.placeholder" rows="3"></textarea>
+              </div>
             </div>
           </div>
         </div>
@@ -156,6 +160,10 @@ const isFormValid = computed(() => {
               <div v-else-if="p.type == 'eeaDatetime'">
                 <div class="font-bold">{{ p.label }}:</div>
                 <DatetimePicker v-model="obj[p.prop]" />
+              </div>
+              <div v-else-if="p.type == 'textarea'">
+                <div class="font-bold">{{ p.label }}:</div>
+                <textarea class="input w-full" v-model="obj[p.prop]" :placeholder="p.placeholder" rows="3"></textarea>
               </div>
             </div>
           </div>
