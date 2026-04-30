@@ -2,6 +2,7 @@
 import { onMounted, ref, computed } from "vue";
 import CommonLayout from "../../../components/CommonLayout.vue";
 import Popup from "../../../components/Popup.vue";
+import Confirm from "../../../components/Confirm.vue";
 import Eventy from "../../../helpers/eventy";
 import PluginService from "./service";
 
@@ -22,6 +23,8 @@ const configPlugin = ref(null);
 const configData = ref({});
 const showConfig = ref(false);
 const restarting = ref(false);
+const showUninstall = ref(false);
+const uninstallTarget = ref(null);
 
 onMounted(async () => {
   await refresh();
@@ -154,6 +157,26 @@ const rebuild = async () => {
   window.location.reload();
 };
 
+const confirmUninstall = (plugin) => {
+  uninstallTarget.value = plugin;
+  showUninstall.value = true;
+};
+
+const uninstall = async () => {
+  showUninstall.value = false;
+  const plugin = uninstallTarget.value;
+  uninstallTarget.value = null;
+  Eventy.showMessage("Removing plugin...", "loading");
+  const result = await PluginService.uninstall(plugin.id);
+  await refresh();
+  Eventy.emit("plugins-updated");
+  if (result?.restart_required) {
+    Eventy.showHideMessage("Plugin removed. Restart the server to unload backend code.", "success", 8000);
+  } else {
+    Eventy.showHideMessage("Plugin removed.", "success", 3000);
+  }
+};
+
 const onImageField = (key, event) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -180,6 +203,15 @@ const getConfigSchema = (pluginId) => {
 
 <template>
   <common-layout>
+    <!-- Uninstall Confirm Dialog -->
+    <confirm
+      :show="showUninstall"
+      title="Remove plugin"
+      :text="`Remove <strong>${uninstallTarget?.name}</strong>? This will delete all plugin files. This cannot be undone.`"
+      @ok="uninstall"
+      @close="showUninstall = false"
+    />
+
     <!-- Config Popup -->
     <popup :show="showConfig" :title="`Configure: ${configPlugin?.name}`" @on-close="closeConfig" class="max-w-xl w-full">
       <div v-if="getConfigSchema(configPlugin?.id).length > 0">
@@ -256,6 +288,7 @@ const getConfigSchema = (pluginId) => {
                   <div :class="['absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform', plugin.enabled ? 'translate-x-5' : 'translate-x-0.5']"></div>
                 </div>
               </div>
+              <button class="button text-sm text-nord11" @click="confirmUninstall(plugin)" title="Remove plugin">🗑️</button>
             </div>
           </div>
         </div>

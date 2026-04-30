@@ -171,7 +171,37 @@ def install_plugin():
     return jsonify({"success": True, "restart_required": has_backend})
 
 
-@plugins_manager_endpoint.route('/api/misc/plugins/<plugin_id>/enable', methods=['POST'])
+@plugins_manager_endpoint.route('/api/misc/plugins/<plugin_id>', methods=['DELETE'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def uninstall_plugin(plugin_id: str):
+    from core.database import CursorFromPool
+    with CursorFromPool() as cursor:
+        cursor.execute("SELECT id FROM plugin_registry WHERE id = %s", (plugin_id,))
+        if not cursor.fetchone():
+            raise NotFound(f'Plugin {plugin_id!r} not found')
+
+    # Determine if it had a backend before removing files
+    api_dir = os.path.join(_API_PLUGINS_DIR, plugin_id)
+    had_backend = os.path.isfile(os.path.join(api_dir, '__init__.py'))
+
+    # Remove API plugin directory (includes client.js and any backend code)
+    if os.path.isdir(api_dir):
+        shutil.rmtree(api_dir)
+        logger.info(f'Plugin {plugin_id}: removed api dir {api_dir}')
+
+    # Remove client source directory (best-effort, may not exist in K8s)
+    client_dir = os.path.join(_CLIENT_PLUGINS_DIR, plugin_id)
+    if os.path.isdir(client_dir):
+        shutil.rmtree(client_dir)
+        logger.info(f'Plugin {plugin_id}: removed client dir {client_dir}')
+
+    with CursorFromPool() as cursor:
+        cursor.execute("DELETE FROM plugin_registry WHERE id = %s", (plugin_id,))
+
+    return jsonify({"success": True, "restart_required": had_backend})
+
+
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def enable_plugin(plugin_id: str):
