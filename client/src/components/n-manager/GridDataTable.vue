@@ -84,9 +84,9 @@ const onDoubleClick = (data, event, gridEvent) => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-1">
+  <div class="flex flex-col h-full">
     <!-- Column toggle: only shown when there are toggleable properties -->
-    <div v-if="toggleableProps.length > 0" class="flex justify-end relative">
+    <div v-if="toggleableProps.length > 0" class="flex justify-end relative shrink-0 mb-1">
       <div v-if="showColumnToggle" class="fixed inset-0 z-10" @click="showColumnToggle = false" />
       <button
         class="text-xs px-2 py-0.5 rounded border border-nord4 bg-white hover:bg-nord6 z-20 relative select-none"
@@ -113,21 +113,23 @@ const onDoubleClick = (data, event, gridEvent) => {
       </div>
     </div>
 
-    <DataTable
-      :data="values"
-      :columns="columns"
-      :filter="true"
-      :floating-filter="false"
-      :responsive="true"
-      :get-row-style="getRowStyle"
-      :show-copy-options="true"
-      @context-menu-action="onContextMenuAction"
-      @on-double-click="onDoubleClick"
-    >
-      <template #context-menu-items="slotProps">
-        <slot name="context-menu-items" v-bind="slotProps" />
-      </template>
-    </DataTable>
+    <div class="flex-1 min-h-0">
+      <DataTable
+        :data="values"
+        :columns="columns"
+        :filter="true"
+        :floating-filter="false"
+        :responsive="true"
+        :get-row-style="getRowStyle"
+        :show-copy-options="true"
+        @context-menu-action="onContextMenuAction"
+        @on-double-click="onDoubleClick"
+      >
+        <template #context-menu-items="slotProps">
+          <slot name="context-menu-items" v-bind="slotProps" />
+        </template>
+      </DataTable>
+    </div>
   </div>
 </template>
 
