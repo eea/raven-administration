@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch, shallowRef, nextTick } from "vue";
+import { ref, computed, onMounted, watch, nextTick } from "vue";
 import { useRoute } from "vue-router";
 
 import { format, sub, isAfter, isBefore } from "date-fns";
@@ -28,6 +28,7 @@ const totime = ref(new Date());
 const selectedId = ref();
 
 const timevalues = ref([]);
+const groupMembers = ref([]);
 const gridApi = ref(null);
 const showValidOnly = ref(false);
 
@@ -35,25 +36,39 @@ const showPlotAndTable = ref(false);
 
 const route = useRoute();
 
-const columns = shallowRef([
-  { field: "fromtime", headerName: "From", flex: 1, sort: "desc" },
-  { field: "totime", headerName: "To", flex: 1 },
-  { field: "value", headerName: "Value", width: 120 },
-  { field: "import_value", headerName: "Import value", width: 120 },
-  { field: "observationvalidity_id", headerName: "Validation", width: 120 },
-  {
-    field: "observationverification_id",
-    headerName: "Verification",
-    width: 120,
-    cellRenderer: (params) => {
-      const value = params.value;
-      if (value === 1) {
-        return `<div class="flex gap-1 items-center"><span>${value}</span><svg class="text-xs text-nord14" style="width: 12px; height: 12px; display: inline-block;" viewBox="0 0 256 256" fill="currentColor"><path d="M208,80H96V48a8,8,0,0,1,16,0,8,8,0,0,0,16,0,24,24,0,0,0-48,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm0,128H48V96H208V208Zm-68-56a12,12,0,1,1-12-12A12,12,0,0,1,140,152Z"></path></svg></div>`;
+const columns = computed(() => {
+  const members = groupMembers.value ?? [];
+  const groupHeader = members.map((m) => m.label).join(" / ");
+  const memberSpIds = members.map((m) => m.sampling_point_id);
+
+  return [
+    { field: "fromtime", headerName: "From", flex: 1, sort: "desc" },
+    { field: "totime", headerName: "To", flex: 1 },
+    { field: "value", headerName: "Value", width: 120 },
+    ...(members.length ? [{
+      headerName: groupHeader,
+      width: 150,
+      valueGetter: (params) => memberSpIds.map((id) => {
+        const v = params.data[`m_${id}_value`];
+        return v != null ? v : "-";
+      }).join(" / ")
+    }] : []),
+    { field: "import_value", headerName: "Import value", width: 120 },
+    { field: "observationvalidity_id", headerName: "Validation", width: 120 },
+    {
+      field: "observationverification_id",
+      headerName: "Verification",
+      width: 120,
+      cellRenderer: (params) => {
+        const value = params.value;
+        if (value === 1) {
+          return `<div class="flex gap-1 items-center"><span>${value}</span><svg class="text-xs text-nord14" style="width: 12px; height: 12px; display: inline-block;" viewBox="0 0 256 256" fill="currentColor"><path d="M208,80H96V48a8,8,0,0,1,16,0,8,8,0,0,0,16,0,24,24,0,0,0-48,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm0,128H48V96H208V208Zm-68-56a12,12,0,1,1-12-12A12,12,0,0,1,140,152Z"></path></svg></div>`;
+        }
+        return value;
       }
-      return value;
     }
-  }
-]);
+  ];
+});
 
 let chart;
 
@@ -84,6 +99,7 @@ const showData = async () => {
   Eventy.showMessage("Loading data. Please wait", "loading");
   showPlotAndTable.value = true;
   timevalues.value = [];
+  groupMembers.value = [];
   if (chart) {
     chart.data = [];
     chart.update();
@@ -93,11 +109,16 @@ const showData = async () => {
 };
 
 const load = async () => {
-  timevalues.value = await Service.get({
+  const response = await Service.get({
     sampling_point_id: selectedId.value,
     from_dt: format(fromtime.value, "yyyy-MM-dd HH:00"),
     to_dt: totime.value ? format(totime.value, "yyyy-MM-dd HH:00") : ""
   });
+  // Support both old format (flat array) and new format ({rows, members})
+  const rows = Array.isArray(response) ? response : (response.rows ?? []);
+  const members = Array.isArray(response) ? [] : (response.members ?? []);
+  timevalues.value = rows;
+  groupMembers.value = members;
   if (!chart) {
     chart = new Chart("chart", Plot.config(onDatapointSelection));
   }
@@ -169,14 +190,14 @@ const onValidate = async (flag, row) => {
     await Service.validate({ flag, ids, sampling_point_id: selectedId.value });
 
     // Reload data
-    const newData = await Service.get({
+    const response = await Service.get({
       sampling_point_id: selectedId.value,
       from_dt: format(fromtime.value, "yyyy-MM-dd HH:00"),
       to_dt: totime.value ? format(totime.value, "yyyy-MM-dd HH:00") : ""
     });
 
-    // Update timevalues reference
-    timevalues.value = newData;
+    // Update timevalues reference (support old flat-array and new {rows,members} format)
+    timevalues.value = Array.isArray(response) ? response : (response.rows ?? []);
 
     // Wait for DOM update
     await nextTick();
