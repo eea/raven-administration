@@ -3,23 +3,14 @@ from core.base_model import RavenBaseModel
 
 
 class CreateGroupModel(RavenBaseModel):
-    name: str
     sampling_point_ids: Optional[List[str]] = None
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
 
 
-class UpdateGroupModel(RavenBaseModel):
-    id: str
-    name: str
-
-    def __getitem__(self, key):
-        return super().__getattribute__(key)
-
-
 class DeleteGroupModel(RavenBaseModel):
-    id: str
+    id: int
 
     def __getitem__(self, key):
         return super().__getattribute__(key)

@@ -6,7 +6,8 @@ const Service = {
   insert: async (data) => Post("/api/processing/scale/scaling_points/insert", data),
   update: async (data) => Post("/api/processing/scale/scaling_points/update", data),
   delete: async (data) => Post("/api/processing/scale/scaling_points/delete", data),
-  preview: async (data) => Post("/api/processing/scale/scaling_points/preview", data)
+  preview: async (data) => Post("/api/processing/scale/scaling_points/preview", data),
+  groupMembers: async (sp_id) => Get(`/api/processing/scale/group_members?sp_id=${sp_id}`)
 };
 
 export default Service;

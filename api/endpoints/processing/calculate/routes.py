@@ -59,6 +59,31 @@ def calculate_insert():
             values (%(primary)s,%(secondary)s,%(result)s,%(operator)s)
         """
         cursor.execute(sql, model)
+
+        if model.create_group:
+            # Auto-name from pollutant notations
+            cursor.execute("""
+                SELECT COALESCE(NULLIF(p.notation,''), p.label) AS notation
+                FROM sampling_points sp JOIN eea_pollutants p ON p.id = sp.pollutant_id
+                WHERE sp.id = ANY(%(ids)s::varchar[])
+                ORDER BY CASE sp.id
+                    WHEN %(primary)s THEN 1
+                    WHEN %(secondary)s THEN 2
+                    ELSE 3
+                END
+            """, {"ids": [model.primary, model.secondary, model.result],
+                  "primary": model.primary, "secondary": model.secondary})
+            notations = [r["notation"] for r in cursor.fetchall()]
+            _ = " / ".join(notations)  # reserved for future display use
+
+            cursor.execute("SELECT nextval('sampling_point_group_id_seq') AS group_id")
+            group_id = cursor.fetchone()["group_id"]
+            cursor.execute(
+                "INSERT INTO sampling_point_groups (group_id, sampling_point_id) "
+                "SELECT %(group_id)s, unnest(%(sp_ids)s::varchar[])",
+                {"group_id": group_id, "sp_ids": [model.primary, model.secondary, model.result]}
+            )
+
         return jsonify({"success": True})
 
 

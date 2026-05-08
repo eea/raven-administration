@@ -42,14 +42,14 @@ def timevalues():
         # Fetch group members (other SPs in the same group)
         cursor.execute("""
             SELECT
-                m2.sampling_point_id,
+                g2.sampling_point_id,
                 COALESCE(NULLIF(p.notation, ''), p.label) AS label
-            FROM sampling_point_group_members m1
-            JOIN sampling_point_group_members m2 ON m1.group_id = m2.group_id
-            JOIN sampling_points sp ON sp.id = m2.sampling_point_id
+            FROM sampling_point_groups g1
+            JOIN sampling_point_groups g2 ON g1.group_id = g2.group_id
+            JOIN sampling_points sp ON sp.id = g2.sampling_point_id
             JOIN eea_pollutants p ON p.id = sp.pollutant_id
-            WHERE m1.sampling_point_id = %(sp_id)s
-              AND m2.sampling_point_id != %(sp_id)s
+            WHERE g1.sampling_point_id = %(sp_id)s
+              AND g2.sampling_point_id != %(sp_id)s
             ORDER BY LOWER(p.notation)
         """, {"sp_id": m.sampling_point_id})
         members = [dict(r) for r in cursor.fetchall()]

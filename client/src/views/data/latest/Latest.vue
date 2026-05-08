@@ -156,7 +156,7 @@ const onGoto = (name) => {
 
     <div class="flex-1 min-h-0">
       <DataTable :data="cmp_data" :columns="columns" :get-row-style="getRowStyle" :filter="true" :floating-filter="false" :show-copy-options="true" @context-menu-action="onContextMenuAction">
-        <template #context-menu-items="{ handleAction }">
+        <template #context-menu-items="{ handleAction, contextData }">
           <div class="px-2 font-bold text-base text-nord3">Menu:</div>
           <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('Historical')">
             <icon-plot class="text-nord15 self-center" />
@@ -166,7 +166,7 @@ const onGoto = (name) => {
             <icon-validate class="text-nord12 self-center" />
             <div class="self-center ml-1">Validate data</div>
           </div>
-          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('Scale')">
+          <div v-if="!contextData?.row?.is_calculated" class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('Scale')">
             <icon-scale class="text-nord10 self-center" />
             <div class="self-center ml-1">Scale data</div>
           </div>

@@ -13,19 +13,19 @@ const emit = defineEmits(["close", "save"]);
 
 const obj = ref({});
 const station = ref("");
+const createGroup = ref(false);
 
 watch(
   () => props.show,
   () => {
     if (!props.selectedValue) {
-      // Add mode
       obj.value = {};
       station.value = "";
     } else {
-      // Edit mode
       obj.value = Object.assign({}, props.selectedValue);
       station.value = obj.value.station || "";
     }
+    createGroup.value = false;
   }
 );
 
@@ -34,13 +34,11 @@ const cmp_stations = computed(() => {
   return [...new Set(props.options.timeseries.map((p) => p.label.split(", ")[0]))];
 });
 
-// Make sure they come from the same station
 const cmp_timeseries = computed(() => {
   if (!station.value || !props.options?.timeseries) return [];
   return props.options.timeseries.filter((p) => p.label.startsWith(station.value));
 });
 
-// Filter timeseries for each select to exclude already selected values
 const cmp_primary_options = computed(() => {
   return cmp_timeseries.value.filter((t) => t.value !== obj.value.secondary && t.value !== obj.value.result);
 });
@@ -53,14 +51,25 @@ const cmp_result_options = computed(() => {
   return cmp_timeseries.value.filter((t) => t.value !== obj.value.primary && t.value !== obj.value.secondary);
 });
 
+// Auto-suggest group name from selected pollutant notations
+const suggestedGroupName = computed(() => {
+  const ts = props.options?.timeseries ?? [];
+  const label = (id) => ts.find((t) => t.value === id)?.label?.split(", ")[1] ?? id;
+  if (!obj.value.primary || !obj.value.secondary || !obj.value.result) return "";
+  return `${label(obj.value.primary)} ${obj.value.operator ?? "+"} ${label(obj.value.secondary)} = ${label(obj.value.result)}`;
+});
+
 const onSave = () => {
-  // Validate that primary, secondary, and result are different
   if (obj.value.primary === obj.value.secondary || obj.value.primary === obj.value.result || obj.value.secondary === obj.value.result) {
     alert("Primary, Secondary, and Result must be different sampling points");
     return;
   }
 
   const data = Object.assign({}, obj.value);
+  if (!props.isEdit && createGroup.value) {
+    data.create_group = true;
+    data.group_name = suggestedGroupName.value;
+  }
   emit("save", data);
 };
 </script>
@@ -108,6 +117,14 @@ const onSave = () => {
         <option value="">Select result</option>
         <option v-for="a in cmp_result_options" :key="a.value" :value="a.value">{{ a.label }}</option>
       </select>
+    </div>
+
+    <!-- Create group option (add only) -->
+    <div v-if="!isEdit" class="mt-6 border-t pt-4 pb-2 pl-1">
+      <label class="flex items-center gap-2 cursor-pointer select-none">
+        <input type="checkbox" v-model="createGroup" class="w-4 h-4" />
+        <span class="font-bold">Also create a sampling point group</span>
+      </label>
     </div>
 
     <!-- BUTTONS -->

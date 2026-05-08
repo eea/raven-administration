@@ -32,6 +32,7 @@ def latest():
                     ELSE 2
                 END                   AS status,
                 NULLIF(o.value, 'NaN')::double precision AS value,
+                EXISTS (SELECT 1 FROM calculated_series cs WHERE cs.result = sp.id) AS is_calculated,
                 
                 a_local.level        AS local_aqi_level,
                 a_local.description  AS local_aqi_desc,

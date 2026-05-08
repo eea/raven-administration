@@ -20,13 +20,12 @@ const showGroupPopup = ref(false);
 const showConfirmDeleteGroup = ref(false);
 
 const isEdit = ref(false);
-const groupName = ref("");
 const selectedSpIds = ref([]);
 const initialMemberIds = ref([]);
 const popupStationId = ref("");
 
 const groupColumns = [
-  { field: "name", headerName: "Name", flex: 1, filter: true },
+  { field: "id", headerName: "Group ID", width: 120 },
   { field: "station", headerName: "Station", flex: 1, filter: true },
   { field: "members", headerName: "Members", flex: 2, filter: true }
 ];
@@ -74,7 +73,6 @@ const confirmDeleteGroupText = computed(() => {
 
 const onShowAdd = () => {
   isEdit.value = false;
-  groupName.value = "";
   selectedSpIds.value = [];
   initialMemberIds.value = [];
   popupStationId.value = "";
@@ -84,8 +82,6 @@ const onShowAdd = () => {
 const onOpenEdit = async (group) => {
   selectedGroup.value = group;
   isEdit.value = true;
-  groupName.value = group.name;
-  // load SPs including this group's own members
   samplingpoints.value = await Service.samplingpoints(group.id);
   const currentMembers = await Service.members(group.id);
   const memberIds = currentMembers.map((m) => m.id);
@@ -96,10 +92,8 @@ const onOpenEdit = async (group) => {
 };
 
 const onSaveGroup = async () => {
-  if (!groupName.value.trim()) return;
   if (isEdit.value) {
     const groupId = selectedGroup.value.id;
-    await Service.update({ id: groupId, name: groupName.value });
     const initial = new Set(initialMemberIds.value);
     const current = new Set(selectedSpIds.value);
     const toAdd = selectedSpIds.value.filter((id) => !initial.has(id));
@@ -109,7 +103,7 @@ const onSaveGroup = async () => {
     Eventy.showHideMessage("Group updated", "success", 3000);
     await Promise.all([loadGroups(), refreshSamplingpoints()]);
   } else {
-    await Service.create({ name: groupName.value, sampling_point_ids: selectedSpIds.value });
+    await Service.create({ sampling_point_ids: selectedSpIds.value });
     Eventy.showHideMessage("Group created", "success", 3000);
     await Promise.all([loadGroups(), refreshSamplingpoints()]);
   }
@@ -156,11 +150,6 @@ const onPopupStationChange = () => {
       <div class="flex flex-col gap-5 min-w-[42rem]">
 
         <div class="flex flex-col gap-1">
-          <label class="label">Name</label>
-          <input class="input w-full" v-model="groupName" @keyup.enter="onSaveGroup" placeholder="Group name" autofocus />
-        </div>
-
-        <div class="flex flex-col gap-1">
           <label class="label">Station</label>
           <select class="select w-full" v-model="popupStationId" @change="onPopupStationChange" :disabled="isEdit">
             <option value="">Select station</option>
@@ -194,7 +183,7 @@ const onPopupStationChange = () => {
         </div>
 
         <div class="flex justify-end gap-2 pt-1 border-t border-nord5">
-          <button class="button" @click="onSaveGroup" :disabled="!groupName.trim()">Save</button>
+          <button class="button" @click="onSaveGroup">Save</button>
           <button class="button" @click="showGroupPopup = false">Cancel</button>
         </div>
       </div>

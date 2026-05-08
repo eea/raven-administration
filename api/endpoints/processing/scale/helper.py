@@ -52,14 +52,15 @@ class Helper:
         if not values or len(values) == 0:
             return 0
 
-        # Create temp table
+        # Create temp table (IF NOT EXISTS + TRUNCATE to support multiple calls per transaction)
         cursor.execute("""
-            CREATE TEMP TABLE temp_scaled_values (
+            CREATE TEMP TABLE IF NOT EXISTS temp_scaled_values (
                 id INTEGER,
                 value DOUBLE PRECISION,
                 scaled_value DOUBLE PRECISION
             ) ON COMMIT DROP
         """)
+        cursor.execute("TRUNCATE temp_scaled_values")
 
         # Use COPY to bulk load data into temp table
         buffer = io.StringIO()
