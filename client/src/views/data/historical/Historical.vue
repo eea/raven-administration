@@ -127,15 +127,8 @@ const onDownload = async () => {
     downloadCsv(pivotData.value, pivotColumns.value, "historical_data_pivot");
     return;
   }
-  Eventy.showMessage("Downloading data. Please wait", "loading");
-  await Service.download({
-    sampling_point_ids: selectedIds.value,
-    from_dt: format(fromtime.value, "yyyy-MM-dd HH:00"),
-    to_dt: format(totime.value, "yyyy-MM-dd HH:00"),
-    meantype: meantype.value,
-    coverage: coverage.value
-  });
-  Eventy.hideMessage();
+  const exportColumns = gridDataColumns.value.filter((c) => c.field !== "_color");
+  downloadCsv(filteredGridData.value, exportColumns, "historical_data");
 };
 const changeDates = (s) => {
   const d = new Date();
@@ -281,20 +274,38 @@ const timeseriesColumns = [
 
 const gridDataColumns = computed(() => {
   const isRawOrOriginal = activeMeantype.value === "1000" || activeMeantype.value === "0";
-  return [
-    { field: "_color", headerName: "", width: 32, minWidth: 32, maxWidth: 32, flex: 0, sortable: false, filter: false, cellRenderer: (params) => params.value ? `<div style="width:8px;height:8px;border-radius:50%;background:${params.value};margin:auto;margin-top:8px"></div>` : "" },
-    { field: "network", headerName: "Network", flex: 1, filter: true },
-    { field: "station", headerName: "Station", flex: 1, filter: true },
-    { field: "component", headerName: "Pollutant", flex: 0.5, filter: true },
-    { headerName: "Timestep", flex: 0.5, filter: true, valueGetter: (params) => (params.data?.meantype === 0 || params.data?.meantype === 1000 ? params.data?.timestep : params.data?.meantype_string) },
-    { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
-    { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true },
-    { field: "datetime_begin", headerName: "From", flex: 1, filter: true, hide: !isRawOrOriginal, cellRenderer: datetimeCellRenderer(granularityFromHistoricalRow) },
-    { field: "datetime", headerName: isRawOrOriginal ? "To" : "Datetime", flex: 1, filter: true, sort: "desc", cellRenderer: datetimeCellRenderer(granularityFromHistoricalRow) },
-    { field: "actual_value", headerName: "Value", flex: 0.5, filter: true },
-    { field: "coverage", headerName: "Coverage", flex: 0.5, filter: true },
-    { field: "valid", headerName: "Valid", flex: 0.5, cellRenderer: (params) => (params.value ? "✓" : "✗"), cellStyle: (params) => ({ color: params.value ? "#a3be8c" : "#bf616a", fontWeight: "bold", textAlign: "center" }) }
-  ];
+  const colorCol = { field: "_color", headerName: "", width: 32, minWidth: 32, maxWidth: 32, flex: 0, sortable: false, filter: false, cellRenderer: (params) => params.value ? `<div style="width:8px;height:8px;border-radius:50%;background:${params.value};margin:auto;margin-top:8px"></div>` : "" };
+  const validCol = { field: "valid", headerName: "Valid", flex: 0.5, cellRenderer: (params) => (params.value ? "✓" : "✗"), cellStyle: (params) => ({ color: params.value ? "#a3be8c" : "#bf616a", fontWeight: "bold", textAlign: "center" }) };
+
+  if (isRawOrOriginal) {
+    return [
+      colorCol,
+      { field: "datetime_begin", headerName: "From", flex: 1, filter: true, sort: "desc", cellRenderer: datetimeCellRenderer(granularityFromHistoricalRow) },
+      { field: "datetime", headerName: "To", flex: 1, filter: true, cellRenderer: datetimeCellRenderer(granularityFromHistoricalRow) },
+      { field: "actual_value", headerName: "Value", flex: 0.5, filter: true },
+      { field: "component", headerName: "Pollutant", flex: 0.5, filter: true },
+      { field: "unit", headerName: "Unit", flex: 0.5, filter: true },
+      validCol,
+      { field: "network", headerName: "Network", flex: 1, filter: true },
+      { field: "station", headerName: "Station", flex: 1, filter: true },
+      { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
+      { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true }
+    ];
+  } else {
+    return [
+      colorCol,
+      { field: "datetime", headerName: "Datetime", flex: 1, filter: true, sort: "desc", cellRenderer: datetimeCellRenderer(granularityFromHistoricalRow) },
+      { field: "actual_value", headerName: "Value", flex: 0.5, filter: true },
+      { field: "component", headerName: "Pollutant", flex: 0.5, filter: true },
+      { field: "unit", headerName: "Unit", flex: 0.5, filter: true },
+      { field: "coverage", headerName: "Coverage", flex: 0.5, filter: true },
+      validCol,
+      { field: "network", headerName: "Network", flex: 1, filter: true },
+      { field: "station", headerName: "Station", flex: 1, filter: true },
+      { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
+      { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true }
+    ];
+  }
 });
 
 const getRowStyle = (params) => {
