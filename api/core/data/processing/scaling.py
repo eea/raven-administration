@@ -9,11 +9,17 @@ from core.data.processing.common import Common
 class Scaling:
 
     @staticmethod
-    def Scale(cursor: any, df_values: DataFrame, scalingpoint=None):
+    def Scale(cursor: any, df_values: DataFrame, scalingpoint_overrides: dict = None):
+        """
+        scalingpoint_overrides: dict keyed by sampling_point_id, each value is an override dict
+          {sampling_point_id, zero_point, span_value, gas_concentration, timestamp, old_timestamp, use_scalingpoint}
+        Pass None to use only existing DB scaling points (import flow).
+        """
         bench = time.perf_counter()
         grouped_values = df_values.groupby("sampling_point_id")
         for key, group in grouped_values:
-            scaling_points = Scaling.__scalingpoints__(cursor, key, scalingpoint)
+            sp_override = scalingpoint_overrides.get(key) if scalingpoint_overrides else None
+            scaling_points = Scaling.__scalingpoints__(cursor, key, sp_override)
             if len(scaling_points) > 0:
                 for sp in scaling_points:
                     filtered_values = []
@@ -45,14 +51,56 @@ class Scaling:
         return df_values
 
     @staticmethod
-    def ReScale(cursor, use_scalingpoint, sampling_point_id, zero, span, gas, timestamp, old_timestamp=None):
-        minmax = Scaling.__minmax__(cursor, sampling_point_id, timestamp, old_timestamp)
-        df_values = Scaling.__get_imported_observations(cursor, sampling_point_id, minmax["min"], minmax["max"])
+    def GetAffectedRange(cursor, sampling_point_id, timestamp, old_timestamp):
+        return Scaling.__minmax__(cursor, sampling_point_id, timestamp, old_timestamp)
+
+    @staticmethod
+    def ReScale(cursor, scalingpoints_list: list, use_scalingpoint: bool, old_timestamp=None):
+        """
+        scalingpoints_list: list of dicts, each with:
+          - sampling_point_id: str
+          - timestamp: datetime (same for all entries — group invariant)
+          - zero_point, span_value, gas_concentration: float (required when use_scalingpoint=True)
+        use_scalingpoint: True = inject new SP (insert/update/preview), False = exclude SP (delete)
+        old_timestamp: for update, the original timestamp being replaced (defaults to timestamp)
+        """
+        if not scalingpoints_list:
+            return pd.DataFrame()
+
+        timestamp = scalingpoints_list[0]["timestamp"]
+        eff_old_ts = old_timestamp if old_timestamp is not None else timestamp
+
+        # Compute affected range as union across all group members
+        min_time = None
+        max_time = None
+        for sp in scalingpoints_list:
+            mm = Scaling.__minmax__(cursor, sp["sampling_point_id"], timestamp, eff_old_ts)
+            if mm["min"] is not None:
+                min_time = mm["min"] if min_time is None else min(min_time, mm["min"])
+            if mm["max"] is not None:
+                max_time = mm["max"] if max_time is None else max(max_time, mm["max"])
+
+        sp_ids = [sp["sampling_point_id"] for sp in scalingpoints_list]
+        df_values = Scaling.__get_imported_observations_multi(cursor, sp_ids, min_time, max_time)
         if df_values.empty:
             return df_values
+
         Common.validate_dataframe(df_values)
         df_values = Common.add_timeserie_info(cursor, df_values)
-        return Scaling.Scale(cursor, df_values, {"sampling_point_id": sampling_point_id, "zero_point": zero, "span_value": span, "gas_concentration": gas, "timestamp": timestamp, "old_timestamp": old_timestamp, "use_scalingpoint": use_scalingpoint})
+
+        override_map = {
+            sp["sampling_point_id"]: {
+                "sampling_point_id": sp["sampling_point_id"],
+                "zero_point": sp.get("zero_point"),
+                "span_value": sp.get("span_value"),
+                "gas_concentration": sp.get("gas_concentration"),
+                "timestamp": timestamp,
+                "old_timestamp": eff_old_ts,
+                "use_scalingpoint": use_scalingpoint,
+            }
+            for sp in scalingpoints_list
+        }
+        return Scaling.Scale(cursor, df_values, override_map)
 
     @staticmethod
     def __minmax__(cursor, sampling_point_id, timestamp, old_timestamp):
@@ -90,6 +138,10 @@ class Scaling:
 
     @staticmethod
     def __get_imported_observations(cursor, sampling_point_id, min=None, max=None):
+        return Scaling.__get_imported_observations_multi(cursor, [sampling_point_id], min, max)
+
+    @staticmethod
+    def __get_imported_observations_multi(cursor, sp_ids: list, min=None, max=None):
         sql = """
             select 
               o.id, 
@@ -102,7 +154,7 @@ class Scaling:
               o.import_value::DOUBLE PRECISION as value, 
               null as scaled_value
             from observations o 
-            where o.sampling_point_id = %(sampling_point_id)s
+            where o.sampling_point_id = ANY(%(sp_ids)s)
         """
 
         if min is not None:
@@ -113,7 +165,7 @@ class Scaling:
 
         sql = sql + " order by o.to_time"
 
-        cursor.execute(sql, {"sampling_point_id": sampling_point_id, "min": min, "max": max})
+        cursor.execute(sql, {"sp_ids": sp_ids, "min": min, "max": max})
         values = cursor.fetchall()
         return pd.DataFrame(values)
 
@@ -180,8 +232,12 @@ class Scaling:
         epoch_value_diff = float(value_epoch) - float(prev_epoch)
         span_diff = float(next_span) - float(prev_span)
 
-        zero = float(prev_zero) + (zero_diff / epoch_diff) * epoch_value_diff
-        span = float(prev_span) + (span_diff / epoch_diff) * epoch_value_diff
+        if epoch_diff == 0:
+            zero = float(next_zero)
+            span = float(next_span)
+        else:
+            zero = float(prev_zero) + (zero_diff / epoch_diff) * epoch_value_diff
+            span = float(prev_span) + (span_diff / epoch_diff) * epoch_value_diff
 
         return Scaling.__scalevalue__(zero, span, float(prev_gas), float(value))
 
@@ -189,4 +245,7 @@ class Scaling:
     def __scalevalue__(zero, span, gas, value):
         if value == -9900:
             return value
-        return (float(gas) / (float(span) - float(zero))) * (float(value) - float(zero))
+        denom = float(span) - float(zero)
+        if denom == 0:
+            return float(value)
+        return (float(gas) / denom) * (float(value) - float(zero))

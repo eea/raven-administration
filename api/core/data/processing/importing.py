@@ -74,6 +74,41 @@ class Importing:
         if len(df_values[df_values["ts_is_calculated"] == True]) > 0:
             raise Exception("Calculated values cannot be imported")
 
+        # Block import if any existing observations in the date range are verified (observationverification_id = 1).
+        # This includes calculated series results (e.g. NO from NOX-NO2=NO) that would be overwritten
+        # by Calculating.calculate() later in the pipeline.
+        sp_ids = df_values["sampling_point_id"].unique().tolist()
+        min_time = df_values["from_time"].min()
+        max_time = df_values["to_time"].max()
+        cursor.execute(
+            """
+            SELECT "result" FROM calculated_series
+            WHERE "primary" = ANY(%(sp_ids)s) OR secondary = ANY(%(sp_ids)s)
+            """,
+            {"sp_ids": sp_ids},
+        )
+        calculated_result_ids = [row["result"] for row in cursor.fetchall()]
+        all_sp_ids = sp_ids + calculated_result_ids
+
+        cursor.execute(
+            """
+            SELECT sampling_point_id, from_time
+            FROM observations
+            WHERE sampling_point_id = ANY(%(sp_ids)s)
+              AND from_time >= %(min_time)s
+              AND to_time <= %(max_time)s
+              AND observationverification_id = 1
+            LIMIT 1
+            """,
+            {"sp_ids": all_sp_ids, "min_time": min_time, "max_time": max_time},
+        )
+        approved = cursor.fetchone()
+        if approved:
+            raise Exception(
+                f"Import blocked: verified (approved) data already exists for {approved[0]} at {approved[1]}. "
+                "Verified data cannot be overwritten."
+            )
+
         # Check to see if timestep matches with the imported values. Ignore if timestep is -1
         df_errors = df_values[(((df_values.to_time - df_values.from_time) / pd.Timedelta(seconds=1)).astype('int64') - ((df_values.apply(lambda x: U.actual_timestep(x.from_time, x.ts_timestep), axis=1))).astype('int64')) > 0]
         df_errors = df_errors[df_errors.ts_timestep != -1]

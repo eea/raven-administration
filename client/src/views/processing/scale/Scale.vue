@@ -27,6 +27,7 @@ const showCrud = ref(false);
 const isEdit = ref(false);
 const selected = ref({});
 const showConfirm = ref(false);
+const chartLimit = ref(50);
 
 // Map sampling_point_id → color, built from loaded scalingpoints
 const spColorMap = computed(() => {
@@ -77,6 +78,15 @@ const loadData = async () => {
   timeseries.value = await Service.timeseries();
 };
 
+const updateCharts = () => {
+  if (!chart1 || !chart2) return;
+  const groups = groupBySp(scalingpoints.value);
+  chart1.data = formatValues1(groups);
+  chart1.update();
+  chart2.data = formatValues2(groups);
+  chart2.update();
+};
+
 const onShowScalingpoints = async () => {
   showPlotAndTable.value = true;
   scalingpoints.value = await Service.scalingpoints({ sampling_point_id: timeserieId.value });
@@ -86,11 +96,7 @@ const onShowScalingpoints = async () => {
   if (!chart1) chart1 = new Chart("chart1", config1);
   if (!chart2) chart2 = new Chart("chart2", config2);
 
-  const groups = groupBySp(scalingpoints.value);
-  chart1.data = formatValues1(groups);
-  chart1.update();
-  chart2.data = formatValues2(groups);
-  chart2.update();
+  updateCharts();
 };
 
 const groupBySp = (rows) => {
@@ -105,7 +111,7 @@ const groupBySp = (rows) => {
 const formatValues1 = (groups) => {
   const datasets = groups.map(([spId, g]) => {
     const color = spColorMap.value.get(spId) || "#ccc";
-    const data = g.rows.slice(-10).map((o) => ({ x: o.timestamp.replace(" ", "T"), y: o.zero_point }));
+    const data = (chartLimit.value === Infinity ? g.rows : g.rows.slice(-chartLimit.value)).map((o) => ({ x: o.timestamp.replace(" ", "T"), y: o.zero_point }));
     return Plot.dataset(`${g.pollutant} 0-point`, data, color);
   });
   return { datasets };
@@ -115,8 +121,9 @@ const formatValues2 = (groups) => {
   const datasets = [];
   groups.forEach(([spId, g]) => {
     const color = spColorMap.value.get(spId) || "#ccc";
-    const span = g.rows.slice(-10).map((o) => ({ x: o.timestamp.replace(" ", "T"), y: o.span_value }));
-    const gas = g.rows.map((o) => ({ x: o.timestamp.replace(" ", "T"), y: o.gas_concentration }));
+    const sliced = chartLimit.value === Infinity ? g.rows : g.rows.slice(-chartLimit.value);
+    const span = sliced.map((o) => ({ x: o.timestamp.replace(" ", "T"), y: o.span_value }));
+    const gas = sliced.map((o) => ({ x: o.timestamp.replace(" ", "T"), y: o.gas_concentration }));
     datasets.push(Plot.dataset(`${g.pollutant} Span`, span, color));
     datasets.push(Plot.dataset(`${g.pollutant} Gas`, gas, color + "88"));
   });
@@ -162,18 +169,11 @@ const onSaveCrud = async (items) => {
   const list = Array.isArray(items) ? items : [items];
   if (isEdit.value) {
     Eventy.showMessage("Updating scaling point. Please wait", "loading");
-    for (const item of list) {
-      if (item.id) {
-        await Service.update(item);
-      } else {
-        const { id, current_timestamp, scaling_point_id, ...insertData } = item;
-        await Service.insert(insertData);
-      }
-    }
+    await Service.update(list);
     Eventy.showHideMessage("Scaling point changed", "success", 5000);
   } else {
     Eventy.showMessage("Inserting scaling point(s). Please wait", "loading");
-    for (const item of list) await Service.insert(item);
+    await Service.insert(list);
     Eventy.showHideMessage("Scaling point(s) added", "success", 5000);
   }
   await onShowScalingpoints();
@@ -183,7 +183,7 @@ const onSaveCrud = async (items) => {
 const onSaveDelete = async () => {
   Eventy.showMessage("Deleting scaling point. Please wait", "loading");
   showConfirm.value = false;
-  await Service.delete(selected.value);
+  await Service.delete({ sampling_point_id: selected.value.sampling_point_id, timestamp: selected.value.timestamp });
   await onShowScalingpoints();
   Eventy.showHideMessage("Scaling point deleted", "success", 5000);
   close();
@@ -215,7 +215,7 @@ const cmp_scalingpoints = computed(() => [...scalingpoints.value].reverse());
   <common-layout>
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete the scaling point?" @close="close" @ok="onSaveDelete" />
     <tool-bar title="Scale" :show-filter="false" @add-click="onShowAdd" :show-download="false" :show-column-picker="false" />
-    <Crud :show="showCrud" :obj="selected" :is-edit="isEdit" :group-members="groupMembers" :primary-pollutant="primaryPollutant" @close="close" @save="onSaveCrud" />
+    <Crud :show="showCrud" :obj="selected" :is-edit="isEdit" :group-members="groupMembers" :primary-pollutant="primaryPollutant" :scaling-points="scalingpoints" @close="close" @save="onSaveCrud" />
 
     <container>
       <div class="flex gap-3">
@@ -236,6 +236,17 @@ const cmp_scalingpoints = computed(() => [...scalingpoints.value].reverse());
     <div class="flex gap-2 mt-4 w-full" v-show="showPlotAndTable">
       <container class="w-1/2 h-72 min-w-0"><canvas id="chart1"></canvas></container>
       <container class="w-1/2 h-72 min-w-0"><canvas id="chart2"></canvas></container>
+    </div>
+    <div class="flex items-center gap-2 mt-2 text-sm text-nord3" v-show="showPlotAndTable">
+      <span>Show last</span>
+      <select v-model.number="chartLimit" @change="updateCharts()" class="select">
+        <option :value="10">10</option>
+        <option :value="50">50</option>
+        <option :value="100">100</option>
+        <option :value="1000">1000</option>
+        <option :value="Infinity">All</option>
+      </select>
+      <span>points in chart</span>
     </div>
 
     <div class="mt-4 min-h-96 flex-1" v-if="showPlotAndTable">
