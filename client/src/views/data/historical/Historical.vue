@@ -9,12 +9,14 @@ import zoomPlugin from "chartjs-plugin-zoom";
 import Plot, { palette, hexToRgba } from "./plot";
 
 import { format, sub, isAfter, isBefore, startOfWeek } from "date-fns";
-import { groupBy } from "../../../helpers/utils";
+import { groupBy, downloadCsv } from "../../../helpers/utils";
 import { datetimeCellRenderer, granularityFromHistoricalRow } from "../../../helpers/datetimeHighlight";
 import Eventy from "../../../helpers/eventy";
 import IconCalendar from "~icons/ic/round-access-time";
 import IconModify from "~icons/material-symbols/tune";
 import IconReplot from "~icons/material-symbols/bar-chart";
+import IconList from "~icons/material-symbols/table-rows-narrow";
+import IconPivot from "~icons/material-symbols/pivot-table-chart";
 
 import CommonLayout from "../../../components/CommonLayout.vue";
 import CMenu from "../../../components/CMenu.vue";
@@ -121,6 +123,10 @@ const plotData = async () => {
 };
 
 const onDownload = async () => {
+  if (pivotView.value) {
+    downloadCsv(pivotData.value, pivotColumns.value, "historical_data_pivot");
+    return;
+  }
   Eventy.showMessage("Downloading data. Please wait", "loading");
   await Service.download({
     sampling_point_ids: selectedIds.value,
@@ -313,6 +319,38 @@ const onTimeseriesFirstDataRendered = (api) => {
 const onTimeseriesSelectionChanged = (rows) => {
   selectedIds.value = rows.map((r) => r.sampling_point_id);
 };
+
+const pivotView = ref(false);
+
+const pivotColumns = computed(() => {
+  if (!filteredGridData.value.length) return [];
+  const isRawOrOriginal = activeMeantype.value === "1000" || activeMeantype.value === "0";
+  const uniqueSps = [...new Map(filteredGridData.value.map((r) => [r.sampling_point_id, r])).values()];
+  const cols = [];
+  if (isRawOrOriginal) {
+    cols.push({ field: "datetime_begin", headerName: "From", flex: 1, filter: true });
+  }
+  cols.push({ field: "datetime", headerName: isRawOrOriginal ? "To" : "Datetime", flex: 1, filter: true, sort: "desc" });
+  uniqueSps.forEach((sp) => {
+    const equipmentPart = [sp.equipment, sp.equipment_identifier].filter(Boolean).join(" / ");
+    const label = [sp.station, sp.component, sp.unit, equipmentPart].filter(Boolean).join(" / ");
+    cols.push({ field: `sp_${sp.sampling_point_id}`, headerName: label, flex: 1, filter: true });
+  });
+  return cols;
+});
+
+const pivotData = computed(() => {
+  if (!filteredGridData.value.length) return [];
+  const byDatetime = new Map();
+  filteredGridData.value.forEach((row) => {
+    const key = row.datetime;
+    if (!byDatetime.has(key)) {
+      byDatetime.set(key, { datetime: row.datetime, datetime_begin: row.datetime_begin });
+    }
+    byDatetime.get(key)[`sp_${row.sampling_point_id}`] = row.actual_value;
+  });
+  return [...byDatetime.values()].sort((a, b) => b.datetime.localeCompare(a.datetime));
+});
 </script>
 
 <template>
@@ -453,7 +491,16 @@ const onTimeseriesSelectionChanged = (rows) => {
       </div>
     </Container>
 
-    <Container v-show="showPlot" class="flex-1 mt-4 min-h-48"><DataTable :columns="gridDataColumns" :data="filteredGridData" :get-row-style="getRowStyle"></DataTable></Container>
+    <Container v-show="showPlot" class="flex-1 mt-4 min-h-48">
+      <div class="flex justify-end mb-2">
+        <div class="flex items-center gap-1.5 cursor-pointer select-none text-sm font-bold" @click="pivotView = !pivotView" :title="pivotView ? 'Switch to row view' : 'Switch to pivot view'">
+          <component :is="pivotView ? IconList : IconPivot" class="text-base text-nord10" />
+          {{ pivotView ? "Row view" : "Pivot view" }}
+        </div>
+      </div>
+      <DataTable v-if="!pivotView" :columns="gridDataColumns" :data="filteredGridData" :get-row-style="getRowStyle"></DataTable>
+      <DataTable v-else :columns="pivotColumns" :data="pivotData"></DataTable>
+    </Container>
   </CommonLayout>
 </template>
 
