@@ -26,6 +26,7 @@ import { datetimeCellRenderer, granularityFromTimestep } from "../../../helpers/
 import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import DataTable from "../../../components/DataTable.vue";
+import CmdK from "../../../components/CmdK.vue";
 
 const q = ref("");
 const data = ref([]);
@@ -137,6 +138,7 @@ const onGoto = (name) => {
 
 <template>
   <CommonLayout>
+    <CmdK v-model="q" :result-count="cmp_data.length" />
     <ToolBar title="Latest data" :show-column-picker="false" :show-add="false" v-model:q="q" @download-click="onDownload">
       <CircleHover class="ml-1 self-center" @click="toggleDefault" :title="isDefault ? 'Opens here after login' : 'Open here after login'">
         <icon-heart v-if="isDefault" class="text-nord10 text-sm self-center" />

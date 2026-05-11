@@ -8,6 +8,7 @@ import Confirm from "../Confirm.vue";
 import ToolBar from "../ToolBar.vue";
 import CommonLayout from "../CommonLayout.vue";
 import CMenuItems from "../CMenuItems.vue";
+import CmdK from "../CmdK.vue";
 
 const props = defineProps({
   name: String,
@@ -149,6 +150,8 @@ const cmp_properties = computed(() => {
 
     <component v-if="showAddButton" :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" :duplicate-source="duplicateSource" @close="close" @save="saveAdd" />
     <component :is="crudComponent" :is-edit="true" :show="showEdit" :options="options" :selected-value="selected[0]" @close="close" @save="saveEdit" />
+
+    <CmdK v-model="q" :result-count="filteredList.length" />
 
     <tool-bar :title="name" v-model:q="q" :show-add="showAddButton" :show-download="showDownloadButton" :show-upload="showUpload" @add-click="showAdd = true" @download-click="onDownload" @upload-click="onUpload" />
     <input ref="fileInput" type="file" accept=".csv,.gpkg" class="hidden" @change="onFileChange" />
