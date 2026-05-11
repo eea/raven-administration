@@ -40,7 +40,6 @@ def sampling_points():
                 LEFT JOIN eea_measurementequipments me ON pr.equipment_id = me.id
                 ORDER BY pr.sampling_point_id, pr.activity_begin DESC
             ) lp ON lp.sampling_point_id = sp.id
-            WHERE sp.from_time IS NOT NULL
             ORDER BY LOWER(s.name), LOWER(COALESCE(NULLIF(po.notation, ''), po.label)), LOWER(t.notation)
         """, n_param)
         return jsonify(cursor.fetchall())
