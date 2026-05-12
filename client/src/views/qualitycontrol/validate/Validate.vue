@@ -241,18 +241,28 @@ const formatValues = () => {
   return { datasets: [Plot.dataset("Value", data, colors)] };
 };
 
-const onDatapointSelection = (event, sel, chart) => {
+const chartMenu = ref({ visible: false, x: 0, y: 0, row: null });
+const chartMenuRef = ref(null);
+
+const onDatapointSelection = async (event, sel) => {
+  if (!sel?.length) return;
   const row = sel[0].element.$context.raw.obj;
-  // Find and select the row in the grid
+  // Select the corresponding grid row
   if (gridApi.value) {
     gridApi.value.deselectAll();
     gridApi.value.forEachNode((node) => {
-      if (node.data.id === row.id) {
-        node.setSelected(true);
-      }
+      if (node.data.id === row.id) node.setSelected(true);
     });
   }
-  // Note: Chart selection doesn't trigger context menu - user must right-click on table
+  // Show floating flag menu at click position, then clamp to viewport
+  chartMenu.value = { visible: true, x: event.native.clientX, y: event.native.clientY, row };
+  await nextTick();
+  if (chartMenuRef.value) {
+    const { offsetWidth: w, offsetHeight: h } = chartMenuRef.value;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    chartMenu.value.x = Math.min(chartMenu.value.x, vw - w - 8);
+    chartMenu.value.y = Math.min(chartMenu.value.y, vh - h - 8);
+  }
 };
 
 const getRowId = (params) => String(params.data.id);
@@ -329,4 +339,34 @@ const getRowId = (params) => String(params.data.id);
       </div>
     </div>
   </common-layout>
+
+  <!-- Floating flag menu triggered by chart click -->
+  <div v-if="chartMenu.visible"
+       class="fixed inset-0 z-40"
+       @click.self="chartMenu.visible = false">
+    <div ref="chartMenuRef" class="absolute z-50 bg-white border border-nord4 rounded shadow-lg py-1 min-w-48"
+         :style="{ left: chartMenu.x + 'px', top: chartMenu.y + 'px' }">
+      <div class="px-2 font-bold text-base text-nord3">Set validation to:</div>
+      <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(-99, chartMenu.row); chartMenu.visible = false">
+        <icon-circle class="text-nord11 text-base self-center" />
+        <div class="self-center ml-1">Not valid due to maintenance (-99)</div>
+      </div>
+      <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(-1, chartMenu.row); chartMenu.visible = false">
+        <icon-circle class="text-nord11 text-base self-center" />
+        <div class="self-center ml-1">Not valid (-1)</div>
+      </div>
+      <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(1, chartMenu.row); chartMenu.visible = false">
+        <icon-circle class="text-nord14 text-base self-center" />
+        <div class="self-center ml-1">Valid (1)</div>
+      </div>
+      <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(2, chartMenu.row); chartMenu.visible = false">
+        <icon-circle class="text-nord14 text-base self-center" />
+        <div class="self-center ml-1">Valid, below detection limit (2)</div>
+      </div>
+      <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(3, chartMenu.row); chartMenu.visible = false">
+        <icon-circle class="text-nord14 text-base self-center" />
+        <div class="self-center ml-1">Valid, 0.5*detection limit (3)</div>
+      </div>
+    </div>
+  </div>
 </template>
