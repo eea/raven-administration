@@ -80,7 +80,7 @@ const onPickerClickOutside = (e) => {
 
 const getDateRange = (presetKey) => {
   const p  = PRESETS.find(x => x.key === presetKey) ?? PRESETS[2];
-  const to = new Date("2026-04-14T00:00:00"); // TODO: remove temp date
+  const to = new Date();
   const from = sub(to, { hours: p.hours });
   return { from_dt: format(from, "yyyy-MM-dd HH:00"), to_dt: format(to, "yyyy-MM-dd HH:00"), meantype: p.meantype };
 };
