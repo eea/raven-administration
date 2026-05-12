@@ -51,7 +51,7 @@ const onKeydown = (e) => {
     e.preventDefault();
     open.value ? hide() : show();
   }
-  if (e.key === "Escape" && open.value) {
+  if ((e.key === "Escape" || e.key === "Enter") && open.value) {
     hide();
   }
 };
@@ -79,7 +79,7 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
             <button v-if="localQ" @click="clear" class="text-nord3 hover:text-nord0 transition-colors">
               <IconClose class="text-base" />
             </button>
-            <kbd class="hidden sm:inline-flex items-center gap-0.5 border border-nord4 rounded px-1.5 py-0.5 text-xs text-nord3 font-mono shrink-0">Esc</kbd>
+            <kbd class="hidden sm:inline-flex items-center gap-0.5 border border-nord4 rounded px-1.5 py-0.5 text-xs text-nord3 font-mono shrink-0">Enter</kbd>
           </div>
 
           <!-- Footer -->
@@ -88,7 +88,7 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
               <span class="font-semibold text-nord0">{{ resultCount }}</span> result{{ resultCount !== 1 ? "s" : "" }}
             </span>
             <span v-else class="italic">Start typing to filter</span>
-            <span class="font-mono">Ctrl+K to close</span>
+            <span class="font-mono">Enter / Esc to close</span>
           </div>
         </div>
       </div>
