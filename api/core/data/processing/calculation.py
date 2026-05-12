@@ -23,10 +23,10 @@ class Calculating:
 
         grouped_values = filtered_values.groupby("to_time")
 
-        to_time_min = filtered_values.to_time.min()
+        from_time_min = filtered_values.from_time.min()
         to_time_max = filtered_values.to_time.max()
 
-        scaled_db_values = Calculating.__get_all_scaled_value_from_db__(cursor, tuple(calculated_ids), to_time_min, to_time_max)
+        scaled_db_values = Calculating.__get_all_scaled_value_from_db__(cursor, tuple(calculated_ids), from_time_min, to_time_max)
 
         # Build lookup dict for O(1) access instead of O(n) filtering
         db_lookup = {(r["sampling_point_id"], pd.Timestamp(r["to_time"])): r for r in scaled_db_values}

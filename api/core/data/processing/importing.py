@@ -141,6 +141,55 @@ class Importing:
         printcol(f"- Verifying values took {time.perf_counter() - bench} seconds")
 
     @staticmethod
+    def post_import_calculate(cursor: any, sp_ids: list, from_time, to_time):
+        """Post-commit recalculation for calculated series.
+        Handles the race condition where primary and secondary SPs are imported
+        concurrently and neither can see the other's uncommitted data during calculate().
+        Called in a fresh transaction after the main import commits."""
+        cursor.execute("""
+            SELECT * FROM calculated_series
+            WHERE "primary" = ANY(%(ids)s) OR secondary = ANY(%(ids)s)
+        """, {"ids": sp_ids})
+        series = cursor.fetchall()
+        if not series:
+            return
+
+        partner_ids = list({row["primary"] for row in series} | {row["secondary"] for row in series})
+        result_ids = [row["result"] for row in series]
+
+        cursor.execute("""
+            SELECT o.sampling_point_id,
+                   o.from_time, o.to_time,
+                   COALESCE(o.scaled_value, o.value) AS value,
+                   COALESCE(o.scaled_value, o.value) AS import_value,
+                   COALESCE(o.scaled_value, o.value) AS scaled_value,
+                   o.observationverification_id,
+                   o.observationvalidity_id
+            FROM observations o
+            WHERE o.sampling_point_id = ANY(%(ids)s)
+              AND o.from_time >= %(from_time)s
+              AND o.to_time <= %(to_time)s
+        """, {"ids": partner_ids, "from_time": from_time, "to_time": to_time})
+        rows = cursor.fetchall()
+        if not rows:
+            return
+
+        df = pd.DataFrame([dict(r) for r in rows])
+        df = Common.add_timeserie_info(cursor, df)
+        df = df[df["has_timeserie_info"] == True].copy()
+        if df.empty:
+            return
+
+        df = Importing.process_scaled_values(cursor, df)
+
+        df_result = df[df["sampling_point_id"].isin(result_ids)].copy()
+        if df_result.empty:
+            return
+
+        Importing.upsert(cursor, df_result)
+        printcol(f"- Post-import calculate: upserted {len(df_result)} rows for {result_ids}")
+
+    @staticmethod
     def upsert(cursor: any, df_values: DataFrame):
         # Use COPY FROM to copy data into a temp table
         # Then update those data in the observations data.

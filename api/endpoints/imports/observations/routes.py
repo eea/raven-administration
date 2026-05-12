@@ -40,6 +40,9 @@ def import_obs():
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def import_logger():
+    sampling_point_id = None
+    df = None
+
     with CursorFromPool() as cursor:
         bench = time.perf_counter()
         # Read list into a pandas DataFrame
@@ -50,7 +53,6 @@ def import_logger():
 
         # Convert logger df to import df
         logger_id = df.logger_id[0]
-        sampling_point_id = None
 
         sql = """
             select sp.id
@@ -77,6 +79,18 @@ def import_logger():
         Importing.Import(cursor, df)
 
         printcol(f"- Total time used {time.perf_counter() - bench} seconds")
+
+    # Post-commit: recalculate any calculated series affected by this import.
+    # Handles race condition when primary+secondary are imported concurrently.
+    if sampling_point_id and df is not None and "from_time" in df.columns:
+        with CursorFromPool() as cursor:
+            Importing.post_import_calculate(
+                cursor,
+                [str(sampling_point_id)],
+                df["from_time"].min(),
+                df["to_time"].max(),
+            )
+
     return jsonify({"success": True})
 
 
