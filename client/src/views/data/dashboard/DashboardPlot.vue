@@ -205,12 +205,11 @@ onBeforeUnmount(() => {
     <!-- Header -->
     <div class="flex items-center gap-2 px-3 py-2 border-b border-nord4 bg-white shrink-0">
       <span class="font-bold text-sm truncate min-w-0 cursor-default" :title="plot.title || 'Untitled'">{{ plot.title || "Untitled" }}</span>
-      <button class="text-nord3 hover:text-nord10 p-1 rounded shrink-0" @click="goToHistorical" title="Open in Historical">
-        <icon-history class="text-base" />
-      </button>
-
-      <!-- SP picker: shared by Validate + Scale -->
-      <div class="relative shrink-0" ref="pickerRef">
+      <!-- Nav icons group: Historical + Validate + Scale picker -->
+      <div class="relative shrink-0 flex items-center" ref="pickerRef">
+        <button class="text-nord3 hover:text-nord10 p-1 rounded" @click="goToHistorical" title="Open in Historical">
+          <icon-history class="text-base" />
+        </button>
         <button class="text-nord3 hover:text-nord10 p-1 rounded" :class="{ 'text-nord10': pickerTarget === 'Validate' }" @click.stop="openPicker('Validate')" title="Open in Validate">
           <icon-validate class="text-base" />
         </button>
