@@ -120,7 +120,9 @@ const load = async () => {
   timevalues.value = rows;
   groupMembers.value = members;
   const sp = timeseries.value.find((t) => String(t.value) === String(selectedId.value));
-  const timestep = sp?.timestep_seconds ?? null;
+  const timestepNotation = sp?.timestep ?? null;
+  const notationToSeconds = { "min": 60, "h": 3600, "d": 86400, "w": 604800, "mo": 2592000 };
+  const timestep = notationToSeconds[timestepNotation] ?? null;
   if (chart) { chart.destroy(); chart = null; }
   chart = new Chart("chart", Plot.config(onDatapointSelection, timestep));
   formatAndLoad();
