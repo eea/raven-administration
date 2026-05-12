@@ -1,5 +1,15 @@
+const secondsToXAxis = (seconds) => {
+  if (!seconds || seconds <= 0) return {};
+  if (seconds < 3600)  return { unit: "minute", tooltipFormat: "yyyy-MM-dd HH:mm" };
+  if (seconds < 86400) return { unit: "hour",   tooltipFormat: "yyyy-MM-dd HH:mm" };
+  if (seconds < 604800) return { unit: "day",   tooltipFormat: "yyyy-MM-dd" };
+  if (seconds < 2592000) return { unit: "week", tooltipFormat: "yyyy-MM-dd" };
+  return                        { unit: "month", tooltipFormat: "yyyy-MM" };
+};
+
 const Plot = {
-  config: (click) => {
+  config: (click, finestTimestepSeconds = null) => {
+    const xAxis = secondsToXAxis(finestTimestepSeconds);
     return {
       type: "bar",
       data: [],
@@ -34,34 +44,35 @@ const Plot = {
             type: "time",
             offset: true,
             ticks: {
-              major: {
-                enabled: true
-              },
+              major: { enabled: true },
               font: (ctx) => {
                 const boldedTicks = ctx.tick?.major ? "bold" : "";
                 return { weight: boldedTicks };
-              }
+              },
+              maxRotation: 0,
+              minRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 20
             },
             time: {
-              // Luxon format string
-              tooltipFormat: "DD T",
+              tooltipFormat: xAxis.tooltipFormat ?? "yyyy-MM-dd HH:mm",
+              ...(xAxis.unit ? { unit: xAxis.unit } : {}),
               displayFormats: {
-                hour: "HH:mm",
-                day: "dd MMM",
-                week: "dd MMM",
-                month: "MMM yyyy"
+                millisecond: "HH:mm:ss",
+                second:      "HH:mm:ss",
+                minute:      "yyyy-MM-dd HH:mm",
+                hour:        "yyyy-MM-dd HH",
+                day:         "yyyy-MM-dd",
+                week:        "yyyy-MM-dd",
+                month:       "yyyy-MM",
+                quarter:     "yyyy-MM",
+                year:        "yyyy"
               }
             },
-            title: {
-              display: false,
-              text: "Date"
-            }
+            title: { display: false }
           },
           y: {
-            title: {
-              display: false,
-              text: "value"
-            }
+            title: { display: false, text: "value" }
           }
         },
         datasets: {
@@ -73,7 +84,6 @@ const Plot = {
     };
   },
   dataset: (label, data, colors) => {
-    //if(!color)
     let d = { label, data, backgroundColor: colors };
     return d;
   }

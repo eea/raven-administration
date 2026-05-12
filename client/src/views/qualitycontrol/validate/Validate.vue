@@ -119,9 +119,10 @@ const load = async () => {
   const members = Array.isArray(response) ? [] : (response.members ?? []);
   timevalues.value = rows;
   groupMembers.value = members;
-  if (!chart) {
-    chart = new Chart("chart", Plot.config(onDatapointSelection));
-  }
+  const sp = timeseries.value.find((t) => String(t.value) === String(selectedId.value));
+  const timestep = sp?.timestep_seconds ?? null;
+  if (chart) { chart.destroy(); chart = null; }
+  chart = new Chart("chart", Plot.config(onDatapointSelection, timestep));
   formatAndLoad();
 };
 const formatAndLoad = () => {
