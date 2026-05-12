@@ -39,19 +39,26 @@ let chart             = null;
 
 const getDateRange = (presetKey) => {
   const p  = PRESETS.find(x => x.key === presetKey) ?? PRESETS[2];
-  const to = new Date();
+  const to = new Date("2026-04-14T00:00:00"); // TODO: remove — test db ends 2026-04-14
   const from = sub(to, { hours: p.hours });
   return { from_dt: format(from, "yyyy-MM-dd HH:00"), to_dt: format(to, "yyyy-MM-dd HH:00"), meantype: p.meantype };
 };
 
 const getAxes = (data) => groupBy(data, r => r.unit).map(e => e[0]);
 
+const getFinestTimestepSeconds = () => {
+  if (!props.allTimeseries?.length || !props.plot.seriesIds?.length) return null;
+  const selected = props.allTimeseries.filter(sp => props.plot.seriesIds.includes(sp.sampling_point_id));
+  const seconds = selected.map(sp => sp.timestep_seconds).filter(s => s > 0);
+  return seconds.length ? Math.min(...seconds) : null;
+};
+
 const buildChart = (data) => {
   if (chart) { chart.destroy(); chart = null; }
   if (!canvasRef.value) return;
 
   const axes   = getAxes(data);
-  const config = Plot.config(axes, false, props.plot.plotType ?? "line");
+  const config = Plot.config(axes, false, props.plot.plotType ?? "line", getFinestTimestepSeconds());
   chart        = new Chart(canvasRef.value, config);
 
   const grouped       = groupBy(data, r => r.sampling_point_id);

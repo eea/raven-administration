@@ -19,6 +19,7 @@ def sampling_points():
                 s.name AS station,
                 COALESCE(NULLIF(po.notation, ''), po.label) AS pollutant,
                 t.notation AS timestep,
+                t.timestep AS timestep_seconds,
                 u.notation AS unit,
                 lp.equipment,
                 lp.equipment_identifier,
