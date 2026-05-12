@@ -9,6 +9,7 @@ class InsertModel(BaseModel):
     secondary: str
     result: str
     operator: str
+    create_group: Optional[bool] = False
 
     def __getitem__(self, key):
         return super().__getattribute__(key)

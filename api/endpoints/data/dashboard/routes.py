@@ -19,6 +19,7 @@ def sampling_points():
                 s.name AS station,
                 COALESCE(NULLIF(po.notation, ''), po.label) AS pollutant,
                 t.notation AS timestep,
+                t.timestep AS timestep_seconds,
                 u.notation AS unit,
                 lp.equipment,
                 lp.equipment_identifier,
@@ -40,8 +41,6 @@ def sampling_points():
                 LEFT JOIN eea_measurementequipments me ON pr.equipment_id = me.id
                 ORDER BY pr.sampling_point_id, pr.activity_begin DESC
             ) lp ON lp.sampling_point_id = sp.id
-            WHERE sp.from_time IS NOT NULL
-              AND sp.to_time IS NOT NULL
             ORDER BY LOWER(s.name), LOWER(COALESCE(NULLIF(po.notation, ''), po.label)), LOWER(t.notation)
         """, n_param)
         return jsonify(cursor.fetchall())

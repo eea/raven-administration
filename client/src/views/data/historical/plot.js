@@ -18,8 +18,18 @@ const hexToRgba = (hex, alpha) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
+// Maps the finest SP timestep (seconds) to Chart.js x-axis unit and tooltip format.
+const secondsToXAxis = (seconds) => {
+  if (!seconds || seconds <= 0) return {};
+  if (seconds < 3600)  return { unit: "minute", tooltipFormat: "yyyy-MM-dd HH:mm" };
+  if (seconds < 86400) return { unit: "hour",   tooltipFormat: "yyyy-MM-dd HH:mm" };
+  if (seconds < 604800) return { unit: "day",   tooltipFormat: "yyyy-MM-dd" };
+  if (seconds < 2592000) return { unit: "week", tooltipFormat: "yyyy-MM-dd" };
+  return                        { unit: "month", tooltipFormat: "yyyy-MM" };
+};
+
 const Plot = {
-  config: (axes, beginAtZero = false, chartType = "line") => {
+  config: (axes, beginAtZero = false, chartType = "line", finestTimestepSeconds = null) => {
     return {
       type: chartType,
       data: [],
@@ -56,7 +66,7 @@ const Plot = {
             }
           }
         },
-        scales: Plot.multiscales(axes, beginAtZero),
+        scales: Plot.multiscales(axes, beginAtZero, finestTimestepSeconds),
         datasets: {
           line: {
             pointRadius: 1,
@@ -70,8 +80,9 @@ const Plot = {
       }
     };
   },
-  multiscales: (axes, beginAtZero) => {
+  multiscales: (axes, beginAtZero, finestTimestepSeconds = null) => {
     var s = {};
+    const xAxis = secondsToXAxis(finestTimestepSeconds);
     s.x = {
       type: "time",
       offset: true,
@@ -79,7 +90,8 @@ const Plot = {
         date: { zone: "UTC" }
       },
       time: {
-        tooltipFormat: "yyyy-MM-dd HH",
+        tooltipFormat: xAxis.tooltipFormat ?? "yyyy-MM-dd HH:mm",
+        ...(xAxis.unit ? { unit: xAxis.unit } : {}),
         displayFormats: {
           millisecond: "HH:mm:ss",
           second: "HH:mm:ss",

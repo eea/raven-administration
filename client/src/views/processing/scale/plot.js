@@ -24,8 +24,14 @@ const Plot = {
           x: {
             type: "time",
             time: {
-              // Luxon format string
-              tooltipFormat: "DD T"
+              tooltipFormat: "dd MMM yyyy HH:mm",
+              displayFormats: {
+                hour: "HH:mm",
+                day: "dd MMM",
+                week: "dd MMM",
+                month: "MMM yyyy",
+                year: "yyyy"
+              }
             },
             title: {
               display: false,

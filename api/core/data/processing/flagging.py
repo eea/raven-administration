@@ -1,6 +1,7 @@
 from pandas import DataFrame
 import time
 from core.printcol import printcol
+from core.groups import Groups
 import pandas as pd
 
 
@@ -34,7 +35,34 @@ class Flagging:
             df_values.loc[min_filter, "observationvalidity_id"] = -1
             df_values.loc[rep_filter, "observationvalidity_id"] = -1
 
+        # Propagate validity flags to group members at the same timestamps.
+        # All group members always carry the same flag — matches LK behaviour.
+        Flagging.__propagate_group_flags(cursor, df_values)
+
         printcol(f"- Flagging took {time.perf_counter() - bench} seconds")
+
+    @staticmethod
+    def __propagate_group_flags(cursor, df_values: DataFrame):
+        """
+        For group members that are in the same import batch, propagate the exact same
+        validity to all members at the same timestamps (in-memory only).
+        Matches LK behaviour: no DB update for partners not in the current import.
+        """
+        flagged_sps = df_values["sampling_point_id"].unique()
+
+        for sp_id in flagged_sps:
+            members = Groups.get_members(cursor, sp_id)
+            if not members:
+                continue
+
+            sp_rows = df_values[df_values["sampling_point_id"] == sp_id][["from_time", "observationvalidity_id"]]
+
+            for _, row in sp_rows.iterrows():
+                validity = int(row["observationvalidity_id"])
+                from_time = row["from_time"]
+                for member_id in members:
+                    in_batch = (df_values["sampling_point_id"] == member_id) & (df_values["from_time"] == from_time)
+                    df_values.loc[in_batch, "observationvalidity_id"] = validity
 
     @staticmethod
     def __autovalidated_series__(cursor: any, sampling_point_ids):

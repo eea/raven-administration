@@ -9,12 +9,14 @@ import zoomPlugin from "chartjs-plugin-zoom";
 import Plot, { palette, hexToRgba } from "./plot";
 
 import { format, sub, isAfter, isBefore, startOfWeek } from "date-fns";
-import { groupBy } from "../../../helpers/utils";
+import { groupBy, downloadCsv } from "../../../helpers/utils";
 import { datetimeCellRenderer, granularityFromHistoricalRow } from "../../../helpers/datetimeHighlight";
 import Eventy from "../../../helpers/eventy";
 import IconCalendar from "~icons/ic/round-access-time";
 import IconModify from "~icons/material-symbols/tune";
 import IconReplot from "~icons/material-symbols/bar-chart";
+import IconList from "~icons/material-symbols/table-rows-narrow";
+import IconPivot from "~icons/material-symbols/pivot-table-chart";
 
 import CommonLayout from "../../../components/CommonLayout.vue";
 import CMenu from "../../../components/CMenu.vue";
@@ -121,15 +123,12 @@ const plotData = async () => {
 };
 
 const onDownload = async () => {
-  Eventy.showMessage("Downloading data. Please wait", "loading");
-  await Service.download({
-    sampling_point_ids: selectedIds.value,
-    from_dt: format(fromtime.value, "yyyy-MM-dd HH:00"),
-    to_dt: format(totime.value, "yyyy-MM-dd HH:00"),
-    meantype: meantype.value,
-    coverage: coverage.value
-  });
-  Eventy.hideMessage();
+  if (pivotView.value) {
+    downloadCsv(pivotData.value, pivotColumns.value, "historical_data_pivot");
+    return;
+  }
+  const exportColumns = gridDataColumns.value.filter((c) => c.field !== "_color");
+  downloadCsv(filteredGridData.value, exportColumns, "historical_data");
 };
 const changeDates = (s) => {
   const d = new Date();
@@ -275,20 +274,38 @@ const timeseriesColumns = [
 
 const gridDataColumns = computed(() => {
   const isRawOrOriginal = activeMeantype.value === "1000" || activeMeantype.value === "0";
-  return [
-    { field: "_color", headerName: "", width: 32, minWidth: 32, maxWidth: 32, flex: 0, sortable: false, filter: false, cellRenderer: (params) => params.value ? `<div style="width:8px;height:8px;border-radius:50%;background:${params.value};margin:auto;margin-top:8px"></div>` : "" },
-    { field: "network", headerName: "Network", flex: 1, filter: true },
-    { field: "station", headerName: "Station", flex: 1, filter: true },
-    { field: "component", headerName: "Pollutant", flex: 0.5, filter: true },
-    { headerName: "Timestep", flex: 0.5, filter: true, valueGetter: (params) => (params.data?.meantype === 0 || params.data?.meantype === 1000 ? params.data?.timestep : params.data?.meantype_string) },
-    { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
-    { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true },
-    { field: "datetime_begin", headerName: "From", flex: 1, filter: true, hide: !isRawOrOriginal, cellRenderer: datetimeCellRenderer(granularityFromHistoricalRow) },
-    { field: "datetime", headerName: isRawOrOriginal ? "To" : "Datetime", flex: 1, filter: true, sort: "desc", cellRenderer: datetimeCellRenderer(granularityFromHistoricalRow) },
-    { field: "actual_value", headerName: "Value", flex: 0.5, filter: true },
-    { field: "coverage", headerName: "Coverage", flex: 0.5, filter: true },
-    { field: "valid", headerName: "Valid", flex: 0.5, cellRenderer: (params) => (params.value ? "✓" : "✗"), cellStyle: (params) => ({ color: params.value ? "#a3be8c" : "#bf616a", fontWeight: "bold", textAlign: "center" }) }
-  ];
+  const colorCol = { field: "_color", headerName: "", width: 32, minWidth: 32, maxWidth: 32, flex: 0, sortable: false, filter: false, cellRenderer: (params) => params.value ? `<div style="width:8px;height:8px;border-radius:50%;background:${params.value};margin:auto;margin-top:8px"></div>` : "" };
+  const validCol = { field: "valid", headerName: "Valid", flex: 0.5, cellRenderer: (params) => (params.value ? "✓" : "✗"), cellStyle: (params) => ({ color: params.value ? "#a3be8c" : "#bf616a", fontWeight: "bold", textAlign: "center" }) };
+
+  if (isRawOrOriginal) {
+    return [
+      colorCol,
+      { field: "datetime_begin", headerName: "From", flex: 1, filter: true, sort: "desc", cellRenderer: datetimeCellRenderer(granularityFromHistoricalRow) },
+      { field: "datetime", headerName: "To", flex: 1, filter: true, cellRenderer: datetimeCellRenderer(granularityFromHistoricalRow) },
+      { field: "actual_value", headerName: "Value", flex: 0.5, filter: true },
+      { field: "component", headerName: "Pollutant", flex: 0.5, filter: true },
+      { field: "unit", headerName: "Unit", flex: 0.5, filter: true },
+      validCol,
+      { field: "network", headerName: "Network", flex: 1, filter: true },
+      { field: "station", headerName: "Station", flex: 1, filter: true },
+      { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
+      { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true }
+    ];
+  } else {
+    return [
+      colorCol,
+      { field: "datetime", headerName: "Datetime", flex: 1, filter: true, sort: "desc", cellRenderer: datetimeCellRenderer(granularityFromHistoricalRow) },
+      { field: "actual_value", headerName: "Value", flex: 0.5, filter: true },
+      { field: "component", headerName: "Pollutant", flex: 0.5, filter: true },
+      { field: "unit", headerName: "Unit", flex: 0.5, filter: true },
+      { field: "coverage", headerName: "Coverage", flex: 0.5, filter: true },
+      validCol,
+      { field: "network", headerName: "Network", flex: 1, filter: true },
+      { field: "station", headerName: "Station", flex: 1, filter: true },
+      { field: "equipment", headerName: "Equipment", flex: 1, filter: true },
+      { field: "equipment_identifier", headerName: "Eq. Identifier", flex: 1, filter: true }
+    ];
+  }
 });
 
 const getRowStyle = (params) => {
@@ -313,6 +330,38 @@ const onTimeseriesFirstDataRendered = (api) => {
 const onTimeseriesSelectionChanged = (rows) => {
   selectedIds.value = rows.map((r) => r.sampling_point_id);
 };
+
+const pivotView = ref(false);
+
+const pivotColumns = computed(() => {
+  if (!filteredGridData.value.length) return [];
+  const isRawOrOriginal = activeMeantype.value === "1000" || activeMeantype.value === "0";
+  const uniqueSps = [...new Map(filteredGridData.value.map((r) => [r.sampling_point_id, r])).values()];
+  const cols = [];
+  if (isRawOrOriginal) {
+    cols.push({ field: "datetime_begin", headerName: "From", flex: 1, filter: true });
+  }
+  cols.push({ field: "datetime", headerName: isRawOrOriginal ? "To" : "Datetime", flex: 1, filter: true, sort: "desc" });
+  uniqueSps.forEach((sp) => {
+    const equipmentPart = [sp.equipment, sp.equipment_identifier].filter(Boolean).join(" / ");
+    const label = [sp.station, sp.component, sp.unit, equipmentPart].filter(Boolean).join(" / ");
+    cols.push({ field: `sp_${sp.sampling_point_id}`, headerName: label, flex: 1, filter: true });
+  });
+  return cols;
+});
+
+const pivotData = computed(() => {
+  if (!filteredGridData.value.length) return [];
+  const byDatetime = new Map();
+  filteredGridData.value.forEach((row) => {
+    const key = row.datetime;
+    if (!byDatetime.has(key)) {
+      byDatetime.set(key, { datetime: row.datetime, datetime_begin: row.datetime_begin });
+    }
+    byDatetime.get(key)[`sp_${row.sampling_point_id}`] = row.actual_value;
+  });
+  return [...byDatetime.values()].sort((a, b) => b.datetime.localeCompare(a.datetime));
+});
 </script>
 
 <template>
@@ -453,7 +502,16 @@ const onTimeseriesSelectionChanged = (rows) => {
       </div>
     </Container>
 
-    <Container v-show="showPlot" class="flex-1 mt-4 min-h-48"><DataTable :columns="gridDataColumns" :data="filteredGridData" :get-row-style="getRowStyle"></DataTable></Container>
+    <Container v-show="showPlot" class="flex-1 mt-4 min-h-48">
+      <div class="flex justify-end mb-2">
+        <div class="flex items-center gap-1.5 cursor-pointer select-none text-sm font-bold" @click="pivotView = !pivotView" :title="pivotView ? 'Switch to row view' : 'Switch to pivot view'">
+          <component :is="pivotView ? IconList : IconPivot" class="text-base text-nord10" />
+          {{ pivotView ? "Row view" : "Pivot view" }}
+        </div>
+      </div>
+      <DataTable v-if="!pivotView" :columns="gridDataColumns" :data="filteredGridData" :get-row-style="getRowStyle"></DataTable>
+      <DataTable v-else :columns="pivotColumns" :data="pivotData"></DataTable>
+    </Container>
   </CommonLayout>
 </template>
 

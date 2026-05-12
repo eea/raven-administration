@@ -51,6 +51,9 @@ class Endpoints:
         from endpoints.processing.autovalidate.routes import autovalidate_endpoint
         app.register_blueprint(autovalidate_endpoint)
 
+        from endpoints.processing.samplingpointgroups.routes import spgroups_endpoint
+        app.register_blueprint(spgroups_endpoint)
+
         # DATA
         from endpoints.data.historical.routes import historical_endpoint
         app.register_blueprint(historical_endpoint)

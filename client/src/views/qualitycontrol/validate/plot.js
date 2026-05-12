@@ -38,7 +38,13 @@ const Plot = {
             },
             time: {
               // Luxon format string
-              tooltipFormat: "DD T"
+              tooltipFormat: "DD T",
+              displayFormats: {
+                hour: "HH:mm",
+                day: "dd MMM",
+                week: "dd MMM",
+                month: "MMM yyyy"
+              }
             },
             title: {
               display: false,

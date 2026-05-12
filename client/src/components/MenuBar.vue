@@ -87,7 +87,8 @@ const getmodules = () => {
         { name: "Auto validate", comp: "AutoValidate", show: jwt.processing },
         { name: "Convert", comp: "Convert", show: jwt.processing },
         { name: "Calculate", comp: "Calculate", show: jwt.processing },
-        { name: "Scale", comp: "Scale", show: jwt.processing }
+        { name: "Scale", comp: "Scale", show: jwt.processing },
+        { name: "Groups", comp: "SamplingPointGroups", show: jwt.processing }
       ]
     },
     {

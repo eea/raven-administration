@@ -46,45 +46,73 @@ class Helper:
     @staticmethod
     def _insertScaledValues(cursor, values):
         """
-        Bulk update observations using COPY to temp table + UPDATE JOIN.
-        Much faster than executemany for large datasets.
+        Upsert scaled observations using (sampling_point_id, from_time, to_time) as the match key.
+        Updates existing rows (NOX, NO2 etc) and inserts new rows (calculated results like NO
+        that don't yet exist in observations).
         """
         if not values or len(values) == 0:
             return 0
 
-        # Create temp table
         cursor.execute("""
-            CREATE TEMP TABLE temp_scaled_values (
-                id INTEGER,
+            CREATE TEMP TABLE IF NOT EXISTS temp_scaled_values (
+                sampling_point_id varchar(100),
+                from_time timestamp,
+                to_time timestamp,
                 value DOUBLE PRECISION,
-                scaled_value DOUBLE PRECISION
+                scaled_value DOUBLE PRECISION,
+                import_value DOUBLE PRECISION,
+                observationverification_id integer,
+                observationvalidity_id integer
             ) ON COMMIT DROP
         """)
+        cursor.execute("TRUNCATE temp_scaled_values")
 
-        # Use COPY to bulk load data into temp table
         buffer = io.StringIO()
-        import math
         for row in values:
-            # Skip rows with missing id (NaN from pandas)
-            row_id = row["id"]
-            if row_id is None or (isinstance(row_id, float) and math.isnan(row_id)):
+            sp_id = row.get("sampling_point_id")
+            from_t = row.get("from_time")
+            to_t = row.get("to_time")
+            if not sp_id or from_t is None or to_t is None:
                 continue
-            obs_id = int(row_id)
-            val = row["value"] if row["value"] is not None else "\\N"
-            scaled = row["scaled_value"] if row["scaled_value"] is not None else "\\N"
-            buffer.write(f"{obs_id}\t{val}\t{scaled}\n")
+
+            def _v(x):
+                return "\\N" if x is None or (isinstance(x, float) and __import__('math').isnan(x)) else x
+
+            val = _v(row.get("value"))
+            scaled = _v(row.get("scaled_value"))
+            imp = _v(row.get("import_value"))
+            ver = _v(row.get("observationverification_id"))
+            validity = _v(row.get("observationvalidity_id"))
+            ft_str = from_t.isoformat() if hasattr(from_t, "isoformat") else str(from_t)
+            tt_str = to_t.isoformat() if hasattr(to_t, "isoformat") else str(to_t)
+            buffer.write(f"{sp_id}\t{ft_str}\t{tt_str}\t{val}\t{scaled}\t{imp}\t{ver}\t{validity}\n")
         buffer.seek(0)
 
-        cursor.copy_from(buffer, "temp_scaled_values", columns=("id", "value", "scaled_value"))
+        cursor.copy_from(buffer, "temp_scaled_values", columns=("sampling_point_id", "from_time", "to_time", "value", "scaled_value", "import_value", "observationverification_id", "observationvalidity_id"))
 
-        # Bulk update using JOIN
+        # Update existing rows
         cursor.execute("""
             UPDATE observations o
             SET value = t.value,
                 scaled_value = t.scaled_value,
                 touched = now()
             FROM temp_scaled_values t
-            WHERE o.id = t.id
+            WHERE o.sampling_point_id = t.sampling_point_id
+            AND o.from_time = t.from_time
+            AND o.to_time = t.to_time
+        """)
+
+        # Insert rows that don't exist yet (e.g. calculated results like NO)
+        cursor.execute("""
+            INSERT INTO observations (sampling_point_id, from_time, to_time, value, scaled_value, import_value, observationverification_id, observationvalidity_id, touched)
+            SELECT t.sampling_point_id, t.from_time, t.to_time, t.value, t.scaled_value, t.import_value, t.observationverification_id, t.observationvalidity_id, now()
+            FROM temp_scaled_values t
+            WHERE NOT EXISTS (
+                SELECT 1 FROM observations o
+                WHERE o.sampling_point_id = t.sampling_point_id
+                AND o.from_time = t.from_time
+                AND o.to_time = t.to_time
+            )
         """)
 
         return cursor.rowcount

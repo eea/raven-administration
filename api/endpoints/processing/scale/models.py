@@ -14,7 +14,7 @@ class ScalingpointModel(BaseModel):
 
 class UpdateModel(RavenBaseModel):
     sampling_point_id: str
-    id: str
+    id: Optional[str] = None
     zero_point: float
     span_value: float
     gas_concentration: float
@@ -39,7 +39,8 @@ class InsertModel(BaseModel):
 
 
 class DeleteModel(RavenBaseModel):
-    id: str
+    sampling_point_id: str
+    timestamp: datetime
     createdby: Optional[str] = None
 
     def __getitem__(self, key):
