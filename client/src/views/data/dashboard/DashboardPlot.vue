@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";
+import { useRouter } from "vue-router";
 import { format, sub } from "date-fns";
 import Chart from "chart.js/auto";
 import "chartjs-adapter-luxon";
@@ -8,11 +9,16 @@ import Plot, { palette, hexToRgba } from "../historical/plot";
 import { groupBy } from "../../../helpers/utils";
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
-import IconRefresh from "~icons/material-symbols/refresh";
-import IconTune   from "~icons/material-symbols/tune";
-import IconDelete from "~icons/material-symbols/delete-outline";
+import IconRefresh  from "~icons/material-symbols/refresh";
+import IconTune     from "~icons/material-symbols/tune";
+import IconDelete   from "~icons/material-symbols/delete-outline";
+import IconHistory  from "~icons/material-symbols/bar-chart";
+import IconValidate from "~icons/material-symbols/fact-check";
+import IconScale    from "~icons/uil/process";
 
 Chart.register(zoomPlugin);
+
+const router = useRouter();
 
 const props = defineProps({
   plot:          { type: Object,  required: true },
@@ -37,9 +43,44 @@ const hoveredIdx      = ref(-1);
 const canvasRef       = ref(null);
 let chart             = null;
 
+// SP picker — shared by validate and scale (both take a single SP)
+const pickerTarget  = ref(null); // "Validate" | "Scale" | null
+const pickerRef     = ref(null);
+
+const pickerItems = () =>
+  legendItems.value.length
+    ? legendItems.value
+    : props.allTimeseries
+        .filter(sp => props.plot.seriesIds?.includes(sp.sampling_point_id))
+        .map(sp => ({ sampling_point_id: sp.sampling_point_id, label: [sp.station, sp.pollutant].filter(Boolean).join(" — "), color: null }));
+
+const openPicker = (routeName) => {
+  if (props.plot.seriesIds?.length <= 1) {
+    navigateWithSp(routeName, props.plot.seriesIds[0]);
+  } else {
+    pickerTarget.value = pickerTarget.value === routeName ? null : routeName;
+  }
+};
+
+const navigateWithSp = (routeName, spId) => {
+  pickerTarget.value = null;
+  const { from_dt, to_dt } = getDateRange(props.plot.timePreset);
+  if (routeName === "Validate") {
+    router.push({ name: "Validate", query: { ids: spId, from: from_dt, to: to_dt } });
+  } else if (routeName === "Scale") {
+    router.push({ name: "Scale", query: { id: spId } });
+  }
+};
+
+const onPickerClickOutside = (e) => {
+  if (pickerRef.value && !pickerRef.value.contains(e.target)) {
+    pickerTarget.value = null;
+  }
+};
+
 const getDateRange = (presetKey) => {
   const p  = PRESETS.find(x => x.key === presetKey) ?? PRESETS[2];
-  const to = new Date();
+  const to = new Date("2026-04-14T00:00:00"); // TODO: remove temp date
   const from = sub(to, { hours: p.hours });
   return { from_dt: format(from, "yyyy-MM-dd HH:00"), to_dt: format(to, "yyyy-MM-dd HH:00"), meantype: p.meantype };
 };
@@ -106,6 +147,11 @@ const setPreset = (key) => {
 
 const resetZoom = () => { if (chart) chart.resetZoom(); };
 
+const goToHistorical = () => {
+  const { from_dt, to_dt } = getDateRange(props.plot.timePreset);
+  router.push({ name: "Historical", query: { ids: props.plot.seriesIds.join(";"), from: from_dt, to: to_dt } });
+};
+
 const toggleSeries = (i) => {
   if (!chart) return;
   const visible = chart.isDatasetVisible(i);
@@ -140,8 +186,14 @@ const onLegendLeave = () => {
 // Reload when series list changes (after edit)
 watch(() => props.plot.seriesIds, () => { if (props.plot.seriesIds?.length) loadData(); }, { deep: true });
 
-onMounted(() => { if (props.plot.seriesIds?.length) loadData(); });
-onBeforeUnmount(() => { if (chart) { chart.destroy(); chart = null; } });
+onMounted(() => {
+  if (props.plot.seriesIds?.length) loadData();
+  document.addEventListener("click", onPickerClickOutside);
+});
+onBeforeUnmount(() => {
+  if (chart) { chart.destroy(); chart = null; }
+  document.removeEventListener("click", onPickerClickOutside);
+});
 </script>
 
 <template>
@@ -149,7 +201,36 @@ onBeforeUnmount(() => { if (chart) { chart.destroy(); chart = null; } });
 
     <!-- Header -->
     <div class="flex items-center gap-2 px-3 py-2 border-b border-nord4 bg-white shrink-0">
-      <span class="font-bold text-sm flex-1 truncate min-w-0">{{ plot.title || "Untitled" }}</span>
+      <span class="font-bold text-sm truncate min-w-0 cursor-default" :title="plot.title || 'Untitled'">{{ plot.title || "Untitled" }}</span>
+      <button class="text-nord3 hover:text-nord10 p-1 rounded shrink-0" @click="goToHistorical" title="Open in Historical">
+        <icon-history class="text-base" />
+      </button>
+
+      <!-- SP picker: shared by Validate + Scale -->
+      <div class="relative shrink-0 flex gap-0.5" ref="pickerRef">
+        <button class="text-nord3 hover:text-nord10 p-1 rounded" :class="{ 'text-nord10': pickerTarget === 'Validate' }" @click.stop="openPicker('Validate')" title="Open in Validate">
+          <icon-validate class="text-base" />
+        </button>
+        <button class="text-nord3 hover:text-nord10 p-1 rounded" :class="{ 'text-nord10': pickerTarget === 'Scale' }" @click.stop="openPicker('Scale')" title="Open in Scale">
+          <icon-scale class="text-base" />
+        </button>
+        <div v-if="pickerTarget"
+             class="absolute left-0 top-full mt-1 z-50 bg-white border border-nord4 rounded shadow-lg py-1 min-w-40 max-w-64">
+          <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-nord3 border-b border-nord6">
+            {{ pickerTarget === 'Validate' ? 'Validate' : 'Scale' }}
+          </div>
+          <button
+            v-for="item in pickerItems()" :key="item.sampling_point_id"
+            class="w-full text-left px-3 py-1.5 text-xs text-nord1 hover:bg-nord6 flex items-center gap-2 cursor-pointer"
+            :title="item.label"
+            @click="navigateWithSp(pickerTarget, item.sampling_point_id)">
+            <div class="w-2 h-2 rounded-full shrink-0" :style="{ background: item.color ?? '#ccc' }"></div>
+            <span class="truncate">{{ item.label }}</span>
+          </button>
+        </div>
+      </div>
+
+      <span class="flex-1"></span>
 
       <span class="text-xs font-mono text-nord3 shrink-0">{{ plot.timePreset }}</span>
 
