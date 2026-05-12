@@ -47,12 +47,16 @@ let chart             = null;
 const pickerTarget  = ref(null); // "Validate" | "Scale" | null
 const pickerRef     = ref(null);
 
-const pickerItems = () =>
-  legendItems.value.length
+const pickerItems = () => {
+  const items = legendItems.value.length
     ? legendItems.value
     : props.allTimeseries
         .filter(sp => props.plot.seriesIds?.includes(sp.sampling_point_id))
-        .map(sp => ({ sampling_point_id: sp.sampling_point_id, label: [sp.station, sp.pollutant].filter(Boolean).join(" — "), color: null }));
+        .map(sp => ({ sampling_point_id: sp.sampling_point_id, label: [sp.station, sp.pollutant].filter(Boolean).join(" — "), color: null, is_calculated: sp.is_calculated }));
+  return pickerTarget.value === "Scale"
+    ? items.filter(item => !item.is_calculated)
+    : items;
+};
 
 const openPicker = (routeName) => {
   if (props.plot.seriesIds?.length <= 1) {
@@ -118,7 +122,7 @@ const buildChart = (data) => {
     const first    = values[0];
     const eq       = [first.equipment, first.equipment_identifier].filter(Boolean).join(" / ");
     const label    = [first.station, first.component, first.unit, eq].filter(Boolean).join(" - ");
-    legendItems.value.push({ color, label, hidden: false, sampling_point_id: spId });
+    legendItems.value.push({ color, label, hidden: false, sampling_point_id: spId, is_calculated: props.allTimeseries.find(s => s.sampling_point_id === spId)?.is_calculated ?? false });
     return Plot.dataset(label, pts, color, props.plot.plotType ?? "line", axis);
   });
 
