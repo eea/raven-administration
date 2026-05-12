@@ -49,7 +49,8 @@ const Plot = {
             borderColor: "#D8DEE9",
             borderWidth: 1,
             bodyColor: "#2E3440",
-            titleColor: "#2E3440"
+            titleColor: "#2E3440",
+            filter: (item) => item.raw?.y != null
           },
           zoom: {
             zoom: {
@@ -122,11 +123,13 @@ const Plot = {
       }
     };
     axes.forEach((y, i) => {
+      // beginAtZero may be a plain boolean or a per-axis map { [axisId]: boolean }
+      const baz = typeof beginAtZero === "object" ? (beginAtZero[y] ?? true) : beginAtZero;
       s[y] = {
         position: i == 0 ? "left" : "right",
         display: true,
         title: { display: true, text: y },
-        beginAtZero: beginAtZero
+        beginAtZero: baz
       };
     });
     return s;

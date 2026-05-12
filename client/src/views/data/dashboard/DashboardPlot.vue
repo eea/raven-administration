@@ -99,7 +99,10 @@ const buildChart = (data) => {
   if (!canvasRef.value) return;
 
   const axes   = getAxes(data);
-  const config = Plot.config(axes, false, props.plot.plotType ?? "line", getFinestTimestepSeconds());
+  // Start y-axis at 0 per unit, unless that unit has negative values
+  const negativeAxes = new Set(data.filter(o => o.value < 0).map(o => o.unit));
+  const beginAtZero  = Object.fromEntries(axes.map(a => [a, !negativeAxes.has(a)]));
+  const config = Plot.config(axes, beginAtZero, props.plot.plotType ?? "line", getFinestTimestepSeconds());
   chart        = new Chart(canvasRef.value, config);
 
   const grouped       = groupBy(data, r => r.sampling_point_id);
