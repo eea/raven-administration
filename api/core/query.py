@@ -53,10 +53,11 @@ class Q:
                   aa.value,
                   CONCAT(aa.name,', ', aa.pollutant,', ', aa.timestep, ', ', aa.unit ) as label,
                       to_char(aa.fromtime, 'YYYY-MM-DD"T"HH24:MI:SS') as fromtime,
-                      to_char(aa.totime, 'YYYY-MM-DD"T"HH24:MI:SS') as totime
+                      to_char(aa.totime, 'YYYY-MM-DD"T"HH24:MI:SS') as totime,
+                      aa.timestep_seconds
                   FROM
                  (
-                  SELECT sp.id as sp, sp.id as value, s.name, COALESCE(NULLIF(po.notation, ''), po.label) as pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.notation as timestep, u.notation as unit
+                  SELECT sp.id as sp, sp.id as value, s.name, COALESCE(NULLIF(po.notation, ''), po.label) as pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.notation as timestep, t.timestep as timestep_seconds, u.notation as unit
                     FROM
                         network_access n,
                         stations s,
@@ -72,7 +73,7 @@ class Q:
                         and sp.unit_id = u.id
                         and sp.from_time is not null
                         and sp.to_time is not null
-                    GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label), sp.from_time,  sp.to_time, t.notation, u.notation
+                    GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label), sp.from_time,  sp.to_time, t.notation, t.timestep, u.notation
                 ) aa
                 order by LOWER(aa.name), aa.pollutant, aa.timestep
             """, n_param)
