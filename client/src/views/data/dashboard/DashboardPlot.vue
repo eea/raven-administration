@@ -210,7 +210,7 @@ onBeforeUnmount(() => {
       </button>
 
       <!-- SP picker: shared by Validate + Scale -->
-      <div class="relative shrink-0 flex gap-0.5" ref="pickerRef">
+      <div class="relative shrink-0" ref="pickerRef">
         <button class="text-nord3 hover:text-nord10 p-1 rounded" :class="{ 'text-nord10': pickerTarget === 'Validate' }" @click.stop="openPicker('Validate')" title="Open in Validate">
           <icon-validate class="text-base" />
         </button>
