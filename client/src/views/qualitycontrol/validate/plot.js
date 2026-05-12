@@ -19,7 +19,13 @@ const Plot = {
             borderColor: "#D8DEE9",
             borderWidth: 1,
             bodyColor: "#2E3440",
-            titleColor: "#2E3440"
+            titleColor: "#2E3440",
+            callbacks: {
+              label: (item) => {
+                const actual = item.raw?.obj?.value;
+                return actual != null ? ` ${actual}` : null;
+              }
+            }
           }
         },
 

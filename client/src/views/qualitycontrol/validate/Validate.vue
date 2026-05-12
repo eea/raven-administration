@@ -232,7 +232,9 @@ const formatValues = () => {
   let data = [];
   timevalues.value.forEach((o) => {
     var value_to_use = showValidOnly.value ? o.valid_value_only : o.value;
-    var v = value_to_use == -9900 ? null : value_to_use;
+    // Invalid + -9900 → render as 0 (no meaningful measurement, don't distort axis)
+    // Valid + -9900 → keep -9900 (user explicitly validated it, show actual value)
+    var v = (o.observationvalidity_id < 1 && value_to_use === -9900) ? 0 : value_to_use;
     var c = o.observationvalidity_id < 1 ? "#BF616A" : "#A3BE8C";
     const n = Object.assign({}, o);
     colors.push(c);
