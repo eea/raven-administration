@@ -61,9 +61,9 @@ def import_logger():
         """
         cursor.execute(sql, {"id": logger_id})
         sp_row = cursor.fetchone()
+        if sp_row is None:
+            raise Exception(f"Could not find sampling point for logger_id '{logger_id}' — create it via RAVEN setup")
         sampling_point_id = sp_row["id"]
-        if sampling_point_id == None:
-            raise Exception("Could not find logger id")
 
         df["logger_id"] = sampling_point_id
         df["verification_flag"] = 3
