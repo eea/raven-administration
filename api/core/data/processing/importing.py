@@ -175,6 +175,8 @@ class Importing:
             return
 
         df = pd.DataFrame([dict(r) for r in rows])
+        for col in ("value", "import_value", "scaled_value"):
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(-9900)
         df = Common.add_timeserie_info(cursor, df)
         df = df[df["has_timeserie_info"] == True].copy()
         if df.empty:
