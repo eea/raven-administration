@@ -9,6 +9,7 @@ from core.data.processing.scaling import Scaling
 from core.data.processing.importing import Importing
 from core.jwt_ext_custom import jwt_required_with_processing_claim
 from core.jwt_ext_custom import get_name
+from core.log_context import set_log_context
 import pandas as pd
 
 
@@ -93,6 +94,7 @@ def update():
                 Helper._insertScalingPoint(cursor, m.zero_point, m.span_value, m.gas_concentration, m.timestamp, m.sampling_point_id, createdby)
 
         if not values.empty:
+            set_log_context(cursor, 'scaling')
             Helper._insertScaledValues(cursor, values.to_dict("records"))
 
         return jsonify({"success": True})
@@ -131,6 +133,7 @@ def insert():
             Helper._insertScalingPoint(cursor, m.zero_point, m.span_value, m.gas_concentration, m.timestamp, m.sampling_point_id, createdby)
 
         if not values.empty:
+            set_log_context(cursor, 'scaling')
             Helper._insertScaledValues(cursor, values.to_dict("records"))
 
         return jsonify({"success": True})
@@ -186,6 +189,7 @@ def delete():
                 raise BadRequest(description=f"Could not delete scaling point {row['id']}.")
 
         if not values.empty:
+            set_log_context(cursor, 'scaling')
             Helper._insertScaledValues(cursor, values.to_dict("records"))
 
         return jsonify({"success": True})

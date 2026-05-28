@@ -86,6 +86,9 @@ class Endpoints:
         from endpoints.qualitycontrol.verify.routes import verify_endpoint
         app.register_blueprint(verify_endpoint)
 
+        from endpoints.qualitycontrol.log.routes import log_endpoint
+        app.register_blueprint(log_endpoint)
+
         # MISC
         from endpoints.misc.settings.routes import settings_endpoint
         app.register_blueprint(settings_endpoint)

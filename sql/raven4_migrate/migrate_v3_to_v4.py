@@ -810,13 +810,13 @@ class Migration:
                     INSERT INTO observations 
                     (id, sampling_point_id, value,
                      observationverification_id, observationvalidity_id, touched, from_time, to_time,
-                     import_value, scaled_value)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     import_value, scaled_value, meta)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (id) DO NOTHING
                 """, (
                     id_val, sp_id, value,
                     observationverification_id, validation_flag, touched, from_time, to_time,
-                    import_value, scaled_value
+                    import_value, scaled_value, None
                 ))
             
             migrated += len(rows)

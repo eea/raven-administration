@@ -4,6 +4,7 @@ import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import DataTable from "../../../components/DataTable.vue";
+import ObservationLog from "./ObservationLog.vue";
 
 import Service from "./service";
 import { month, downloadCsv } from "../../../helpers/utils";
@@ -12,6 +13,7 @@ import { filterList } from "../../../helpers/utils";
 
 import IconLink from "~icons/ph/link-simple-duotone";
 import IconCircle from "~icons/ph/circle-duotone";
+import IconHistory from "~icons/ph/clock-counter-clockwise-duotone";
 
 const year = ref("");
 const stationId = ref();
@@ -23,6 +25,8 @@ const q = ref("");
 const selected = ref({});
 
 const showTable = ref(false);
+const showLog = ref(false);
+const logRows = ref([]);
 
 const columns = shallowRef([
   { field: "id", headerName: "Id", width: 100 },
@@ -100,6 +104,8 @@ const onContextMenuAction = async ({ action, data }) => {
     await onSetLevel(2);
   } else if (action === "not-verified") {
     await onSetLevel(3);
+  } else if (action === "history") {
+    await onShowHistory();
   }
 };
 
@@ -109,6 +115,19 @@ const onSetLevel = async (level) => {
   await Service.flag(data);
   await load();
   Eventy.showHideMessage("Verification flag updated", "success");
+};
+
+const onShowHistory = async () => {
+  const row = selected.value;
+  if (!row?.id) return;
+  Eventy.showMessage("Loading history. Please wait", "loading");
+  const m = parseInt(row.month);
+  const y = parseInt(year.value);
+  const fromDt = `${y}-${String(m).padStart(2, "0")}-01 00:00`;
+  const nextMonth = m === 12 ? `${y + 1}-01-01 00:00` : `${y}-${String(m + 1).padStart(2, "0")}-01 00:00`;
+  logRows.value = await Service.log(row.id, fromDt, nextMonth);
+  Eventy.hideMessage();
+  showLog.value = true;
 };
 
 const onDownload = () => {
@@ -129,6 +148,8 @@ const onDownload = () => {
 
 <template>
   <common-layout>
+    <observation-log :show="showLog" :rows="logRows" @close="showLog = false" />
+
     <tool-bar title="Verify" v-model:q="q" :show-filter="true" :show-add="false" :show-column-picker="false" @download-click="onDownload" />
 
     <container>
@@ -172,8 +193,14 @@ const onDownload = () => {
             <icon-circle class="text-nord11 text-base self-center" />
             <div class="self-center ml-1">Set to not verified</div>
           </div>
+          <div class="border-t border-nord4 my-1" v-if="contextData?.row" />
+          <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('history')" v-if="contextData?.row">
+            <icon-history class="text-nord9 text-base self-center" />
+            <div class="self-center ml-1">View history</div>
+          </div>
         </template>
       </DataTable>
     </div>
   </common-layout>
 </template>
+

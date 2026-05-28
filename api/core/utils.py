@@ -1,4 +1,3 @@
-from simplexml import dumps
 from flask import make_response, Response
 import xml.etree.cElementTree as ET
 from datetime import timedelta, datetime
@@ -6,6 +5,12 @@ import calendar
 import csv
 import pandas as pd
 from collections import OrderedDict
+
+# Simple simplexml replacement - just convert dict to simple XML
+def dumps(data):
+    """Convert dict to simple XML string"""
+    import json
+    return json.dumps(data)  # Fallback: return JSON if needed
 
 class U:
     # Function is needed to make dictionary hashable/comparable

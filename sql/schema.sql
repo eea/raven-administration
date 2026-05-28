@@ -665,6 +665,7 @@ create table if not exists observations
     to_time                    timestamp                     not null,
     import_value               numeric(255, 5)               not null,
     scaled_value               numeric(255, 5),
+    meta                       jsonb,
     constraint un_obs_spoid_fromto
         unique (sampling_point_id, from_time, to_time)
 );
@@ -674,6 +675,7 @@ comment on column observations.observationverification_id is '1=verified, 2=prel
 comment on column observations.observationvalidity_id is '-99=maintenance, -1=not valid, 1=valid, 2=below detection, 3=below+substituted, 4=ozone CCQM';
 comment on column observations.import_value is 'Original imported value (before scaling)';
 comment on column observations.scaled_value is 'Value after calibration scaling';
+comment on column observations.meta is 'NILU instrument metadata: {"instrument_flag": N, "instrument_validity": N.N}. Set by ADACS at import, never modified by QC.';
 
 create index if not exists idx_observations_spid_ft
     on observations (sampling_point_id, from_time);
@@ -686,6 +688,137 @@ create index if not exists idx_obs_spoid_day
 
 create index if not exists idx_obs_spoid_year
     on observations (sampling_point_id, date_trunc('year'::text, from_time));
+
+-- ---------------------------------------------------------------------------
+-- Observation change log (partitioned by year)
+-- ---------------------------------------------------------------------------
+
+create extension if not exists btree_gist;
+
+create sequence if not exists observation_log_id_seq;
+
+create table if not exists observation_log
+(
+    id                bigint       not null default nextval('observation_log_id_seq'),
+    sampling_point_id varchar(100) not null,
+    period            tsrange      not null,
+    old_verification  integer,
+    new_verification  integer,
+    old_validity      integer,
+    new_validity      integer,
+    old_value         numeric(255, 5),
+    new_value         numeric(255, 5),
+    old_scaled_value  numeric(255, 5),
+    new_scaled_value  numeric(255, 5),
+    changed_by        text,
+    change_source     text,
+    changed_at        timestamp    not null default now(),
+    primary key (id, changed_at)
+) partition by range (changed_at);
+
+comment on table observation_log is 'Audit log of QC state changes to observations (verification, validity, value, scaled_value), partitioned by year';
+comment on column observation_log.period is 'tsrange covering min(from_time)..max(to_time) of all affected observations in the triggering statement';
+comment on column observation_log.changed_by is 'JWT username from SET LOCAL app.username; NULL = system/ADACS';
+comment on column observation_log.change_source is 'qc_verify | qc_validate | scaling | adacs_import';
+comment on column observation_log.old_value is 'Only populated for single-row manual value edits; NULL for bulk operations';
+comment on column observation_log.new_value is 'Only populated for single-row manual value edits; NULL for bulk operations';
+comment on column observation_log.old_scaled_value is 'Only populated for single-row scaled_value edits; NULL for bulk rescaling';
+comment on column observation_log.new_scaled_value is 'Only populated for single-row scaled_value edits; NULL for bulk rescaling';
+
+-- Yearly partitions (2000-2035) + default catch-all for out-of-range data
+create table if not exists observation_log_default partition of observation_log default;
+do $$
+declare
+    y integer;
+begin
+    for y in 2000..2035 loop
+        execute format(
+            'create table if not exists observation_log_%s partition of observation_log for values from (''%s-01-01'') to (''%s-01-01'')',
+            y, y, y + 1
+        );
+    end loop;
+end;
+$$;
+
+-- GiST index for range overlap queries: WHERE sampling_point_id = X AND period && tsrange(...)
+create index if not exists idx_obs_log_sp_period
+    on observation_log using gist (sampling_point_id, period);
+
+-- btree index for timeline queries: WHERE sampling_point_id = X ORDER BY changed_at DESC
+create index if not exists idx_obs_log_sp_changed_at
+    on observation_log (sampling_point_id, changed_at desc);
+
+-- index for admin/audit queries by source type
+create index if not exists idx_obs_log_source
+    on observation_log (change_source, changed_at desc);
+
+-- ---------------------------------------------------------------------------
+-- Observation change log trigger
+-- ---------------------------------------------------------------------------
+
+create or replace function trg_observation_log_fn()
+    returns trigger
+    language plpgsql
+as
+$$
+declare
+    v_username text;
+    v_source   text;
+begin
+    v_username := current_setting('app.username', true);
+    v_source   := current_setting('app.change_source', true);
+
+    insert into observation_log (sampling_point_id,
+                                 period,
+                                 old_verification, new_verification,
+                                 old_validity, new_validity,
+                                 old_value, new_value,
+                                 old_scaled_value, new_scaled_value,
+                                 changed_by,
+                                 change_source)
+    select n.sampling_point_id,
+           tsrange(min(n.from_time), max(n.to_time), '[)'),
+           -- verification: uniform across bulk QC ops; use max() safely
+           case when bool_or(n.observationverification_id is distinct from o.observationverification_id)
+                    then max(o.observationverification_id) end,
+           case when bool_or(n.observationverification_id is distinct from o.observationverification_id)
+                    then max(n.observationverification_id) end,
+           -- validity
+           case when bool_or(n.observationvalidity_id is distinct from o.observationvalidity_id)
+                    then max(o.observationvalidity_id) end,
+           case when bool_or(n.observationvalidity_id is distinct from o.observationvalidity_id)
+                    then max(n.observationvalidity_id) end,
+           -- value: only meaningful for single-row manual edits, NULL for bulk ops
+           case when bool_or(n.value is distinct from o.value) and count(*) = 1
+                    then max(o.value) end,
+           case when bool_or(n.value is distinct from o.value) and count(*) = 1
+                    then max(n.value) end,
+           -- scaled_value: only meaningful for single-row edits
+           case when bool_or(n.scaled_value is distinct from o.scaled_value) and count(*) = 1
+                    then max(o.scaled_value) end,
+           case when bool_or(n.scaled_value is distinct from o.scaled_value) and count(*) = 1
+                    then max(n.scaled_value) end,
+           nullif(v_username, ''),
+           nullif(v_source, '')
+    from new_table n
+             join old_table o on n.id = o.id
+    where n.observationverification_id is distinct from o.observationverification_id
+       or n.observationvalidity_id is distinct from o.observationvalidity_id
+       or n.value is distinct from o.value
+       or n.scaled_value is distinct from o.scaled_value
+    group by n.sampling_point_id;
+
+    return null;
+end;
+$$;
+
+drop trigger if exists trg_observation_log on observations;
+create trigger trg_observation_log
+    after update
+    on observations
+    referencing new table as new_table old table as old_table
+    for each statement
+execute function trg_observation_log_fn();
 
 -- ---------------------------------------------------------------------------
 -- Scaling, calculated, and converted series

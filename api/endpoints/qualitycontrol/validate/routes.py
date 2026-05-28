@@ -6,6 +6,7 @@ from core.query import Q
 from core.groups import Groups
 from endpoints.qualitycontrol.validate.models import TimevalueModel, FlagModel
 from core.jwt_ext_custom import jwt_required_with_qualitycontrol_claim
+from core.log_context import set_log_context
 
 validate_endpoint = Blueprint('validate', __name__)
 
@@ -86,6 +87,7 @@ def flag():
         raise BadRequest("Access denied for samplingpoint")
 
     with CursorFromPool() as cursor:
+        set_log_context(cursor, 'qc_validate')
         cursor.execute("""
             update observations
             set observationvalidity_id = %(flag)s

@@ -5,6 +5,7 @@ from core.database import CursorFromPool
 from core.query import Q
 from endpoints.qualitycontrol.verify.models import DatasetModel, FlagModel
 from core.jwt_ext_custom import jwt_required_with_qualitycontrol_claim
+from core.log_context import set_log_context
 
 verify_endpoint = Blueprint('verify', __name__)
 
@@ -84,9 +85,8 @@ def flag():
         raise BadRequest("Access denied for samplingpoint")
 
     with CursorFromPool() as cursor:
+        set_log_context(cursor, 'qc_verify')
         cursor.execute("""
-            update observations
-            set observationverification_id = %(level)s
             where EXTRACT(year FROM from_time) = %(year)s
             and EXTRACT(month FROM from_time) = %(month)s            
             and sampling_point_id = %(sampling_point_id)s
