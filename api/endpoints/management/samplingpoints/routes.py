@@ -26,6 +26,7 @@ def samplingpoints():
               sp.logger_id,
               sp.private,
               sp.use_in_public_api,
+              sp.daily_check,
               sp.pollutant_id, COALESCE(NULLIF(p.notation, ''), p.label) as pollutant,
               sp.time_resolution_id, COALESCE(NULLIF(tr.notation, ''), tr.label) as time_resolution,
               sp.unit_id, u.notation as unit,
@@ -100,6 +101,7 @@ def samplingpoints_update():
             logger_id=%(logger_id)s,
             private=%(private)s,
             use_in_public_api=%(use_in_public_api)s,
+            daily_check=%(daily_check)s,
             pollutant_id=%(pollutant_id)s,
             time_resolution_id=%(time_resolution_id)s,
             unit_id=%(unit_id)s,
@@ -127,12 +129,12 @@ def samplingpoints_insert():
         sql = """
           INSERT INTO sampling_points (
             id, inlet_height, building_distance, kerb_distance,
-            emission_source_distance, logger_id, private, use_in_public_api,
+            emission_source_distance, logger_id, private, use_in_public_api, daily_check,
             pollutant_id, time_resolution_id, unit_id, station_id, spo_category_id
           )
           VALUES (
             %(id)s, %(inlet_height)s, %(building_distance)s, %(kerb_distance)s,
-            %(emission_source_distance)s, %(logger_id)s, %(private)s, %(use_in_public_api)s,
+            %(emission_source_distance)s, %(logger_id)s, %(private)s, %(use_in_public_api)s, %(daily_check)s,
             %(pollutant_id)s, %(time_resolution_id)s, %(unit_id)s, %(station_id)s, %(spo_category_id)s
           )           
         """

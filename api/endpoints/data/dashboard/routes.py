@@ -26,7 +26,8 @@ def sampling_points():
                 sp.id AS sampling_point_id,
                 to_char(sp.from_time, 'YYYY-MM-DD HH24:MI') AS fromtime,
                 to_char(sp.to_time,   'YYYY-MM-DD HH24:MI') AS totime,
-                EXISTS (SELECT 1 FROM calculated_series cs WHERE cs.result = sp.id) AS is_calculated
+                EXISTS (SELECT 1 FROM calculated_series cs WHERE cs.result = sp.id) AS is_calculated,
+                sp.daily_check AS is_daily_check
             FROM network_access n
             JOIN stations s ON n.id = s.network_id
             JOIN sampling_points sp ON s.id = sp.station_id

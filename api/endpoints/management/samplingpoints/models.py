@@ -11,6 +11,7 @@ class SamplingPointsModel(RavenBaseModel):
     logger_id: Optional[str] = None
     private: bool
     use_in_public_api: bool
+    daily_check: bool = False
     pollutant_id: int
     time_resolution_id: str
     unit_id: str

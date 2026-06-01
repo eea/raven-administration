@@ -8,13 +8,18 @@ import zoomPlugin from "chartjs-plugin-zoom";
 import Plot, { palette, hexToRgba } from "../historical/plot";
 import { groupBy } from "../../../helpers/utils";
 import Service from "./service";
+import SamplingPointsService from "../../management/samplingpoints/service";
 import Eventy from "../../../helpers/eventy";
+import SamplingPointLog from "../../management/samplingpoints/SamplingPointLog.vue";
 import IconRefresh  from "~icons/material-symbols/refresh";
 import IconTune     from "~icons/material-symbols/tune";
 import IconDelete   from "~icons/material-symbols/delete-outline";
 import IconHistory  from "~icons/material-symbols/bar-chart";
 import IconValidate from "~icons/material-symbols/fact-check";
 import IconScale    from "~icons/uil/process";
+import IconLog      from "~icons/material-symbols/assignment-outline";
+import IconCheckBox     from "~icons/material-symbols/check-box";
+import IconCheckBoxBlank from "~icons/material-symbols/check-box-outline-blank";
 
 Chart.register(zoomPlugin);
 
@@ -43,9 +48,17 @@ const hoveredIdx      = ref(-1);
 const canvasRef       = ref(null);
 let chart             = null;
 
-// SP picker — shared by validate and scale (both take a single SP)
-const pickerTarget  = ref(null); // "Validate" | "Scale" | null
+// SP picker — shared by validate, scale, and view-daily-check (all take a single SP)
+const pickerTarget  = ref(null); // "Validate" | "Scale" | "ViewDailyCheck" | null
 const pickerRef     = ref(null);
+
+// Log popup state
+const showLog     = ref(false);
+const logSp       = ref(null);
+
+// Daily check state
+const dailyCheckDone   = ref(new Set());
+const addingDailyCheck = ref(new Set()); // sp ids currently being submitted
 
 const pickerItems = () => {
   const items = legendItems.value.length
@@ -68,11 +81,53 @@ const openPicker = (routeName) => {
 
 const navigateWithSp = (routeName, spId) => {
   pickerTarget.value = null;
+  if (routeName === "ViewDailyCheck") {
+    const sp = props.allTimeseries.find(s => s.sampling_point_id === spId);
+    logSp.value = sp ? { id: spId, label: [sp.station, sp.pollutant].filter(Boolean).join(" — ") } : { id: spId };
+    showLog.value = true;
+    return;
+  }
   const { from_dt, to_dt } = getDateRange(props.plot.timePreset);
   if (routeName === "Validate") {
     router.push({ name: "Validate", query: { ids: spId, from: from_dt, to: to_dt } });
   } else if (routeName === "Scale") {
     router.push({ name: "Scale", query: { id: spId } });
+  }
+};
+
+const loadDailyCheckState = async () => {
+  const ids = props.plot.seriesIds;
+  if (!ids?.length) return;
+  try {
+    const result = await SamplingPointsService.logDailyCheckState(ids);
+    dailyCheckDone.value = new Set(result.filter(r => r.done_today).map(r => r.sampling_point_id));
+  } catch {
+    // non-critical: silently ignore
+  }
+};
+
+const addDailyCheck = async (spId) => {
+  if (dailyCheckDone.value.has(spId) || addingDailyCheck.value.has(spId)) return;
+  const { from_dt, to_dt } = getDateRange(props.plot.timePreset);
+  addingDailyCheck.value = new Set([...addingDailyCheck.value, spId]);
+  try {
+    const result = await SamplingPointsService.logInsert({
+      sampling_point_id: spId,
+      type: "daily_check",
+      comment: "daglig sjekk",
+      period_from: from_dt,
+      period_to: to_dt,
+    });
+    await loadDailyCheckState();
+    if (!result?.already_done) {
+      Eventy.showHideMessage("Daily check logged.", "success", 2500);
+    }
+  } catch {
+    Eventy.showHideMessage("Failed to log daily check.", "error", 4000);
+  } finally {
+    const next = new Set(addingDailyCheck.value);
+    next.delete(spId);
+    addingDailyCheck.value = next;
   }
 };
 
@@ -122,7 +177,7 @@ const buildChart = (data) => {
     const first    = values[0];
     const eq       = [first.equipment, first.equipment_identifier].filter(Boolean).join(" / ");
     const label    = [first.station, first.component, first.unit, eq].filter(Boolean).join(" - ");
-    legendItems.value.push({ color, label, hidden: false, sampling_point_id: spId, is_calculated: props.allTimeseries.find(s => s.sampling_point_id === spId)?.is_calculated ?? false });
+    legendItems.value.push({ color, label, hidden: false, sampling_point_id: spId, is_calculated: props.allTimeseries.find(s => s.sampling_point_id === spId)?.is_calculated ?? false, is_daily_check: props.allTimeseries.find(s => s.sampling_point_id === spId)?.is_daily_check ?? false });
     return Plot.dataset(label, pts, color, props.plot.plotType ?? "line", axis);
   });
 
@@ -191,10 +246,18 @@ const onLegendLeave = () => {
 };
 
 // Reload when series list changes (after edit)
-watch(() => props.plot.seriesIds, () => { if (props.plot.seriesIds?.length) loadData(); }, { deep: true });
+watch(() => props.plot.seriesIds, () => {
+  if (props.plot.seriesIds?.length) {
+    loadData();
+    loadDailyCheckState();
+  }
+}, { deep: true });
 
 onMounted(() => {
-  if (props.plot.seriesIds?.length) loadData();
+  if (props.plot.seriesIds?.length) {
+    loadData();
+    loadDailyCheckState();
+  }
   document.addEventListener("click", onPickerClickOutside);
 });
 onBeforeUnmount(() => {
@@ -204,12 +267,18 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <sampling-point-log
+    :show="showLog"
+    :sampling-point="logSp"
+    type-filter="daily_check"
+    @close="showLog = false" />
+
   <div class="border border-nord4 bg-gray-50 flex flex-col h-96">
 
     <!-- Header -->
     <div class="flex items-center gap-2 px-3 py-2 border-b border-nord4 bg-white shrink-0">
       <span class="font-bold text-sm truncate min-w-0 cursor-default" :title="plot.title || 'Untitled'">{{ plot.title || "Untitled" }}</span>
-      <!-- Nav icons group: Historical + Validate + Scale picker -->
+      <!-- Nav icons group: Historical + Validate + Scale + Log picker -->
       <div class="relative shrink-0 flex items-center" ref="pickerRef">
         <button class="text-nord3 hover:text-nord10 p-1 rounded" @click="goToHistorical" title="Open in Historical">
           <icon-history class="text-base" />
@@ -220,10 +289,13 @@ onBeforeUnmount(() => {
         <button class="text-nord3 hover:text-nord10 p-1 rounded" :class="{ 'text-nord10': pickerTarget === 'Scale' }" @click.stop="openPicker('Scale')" title="Open in Scale">
           <icon-scale class="text-base" />
         </button>
+        <button class="text-nord3 hover:text-nord14 p-1 rounded" :class="{ 'text-nord14': pickerTarget === 'ViewDailyCheck' }" @click.stop="openPicker('ViewDailyCheck')" title="View daily check log">
+          <icon-log class="text-base" />
+        </button>
         <div v-if="pickerTarget"
              class="absolute left-0 top-full mt-1 z-50 bg-white border border-nord4 rounded shadow-lg py-1 min-w-40 max-w-64">
           <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-nord3 border-b border-nord6">
-            {{ pickerTarget === 'Validate' ? 'Validate' : 'Scale' }}
+            {{ pickerTarget === 'Validate' ? 'Validate' : pickerTarget === 'Scale' ? 'Scale' : 'Daily check log' }}
           </div>
           <button
             v-for="item in pickerItems()" :key="item.sampling_point_id"
@@ -273,11 +345,23 @@ onBeforeUnmount(() => {
     <div v-if="legendItems.length" class="flex flex-wrap gap-x-4 gap-y-1 px-3 pb-2 pt-1 border-t border-nord4 max-h-16 overflow-y-auto shrink-0">
       <div
         v-for="(item, i) in legendItems" :key="item.label"
-        class="flex items-center gap-1.5 cursor-pointer select-none text-xs text-nord3"
-        :style="{ opacity: item.hidden ? 0.35 : (hoveredIdx === -1 || hoveredIdx === i ? 1 : 0.35) }"
-        @click="toggleSeries(i)" @mouseenter="onLegendHover(i)" @mouseleave="onLegendLeave">
-        <div class="w-2 h-2 rounded-full shrink-0" :style="{ background: item.color }"></div>
-        <span>{{ item.label }}</span>
+        class="flex items-center gap-1.5 select-none text-xs text-nord3"
+        :style="{ opacity: item.hidden ? 0.35 : (hoveredIdx === -1 || hoveredIdx === i ? 1 : 0.35) }">
+        <div class="flex items-center gap-1.5 cursor-pointer"
+             @click="toggleSeries(i)" @mouseenter="onLegendHover(i)" @mouseleave="onLegendLeave">
+          <div class="w-2 h-2 rounded-full shrink-0" :style="{ background: item.color }"></div>
+          <span>{{ item.label }}</span>
+        </div>
+        <button
+          v-if="item.is_daily_check"
+          class="ml-0.5 p-0 leading-none rounded hover:text-nord14 transition-colors"
+          :class="dailyCheckDone.has(item.sampling_point_id) ? 'text-nord14 cursor-default' : 'text-nord3'"
+          :disabled="dailyCheckDone.has(item.sampling_point_id) || addingDailyCheck.has(item.sampling_point_id)"
+          :title="dailyCheckDone.has(item.sampling_point_id) ? 'Daily check done today' : 'Daily check'"
+          @click.stop="addDailyCheck(item.sampling_point_id)">
+          <icon-check-box v-if="dailyCheckDone.has(item.sampling_point_id)" class="text-sm" />
+          <icon-check-box-blank v-else class="text-sm" />
+        </button>
       </div>
     </div>
 

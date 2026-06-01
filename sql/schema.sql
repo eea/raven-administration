@@ -591,13 +591,15 @@ create table if not exists sampling_points
             on update cascade,
     station_id               varchar(100)          not null
         references stations
-            on update cascade on delete cascade
+            on update cascade on delete cascade,
+    daily_check              boolean default false not null
 );
 
 comment on table sampling_points is 'v4.4.0 simplified: sample-related data only';
 comment on column sampling_points.pollutant_id is 'FK to eea_pollutants.id (numeric)';
 comment on column sampling_points.time_resolution_id is 'FK to eea_times (hour, day, etc.)';
 comment on column sampling_points.unit_id is 'FK to eea_concentrations (ug.m-3, etc.)';
+comment on column sampling_points.daily_check is 'When true, the daily check feature is enabled for this sampling point (shows checkbox in dashboard).';
 
 create index if not exists idx_sp_station_pollutant
     on sampling_points (station_id, pollutant_id);
@@ -819,6 +821,41 @@ create trigger trg_observation_log
     referencing new table as new_table old table as old_table
     for each statement
 execute function trg_observation_log_fn();
+
+-- ---------------------------------------------------------------------------
+-- Sampling point log (manual narrative log per sampling point)
+-- ---------------------------------------------------------------------------
+
+create table if not exists sampling_point_log
+(
+    id                bigserial primary key,
+    sampling_point_id varchar(100) not null
+        references sampling_points
+            on update cascade on delete cascade,
+    type              varchar(50)  not null default 'manual',
+    comment           text         not null,
+    created_at        timestamptz  not null default now(),
+    created_date      date         not null default current_date,
+    created_by        varchar(250),
+    period_from       timestamp    not null,
+    period_to         timestamp    not null
+);
+
+comment on table sampling_point_log is 'Manual narrative log per sampling point. Equivalent to Oracle AQTL_TIMESERIESLOG.';
+comment on column sampling_point_log.type is '''manual'' = management entry, ''daily_check'' = operator daily check, ''migration'' = imported from Oracle';
+comment on column sampling_point_log.created_date is 'Calendar date of entry (from created_at, stored explicitly for indexing since timestamptz::date is non-immutable)';
+comment on column sampling_point_log.period_from is 'Start of the period this log entry covers (required)';
+comment on column sampling_point_log.period_to is 'End of the period this log entry covers (required)';
+
+create index if not exists idx_spl_spid
+    on sampling_point_log (sampling_point_id);
+
+create index if not exists idx_spl_spid_created
+    on sampling_point_log (sampling_point_id, created_at desc);
+
+create unique index if not exists uq_spl_daily_check_per_day
+    on sampling_point_log (sampling_point_id, created_date)
+    where type = 'daily_check';
 
 -- ---------------------------------------------------------------------------
 -- Scaling, calculated, and converted series

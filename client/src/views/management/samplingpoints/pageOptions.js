@@ -16,7 +16,8 @@ const pageOptions = (lookups) => ({
     { type: "number", label: "Emission source distance", prop: "emission_source_distance", placeholder: "num: Emission source distance", required: true, default: null, enableInEdit: true, showInGrid: false },
 
     // OPTIONAL
-    { type: "text", label: "Logger id", prop: "logger_id", placeholder: "str: Logger id for push functionality", required: false, default: null, enableInEdit: true, showInGrid: false }
+    { type: "text", label: "Logger id", prop: "logger_id", placeholder: "str: Logger id for push functionality", required: false, default: null, enableInEdit: true, showInGrid: false },
+    { type: "checkbox", label: "Daily check", prop: "daily_check", required: false, default: false, enableInEdit: true, showInGrid: false }
   ],
   lookups: lookups
 });

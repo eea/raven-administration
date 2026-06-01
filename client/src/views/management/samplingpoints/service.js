@@ -8,7 +8,15 @@ const Service = {
   upload: async (data) => Upload("/api/imports/sampling_points", data),
   download: async () => DownloadGet("/api/exports/sampling_points"),
 
-  lookups: async () => Get("/api/management/samplingpoints/lookups")
+  lookups: async () => Get("/api/management/samplingpoints/lookups"),
+
+  logList: async (samplingPointId, type = null) => {
+    const params = new URLSearchParams({ sampling_point_id: samplingPointId });
+    if (type) params.append("type", type);
+    return Get(`/api/management/samplingpoints/log?${params}`);
+  },
+  logInsert: async (data) => Post("/api/management/samplingpoints/log/insert", data),
+  logDailyCheckState: async (ids) => Get(`/api/management/samplingpoints/log/daily_check_state?ids=${ids.join(",")}`),
 };
 
 export default Service;

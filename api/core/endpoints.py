@@ -26,6 +26,9 @@ class Endpoints:
         from endpoints.management.samplingpoints.routes import samplingpoints_endpoint
         app.register_blueprint(samplingpoints_endpoint)
 
+        from endpoints.management.samplingpoints.log.routes import samplingpoints_log_endpoint
+        app.register_blueprint(samplingpoints_log_endpoint)
+
         from endpoints.management.processes.routes import processes_endpoint
         app.register_blueprint(processes_endpoint)
 
