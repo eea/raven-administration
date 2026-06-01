@@ -10,6 +10,8 @@ import CommonLayout from "../CommonLayout.vue";
 import CMenuItems from "../CMenuItems.vue";
 import CmdK from "../CmdK.vue";
 
+const emit = defineEmits(["context-menu-action"]);
+
 const props = defineProps({
   name: String,
   options: Object,
@@ -94,6 +96,8 @@ const onContextMenuAction = ({ action, data }) => {
   } else if (action === "duplicate") {
     duplicateSource.value = data?.row ? { ...data.row } : null;
     showAdd.value = true;
+  } else {
+    emit("context-menu-action", { action, data });
   }
 };
 
@@ -159,6 +163,7 @@ const cmp_properties = computed(() => {
     <grid-data-table v-model:selected="selected" :properties="cmp_properties" :values="filteredList" :get-row-style="options.getRowStyle" @context-menu-action="onContextMenuAction" @on-dbl-click="onDoubleClick">
       <template #context-menu-items="{ handleAction, contextData }">
         <CMenuItems :show-duplicate="showDuplicate" @edit="handleAction('edit')" @delete="handleAction('delete')" @duplicate="handleAction('duplicate')" />
+        <slot name="extra-context-menu-items" v-bind="{ handleAction, contextData }" />
       </template>
     </grid-data-table>
   </common-layout>

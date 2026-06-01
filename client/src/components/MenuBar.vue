@@ -9,6 +9,7 @@ import { jwtDecode } from "jwt-decode";
 import Version from "../helpers/version";
 import Eventy from "../helpers/eventy";
 import { Get } from "../helpers/request";
+import { runtimePlugins } from "../helpers/runtime-plugins";
 
 const router = useRouter();
 const modules = ref([]);
@@ -43,6 +44,7 @@ const loadPluginStatus = async () => {
   } catch {
     pluginStatus.value = {};
   }
+  modules.value = getmodules();
 };
 
 const getmodules = () => {
@@ -118,11 +120,16 @@ const getmodules = () => {
         { name: "Groups", comp: "Groups", show: jwt.users }
       ]
     },
-    // Plugin-contributed menu groups
+    // Plugin-contributed menu groups (build-time)
     ...Object.values(pluginModules).flatMap((m) => {
       const pid = m.pluginId;
       const isEnabled = pid ? (pluginStatus.value[pid]?.enabled ?? true) : true;
       return isEnabled ? (m.getMenuGroups?.(jwt) ?? m.menuGroups ?? []) : [];
+    }),
+    // Plugin-contributed menu groups (runtime — registered via window.__ravenRuntime)
+    ...Object.entries(runtimePlugins).flatMap(([pid, p]) => {
+      const isEnabled = pluginStatus.value[pid]?.enabled ?? true;
+      return isEnabled ? (p.menuGroups ?? []) : [];
     })
   ];
 };
