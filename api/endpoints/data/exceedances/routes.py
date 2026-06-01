@@ -303,39 +303,27 @@ def evaluate_regime():
 @jwt_required_with_data_claim()
 def get_years():
     """
-    Get available years from zones data.
-    Falls back to sampling_points data if no zones exist.
+    Get available years derived from sampling point temporal data.
     
     Returns:
-        JSON array of unique years
+        JSON array of unique years in descending order
     
     Example:
         GET /api/data/exceedances/years
     """
     with CursorFromPool() as cursor:
-        # First try to get years from zones
         cursor.execute("""
-            SELECT DISTINCT year
-            FROM zones
-            ORDER BY year DESC
+            SELECT
+                EXTRACT(YEAR FROM MIN(from_time))::integer as min_year,
+                EXTRACT(YEAR FROM MAX(to_time))::integer as max_year
+            FROM sampling_points
+            WHERE from_time IS NOT NULL
+            AND to_time IS NOT NULL
         """)
-        
-        years = [row['year'] for row in cursor.fetchall()]
-        
-        # If no zones exist, fall back to years from sampling points
-        if not years:
-            cursor.execute("""
-                SELECT 
-                    EXTRACT(YEAR FROM MIN(from_time))::integer as min_year,
-                    EXTRACT(YEAR FROM MAX(to_time))::integer as max_year
-                FROM sampling_points
-                WHERE from_time IS NOT NULL 
-                AND to_time IS NOT NULL
-            """)
-            result = cursor.fetchone()
-            
-            if result and result['min_year'] and result['max_year']:
-                # Generate list of years between min and max
-                years = list(range(result['max_year'], result['min_year'] - 1, -1))
-    
+        result = cursor.fetchone()
+
+    if not result or not result['min_year'] or not result['max_year']:
+        return jsonify([]), 200
+
+    years = list(range(result['max_year'], result['min_year'] - 1, -1))
     return jsonify(years), 200
