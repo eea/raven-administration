@@ -43,6 +43,9 @@ window.__ravenRuntime = {
   emit: (e, data) => Eventy.emit(e, data),
 };
 
+// Generic dashboard extension slot for plugins to inject panels
+window.__ravenDashboardExtensions = Vue.reactive([]);
+
 // Load runtime plugins (from the API) before mounting so branding/etc apply before first paint.
 // This works in both Docker Compose and Kubernetes — no build step required.
 async function loadRuntimePlugins() {

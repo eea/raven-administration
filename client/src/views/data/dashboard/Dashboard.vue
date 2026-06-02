@@ -21,6 +21,9 @@ const toggleDefault = () => {
 const STORAGE_KEY = "raven_dashboard_plots";
 const PRESETS = ["6h", "12h", "24h", "3d", "7d", "14d"];
 
+// Plugin-injected dashboard extension panels
+const dashboardExtensions = window.__ravenDashboardExtensions || [];
+
 // ── Persisted plots ──────────────────────────────────────────────────────────
 const plots = ref([]);
 
@@ -167,6 +170,20 @@ const onRemove = (id) => {
     <div v-else class="flex-1 flex flex-col items-center justify-center gap-3 text-nord3 select-none">
       <span class="text-sm">No plots configured yet</span>
       <button class="button" @click="openAdd">Add your first plot</button>
+    </div>
+
+    <!-- Plugin-injected dashboard panels -->
+    <div v-if="dashboardExtensions.length" class="px-3 pb-3 flex flex-col gap-4">
+      <div
+        v-for="ext in dashboardExtensions"
+        :key="ext.id"
+        class="bg-white rounded border border-nord4 shadow-sm overflow-hidden"
+      >
+        <div class="text-xs font-bold text-nord3 uppercase tracking-wide px-4 pt-3 pb-2 border-b border-nord6 bg-nord6/50">
+          {{ ext.title }}
+        </div>
+        <div v-html="ext.html" class="px-4 py-3 text-sm"></div>
+      </div>
     </div>
 
     <!-- Add / Edit popup -->

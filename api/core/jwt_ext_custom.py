@@ -10,6 +10,21 @@ from flask_jwt_extended.exceptions import NoAuthorizationError
 from config import Config
 
 
+def jwt_required_with_plugin_permission(key):
+    """Generic decorator for plugin-defined permissions stored in plugin_permissions JWT claim."""
+    def wrapper(fn):
+        @wraps(fn)
+        def decorator(*args, **kwargs):
+            verify_jwt_in_request()
+            claims = get_jwt()
+            pp = claims.get("plugin_permissions") or {}
+            if pp.get(key):
+                return fn(*args, **kwargs)
+            return jsonify(msg=f"Access denied: missing plugin permission '{key}'"), 403
+        return decorator
+    return wrapper
+
+
 def jwt_required_with_users_claim():
     def wrapper(fn):
         @wraps(fn)

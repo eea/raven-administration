@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 from core.database import CursorFromPool
 from core.base_model import RavenBaseModel
 from typing import List, Optional
@@ -17,6 +18,7 @@ class User(RavenBaseModel):
     users: bool
     allnetworks: bool
     networks: List[str]
+    plugin_permissions: Optional[dict] = {}
 
 
 # USER
@@ -36,7 +38,19 @@ def get_user(username, password):
                 WHEN bool_or(g.allnetworks) = true
                 THEN '{}'
                 ELSE coalesce( array_agg(gn.networkid) FILTER (WHERE gn.networkid is not NULL),'{}')
-            END as networks
+            END as networks,
+            coalesce(
+                (SELECT jsonb_object_agg(key, bool_or(val::boolean))
+                 FROM (
+                   SELECT key, value as val
+                   FROM usergroup ug2
+                   JOIN "group" g2 ON g2.id = ug2.groupid,
+                   jsonb_each_text(g2.plugin_permissions)
+                   WHERE ug2.userid = u.id
+                 ) kv
+                 GROUP BY key
+                ), '{}'::jsonb
+            ) as plugin_permissions
           from users u, usergroup ug, "group" g left join groupnetwork gn on gn.groupid = g.id
           where ug.userid = u.id
           and ug.groupid = g.id
@@ -62,7 +76,8 @@ def get_claims(user: User):
         "qualitycontrol": user.qualitycontrol,
         "allnetworks": user.allnetworks,
         "users": user.users,
-        "networks": user.networks
+        "networks": user.networks,
+        "plugin_permissions": user.plugin_permissions or {}
     }
 
 
@@ -179,14 +194,14 @@ def is_locked_user(cursor, id):
 
 
 # GROUP
-def add_group(name, management, data, exporting, processing, qualitycontrol, users, allnetworks, networks):
+def add_group(name, management, data, exporting, processing, qualitycontrol, users, allnetworks, networks, plugin_permissions=None):
     if allnetworks == False and (networks is None or len(networks) == 0):
         raise Exception("Networks cannot be empty when allnetworks is false")
 
     with CursorFromPool() as cursor:
         sql = """
-            insert into "group" ("name", "management", "data", "exporting", "processing", "qualitycontrol", "users", "allnetworks") 
-            values (%(name)s, %(management)s, %(data)s, %(exporting)s, %(processing)s, %(qualitycontrol)s, %(users)s, %(allnetworks)s)
+            insert into "group" ("name", "management", "data", "exporting", "processing", "qualitycontrol", "users", "allnetworks", "plugin_permissions") 
+            values (%(name)s, %(management)s, %(data)s, %(exporting)s, %(processing)s, %(qualitycontrol)s, %(users)s, %(allnetworks)s, %(plugin_permissions)s)
             returning "id"
         """
         o = {
@@ -198,7 +213,8 @@ def add_group(name, management, data, exporting, processing, qualitycontrol, use
             "qualitycontrol": qualitycontrol,
             "qualitycontrol": qualitycontrol,
             "users": users,
-            "allnetworks": allnetworks
+            "allnetworks": allnetworks,
+            "plugin_permissions": json.dumps(plugin_permissions or {})
         }
         cursor.execute(sql, o)
         groupid = cursor.fetchone()
@@ -209,7 +225,7 @@ def add_group(name, management, data, exporting, processing, qualitycontrol, use
                 cursor.execute(sql, {"networkid": n, "groupid": groupid["id"]})
 
 
-def update_group(id, name, management, data, exporting, processing, qualitycontrol, users, allnetworks, networks):
+def update_group(id, name, management, data, exporting, processing, qualitycontrol, users, allnetworks, networks, plugin_permissions=None):
 
     with CursorFromPool() as cursor:
 
@@ -229,7 +245,8 @@ def update_group(id, name, management, data, exporting, processing, qualitycontr
                 "processing"=%(processing)s,
                 "qualitycontrol"=%(qualitycontrol)s,
                 "users"=%(users)s,
-                "allnetworks"=%(allnetworks)s
+                "allnetworks"=%(allnetworks)s,
+                "plugin_permissions"=%(plugin_permissions)s
             where "id"=%(id)s
         """
 
@@ -243,6 +260,7 @@ def update_group(id, name, management, data, exporting, processing, qualitycontr
             "qualitycontrol": qualitycontrol,
             "users": users,
             "allnetworks": allnetworks,
+            "plugin_permissions": json.dumps(plugin_permissions or {}),
             "id": id
         }
         cursor.execute(sql, o)

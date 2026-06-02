@@ -58,6 +58,7 @@ class InsertGroupModel(RavenBaseModel):
     users: Optional[bool] = False
     allnetworks: Optional[bool] = False
     networks: Optional[List[str]] = None
+    plugin_permissions: Optional[dict] = {}
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
@@ -74,6 +75,7 @@ class UpdateGroupModel(RavenBaseModel):
     users: Optional[bool] = False
     allnetworks: Optional[bool] = False
     networks: Optional[List[str]] = None
+    plugin_permissions: Optional[dict] = {}
 
     def __getitem__(self, key):
         return super().__getattribute__(key)

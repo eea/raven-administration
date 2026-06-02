@@ -16,6 +16,11 @@ const emit = defineEmits(["close", "save"]);
 
 const obj = ref(null);
 
+// Collect plugin-declared group permissions from registered runtime plugins
+const pluginPermissions = computed(() =>
+  Object.values(window.__ravenPlugins || {}).flatMap((p) => p.groupPermissions || [])
+);
+
 const title = computed(() => {
   return props.isEdit ? "Edit Group" : "Add Group";
 });
@@ -33,13 +38,20 @@ watch(
         qualitycontrol: false,
         users: false,
         allnetworks: false,
-        networks: []
+        networks: [],
+        plugin_permissions: {}
       };
     } else {
-      obj.value = { ...props.selectedValue };
+      obj.value = { ...props.selectedValue, plugin_permissions: { ...(props.selectedValue.plugin_permissions || {}) } };
     }
   }
 );
+
+const togglePluginPerm = (key) => {
+  const pp = { ...(obj.value.plugin_permissions || {}) };
+  pp[key] = !pp[key];
+  obj.value.plugin_permissions = pp;
+};
 
 const onSave = () => {
   const o = {
@@ -108,6 +120,20 @@ const onClose = () => {
             <option v-for="t in options?.lookups?.networks" :key="t.value" :value="t.value">{{ t.label }}</option>
           </select>
         </div>
+
+        <!-- Plugin permissions — populated dynamically by installed plugins -->
+        <template v-if="pluginPermissions.length">
+          <div class="mt-2 font-bold text-base border-b border-nord4">Plugin Permissions</div>
+          <div
+            v-for="perm in pluginPermissions"
+            :key="perm.key"
+            class="flex cursor-pointer hover:bg-gray-50 p-1 select-none"
+            @click="togglePluginPerm(perm.key)"
+          >
+            <div class="font-bold self-center flex-1">{{ perm.label }}:</div>
+            <input type="checkbox" :checked="obj.plugin_permissions?.[perm.key]" @click.stop="togglePluginPerm(perm.key)" class="self-center" />
+          </div>
+        </template>
       </div>
 
       <!-- BUTTONS -->
