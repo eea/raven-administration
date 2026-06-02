@@ -454,7 +454,8 @@ create table if not exists "group"
     qualitycontrol boolean,
     users          boolean,
     allnetworks    boolean,
-    locked         boolean default false not null
+    locked         boolean default false not null,
+    plugin_permissions jsonb not null default '{}'
 );
 
 create table if not exists users
