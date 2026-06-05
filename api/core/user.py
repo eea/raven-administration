@@ -40,15 +40,18 @@ def get_user(username, password):
                 ELSE coalesce( array_agg(gn.networkid) FILTER (WHERE gn.networkid is not NULL),'{}')
             END as networks,
             coalesce(
-                (SELECT jsonb_object_agg(key, bool_or(val::boolean))
+                (SELECT jsonb_object_agg(key, val)
                  FROM (
-                   SELECT key, value as val
-                   FROM usergroup ug2
-                   JOIN "group" g2 ON g2.id = ug2.groupid,
-                   jsonb_each_text(g2.plugin_permissions)
-                   WHERE ug2.userid = u.id
-                 ) kv
-                 GROUP BY key
+                   SELECT key, bool_or(val::boolean) as val
+                   FROM (
+                     SELECT key, value as val
+                     FROM usergroup ug2
+                     JOIN "group" g2 ON g2.id = ug2.groupid,
+                     jsonb_each_text(g2.plugin_permissions)
+                     WHERE ug2.userid = u.id
+                   ) kv
+                   GROUP BY key
+                 ) agg
                 ), '{}'::jsonb
             ) as plugin_permissions
           from users u, usergroup ug, "group" g left join groupnetwork gn on gn.groupid = g.id
