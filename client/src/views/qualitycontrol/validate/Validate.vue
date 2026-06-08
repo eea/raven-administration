@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from "vue";
+import { ref, computed, onMounted, watch, nextTick, defineComponent, markRaw, h } from "vue";
 import { useRoute } from "vue-router";
 
 import { format, sub, isAfter, isBefore } from "date-fns";
@@ -11,9 +11,11 @@ import DatetimePicker from "../../../components/DatetimePicker.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import DataTable from "../../../components/DataTable.vue";
+import ObservationLogPopup from "./ObservationLogPopup.vue";
 
 import IconCircle from "~icons/ph/circle-duotone";
 import IconLink from "~icons/ph/link-simple-duotone";
+import IconHistory from "~icons/ph/clock-counter-clockwise-duotone";
 
 import Eventy from "../../../helpers/eventy";
 import { downloadCsv } from "../../../helpers/utils";
@@ -33,6 +35,32 @@ const gridApi = ref(null);
 const showValidOnly = ref(false);
 
 const showPlotAndTable = ref(false);
+
+// Log popup state
+const showLog = ref(false);
+const logRow = ref(null);
+
+const openLog = (row) => {
+  logRow.value = row;
+  showLog.value = true;
+};
+
+// Cell renderer for the log icon column
+const LogCellRenderer = markRaw(
+  defineComponent({
+    props: ["params"],
+    setup(props) {
+      const onClick = (e) => {
+        e.stopPropagation();
+        props.params.onLogClick(props.params.data);
+      };
+      return () =>
+        h("div", { style: "display:flex;align-items:center;justify-content:center;height:100%;cursor:pointer", onClick }, [
+          h(IconHistory, { style: "color:var(--color-nord9);font-size:12px" })
+        ]);
+    }
+  })
+);
 
 const route = useRoute();
 
@@ -66,6 +94,19 @@ const columns = computed(() => {
         }
         return value;
       }
+    },
+    {
+      headerName: "",
+      width: 28,
+      minWidth: 28,
+      maxWidth: 28,
+      flex: 0,
+      sortable: false,
+      resizable: false,
+      suppressSizeToFit: true,
+      cellStyle: { padding: "0", display: "flex", alignItems: "center", justifyContent: "center" },
+      cellRenderer: LogCellRenderer,
+      cellRendererParams: { onLogClick: openLog }
     }
   ];
 });
@@ -261,10 +302,10 @@ const onDatapointSelection = async (event, sel) => {
   chartMenu.value = { visible: true, x: event.native.clientX, y: event.native.clientY, row };
   await nextTick();
   if (chartMenuRef.value) {
-    const { offsetWidth: w, offsetHeight: h } = chartMenuRef.value;
+    const { offsetWidth: w, offsetHeight: elHeight } = chartMenuRef.value;
     const vw = window.innerWidth, vh = window.innerHeight;
     chartMenu.value.x = Math.min(chartMenu.value.x, vw - w - 8);
-    chartMenu.value.y = Math.min(chartMenu.value.y, vh - h - 8);
+    chartMenu.value.y = Math.min(chartMenu.value.y, vh - elHeight - 8);
   }
 };
 
@@ -273,6 +314,7 @@ const getRowId = (params) => String(params.data.id);
 
 <template>
   <common-layout>
+    <observation-log-popup :show="showLog" :row="logRow" @close="showLog = false" />
     <tool-bar title="Validate" :show-filter="false" :show-add="false" :show-column-picker="false" @download-click="onDownload" />
 
     <container>

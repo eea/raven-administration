@@ -13,6 +13,8 @@ def get_log():
     sampling_point_id = request.args.get('sampling_point_id')
     from_dt = request.args.get('from_dt')
     to_dt = request.args.get('to_dt')
+    limit = int(request.args.get('limit', 500))
+    offset = int(request.args.get('offset', 0))
 
     if not sampling_point_id:
         raise BadRequest("sampling_point_id is required")
@@ -21,7 +23,7 @@ def get_log():
         raise BadRequest("Access denied for samplingpoint")
 
     with CursorFromPool() as cursor:
-        params = {"sp_id": sampling_point_id}
+        params = {"sp_id": sampling_point_id, "limit": limit + 1, "offset": offset}
         period_filter = ""
         if from_dt and to_dt:
             period_filter = "AND l.period && tsrange(%(from_dt)s::timestamp, %(to_dt)s::timestamp)"
@@ -46,6 +48,8 @@ def get_log():
             WHERE l.sampling_point_id = %(sp_id)s
             {period_filter}
             ORDER BY l.changed_at DESC
-            LIMIT 500
+            LIMIT %(limit)s OFFSET %(offset)s
         """, params)
-        return jsonify(cursor.fetchall())
+        rows = [dict(r) for r in cursor.fetchall()]
+        has_more = len(rows) > limit
+        return jsonify({"rows": rows[:limit], "has_more": has_more})

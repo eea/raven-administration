@@ -125,7 +125,7 @@ const onShowHistory = async () => {
   const y = parseInt(year.value);
   const fromDt = `${y}-${String(m).padStart(2, "0")}-01 00:00`;
   const nextMonth = m === 12 ? `${y + 1}-01-01 00:00` : `${y}-${String(m + 1).padStart(2, "0")}-01 00:00`;
-  logRows.value = await Service.log(row.id, fromDt, nextMonth);
+  logRows.value = (await Service.log(row.id, fromDt, nextMonth)).rows;
   Eventy.hideMessage();
   showLog.value = true;
 };
