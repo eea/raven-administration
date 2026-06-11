@@ -51,7 +51,7 @@ const getmodules = () => {
   var token = sessionStorage.getItem("token");
   if (!token) return [];
   const jwt = jwtDecode(token);
-  return [
+  const rawModules = [
     {
       group: "Management",
       show: jwt.management,
@@ -132,6 +132,21 @@ const getmodules = () => {
       return isEnabled ? (p.menuGroups ?? []) : [];
     })
   ];
+  // Merge groups with the same name so runtime plugins can contribute items to
+  // existing core groups (e.g. "Quality control") without causing Vue key collisions.
+  const merged = [];
+  const byGroup = {};
+  for (const m of rawModules) {
+    if (byGroup[m.group]) {
+      byGroup[m.group].items = [...byGroup[m.group].items, ...m.items];
+      byGroup[m.group].show = byGroup[m.group].show || m.show;
+    } else {
+      const copy = { ...m, items: [...m.items] };
+      byGroup[m.group] = copy;
+      merged.push(copy);
+    }
+  }
+  return merged;
 };
 
 const goto_git_changelog = () => {

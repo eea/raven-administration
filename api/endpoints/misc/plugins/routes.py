@@ -57,6 +57,22 @@ def serve_plugin_client(plugin_id: str):
     return current_app.response_class(content, mimetype='application/javascript')
 
 
+@plugins_manager_endpoint.route('/api/plugins/<plugin_id>/js/<filename>', methods=['GET'])
+def serve_plugin_js(plugin_id: str, filename: str):
+    """Public endpoint: serves additional compiled JS assets for a plugin.
+    Plugins that build a separate IIFE bundle (e.g. page.iife.js) load it via
+    this route so the main client.js IIFE can stay lightweight."""
+    # Restrict to .js files and disallow path traversal
+    if not filename.endswith('.js') or '/' in filename or '..' in filename:
+        return ('', 404)
+    js_file = os.path.join(_API_PLUGINS_DIR, plugin_id, 'js', filename)
+    if not os.path.isfile(js_file):
+        return ('', 404)
+    with open(js_file, 'r', encoding='utf-8') as f:
+        content = f.read()
+    return current_app.response_class(content, mimetype='application/javascript')
+
+
 @plugins_manager_endpoint.route('/api/misc/plugins/<plugin_id>/public-config', methods=['GET'])
 def plugin_public_config(plugin_id: str):
     """Public endpoint (no auth): returns the stored config JSONB for any plugin.
@@ -131,12 +147,24 @@ def install_plugin():
         if os.path.isdir(extracted_client):
             # Store client.js in the API plugins dir so it can be served at runtime
             # (works in both Docker Compose and Kubernetes without a rebuild)
+            dest_api_dir = os.path.join(_API_PLUGINS_DIR, plugin_id)
+            os.makedirs(dest_api_dir, exist_ok=True)
             client_index = os.path.join(extracted_client, 'index.js')
             if os.path.isfile(client_index):
-                dest_api_dir = os.path.join(_API_PLUGINS_DIR, plugin_id)
-                os.makedirs(dest_api_dir, exist_ok=True)
                 shutil.copy2(client_index, os.path.join(dest_api_dir, 'client.js'))
                 logger.info(f'Plugin {plugin_id}: client.js stored for runtime serving')
+
+            # Copy any additional compiled JS bundles (e.g. page.iife.js) into a
+            # js/ subdirectory so they can be served at /api/plugins/<id>/js/<file>
+            extra_js = [f for f in os.listdir(extracted_client)
+                        if f.endswith('.js') and f != 'index.js']
+            if extra_js:
+                dest_js_dir = os.path.join(dest_api_dir, 'js')
+                os.makedirs(dest_js_dir, exist_ok=True)
+                for js_file in extra_js:
+                    shutil.copy2(os.path.join(extracted_client, js_file),
+                                 os.path.join(dest_js_dir, js_file))
+                logger.info(f'Plugin {plugin_id}: extra JS assets stored: {extra_js}')
 
             # Also copy to client/src/plugins/ for dev-mode Vite build (optional, may not exist in K8s)
             try:
