@@ -180,6 +180,10 @@ const onDatapointSelection = (event, sel, chart) => {
         <icon-circle class="text-nord14 text-base self-center" />
         <div class="self-center ml-1">Valid, but below detection limit and number replaced by 0.5*detection limit (3)</div>
       </div>
+      <div class="pl-2 pr-4 py-2 flex cursor-pointer hover:bg-gray-100" @click="onValidate(4)">
+        <icon-circle class="text-nord14 text-base self-center" />
+        <div class="self-center ml-1">Valid, but Ozone only using CCQM.O3.2019 (4)</div>
+      </div>
     </contextmenu>
 
     <tool-bar title="Validate" :show-filter="false" :show-add="false" :show-column-picker="false" @download-click="onDownload" />

@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.5.2] - 2026-06-18
+
+### Added
+
+- Added Ozone flag (4) to validation
+
 ## [3.5.1] - 2025-09-23
 
 ### Fixes
