@@ -86,7 +86,7 @@ class Flagging:
             and o.from_time = %(from_time)s
             and o.value = %(value)s
         """
-        cursor.execute(sql, {"id": sampling_point_id, "from_time": from_time, "value": value})
+        cursor.execute(sql, {"id": sampling_point_id, "from_time": from_time, "value": float(value)})
         row = cursor.fetchone()
         if row is not None:
             row["from_time"] = pd.to_datetime(row["from_time"])
