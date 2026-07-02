@@ -14,6 +14,7 @@ class PluginRegistry:
                     SET name = EXCLUDED.name,
                         version = EXCLUDED.version,
                         description = EXCLUDED.description,
+                        restart_required = FALSE,
                         updated_at = NOW()
             """, {"id": plugin_id, "name": name, "version": version, "description": description})
 

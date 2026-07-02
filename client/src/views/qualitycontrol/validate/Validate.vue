@@ -16,6 +16,7 @@ import ObservationLogPopup from "./ObservationLogPopup.vue";
 import IconCircle from "~icons/ph/circle-duotone";
 import IconLink from "~icons/ph/link-simple-duotone";
 import IconHistory from "~icons/ph/clock-counter-clockwise-duotone";
+import IconChat from "~icons/ph/chat-circle-duotone";
 
 import Eventy from "../../../helpers/eventy";
 import { downloadCsv } from "../../../helpers/utils";
@@ -116,6 +117,16 @@ let chart;
 onMounted(async () => {
   timeseries.value = await Service.timeseries();
 
+  // Check if any plugin has registered a validateContextMenu override
+  const plugins = window.__ravenPlugins || {};
+  for (const p of Object.values(plugins)) {
+    if (p.validateContextMenu) {
+      pluginMenuHook.value = p.validateContextMenu;
+      pluginMenuItems.value = await p.validateContextMenu.getItems().catch(() => []);
+      break;
+    }
+  }
+
   if (route.query.ids) selectedId.value = route.query.ids.split(";")[0];
   if (route.query.from) fromtime.value = new Date(route.query.from);
   if (route.query.to) totime.value = new Date(route.query.to);
@@ -199,11 +210,37 @@ const onDownload = () => {
 };
 
 const onContextMenuAction = async ({ action, data }) => {
-  // Handle validation flag actions
+  // Plugin QA flag action
+  if (pluginMenuHook.value && action.startsWith('plugin:')) {
+    const qaId = parseInt(action.slice(7));
+    const item = pluginMenuItems.value.find(i => i.id === qaId);
+    if (item) {
+      const selectedRows = gridApi.value?.getSelectedRows() || [];
+      const ids = selectedRows.length > 0 ? selectedRows.map(r => r.id) : (data?.row ? [data.row.id] : []);
+      await pluginMenuHook.value.onSelect(item, {
+        selectedIds: ids,
+        samplingPointId: selectedId.value,
+        reload: load,
+        showMessage: (msg, type) => Eventy.showHideMessage(msg, type, 3000),
+      });
+    }
+    return;
+  }
+  // Default EEA validation flag actions
   if (["-99", "-1", "1", "2", "3"].includes(action)) {
     const flag = parseInt(action);
     await onValidate(flag, data?.row);
   }
+};
+
+const onPluginValidate = async (item, row) => {
+  if (!pluginMenuHook.value) return;
+  await pluginMenuHook.value.onSelect(item, {
+    selectedIds: row ? [row.id] : [],
+    samplingPointId: selectedId.value,
+    reload: load,
+    showMessage: (msg, type) => Eventy.showHideMessage(msg, type, 3000),
+  });
 };
 
 const onValidate = async (flag, row) => {
@@ -285,6 +322,10 @@ const formatValues = () => {
   return { datasets: [Plot.dataset("Value", data, colors)] };
 };
 
+// Plugin context menu override — populated at mount if any plugin registers validateContextMenu
+const pluginMenuItems = ref([]);
+const pluginMenuHook = ref(null);
+
 const chartMenu = ref({ visible: false, x: 0, y: 0, row: null });
 const chartMenuRef = ref(null);
 
@@ -358,27 +399,41 @@ const getRowId = (params) => String(params.data.id);
       <div class="h-full">
         <DataTable :data="timevalues" :columns="columns" :get-row-style="getRowStyle" :filter="false" :floating-filter="false" selection-mode="multiRow" :get-row-id="getRowId" @context-menu-action="onContextMenuAction" @grid-ready="onGridReady">
           <template #context-menu-items="{ handleAction }">
-            <div class="px-2 font-bold text-base text-nord3">Set validation to:</div>
-            <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('-99')">
-              <icon-circle class="text-nord11 text-base self-center" />
-              <div class="self-center ml-1">Not valid due to maintenance (-99)</div>
-            </div>
-            <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('-1')">
-              <icon-circle class="text-nord11 text-base self-center" />
-              <div class="self-center ml-1">Not valid (-1)</div>
-            </div>
-            <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('1')">
-              <icon-circle class="text-nord14 text-base self-center" />
-              <div class="self-center ml-1">Valid (1)</div>
-            </div>
-            <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('2')">
-              <icon-circle class="text-nord14 text-base self-center" />
-              <div class="self-center ml-1">Valid, below detection limit (2)</div>
-            </div>
-            <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('3')">
-              <icon-circle class="text-nord14 text-base self-center" />
-              <div class="self-center ml-1">Valid, 0.5*detection limit (3)</div>
-            </div>
+            <!-- Plugin QA flag menu (active when nilu-qa or similar plugin is enabled) -->
+            <template v-if="pluginMenuItems.length">
+              <div class="px-2 font-bold text-base text-nord3">Set QA flag:</div>
+              <div v-for="item in pluginMenuItems" :key="item.id"
+                   class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6"
+                   @click="handleAction('plugin:' + item.id)">
+                <icon-circle :class="item.flagtype === 0 ? 'text-nord14' : 'text-nord11'" class="text-base self-center" />
+                <icon-chat v-if="item.isautolog" class="text-nord9 text-xs self-center ml-1" title="Requires comment" />
+                <div class="self-center ml-1">{{ item.name }}</div>
+              </div>
+            </template>
+            <!-- Default EEA validity choices (used when no plugin overrides) -->
+            <template v-else>
+              <div class="px-2 font-bold text-base text-nord3">Set validation to:</div>
+              <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('-99')">
+                <icon-circle class="text-nord11 text-base self-center" />
+                <div class="self-center ml-1">Not valid due to maintenance (-99)</div>
+              </div>
+              <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('-1')">
+                <icon-circle class="text-nord11 text-base self-center" />
+                <div class="self-center ml-1">Not valid (-1)</div>
+              </div>
+              <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('1')">
+                <icon-circle class="text-nord14 text-base self-center" />
+                <div class="self-center ml-1">Valid (1)</div>
+              </div>
+              <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('2')">
+                <icon-circle class="text-nord14 text-base self-center" />
+                <div class="self-center ml-1">Valid, below detection limit (2)</div>
+              </div>
+              <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('3')">
+                <icon-circle class="text-nord14 text-base self-center" />
+                <div class="self-center ml-1">Valid, 0.5*detection limit (3)</div>
+              </div>
+            </template>
           </template>
         </DataTable>
       </div>
@@ -391,27 +446,41 @@ const getRowId = (params) => String(params.data.id);
        @click.self="chartMenu.visible = false">
     <div ref="chartMenuRef" class="absolute z-50 bg-white border border-nord4 rounded shadow-lg py-1 min-w-48"
          :style="{ left: chartMenu.x + 'px', top: chartMenu.y + 'px' }">
-      <div class="px-2 font-bold text-base text-nord3">Set validation to:</div>
-      <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(-99, chartMenu.row); chartMenu.visible = false">
-        <icon-circle class="text-nord11 text-base self-center" />
-        <div class="self-center ml-1">Not valid due to maintenance (-99)</div>
-      </div>
-      <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(-1, chartMenu.row); chartMenu.visible = false">
-        <icon-circle class="text-nord11 text-base self-center" />
-        <div class="self-center ml-1">Not valid (-1)</div>
-      </div>
-      <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(1, chartMenu.row); chartMenu.visible = false">
-        <icon-circle class="text-nord14 text-base self-center" />
-        <div class="self-center ml-1">Valid (1)</div>
-      </div>
-      <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(2, chartMenu.row); chartMenu.visible = false">
-        <icon-circle class="text-nord14 text-base self-center" />
-        <div class="self-center ml-1">Valid, below detection limit (2)</div>
-      </div>
-      <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(3, chartMenu.row); chartMenu.visible = false">
-        <icon-circle class="text-nord14 text-base self-center" />
-        <div class="self-center ml-1">Valid, 0.5*detection limit (3)</div>
-      </div>
+      <!-- Plugin QA flag menu -->
+      <template v-if="pluginMenuItems.length">
+        <div class="px-2 font-bold text-base text-nord3">Set QA flag:</div>
+        <div v-for="item in pluginMenuItems" :key="item.id"
+             class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6"
+             @click="onPluginValidate(item, chartMenu.row); chartMenu.visible = false">
+          <icon-circle :class="item.flagtype === 0 ? 'text-nord14' : 'text-nord11'" class="text-base self-center" />
+          <icon-chat v-if="item.isautolog" class="text-nord9 text-xs self-center ml-1" title="Requires comment" />
+          <div class="self-center ml-1">{{ item.name }}</div>
+        </div>
+      </template>
+      <!-- Default EEA validity choices -->
+      <template v-else>
+        <div class="px-2 font-bold text-base text-nord3">Set validation to:</div>
+        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(-99, chartMenu.row); chartMenu.visible = false">
+          <icon-circle class="text-nord11 text-base self-center" />
+          <div class="self-center ml-1">Not valid due to maintenance (-99)</div>
+        </div>
+        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(-1, chartMenu.row); chartMenu.visible = false">
+          <icon-circle class="text-nord11 text-base self-center" />
+          <div class="self-center ml-1">Not valid (-1)</div>
+        </div>
+        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(1, chartMenu.row); chartMenu.visible = false">
+          <icon-circle class="text-nord14 text-base self-center" />
+          <div class="self-center ml-1">Valid (1)</div>
+        </div>
+        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(2, chartMenu.row); chartMenu.visible = false">
+          <icon-circle class="text-nord14 text-base self-center" />
+          <div class="self-center ml-1">Valid, below detection limit (2)</div>
+        </div>
+        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(3, chartMenu.row); chartMenu.visible = false">
+          <icon-circle class="text-nord14 text-base self-center" />
+          <div class="self-center ml-1">Valid, 0.5*detection limit (3)</div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
