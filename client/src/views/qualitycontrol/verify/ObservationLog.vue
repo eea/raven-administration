@@ -1,4 +1,5 @@
 <script setup>
+import { ref, watch } from "vue";
 import Popup from "../../../components/Popup.vue";
 
 const props = defineProps({
@@ -15,8 +16,32 @@ const SOURCE_COLORS = {
   qc_validate: "bg-nord9/20 text-nord10",
   scaling: "bg-nord13/20 text-nord12",
   adacs_import: "bg-nord4/30 text-nord3",
-  aqtvl_migration: "bg-nord15/20 text-nord15"
+  aqtvl_migration: "bg-nord15/20 text-nord15",
+  plugin_nilu_qa: "bg-nord15/20 text-nord15",
 };
+
+const pluginLogExt = ref(null);
+const extMap = ref(new Map());
+
+watch(
+  () => props.show,
+  async (val) => {
+    if (!val) return;
+    pluginLogExt.value = null;
+    extMap.value = new Map();
+    const samplingPointId = props.rows[0]?.sampling_point_id;
+    if (!samplingPointId) return;
+    const plugins = window.__ravenPlugins || {};
+    for (const p of Object.values(plugins)) {
+      if (p.observationLogExtension) {
+        pluginLogExt.value = p.observationLogExtension;
+        extMap.value = await p.observationLogExtension.getExtraData({ samplingPointId })
+          .catch(() => new Map());
+        break;
+      }
+    }
+  }
+);
 
 const verLabel = (v) => v != null ? (VERIFICATION_LABELS[v] ?? `#${v}`) : "—";
 const valLabel = (v) => v != null ? (VALIDITY_LABELS[String(v)] ?? `#${v}`) : "—";
@@ -38,6 +63,7 @@ const srcColor = (src) => SOURCE_COLORS[src] ?? "bg-nord4/20 text-nord3";
             <th class="whitespace-nowrap">Verif. old→new</th>
             <th class="whitespace-nowrap">Validity old→new</th>
             <th class="whitespace-nowrap">Value old→new</th>
+            <th v-for="col in pluginLogExt?.extraColumns || []" :key="col.key" class="whitespace-nowrap">{{ col.label }}</th>
           </tr>
         </thead>
         <tbody>
@@ -72,6 +98,9 @@ const srcColor = (src) => SOURCE_COLORS[src] ?? "bg-nord4/20 text-nord3";
                 {{ r.old_value ?? "—" }} → {{ r.new_value ?? "—" }}
               </span>
               <span v-else class="text-nord3">—</span>
+            </td>
+            <td v-for="col in pluginLogExt?.extraColumns || []" :key="col.key" class="text-sm">
+              {{ extMap.get(r.id)?.[col.key] ?? '' }}
             </td>
           </tr>
         </tbody>
