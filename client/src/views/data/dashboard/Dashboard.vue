@@ -9,7 +9,12 @@ import Service from "./service";
 import { datetimeCellRenderer, granularityFromTimestep } from "../../../helpers/datetimeHighlight";
 import IconHeart from "~icons/mdi/heart";
 import IconHeartOutline from "~icons/mdi/heart-outline";
+import IconStar from "~icons/mdi/star-outline";
 import CircleHover from "../../../components/CircleHover.vue";
+import FavoritesPicker from "../../../components/favorites/FavoritesPicker.vue";
+import FavoritesManager from "../../../components/favorites/FavoritesManager.vue";
+import FavoritesService from "../../../components/favorites/service";
+import Eventy from "../../../helpers/eventy";
 
 const PREF_KEY = "raven_default_view";
 const isDefault = ref(localStorage.getItem(PREF_KEY) === "Dashboard");
@@ -138,6 +143,33 @@ const savePopup = () => {
   closePopup();
 };
 
+// ── Favorites ─────────────────────────────────────────────────────────────────
+const showFavoritesManager = ref(false);
+
+const currentFormConfig = () => ({
+  title: formTitle.value.trim() || "Untitled",
+  timePreset: formPreset.value,
+  plotType: formPlotType.value,
+  fullWidth: formFullWidth.value,
+  seriesIds: [...formIds.value]
+});
+
+const saveAsFavorite = async () => {
+  const config = currentFormConfig();
+  await FavoritesService.insert({ name: config.title, config });
+  Eventy.showHideMessage(`Favorite '${config.title}' saved`, "success", 3000);
+};
+
+const applyFavorite = (favorite) => {
+  const c = favorite.config || {};
+  formTitle.value = c.title ?? favorite.name;
+  formPreset.value = c.timePreset ?? "24h";
+  formPlotType.value = c.plotType ?? "line";
+  formFullWidth.value = c.fullWidth ?? false;
+  formIds.value = new Set(c.seriesIds || []);
+  timeseriesGrid.value?.forEachNode((node) => node.setSelected(formIds.value.has(node.data.sampling_point_id)));
+};
+
 // ── Plot events ───────────────────────────────────────────────────────────────
 const onUpdate = (updated) => {
   const idx = plots.value.findIndex((p) => p.id === updated.id);
@@ -159,6 +191,9 @@ const onRemove = (id) => {
       <CircleHover class="ml-1 self-center" @click="toggleDefault" :title="isDefault ? 'Opens here after login' : 'Open here after login'">
         <icon-heart v-if="isDefault" class="text-nord10 text-sm self-center" />
         <icon-heart-outline v-else class="text-nord3 text-sm self-center" />
+      </CircleHover>
+      <CircleHover class="ml-1 self-center" @click="showFavoritesManager = true" title="Manage favorites">
+        <icon-star class="text-nord3 text-sm self-center" />
       </CircleHover>
     </tool-bar>
 
@@ -247,13 +282,25 @@ const onRemove = (id) => {
         </div>
 
         <!-- Actions -->
-        <div class="flex justify-end gap-2 pt-1">
-          <button class="button" @click="closePopup">Cancel</button>
-          <button class="button button-primary" :disabled="!formTitle.trim() || !formIds.size" @click="savePopup">
-            {{ editingId ? "Save" : "Add plot" }}
-          </button>
+        <div class="flex justify-between gap-2 pt-1">
+          <div class="flex gap-2 items-center">
+            <FavoritesPicker title="Apply favorite" direction="up" @select="applyFavorite" />
+            <button class="button flex gap-1" :disabled="!formTitle.trim() || !formIds.size" title="Save this plot configuration as a favorite" @click="saveAsFavorite">
+              <icon-star class="self-center text-nord10" />
+              <div class="self-center">Save as favorite</div>
+            </button>
+          </div>
+          <div class="flex gap-2">
+            <button class="button" @click="closePopup">Cancel</button>
+            <button class="button button-primary" :disabled="!formTitle.trim() || !formIds.size" @click="savePopup">
+              {{ editingId ? "Save" : "Add plot" }}
+            </button>
+          </div>
         </div>
       </div>
     </Popup>
+
+    <!-- Favorites manager -->
+    <FavoritesManager :show="showFavoritesManager" :timeseries="allTimeseries" @on-close="showFavoritesManager = false" />
   </common-layout>
 </template>

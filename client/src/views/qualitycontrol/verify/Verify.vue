@@ -5,6 +5,8 @@ import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import DataTable from "../../../components/DataTable.vue";
 import ObservationLog from "./ObservationLog.vue";
+import FavoritesPicker from "../../../components/favorites/FavoritesPicker.vue";
+import IconClose from "~icons/mdi/close";
 
 import Service from "./service";
 import { month, downloadCsv } from "../../../helpers/utils";
@@ -90,7 +92,18 @@ const cmp_years = computed(() => {
     .map((p) => String(p));
 });
 
-const cmp_datasets = computed(() => filterList(q.value, datasets.value));
+// Optional favorite filter: only show datasets whose sampling point is in the
+// favorite. String-normalize ids — favorites may store them as numbers.
+const activeFavorite = ref(null);
+
+const cmp_datasets = computed(() => {
+  let list = datasets.value;
+  if (activeFavorite.value) {
+    const ids = new Set((activeFavorite.value.config?.seriesIds || []).map(String));
+    list = list.filter((d) => ids.has(String(d.id)));
+  }
+  return filterList(q.value, list);
+});
 
 // EVENTS //
 const onContextMenuAction = async ({ action, data }) => {
@@ -169,6 +182,16 @@ const onDownload = () => {
         <div>
           <div>&nbsp;</div>
           <button class="button" @click="showDatasets">Show datasets</button>
+        </div>
+        <div>
+          <div>&nbsp;</div>
+          <div class="flex items-center gap-2 h-9">
+            <FavoritesPicker title="Filter by favorite" @select="activeFavorite = $event" />
+            <div v-if="activeFavorite" class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-nord6 border border-nord4 text-xs text-nord2 cursor-pointer hover:border-nord11 select-none" title="Clear favorite filter" @click="activeFavorite = null">
+              <span class="truncate max-w-40">{{ activeFavorite.name }}</span>
+              <icon-close class="text-nord3" />
+            </div>
+          </div>
         </div>
       </div>
       <div class="text-sm flex gap-1 mt-2">

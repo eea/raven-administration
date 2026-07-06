@@ -480,6 +480,21 @@ create table if not exists usergroup
     primary key (userid, groupid)
 );
 
+-- Per-user named favorites storing a dashboard plot configuration as JSONB.
+-- config = { title, timePreset, plotType, fullWidth, seriesIds: [int...] }
+create table if not exists user_favorites
+(
+    id      serial primary key,
+    user_id integer      not null
+        references users
+            on delete cascade,
+    name    varchar(255) not null,
+    config  jsonb        not null default '{}',
+    created timestamp    default now(),
+    updated timestamp,
+    unique (user_id, name)
+);
+
 -- ---------------------------------------------------------------------------
 -- Authorities
 -- ---------------------------------------------------------------------------

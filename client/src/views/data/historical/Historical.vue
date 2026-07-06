@@ -24,6 +24,7 @@ import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import DatetimePicker from "../../../components/DatetimePicker.vue";
 import DataTable from "../../../components/DataTable.vue";
+import FavoritesPicker from "../../../components/favorites/FavoritesPicker.vue";
 
 Chart.register(zoomPlugin);
 
@@ -331,6 +332,13 @@ const onTimeseriesSelectionChanged = (rows) => {
   selectedIds.value = rows.map((r) => r.sampling_point_id);
 };
 
+// Apply a favorite: replace the grid selection with the favorite's series.
+// String-normalize ids — favorites store numbers, route query ids are strings.
+const applyFavorite = (favorite) => {
+  const ids = new Set((favorite.config?.seriesIds || []).map(String));
+  timeseriesGridApi.value?.forEachNode((node) => node.setSelected(ids.has(String(node.data.sampling_point_id))));
+};
+
 const pivotView = ref(false);
 
 const pivotColumns = computed(() => {
@@ -432,7 +440,10 @@ const pivotData = computed(() => {
       </div>
 
       <div class="h-64">
-        <div class="font-bold">Sampling Points</div>
+        <div class="font-bold flex items-center gap-2">
+          Sampling Points
+          <FavoritesPicker title="Select favorite series" @select="applyFavorite" />
+        </div>
         <DataTable :font-size="11" :columns="timeseriesColumns" :data="cmp_timeseries" selection-mode="multiRow" :get-row-id="(params) => params.data.sampling_point_id" @grid-ready="onTimeseriesGridReady" @first-data-rendered="onTimeseriesFirstDataRendered" @selection-changed="onTimeseriesSelectionChanged" />
       </div>
 

@@ -12,6 +12,8 @@ import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import DataTable from "../../../components/DataTable.vue";
 import ObservationLogPopup from "./ObservationLogPopup.vue";
+import FavoritesPicker from "../../../components/favorites/FavoritesPicker.vue";
+import IconClose from "~icons/mdi/close";
 
 import IconCircle from "~icons/ph/circle-duotone";
 import IconLink from "~icons/ph/link-simple-duotone";
@@ -140,12 +142,27 @@ watch(
   }
 );
 
+// Optional favorite filter: narrow the timeseries dropdown to the favorite's
+// series. String-normalize ids — favorites may store them as numbers.
+const activeFavorite = ref(null);
+
 const cmp_timeseries = computed(() => {
-  return timeseries.value.filter((t) => {
+  let list = timeseries.value;
+  if (activeFavorite.value) {
+    const ids = new Set((activeFavorite.value.config?.seriesIds || []).map(String));
+    list = list.filter((t) => ids.has(String(t.value)));
+  }
+  return list.filter((t) => {
     if (!t.fromtime && !t.totime) return true;
     return isAfter(new Date(t.totime), fromtime.value) && isBefore(new Date(t.fromtime), totime.value);
   });
 });
+
+const applyFavorite = (favorite) => {
+  activeFavorite.value = favorite;
+  const options = cmp_timeseries.value;
+  if (options.length === 1) selectedId.value = options[0].value;
+};
 
 const showData = async () => {
   Eventy.showMessage("Loading data. Please wait", "loading");
@@ -371,7 +388,14 @@ const getRowId = (params) => String(params.data.id);
       </div>
 
       <div>
-        <div class="font-bold">Timeseries</div>
+        <div class="font-bold flex items-center gap-2">
+          Timeseries
+          <FavoritesPicker title="Filter by favorite" @select="applyFavorite" />
+          <div v-if="activeFavorite" class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-nord6 border border-nord4 text-xs font-normal text-nord2 cursor-pointer hover:border-nord11 select-none" title="Clear favorite filter" @click="activeFavorite = null">
+            <span class="truncate max-w-40">{{ activeFavorite.name }}</span>
+            <icon-close class="text-nord3" />
+          </div>
+        </div>
         <select class="select w-full" v-model="selectedId">
           <option v-for="t in cmp_timeseries" :key="t.value" :value="t.value">{{ t.label }}</option>
           <option v-if="cmp_timeseries.length == 0" :value="0" disabled>No timeseries found for time period</option>

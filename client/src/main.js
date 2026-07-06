@@ -6,6 +6,7 @@ import "./assets/style.css";
 import { disableTextSelectOnShiftDown } from "./helpers/utils";
 import "./helpers/branding"; // ensure window.__ravenBranding is set before plugins load
 import DataTable from "./components/DataTable.vue";
+import FavoritesPicker from "./components/favorites/FavoritesPicker.vue";
 
 // INTERCEPT
 import intercetor from "./helpers/interceptor";
@@ -38,7 +39,7 @@ import Eventy from "./helpers/eventy";
 import { registerMenuGroups } from "./helpers/runtime-plugins";
 
 window.RavenVue = Vue;
-window.RavenComponents = { DataTable };
+window.RavenComponents = { DataTable, FavoritesPicker };
 window.__ravenRuntime = {
   addRoute: (route) => router.addRoute(route),
   registerMenuGroups,
