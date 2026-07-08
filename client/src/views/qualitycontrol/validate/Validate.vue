@@ -85,7 +85,13 @@ const columns = computed(() => {
       }).join(" / ")
     }] : []),
     { field: "import_value", headerName: "Import value", width: 120 },
-    { field: "observationvalidity_id", headerName: "Validation", width: 120 },
+    ...(pluginMenuHook.value?.columnExtension?.replacesValidation
+      ? [pluginMenuHook.value.columnExtension.colDef]
+      : [
+          { field: "observationvalidity_id", headerName: "Validation", width: 120 },
+          ...(pluginMenuHook.value?.columnExtension ? [pluginMenuHook.value.columnExtension.colDef] : [])
+        ]
+    ),
     {
       field: "observationverification_id",
       headerName: "Verification",
@@ -187,6 +193,11 @@ const load = async () => {
   const rows = Array.isArray(response) ? response : (response.rows ?? []);
   const members = Array.isArray(response) ? [] : (response.members ?? []);
   timevalues.value = rows;
+  if (pluginMenuHook.value?.columnExtension?.getRowData && rows.length) {
+    const ids = rows.map(r => r.id);
+    const extra = await pluginMenuHook.value.columnExtension.getRowData(ids).catch(() => new Map());
+    timevalues.value = rows.map(r => ({ ...r, ...(extra.get(r.id) ?? {}) }));
+  }
   groupMembers.value = members;
   const sp = timeseries.value.find((t) => String(t.value) === String(selectedId.value));
   const timestep = sp?.timestep_seconds ?? null;
