@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.5.3] - 2026-06-18
+
+### Fixes
+
+- Include validation ozone flag (4) in queries
+
 ## [3.5.2] - 2026-06-18
 
 ### Added

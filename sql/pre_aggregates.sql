@@ -151,11 +151,11 @@ from (
 select
     sampling_point_id,
     date_trunc('year', from_time) as time,
-    round(avg(value) FILTER (WHERE validation_flag in (1,2,3)), 10) as val,
-    round(min(value) FILTER (WHERE validation_flag in (1,2,3)), 10) as min,
-    round(max(value) FILTER (WHERE validation_flag in (1,2,3)), 10) as max,
+    round(avg(value) FILTER (WHERE validation_flag in (1,2,3,4)), 10) as val,
+    round(min(value) FILTER (WHERE validation_flag in (1,2,3,4)), 10) as min,
+    round(max(value) FILTER (WHERE validation_flag in (1,2,3,4)), 10) as max,
     count(value)::int AS count_all,
-    count(value) FILTER (WHERE validation_flag in (1,2,3))::int AS count_valid,
+    count(value) FILTER (WHERE validation_flag in (1,2,3,4))::int AS count_valid,
     count(*) FILTER (WHERE verification_flag = 1)::int as count_verified
 from timevalues
 group by  sampling_point_id, time
