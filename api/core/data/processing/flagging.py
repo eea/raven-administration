@@ -75,7 +75,7 @@ class Flagging:
             # Find repeating values before and after gaps
             gaps = df_serie[(df_serie.begin_position.diff().dt.total_seconds().fillna(0) > serie["timestep"])].index
             for i in gaps:
-                first = df_serie[["value", "begin_position", "end_position"]].iloc[i]
+                first = df_serie[["value", "begin_position", "end_position"]].loc[i]
                 edge_values = edge_values + Flagging.__find_previous_db_values__(cursor, serie["sampling_point_id"], first.value, first.begin_position.timestamp()+U.tz_in_seconds(first.begin_position), serie["rep"], serie["timestep"])
 
         if len(edge_values) > 0:

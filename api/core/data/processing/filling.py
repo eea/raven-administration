@@ -46,8 +46,8 @@ class Filling:
                 }
                 missing_values.append(v)
 
-        printcol(f"- FillInMissing took {time.perf_counter() - bench} seconds")
         df_values = pd.concat([df_values, pd.DataFrame(missing_values)], axis=0)
+        printcol(f"- FillInMissing took {time.perf_counter() - bench} seconds")
         return df_values.reset_index(drop=True)
 
     @staticmethod
