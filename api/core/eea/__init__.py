@@ -7,6 +7,9 @@ formatting data for integration with the Plans & Programs (H-K) module.
 
 from .id_generator import (
     EEAIDGenerator,
+    IdentifierError,
+    validate_identifier,
+    is_valid_identifier,
     get_country_code_from_settings,
     validate_country_code,
     get_or_validate_country_code
@@ -14,6 +17,9 @@ from .id_generator import (
 
 __all__ = [
     'EEAIDGenerator',
+    'IdentifierError',
+    'validate_identifier',
+    'is_valid_identifier',
     'get_country_code_from_settings',
     'validate_country_code',
     'get_or_validate_country_code'

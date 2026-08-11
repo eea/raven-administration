@@ -7,14 +7,14 @@ from core.base_model import RavenBaseModel
 class StationModel(RavenBaseModel):
     
     id: str
-    eoi_code: str
+    station_eoi_code: str
     name: str
-    national_code: str
+    station_national_code: str
     latitude: float
     longitude: float
     altitude: float
     supersite: bool
-    area_classification_id: str
+    station_area_id: str
     network_id: str
     document_id: str
 

@@ -1,6 +1,17 @@
-from flask import jsonify, Blueprint, request
-from core.database import CursorFromPool
+"""Generic management-table CSV import.
+
+Mirrors the export side:
+
+  /api/imports/<table>      v1 — accepts the pre-AQR3 headers
+  /api/v2/imports/<table>   v2 — accepts the AQR3 v5.02 aligned column names
+
+See core/data/management.py (V1_ALIASES) for the translation.
+"""
+from flask import Blueprint, jsonify, request
+from werkzeug.exceptions import BadRequest, NotFound
+
 from core.data.management import Management
+from core.database import CursorFromPool
 from core.jwt_ext_custom import (
     jwt_required_with_allnetworks_claim,
     jwt_required_with_management_claim,
@@ -8,79 +19,43 @@ from core.jwt_ext_custom import (
 
 import_management_endpoint = Blueprint("import_management", __name__)
 
+# table -> columns excluded from the generic round-trip
+IMPORTABLE = {
+    "authorities": [],
+    "zones": [],
+    "networks": [],
+    "stations": [],
+    "sampling_points": ["from_time", "to_time"],
+    "processes": [],
+    "documents": [],
+}
 
-@import_management_endpoint.route("/api/imports/authorities", methods=["POST"])
-@jwt_required_with_management_claim()
-@jwt_required_with_allnetworks_claim()
-def import_authorities():
+
+def _import(table, naming):
+    if table not in IMPORTABLE:
+        raise NotFound(f'Unknown management table "{table}". '
+                       f'Available: {", ".join(sorted(IMPORTABLE))}')
+    if "file" not in request.files:
+        raise BadRequest("File form does not contain the key 'file'")
+
     with CursorFromPool() as cursor:
-        m = Management(cursor, "authorities")
+        m = Management(cursor, table, IMPORTABLE[table], naming=naming)
         m.parse_file(request.files["file"])
         m.generic_insert()
         return jsonify({"success": True})
 
 
-@import_management_endpoint.route("/api/imports/zones", methods=["POST"])
+@import_management_endpoint.route("/api/imports/<table>", methods=["POST"])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
-def import_zones():
-    with CursorFromPool() as cursor:
-        m = Management(cursor, "zones")
-        m.parse_file(request.files["file"])
-        m.generic_insert()
-        return jsonify({"success": True})
+def import_v1(table):
+    """v1: legacy headers."""
+    return _import(table, naming="v1")
 
 
-@import_management_endpoint.route("/api/imports/networks", methods=["POST"])
+@import_management_endpoint.route("/api/v2/imports/<table>", methods=["POST"])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
-def import_networks():
-    with CursorFromPool() as cursor:
-        m = Management(cursor, "networks")
-        m.parse_file(request.files["file"])
-        m.generic_insert()
-        return jsonify({"success": True})
-
-
-@import_management_endpoint.route("/api/imports/stations", methods=["POST"])
-@jwt_required_with_management_claim()
-@jwt_required_with_allnetworks_claim()
-def import_stations():
-    with CursorFromPool() as cursor:
-        m = Management(cursor, "stations")
-        m.parse_file(request.files["file"])
-        m.generic_insert()
-        return jsonify({"success": True})
-
-
-@import_management_endpoint.route("/api/imports/sampling_points", methods=["POST"])
-@jwt_required_with_management_claim()
-@jwt_required_with_allnetworks_claim()
-def import_sampling_points():
-    with CursorFromPool() as cursor:
-        m = Management(cursor, "sampling_points", ["from_time", "to_time"])
-        m.parse_file(request.files["file"])
-        m.generic_insert()
-        return jsonify({"success": True})
-
-
-@import_management_endpoint.route("/api/imports/processes", methods=["POST"])
-@jwt_required_with_management_claim()
-@jwt_required_with_allnetworks_claim()
-def import_processes():
-    with CursorFromPool() as cursor:
-        m = Management(cursor, "processes")
-        m.parse_file(request.files["file"])
-        m.generic_insert()
-        return jsonify({"success": True})
-
-
-@import_management_endpoint.route("/api/imports/documents", methods=["POST"])
-@jwt_required_with_management_claim()
-@jwt_required_with_allnetworks_claim()
-def import_documents():
-    with CursorFromPool() as cursor:
-        m = Management(cursor, "documents")
-        m.parse_file(request.files["file"])
-        m.generic_insert()
-        return jsonify({"success": True})
+def import_v2(table):
+    """v2: AQR3 v5.02 column names."""
+    return _import(table, naming="v2")

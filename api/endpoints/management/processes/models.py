@@ -6,8 +6,8 @@ from datetime import datetime
 
 class ProcessModel(RavenBaseModel):
     id: str
-    activity_begin: str
-    activity_end: Optional[str] = None
+    process_activity_begin: str
+    process_activity_end: Optional[str] = None
     data_quality_document_id: str
     equivalence_demonstration_document_id: str
     process_document_id: str
@@ -19,7 +19,7 @@ class ProcessModel(RavenBaseModel):
     sampling_point_id: str
     equipment_identifier: Optional[str] = None
 
-    @field_validator('activity_begin', 'activity_end')
+    @field_validator('process_activity_begin', 'process_activity_end')
     @classmethod
     def validate_datetime_format(cls, v):
         if v is None or v == '':

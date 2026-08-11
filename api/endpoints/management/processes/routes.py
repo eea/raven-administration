@@ -20,8 +20,8 @@ def processes():
           {with_samplingpoints_sql}
           SELECT
               pr.id,
-              pr.activity_begin,
-              pr.activity_end,
+              pr.process_activity_begin,
+              pr.process_activity_end,
               pr.data_quality_document_id, dqr.id || ' - ' || COALESCE(dqr_obj.label, '') as data_quality_document,
               pr.equivalence_demonstration_document_id, edr.id || ' - ' || COALESCE(edr_obj.label, '') as equivalence_demonstration_document,
               pr.process_document_id, pd.id || ' - ' || COALESCE(pd_obj.label, '') as process_document,
@@ -134,8 +134,8 @@ def processes_update():
         sql = """        
             UPDATE processes
             SET 
-              activity_begin = %(activity_begin)s,
-              activity_end = %(activity_end)s,
+              process_activity_begin = %(process_activity_begin)s,
+              process_activity_end = %(process_activity_end)s,
               data_quality_document_id = %(data_quality_document_id)s,
               equivalence_demonstration_document_id = %(equivalence_demonstration_document_id)s,
               process_document_id = %(process_document_id)s,
@@ -167,14 +167,14 @@ def processes_insert():
         
         sql = """
           INSERT INTO processes (
-            id, activity_begin, activity_end, data_quality_document_id,
+            id, process_activity_begin, process_activity_end, data_quality_document_id,
             equivalence_demonstration_document_id, process_document_id,
             measurement_type_id, method_id, equipment_id,
             analytical_technique_id, equivalence_demonstrated_id, sampling_point_id,
             equipment_identifier
           )
           VALUES (
-            %(id)s, %(activity_begin)s, %(activity_end)s, %(data_quality_document_id)s,
+            %(id)s, %(process_activity_begin)s, %(process_activity_end)s, %(data_quality_document_id)s,
             %(equivalence_demonstration_document_id)s, %(process_document_id)s,
             %(measurement_type_id)s, %(method_id)s, %(equipment_id)s,
             %(analytical_technique_id)s, %(equivalence_demonstrated_id)s, %(sampling_point_id)s,

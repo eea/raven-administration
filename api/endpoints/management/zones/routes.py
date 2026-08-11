@@ -17,9 +17,9 @@ def zones():
         cursor.execute("""
           select 
             z.id, 
-            z.code, 
+            z.zone_national_code, 
             z.name, 
-            z.area, 
+            z.zone_area, 
             z.zone_type_id, 
             zt.notation as zone_type,
             z.zone_category_id,
@@ -49,9 +49,9 @@ def zones_update():
         sql = f""" 
             UPDATE zones
             SET 
-                code = %(code)s,
+                code = %(zone_national_code)s,
                 name = %(name)s,
-                area = %(area)s,
+                area = %(zone_area)s,
                 zone_type_id = %(zone_type_id)s,
                 zone_category_id = %(zone_category_id)s,
                 geom = {geom_sql}
@@ -78,8 +78,8 @@ def zones_add():
             geom_sql = f"ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(%(geojson)s), %(source_epsg)s), 4326)"
         
         sql = f"""
-            INSERT INTO zones (id, code, name, area, zone_type_id, zone_category_id, geom)
-            VALUES (%(id)s, %(code)s, %(name)s, %(area)s, %(zone_type_id)s, %(zone_category_id)s, 
+            INSERT INTO zones (id, zone_national_code, name, zone_area, zone_type_id, zone_category_id, geom)
+            VALUES (%(id)s, %(zone_national_code)s, %(name)s, %(zone_area)s, %(zone_type_id)s, %(zone_category_id)s, 
                     {geom_sql})
         """
         cursor.execute(sql, model)

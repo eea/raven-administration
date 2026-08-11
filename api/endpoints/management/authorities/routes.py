@@ -17,16 +17,16 @@ authorities_endpoint = Blueprint('authorities', __name__)
 def authorities():
     with CursorFromPool() as cursor:
         cursor.execute("""          
-          SELECT a.id, a.person_name, a.email, a.organisation_name, a.organisation_url, 
-                 a.organisation_address, 
-                 a.instance_id, COALESCE(NULLIF(i.notation, ''), i.label) as instance,
-                 a.object_id, COALESCE(NULLIF(o.notation, ''), o.label) as object,
-                 a.status_id, COALESCE(NULLIF(s.notation, ''), s.label) as status
+          SELECT a.id, a.person_name, a.email, a.authority_name, a.authority_url, 
+                 a.authority_address, 
+                 a.authority_instance_id, COALESCE(NULLIF(i.notation, ''), i.label) as authority_instance,
+                 a.authority_role_id, COALESCE(NULLIF(o.notation, ''), o.label) as authority_role,
+                 a.authority_status_id, COALESCE(NULLIF(s.notation, ''), s.label) as authority_status
           FROM authorities a 
-          LEFT JOIN eea_authorityinstance i ON a.instance_id = i.id
-          LEFT JOIN eea_authorityobject o ON a.object_id = o.id
-          LEFT JOIN eea_authoritystatus s ON a.status_id = s.id
-          ORDER BY LOWER(a.organisation_name), LOWER(a.person_name)
+          LEFT JOIN eea_authorityinstance i ON a.authority_instance_id = i.id
+          LEFT JOIN eea_authorityobject o ON a.authority_role_id = o.id
+          LEFT JOIN eea_authoritystatus s ON a.authority_status_id = s.id
+          ORDER BY LOWER(a.authority_name), LOWER(a.person_name)
         """)
         authorities = cursor.fetchall()
         return jsonify(authorities)
@@ -63,12 +63,12 @@ def authorities_update():
             UPDATE authorities
             SET person_name = %(person_name)s,
                 email = %(email)s,
-                organisation_name = %(organisation_name)s,
-                organisation_url = %(organisation_url)s,
-                organisation_address = %(organisation_address)s,
-                instance_id = %(instance_id)s,
-                object_id = %(object_id)s,
-                status_id = %(status_id)s
+                authority_name = %(authority_name)s,
+                authority_url = %(authority_url)s,
+                authority_address = %(authority_address)s,
+                authority_instance_id = %(authority_instance_id)s,
+                authority_role_id = %(authority_role_id)s,
+                authority_status_id = %(authority_status_id)s
             WHERE id = %(id)s
         """
         cursor.execute(sql, model)
@@ -85,10 +85,10 @@ def authorities_insert():
     with CursorFromPool() as cursor:
         model = AuthorityModel(**request.json)
         sql = """
-            INSERT INTO authorities (id, person_name, email, organisation_name, organisation_url, 
-                                    organisation_address, instance_id, object_id, status_id)
-            VALUES (%(id)s, %(person_name)s, %(email)s, %(organisation_name)s, %(organisation_url)s, 
-                    %(organisation_address)s, %(instance_id)s, %(object_id)s, %(status_id)s)
+            INSERT INTO authorities (id, person_name, email, authority_name, authority_url, 
+                                    authority_address, authority_instance_id, authority_role_id, authority_status_id)
+            VALUES (%(id)s, %(person_name)s, %(email)s, %(authority_name)s, %(authority_url)s, 
+                    %(authority_address)s, %(authority_instance_id)s, %(authority_role_id)s, %(authority_status_id)s)
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:

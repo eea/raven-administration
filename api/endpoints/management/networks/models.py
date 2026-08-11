@@ -7,7 +7,9 @@ class NetworkModel(RavenBaseModel):
     
     id: str
     name: str
-    administration_level_id: str
+    network_organisational_level_id: str
+    timezone_id: Optional[str] = None
+    network_document_id: Optional[str] = None
 
     def __getitem__(self, key):
         return super().__getattribute__(key)

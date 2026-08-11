@@ -140,7 +140,7 @@ class Mean:
                     pr.equipment_identifier
                 FROM processes pr
                 LEFT JOIN eea_measurementequipments me ON pr.equipment_id = me.id
-                ORDER BY pr.sampling_point_id, pr.activity_begin DESC
+                ORDER BY pr.sampling_point_id, pr.process_activity_begin DESC
             ) lp ON lp.sampling_point_id = spo.id
             WHERE spo.id IN %(ids)s
         """

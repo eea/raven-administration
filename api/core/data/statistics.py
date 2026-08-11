@@ -985,7 +985,7 @@ class Statistics:
         all_sampling_points AS (
             SELECT DISTINCT
                 n.name as network, 
-                st.eoi_code as eoi, 
+                st.station_eoi_code as eoi, 
                 st.name as station, 
                 sp.id as code,
                 sp.id as spo, 

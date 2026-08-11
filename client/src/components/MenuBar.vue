@@ -64,7 +64,8 @@ const getmodules = () => {
         { name: "Sampling Points", comp: "SamplingPoints", show: jwt.management },
         { name: "Processes", comp: "Processes", show: jwt.management },
         { name: "Assessment Regime Zones", comp: "AssessmentRegimeZones", show: jwt.management && jwt.allnetworks },
-        { name: "Spatial Representativeness", comp: "SpatialRepresentativeness", show: jwt.management }
+        { name: "Spatial Representativeness", comp: "SpatialRepresentativeness", show: jwt.management },
+        { name: "Models / OBE", comp: "Models", show: jwt.management && jwt.allnetworks }
       ]
     },
     {

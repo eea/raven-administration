@@ -41,6 +41,9 @@ class Endpoints:
         from endpoints.management.spatialrepresentativeness.routes import sr_endpoint
         app.register_blueprint(sr_endpoint)
 
+        from endpoints.management.models.routes import models_endpoint
+        app.register_blueprint(models_endpoint)
+
         # PROCESSING
         from endpoints.processing.scale.routes import scale_endpoint
         app.register_blueprint(scale_endpoint)

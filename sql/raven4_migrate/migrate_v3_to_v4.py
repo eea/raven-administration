@@ -507,8 +507,8 @@ class Migration:
         tgt = self.target_conn.cursor()
         
         # v3: id, name, organisation, locator, postcode, email, address, phone, website, is_responsible_reporter
-        # v4: id, person_name, email, organisation_name, organisation_url, organisation_address, instance_id, object_id, status_id
-        # DEFAULTS: instance_id='network', object_id='AQD', status_id='active' (for RN3 required fields)
+        # v4: id, person_name, email, authority_name, authority_url, authority_address, authority_instance_id, authority_role_id, authority_status_id
+        # DEFAULTS: authority_instance_id='network', authority_role_id='AQD', authority_status_id='active' (for RN3 required fields)
         src.execute("SELECT id, name, organisation, email, website, address FROM responsible_authorities")
         rows = src.fetchall()
         
@@ -516,8 +516,8 @@ class Migration:
             id_val, name, organisation, email, website, address = row
             tgt.execute("""
                 INSERT INTO authorities 
-                (id, person_name, email, organisation_name, organisation_url, organisation_address,
-                 instance_id, object_id, status_id)
+                (id, person_name, email, authority_name, authority_url, authority_address,
+                 authority_instance_id, authority_role_id, authority_status_id)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (id_val, name, email, organisation, website, address,
@@ -584,7 +584,7 @@ class Migration:
         tgt.close()
     
     def migrate_stations(self):
-        """Migrate stations (v4.8.0: id, eoi_code, name, national_code, lat, lon, alt, supersite, area_classification_id, document_id, network_id)"""
+        """Migrate stations (v4.8.0: id, station_eoi_code, name, station_national_code, lat, lon, alt, supersite, station_area_id, document_id, network_id)"""
         log("\n📋 Migrating stations...")
         
         src = self.source_conn.cursor()
@@ -593,11 +593,11 @@ class Migration:
         # v3: id, name, begin_position, end_position, network_id, city, national_station_code,
         #     media_monitored, mobile, measurement_regime, area_classification, distance_junction,
         #     traffic_volume, heavy_duty_fraction, street_width, height_facades, geom, municipality,
-        #     eoi_code, city_code
-        # v4.8.0: id, eoi_code, name, national_code, lat, lon, alt, supersite, area_classification_id, document_id, network_id
+        #     station_eoi_code, city_code
+        # v4.8.0: id, station_eoi_code, name, station_national_code, lat, lon, alt, supersite, station_area_id, document_id, network_id
         # Note: document_id will be NULL - needs to be populated separately via documents table
         src.execute("""
-            SELECT id, eoi_code, name, national_station_code, 
+            SELECT id, station_eoi_code, name, national_station_code, 
                    ST_Y(geom) as latitude, ST_X(geom) as longitude, ST_Z(geom) as altitude,
                    area_classification, network_id
             FROM stations
@@ -605,17 +605,17 @@ class Migration:
         rows = src.fetchall()
         
         for row in rows:
-            id_val, eoi, name, national_code, lat, lon, alt, area_class_uri, network_id = row
+            id_val, eoi, name, station_national_code, lat, lon, alt, area_class_uri, network_id = row
             # Transform URI FK to notation
-            area_classification_id = extract_notation_from_uri(area_class_uri)
+            station_area_id = extract_notation_from_uri(area_class_uri)
             
             tgt.execute("""
-                INSERT INTO stations (id, eoi_code, name, national_code, latitude, longitude, altitude, 
-                                      supersite, area_classification_id, document_id, network_id)
+                INSERT INTO stations (id, station_eoi_code, name, station_national_code, latitude, longitude, altitude, 
+                                      supersite, station_area_id, document_id, network_id)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
-            """, (id_val, eoi, name, national_code, lat, lon, alt, 
-                  False, area_classification_id, None, network_id))  # document_id = NULL
+            """, (id_val, eoi, name, station_national_code, lat, lon, alt, 
+                  False, station_area_id, None, network_id))  # document_id = NULL
         
         self.stats['stations'] = len(rows)
         log(f"   ✓ {len(rows)} rows")
@@ -630,10 +630,10 @@ class Migration:
         src = self.source_conn.cursor()
         tgt = self.target_conn.cursor()
         
-        # v4.4.0: id, sampling_point_ref, inlet_height, building_distance, kerb_distance, emission_source_distance,
+        # v4.4.0: id, sampling_point_reference_id, inlet_height, building_distance, kerb_distance, emission_source_distance,
         #         logger_id, private, use_in_public_api, from_time, to_time,
-        #         pollutant_id, time_resolution_id, unit_id, spo_category_id, station_id
-        # Need station.eoi_code for generating sampling_point_ref
+        #         pollutant_id, time_resolution_id, unit_id, sampling_point_category_id, station_id
+        # Need station.eoi_code for generating sampling_point_reference_id
         src.execute("""
             SELECT DISTINCT ON (sp.id)
                 sp.id,
@@ -650,7 +650,7 @@ class Migration:
                 sp.concentration,
                 sp.station_classification,
                 sp.station_id,
-                st.eoi_code
+                st.station_eoi_code
             FROM sampling_points sp
             LEFT JOIN observing_capabilities oc ON sp.id = oc.sampling_point_id
             LEFT JOIN samples s ON oc.sample_id = s.id
@@ -664,37 +664,37 @@ class Migration:
         for row in rows:
             (id_val, inlet_height, building_distance, kerb_distance, logger_id, 
              private, use_in_public_api, from_time, to_time, 
-             pollutant_uri, timestep_uri, concentration_uri, station_classification_uri, station_id, eoi_code) = row
+             pollutant_uri, timestep_uri, concentration_uri, station_classification_uri, station_id, station_eoi_code) = row
             
             # Transform URIs
             pollutant_id = extract_pollutant_id_from_uri(pollutant_uri)
             time_resolution_id = extract_notation_from_uri(timestep_uri)
             unit_id = extract_concentration_from_uri(concentration_uri)
-            # station_classification URI -> spo_category_id (extract last part, lowercase)
-            spo_category_id = extract_notation_from_uri(station_classification_uri).lower() if station_classification_uri else None
-            
-            # Generate sampling_point_ref: SPOref_[EOI]_[POLLUTANT_ID]_[N]
+            # station_classification URI -> sampling_point_category_id (extract last part, lowercase)
+            sampling_point_category_id = extract_notation_from_uri(station_classification_uri).lower() if station_classification_uri else None
+
+            # Generate sampling_point_reference_id (AQR3 SPO_03): SPOref_[EOI]_[POLLUTANT_ID]_[N]
             # e.g., SPOref_NO0042A_00005_1
-            if eoi_code and pollutant_id:
-                ref_key = f"{eoi_code}_{pollutant_id:05d}"
+            if station_eoi_code and pollutant_id:
+                ref_key = f"{station_eoi_code}_{pollutant_id:05d}"
                 spo_ref_counters[ref_key] = spo_ref_counters.get(ref_key, 0) + 1
-                sampling_point_ref = f"SPOref_{eoi_code}_{pollutant_id:05d}_{spo_ref_counters[ref_key]}"
+                sampling_point_reference_id = f"SPOref_{station_eoi_code}_{pollutant_id:05d}_{spo_ref_counters[ref_key]}"
                 # Truncate to 32 chars if needed
-                sampling_point_ref = sampling_point_ref[:32]
+                sampling_point_reference_id = sampling_point_reference_id[:32]
             else:
-                sampling_point_ref = None
-            
+                sampling_point_reference_id = None
+
             tgt.execute("""
-                INSERT INTO sampling_points 
-                (id, sampling_point_ref, inlet_height, building_distance, kerb_distance, emission_source_distance,
+                INSERT INTO sampling_points
+                (id, sampling_point_reference_id, inlet_height, building_distance, kerb_distance, emission_source_distance,
                  logger_id, private, use_in_public_api, from_time, to_time,
-                 pollutant_id, time_resolution_id, unit_id, spo_category_id, station_id)
+                 pollutant_id, time_resolution_id, unit_id, sampling_point_category_id, station_id)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (
-                id_val, sampling_point_ref, inlet_height, building_distance, kerb_distance, None,
+                id_val, sampling_point_reference_id, inlet_height, building_distance, kerb_distance, None,
                 logger_id, private or False, use_in_public_api or False, from_time, to_time,
-                pollutant_id, time_resolution_id, unit_id, spo_category_id, station_id
+                pollutant_id, time_resolution_id, unit_id, sampling_point_category_id, station_id
             ))
         
         self.stats['sampling_points'] = len(rows)
@@ -710,7 +710,7 @@ class Migration:
         src = self.source_conn.cursor()
         tgt = self.target_conn.cursor()
         
-        # v4.8.0: id, activity_begin, activity_end, 
+        # v4.8.0: id, process_activity_begin, process_activity_end, 
         #         data_quality_document_id, equivalence_demonstration_document_id, process_document_id,
         #         measurement_type_id, method_id, equipment_id, analytical_technique_id,
         #         equivalence_demonstrated_id, sampling_point_id
@@ -718,8 +718,8 @@ class Migration:
         src.execute("""
             SELECT DISTINCT ON (p.id)
                 p.id,
-                oc.begin_position as activity_begin,
-                oc.end_position as activity_end,
+                oc.begin_position as process_activity_begin,
+                oc.end_position as process_activity_end,
                 p.measurement_type,
                 p.measurement_method,
                 p.measurement_equipment,
@@ -733,7 +733,7 @@ class Migration:
         rows = src.fetchall()
         
         for row in rows:
-            (id_val, activity_begin, activity_end, meas_type_uri, meas_method_uri,
+            (id_val, process_activity_begin, process_activity_end, meas_type_uri, meas_method_uri,
              meas_equip_uri, analytical_tech, equiv_demo_uri, sampling_point_id) = row
             
             # Transform URI FKs to notation
@@ -745,14 +745,14 @@ class Migration:
             
             tgt.execute("""
                 INSERT INTO processes 
-                (id, activity_begin, activity_end, 
+                (id, process_activity_begin, process_activity_end, 
                  data_quality_document_id, equivalence_demonstration_document_id, process_document_id,
                  measurement_type_id, method_id, equipment_id, analytical_technique_id,
                  equivalence_demonstrated_id, sampling_point_id)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (
-                id_val, activity_begin, activity_end, 
+                id_val, process_activity_begin, process_activity_end, 
                 None, None, None,  # 3 document_ids = NULL
                 measurement_type_id, method_id, equipment_id, None,  # analytical_technique_id
                 equivalence_demonstrated_id, sampling_point_id

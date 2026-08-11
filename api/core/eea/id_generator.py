@@ -1,152 +1,221 @@
+"""AQR3 v5.02 identifier construction and validation.
+
+Four identifier formats are **fully mandatory** in AQR3 v5.02 (see the reporting
+guide's `Identifiers` sheet) and two are partially mandatory. Reportnet3 rejects
+a submission whose identifiers do not match, so these are generated from a single
+place and validated before write rather than discovered by the EEA's QC.
+
+    AssessmentRegimeId  ARE_<ZoneId>_<PollutantId>_<ObjectiveType>_<ProtectionTarget>_<ReportingMetric>_<ClassificationYear>_<idx>
+    AttainmentId        ATT_<ZoneId>_<PollutantId>_<ObjectiveType>_<ProtectionTarget>_<ReportingMetric>_<ReportingYear>_<idx>
+    ScenarioId          SCE_<ZoneId>_<PollutantId>_<ObjectiveType>_<ProtectionTarget>_<ReportingMetric>_<idx>
+    SamplingPointRef    SPOref_<StationEoICode>_<PollutantId>_<idx>
+    AssessmentMethodId  MOD_<specific> | OBE_<specific>          (models only)
+    PlanId              PLA_<ZoneId>[_<PollutantId>_<ObjectiveType>_<ProtectionTarget>_<ReportingMetric>]
+
+The separator must be an underscore for the fully mandatory ones. Everything is
+derived from its inputs, so regenerating always yields the same identifier.
+
+The pre-v5.02 formats this replaced (`AD_REGIME_ESCALDES_NO2_2024`,
+`ATT_AD_2024_ESCALDES_NO2`, `AD_COMP_2024_005`) were all non-conformant, and the
+`complianceid` concept is gone: CAM keys on AttainmentId.
 """
-EEA-compliant ID generation for Plans & Programs integration.
-
-This module provides functions to generate standardized IDs required by the
-EEA Plans & Programs (H-K) module for compliance assessment and reporting.
-
-IDs are generated on-demand (not stored in RAVEN database) to ensure:
-- Consistency: same inputs always produce same IDs
-- Stateless: no database writes needed
-- Idempotent: can regenerate IDs reliably
-
-Author: RAVEN Development Team
-Date: January 30, 2026
-"""
-
+import re
 from typing import Optional
+
+SEP = '_'
+
+# Reportnet3 identifier column widths (varchar(50) for the regime/attainment ids,
+# varchar(32) for SamplingPointReferenceId).
+MAX_LEN = {'ARE': 50, 'ATT': 50, 'SCE': 50, 'PLA': 50, 'SPOref': 32, 'MOD': 50, 'OBE': 50}
+
+
+class IdentifierError(ValueError):
+    """An identifier does not match its mandatory AQR3 format."""
+
+
+def _part(value, what):
+    """Normalise one identifier segment and reject an embedded separator."""
+    if value is None or str(value).strip() == '':
+        raise IdentifierError(f'{what} is required to build the identifier')
+    text = str(value).strip()
+    if SEP in text:
+        raise IdentifierError(
+            f'{what} ({text!r}) contains "{SEP}", which is the mandatory AQR3 separator')
+    return text
 
 
 class EEAIDGenerator:
-    """Generate EEA-compliant IDs for assessment regimes, compliance, etc."""
-    
+    """Build the AQR3 v5.02 mandatory-format identifiers."""
+
     @staticmethod
-    def generate_assessment_regime_id(
-        country_code: str,
-        zone_code: str,
-        pollutant: str,
-        year: int
-    ) -> str:
+    def generate_assessment_regime_id(zone_id, pollutant_id, objective_type,
+                                      protection_target, reporting_metric,
+                                      classification_year, index=1) -> str:
+        """AQR3 ARZ_02 AssessmentRegimeId.
+
+        >>> EEAIDGenerator.generate_assessment_regime_id(
+        ...     'ZON_DU000A', 5, 'LV', 'H', 'aMean', 2021, 1)
+        'ARE_ZON_DU000A_0005_LV_H_aMean_2021_1'
         """
-        Generate assessmentregimeid following EEA naming convention.
-        
-        Format: {COUNTRY}_REGIME_{ZONE}_{POLLUTANT}_{YEAR}
-        
-        Args:
-            country_code: ISO 2-letter country code (e.g., 'AD', 'NO')
-            zone_code: Zone identifier or name (e.g., 'Escaldes-Engordany', 'OSLO')
-            pollutant: Pollutant notation (e.g., 'NO2', 'PM10')
-            year: Reporting year (e.g., 2024)
-        
-        Returns:
-            Assessment regime ID string
-        
-        Example:
-            >>> EEAIDGenerator.generate_assessment_regime_id('AD', 'Escaldes-Engordany', 'NO2', 2024)
-            'AD_REGIME_ESCALDES_NO2_2024'
-        """
-        # Clean zone name: extract first part before hyphen, limit to 20 chars
-        zone_clean = zone_code.split('-')[0].upper().strip()[:20]
-        return f"{country_code.upper()}_REGIME_{zone_clean}_{pollutant.upper()}_{year}"
-    
+        return SEP.join([
+            'ARE',
+            str(zone_id).strip(),           # ZoneIds themselves contain '_' (ZON_DU000A)
+            f'{int(pollutant_id):04d}',
+            _part(objective_type, 'ObjectiveType'),
+            _part(protection_target, 'ProtectionTarget'),
+            _part(reporting_metric, 'ReportingMetric'),
+            str(int(classification_year)),
+            str(index)[:1],                 # guide: max length 1
+        ])
+
     @staticmethod
-    def generate_compliance_id(
-        country_code: str,
-        year: int,
-        sequence: int
-    ) -> str:
+    def generate_attainment_id(zone_id, pollutant_id, objective_type,
+                               protection_target, reporting_metric,
+                               reporting_year, index=1) -> str:
+        """AQR3 CAM_15 AttainmentId.
+
+        >>> EEAIDGenerator.generate_attainment_id(
+        ...     'ZON_DU000A', 5, 'LV', 'H', 'daysAbove', 2024, 1)
+        'ATT_ZON_DU000A_0005_LV_H_daysAbove_2024_1'
         """
-        Generate complianceid for a specific exceedance instance.
-        
-        Format: {COUNTRY}_COMP_{YEAR}_{SEQ}
-        
-        Args:
-            country_code: ISO 2-letter country code
-            year: Reporting year
-            sequence: Sequential number for this year (1-based)
-        
-        Returns:
-            Compliance ID string with 3-digit padded sequence
-        
-        Example:
-            >>> EEAIDGenerator.generate_compliance_id('AD', 2024, 5)
-            'AD_COMP_2024_005'
-        """
-        return f"{country_code.upper()}_COMP_{year}_{sequence:03d}"
-    
+        return SEP.join([
+            'ATT',
+            str(zone_id).strip(),
+            f'{int(pollutant_id):04d}',
+            _part(objective_type, 'ObjectiveType'),
+            _part(protection_target, 'ProtectionTarget'),
+            _part(reporting_metric, 'ReportingMetric'),
+            str(int(reporting_year)),
+            str(int(index)),                # guide: max length 2, numeric
+        ])
+
     @staticmethod
-    def generate_assessment_method_id(
-        country_code: str,
-        zone_code: str,
-        pollutant: str,
-        sequence: int
-    ) -> str:
-        """
-        Generate assessmentmethodid for a measurement method.
-        
-        Format: {COUNTRY}_METHOD_{ZONE}_{POLLUTANT}_{SEQ}
-        
-        Args:
-            country_code: ISO 2-letter country code
-            zone_code: Zone identifier or name
-            pollutant: Pollutant notation
-            sequence: Sequential number (1-based)
-        
-        Returns:
-            Assessment method ID string with 3-digit padded sequence
-        
-        Example:
-            >>> EEAIDGenerator.generate_assessment_method_id('AD', 'Escaldes', 'NO2', 1)
-            'AD_METHOD_ESCALDES_NO2_001'
-        """
-        zone_clean = zone_code.split('-')[0].upper().strip()[:20]
-        return f"{country_code.upper()}_METHOD_{zone_clean}_{pollutant.upper()}_{sequence:03d}"
-    
+    def generate_scenario_id(zone_id, pollutant_id, objective_type,
+                             protection_target, reporting_metric, index=1) -> str:
+        """AQR3 CPL_04 ScenarioId. Owned by raven-plan-program; here for validation."""
+        return SEP.join([
+            'SCE',
+            str(zone_id).strip(),
+            f'{int(pollutant_id):04d}',
+            _part(objective_type, 'ObjectiveType'),
+            _part(protection_target, 'ProtectionTarget'),
+            _part(reporting_metric, 'ReportingMetric'),
+            str(int(index)),
+        ])
+
     @staticmethod
-    def generate_attainment_id(
-        country_code: str,
-        year: int,
-        zone_code: str,
-        pollutant: str
-    ) -> str:
-        """
-        Generate attainmentid linking to Flow G attainment status.
-        
-        Format: ATT_{COUNTRY}_{YEAR}_{ZONE}_{POLLUTANT}
-        
-        Args:
-            country_code: ISO 2-letter country code
-            year: Reporting year
-            zone_code: Zone identifier or name
-            pollutant: Pollutant notation
-        
-        Returns:
-            Attainment ID string
-        
-        Example:
-            >>> EEAIDGenerator.generate_attainment_id('AD', 2024, 'Escaldes', 'NO2')
-            'ATT_AD_2024_ESCALDES_NO2'
-        """
-        zone_clean = zone_code.split('-')[0].upper().strip()[:20]
-        return f"ATT_{country_code.upper()}_{year}_{zone_clean}_{pollutant.upper()}"
-    
+    def generate_plan_id(zone_id, pollutant_id=None, objective_type=None,
+                         protection_target=None, reporting_metric=None) -> str:
+        """AQR3 CPL_03 PlanId. Only the PLA prefix is mandatory; the rest is
+        recommended and included only where the plan is specific to it."""
+        parts = ['PLA', str(zone_id).strip()]
+        if pollutant_id is not None:
+            parts.append(f'{int(pollutant_id):04d}')
+        for value in (objective_type, protection_target, reporting_metric):
+            if value:
+                parts.append(str(value).strip())
+        return SEP.join(parts)
+
     @staticmethod
-    def generate_sr_id(sampling_point_code: str) -> str:
+    def generate_sampling_point_reference_id(station_eoi_code, pollutant_id, index=1) -> str:
+        """AQR3 SPO_03 SamplingPointReferenceId.
+
+        >>> EEAIDGenerator.generate_sampling_point_reference_id('DU0001', 5, 1)
+        'SPOref_DU0001_0005_1'
         """
-        Generate sampling reference ID (sr_id).
-        
-        For RAVEN, we use the existing sampling point ID directly.
-        
-        Args:
-            sampling_point_code: Existing sampling point ID from RAVEN
-        
-        Returns:
-            Sampling reference ID (same as input)
-        
-        Example:
-            >>> EEAIDGenerator.generate_sr_id('SPO-AD0940A-0005')
-            'SPO-AD0940A-0005'
+        identifier = SEP.join([
+            'SPOref',
+            _part(station_eoi_code, 'StationEoICode'),
+            f'{int(pollutant_id):04d}',
+            str(int(index))[:2],            # guide: max length 2
+        ])
+        if len(identifier) > MAX_LEN['SPOref']:
+            raise IdentifierError(
+                f'SamplingPointReferenceId {identifier!r} exceeds '
+                f'{MAX_LEN["SPOref"]} characters (SPO_03 is varchar(32))')
+        return identifier
+
+    @staticmethod
+    def generate_model_assessment_method_id(kind, specific) -> str:
+        """AQR3 MOE_02 AssessmentMethodId for a model or objective estimation.
+
+        >>> EEAIDGenerator.generate_model_assessment_method_id('MOD', 'DU_NO2')
+        'MOD_DU_NO2'
         """
-        return sampling_point_code
+        prefix = str(kind).strip().upper()
+        if prefix not in ('MOD', 'OBE'):
+            raise IdentifierError(
+                f'Model AssessmentMethodId must start with MOD or OBE, got {kind!r}')
+        if not str(specific).strip():
+            raise IdentifierError('A specific identifier is required after the MOD/OBE prefix')
+        return f'{prefix}{SEP}{str(specific).strip()}'
+
+
+# ---------------------------------------------------------------------------
+# Validation
+#
+# Applied at write time so a malformed identifier is rejected here rather than by
+# Reportnet3's QC after submission.
+# ---------------------------------------------------------------------------
+
+_YEAR = r'(?:19|20)\d{2}'
+_CODE = r'[A-Za-z0-9.+-]+'
+
+PATTERNS = {
+    # ZoneId may itself contain underscores, so it is matched non-greedily and the
+    # tail is pinned by the fixed-shape trailing segments.
+    'AssessmentRegimeId':
+        re.compile(rf'^ARE_(?P<zone>.+?)_(?P<pollutant>\d+)_(?P<objective>{_CODE})'
+                   rf'_(?P<target>{_CODE})_(?P<metric>{_CODE})_(?P<year>{_YEAR})_(?P<idx>\w)$'),
+    'AttainmentId':
+        re.compile(rf'^ATT_(?P<zone>.+?)_(?P<pollutant>\d+)_(?P<objective>{_CODE})'
+                   rf'_(?P<target>{_CODE})_(?P<metric>{_CODE})_(?P<year>{_YEAR})_(?P<idx>\d{{1,2}})$'),
+    'ScenarioId':
+        re.compile(rf'^SCE_(?P<zone>.+?)_(?P<pollutant>\d+)_(?P<objective>{_CODE})'
+                   rf'_(?P<target>{_CODE})_(?P<metric>{_CODE})_(?P<idx>\d{{1,2}})$'),
+    'SamplingPointReferenceId':
+        re.compile(rf'^SPOref_(?P<station>{_CODE})_(?P<pollutant>\d+)_(?P<idx>\d{{1,2}})$'),
+    'PlanId':
+        re.compile(r'^PLA_.+$'),
+    'ModelAssessmentMethodId':
+        re.compile(r'^(?:MOD|OBE)_.+$'),
+}
+
+
+def validate_identifier(kind, value, required=True):
+    """Check `value` against the mandatory AQR3 format for `kind`.
+
+    Returns the value unchanged so it can be used inline. Raises IdentifierError
+    with the expected shape when it does not match.
+    """
+    if value in (None, ''):
+        if required:
+            raise IdentifierError(f'{kind} is required')
+        return value
+
+    pattern = PATTERNS.get(kind)
+    if pattern is None:
+        raise IdentifierError(f'No AQR3 format defined for {kind!r}')
+
+    if not pattern.match(str(value)):
+        raise IdentifierError(
+            f'{kind} {value!r} does not match its mandatory AQR3 v5.02 format. '
+            f'Expected {pattern.pattern}')
+
+    limit = MAX_LEN.get(str(value).split(SEP)[0])
+    if limit and len(str(value)) > limit:
+        raise IdentifierError(f'{kind} {value!r} exceeds {limit} characters')
+
+    return value
+
+
+def is_valid_identifier(kind, value):
+    """Non-raising form of validate_identifier."""
+    try:
+        validate_identifier(kind, value)
+        return True
+    except IdentifierError:
+        return False
 
 
 def get_country_code_from_settings(cursor) -> Optional[str]:

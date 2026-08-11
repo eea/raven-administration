@@ -1,8 +1,8 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Reportnet3 Dataflow API",
-    "version": "1.0"
+    "title": "RAVEN Reportnet3 (AQR3 v5.02) API",
+    "version": "AQR3 v5.02"
   },
   "securityDefinitions": {
     "Bearer": {
@@ -49,95 +49,113 @@
         }
       }
     },
-    "/api/dataflow/reportnet3/csv": {
+    "/api/dataflow/csv/tables": {
       "get": {
-        "summary": "Get dataflows in csv format",
+        "summary": "List the AQR3 v5.02 reporting tables",
+        "description": "Registry metadata: code, filename, description, whether the table is reported per year, and its column headers.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "401": {
+            "description": "Missing or invalid token"
+          },
+          "403": {
+            "description": "Exporting claim required"
+          }
+        }
+      }
+    },
+    "/api/dataflow/csv/available_years": {
+      "get": {
+        "summary": "Reporting years with sampling point activity",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "401": {
+            "description": "Missing or invalid token"
+          },
+          "403": {
+            "description": "Exporting claim required"
+          }
+        }
+      }
+    },
+    "/api/dataflow/csv/download_all": {
+      "post": {
+        "summary": "All AQR3 tables as a ZIP",
+        "description": "Empty tables are omitted. Without a year, the year-dependent tables are omitted too. Both are listed in the X-AQR3-Skipped response header.",
         "parameters": [
           {
-            "name": "type",
-            "in": "query",
+            "in": "body",
+            "name": "body",
             "required": false,
-            "type": "string"
-          },
-          {
-            "name": "year",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "timezone",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "description",
-            "in": "query",
-            "required": false,
-            "type": "string"
+            "schema": {
+              "type": "object",
+              "properties": {
+                "year": {
+                  "type": "integer"
+                }
+              }
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful operation"
           },
-          "403": {
-            "description": "Reportnet3 dataflow is not enabled"
+          "401": {
+            "description": "Missing or invalid token"
           },
-          "400": {
-            "description": "Could not create csv for dataflow, no data found"
+          "403": {
+            "description": "Exporting claim required"
           }
         }
       }
     },
-    "/api/dataflow/reportnet3/b": {
-      "get": {
-        "summary": "Get dataflow b",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful operation"
+    "/api/dataflow/csv/{table}": {
+      "post": {
+        "summary": "One AQR3 reporting table as CSV",
+        "description": "`table` is an AQR3 table code (AUT, STA, SPO, SPL, SPP, MOE, OMR, MRI, MRE, ZGE, ARZ, CAM, SRS, SRI, SRE, ADJ, DOC) or a legacy slug such as `stations`. Year-dependent tables require `year`.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "type": "string"
           },
-          "403": {
-            "description": "Reportnet3 dataflow is not enabled"
-          },
-          "400": {
-            "description": "No data found"
+          {
+            "in": "body",
+            "name": "body",
+            "required": false,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "year": {
+                  "type": "integer"
+                }
+              }
+            }
           }
-        }
-      }
-    },
-    "/api/dataflow/reportnet3/d/processes": {
-      "get": {
-        "summary": "Get dataflow d processes",
-        "parameters": [],
+        ],
         "responses": {
           "200": {
             "description": "Successful operation"
           },
-          "403": {
-            "description": "Reportnet3 dataflow is not enabled"
-          },
-          "400": {
-            "description": "No data found"
-          }
-        }
-      }
-    },
-    "/api/dataflow/reportnet3/d/samplingpoints": {
-      "get": {
-        "summary": "Get dataflow d sampling points",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful operation"
+          "401": {
+            "description": "Missing or invalid token"
           },
           "403": {
-            "description": "Reportnet3 dataflow is not enabled"
+            "description": "Exporting claim required"
           },
           "400": {
-            "description": "No data found"
+            "description": "Year required for a year-dependent table"
+          },
+          "404": {
+            "description": "Unknown AQR3 table"
           }
         }
       }

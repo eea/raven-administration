@@ -50,6 +50,10 @@ const columns = computed(() => {
       const col = {
         field: prop.prop,
         headerName: prop.label,
+        // Columns are flex: 1 by default, so a long header ellipsis-truncates.
+        // DataTable already sets tooltipShowMode="whenTruncated", so this makes
+        // the full label appear on hover only when it has actually been cut off.
+        headerTooltip: prop.label,
         sortable: true
       };
 

@@ -19,10 +19,12 @@ def samplingpoints():
             {with_samplingpoints_sql}
             SELECT
               sp.id,
+              sp.sampling_point_reference_id,
               sp.inlet_height,
               sp.building_distance,
               sp.kerb_distance,
               sp.emission_source_distance,
+              sp.hotspot,
               sp.logger_id,
               sp.private,
               sp.use_in_public_api,
@@ -31,13 +33,13 @@ def samplingpoints():
               sp.time_resolution_id, COALESCE(NULLIF(tr.notation, ''), tr.label) as time_resolution,
               sp.unit_id, u.notation as unit,
               sp.station_id, st.name as station,
-              sp.spo_category_id, sc.label as spo_category
+              sp.sampling_point_category_id, sc.label as sampling_point_category
           FROM
               sampling_points sp
               LEFT JOIN eea_pollutants p ON sp.pollutant_id = p.id
               LEFT JOIN eea_times tr ON sp.time_resolution_id = tr.id
               LEFT JOIN eea_concentrations u ON sp.unit_id = u.id
-              LEFT JOIN eea_spocategory sc ON sp.spo_category_id = sc.id
+              LEFT JOIN eea_spocategory sc ON sp.sampling_point_category_id = sc.id
               INNER JOIN stations st ON sp.station_id = st.id
               INNER JOIN sampling_point_access spa ON sp.id = spa.id
           ORDER BY LOWER(st.name), COALESCE(NULLIF(p.notation, ''), p.label)
@@ -71,14 +73,14 @@ def samplingpoints_lookups():
         units = cursor.fetchall()
         
         cursor.execute("SELECT id as value, label FROM eea_spocategory ORDER BY LOWER(label)")
-        spocategories = cursor.fetchall()
-        
+        sampling_point_categories = cursor.fetchall()
+
         return jsonify({
             "stations": stations,
             "pollutants": pollutants,
             "time_resolutions": time_resolutions,
             "units": units,
-            "spocategories": spocategories
+            "sampling_point_categories": sampling_point_categories
         })
 
 
@@ -93,11 +95,13 @@ def samplingpoints_update():
 
         sql = """ 
           UPDATE sampling_points
-          SET 
+          SET
+            sampling_point_reference_id=%(sampling_point_reference_id)s,
             inlet_height=%(inlet_height)s,
             building_distance=%(building_distance)s,
             kerb_distance=%(kerb_distance)s,
             emission_source_distance=%(emission_source_distance)s,
+            hotspot=%(hotspot)s,
             logger_id=%(logger_id)s,
             private=%(private)s,
             use_in_public_api=%(use_in_public_api)s,
@@ -106,7 +110,7 @@ def samplingpoints_update():
             time_resolution_id=%(time_resolution_id)s,
             unit_id=%(unit_id)s,
             station_id=%(station_id)s,
-            spo_category_id=%(spo_category_id)s
+            sampling_point_category_id=%(sampling_point_category_id)s
           WHERE id = %(id)s
         """
 
@@ -128,15 +132,15 @@ def samplingpoints_insert():
 
         sql = """
           INSERT INTO sampling_points (
-            id, inlet_height, building_distance, kerb_distance,
-            emission_source_distance, logger_id, private, use_in_public_api, daily_check,
-            pollutant_id, time_resolution_id, unit_id, station_id, spo_category_id
+            id, sampling_point_reference_id, inlet_height, building_distance, kerb_distance,
+            emission_source_distance, hotspot, logger_id, private, use_in_public_api, daily_check,
+            pollutant_id, time_resolution_id, unit_id, station_id, sampling_point_category_id
           )
           VALUES (
-            %(id)s, %(inlet_height)s, %(building_distance)s, %(kerb_distance)s,
-            %(emission_source_distance)s, %(logger_id)s, %(private)s, %(use_in_public_api)s, %(daily_check)s,
-            %(pollutant_id)s, %(time_resolution_id)s, %(unit_id)s, %(station_id)s, %(spo_category_id)s
-          )           
+            %(id)s, %(sampling_point_reference_id)s, %(inlet_height)s, %(building_distance)s, %(kerb_distance)s,
+            %(emission_source_distance)s, %(hotspot)s, %(logger_id)s, %(private)s, %(use_in_public_api)s, %(daily_check)s,
+            %(pollutant_id)s, %(time_resolution_id)s, %(unit_id)s, %(station_id)s, %(sampling_point_category_id)s
+          )
         """
 
         cursor.execute(sql, model)

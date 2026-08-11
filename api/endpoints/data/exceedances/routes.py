@@ -46,20 +46,20 @@ def get_sampling_points():
             params['pollutant'] = pollutant
         
         cursor.execute(f"""
-            SELECT 
+            SELECT
                 sp.id,
-                sp.code,
+                sp.sampling_point_reference_id as sampling_point_code,
                 p.notation as pollutant,
                 p.label as pollutant_label,
                 st.name as station_name,
-                st.eoi_code as station_code,
+                st.station_eoi_code as station_code,
                 n.name as network_name
             FROM sampling_points sp
             JOIN eea_pollutants p ON sp.pollutant_id = p.id
             JOIN stations st ON sp.station_id = st.id
             JOIN networks n ON st.network_id = n.id
             {where_clause}
-            ORDER BY p.notation, LOWER(st.name), sp.code
+            ORDER BY p.notation, LOWER(st.name), sp.sampling_point_reference_id
         """, params)
         
         sampling_points = cursor.fetchall()

@@ -69,7 +69,7 @@ def get_assessment_regime_zones():
                 eo.assessment_threshold LIKE %s OR
                 eo.assessment_threshold LIKE %s
             )
-            ORDER BY z.code, p.notation, eo.objective_type
+            ORDER BY z.zone_national_code, p.notation, eo.objective_type
         """, (year, year, '%UAT%', '%LAT%', '%LTO%'))
 
         results = cursor.fetchall()

@@ -110,7 +110,9 @@ def equivdemonstrations():
 @jwt_required_with_management_claim()
 def levels():
     with CursorFromPool() as cursor:
-        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_organisationallevels r order by LOWER(r.notation), LOWER(r.label)")
+        # AQR3 STA_05 NetworkOrganisationalLevel. eea_organisationallevels was a v3
+        # leftover that never existed in schema.sql; the vocabulary is administrativelevel.
+        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value from eea_administrativelevels r order by LOWER(r.notation), LOWER(r.label)")
         authorities = cursor.fetchall()
         return jsonify(authorities)
 
@@ -295,7 +297,10 @@ def attainments():
 @jwt_required_with_management_claim()
 def assessmentregimes():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.name as label, r.id as value from assessment_regimes r order by LOWER(r.name)")
+        # assessment_regimes has no `name` column; the AssessmentRegimeId (ARZ_02) is
+        # the meaningful label since its mandatory format already encodes zone,
+        # pollutant, objective type, protection target, metric and year.
+        cursor.execute("select r.id as label, r.id as value from assessment_regimes r order by LOWER(r.id)")
         processes = cursor.fetchall()
         return jsonify(processes)
 

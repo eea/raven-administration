@@ -22,6 +22,9 @@ RUN pip install -r requirements.txt
 COPY api/ ./
 COPY .env /app/.env
 
+# Schema + migrations: docker-entrypoint.sh runs sql/apply_migrations.py on boot.
+COPY sql/ /app/sql/
+
 ENV PYTHONUNBUFFERED=1
 EXPOSE 5000
 

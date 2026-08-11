@@ -29,7 +29,7 @@ def timevalues():
               o.observationvalidity_id,
               o.observationverification_id,
               o.value::double PRECISION ,
-              case when o.observationvalidity_id not in (1,2,3) then null else o.value::double PRECISION end as "valid_value_only",
+              case when o.observationvalidity_id > 0 then o.value::double PRECISION else null end as "valid_value_only",
               o.import_value::double PRECISION
             FROM observations o
             WHERE 1=1

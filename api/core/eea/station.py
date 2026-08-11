@@ -20,7 +20,7 @@ class Station:
     network_id = None
     national_station_code = None
     municipality = None
-    eoi_code = None
+    station_eoi_code = None
     area_classification = None
     station_info = None
     uom_m = None
@@ -57,7 +57,7 @@ class Station:
                       {ET.QName(Namespaces.xlink, "href"): self.namespace + "/" + self.network_id})
         (ET.SubElement(sta, "{" + Namespaces.aqd + "}natlStationCode")).text = str(self.national_station_code)
         (ET.SubElement(sta, "{" + Namespaces.aqd + "}municipality")).text = str(self.municipality)
-        (ET.SubElement(sta, "{" + Namespaces.aqd + "}EUStationCode")).text = self.eoi_code
+        (ET.SubElement(sta, "{" + Namespaces.aqd + "}EUStationCode")).text = self.station_eoi_code
 
         if self.station_info is not None:
             (ET.SubElement(sta, "{" + Namespaces.aqd + "}stationInfo")).text = str(self.station_info)

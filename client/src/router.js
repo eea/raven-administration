@@ -13,6 +13,7 @@ const Processes = () => import("./views/management/processes/Processes.vue");
 const AssessmentRegimeZones = () => import("./views/management/assessmentregimezones/AssessmentRegimeZones.vue");
 const Documents = () => import("./views/management/documents/Documents.vue");
 const SpatialRepresentativeness = () => import("./views/management/spatialrepresentativeness/SpatialRepresentativeness.vue");
+const Models = () => import("./views/management/models/Models.vue");
 
 const Latest = () => import("./views/data/latest/Latest.vue");
 const Dashboard = () => import("./views/data/dashboard/Dashboard.vue");
@@ -67,6 +68,7 @@ const routes = [
   { path: "/management/assessmentregimezones", component: AssessmentRegimeZones, name: "AssessmentRegimeZones" },
   { path: "/management/documents", component: Documents, name: "Documents" },
   { path: "/management/spatialrepresentativeness", component: SpatialRepresentativeness, name: "SpatialRepresentativeness" },
+  { path: "/management/models", component: Models, name: "Models" },
 
   { path: "/data/dashboard", component: Dashboard, name: "Dashboard" },
   { path: "/data/latest", component: Latest, name: "Latest" },

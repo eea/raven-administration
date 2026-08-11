@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from core.jwt_ext_custom import jwt_required_with_management_claim
 from core.database import CursorFromPool
+from core.reporting.aqr3.grid import points_to_inspire_grid, validate_resolution
 from .models import SpatialRepresentativenessModel, DeleteModel
 import io
 import tempfile
@@ -98,32 +99,39 @@ def get_all():
         cursor.execute("""
             SELECT
                 sr.id,
-                sr.sr_application_id,
-                sr.application,
+                sr.srs_application_id,
+                sr.srs_application,
                 sr.created_at,
                 COUNT(a.id) AS point_count
             FROM spatial_representativeness sr
-            LEFT JOIN sr_area_inline a ON a.spatial_representativeness_id = sr.id
-            GROUP BY sr.id, sr.sr_application_id, sr.application, sr.created_at
+            LEFT JOIN srs_inline a ON a.spatial_representativeness_id = sr.id
+            GROUP BY sr.id, sr.srs_application_id, sr.srs_application, sr.created_at
             ORDER BY LOWER(sr.id)
         """)
         return jsonify(cursor.fetchall())
 
 
 def _insert_points(cursor, sr_id, points_4326, spatial_resolution):
-    from pyproj import Transformer
-    t = Transformer.from_crs("EPSG:4326", "EPSG:3035", always_xy=True)
-    cursor.execute("DELETE FROM sr_area_inline WHERE spatial_representativeness_id = %s", (sr_id,))
-    if points_4326:
-        args = []
-        for pt in points_4326:
-            x_3035, y_3035 = t.transform(pt.x, pt.y)
-            args.append((sr_id, float(x_3035), float(y_3035), spatial_resolution or None))
-        cursor.executemany("""
-            INSERT INTO sr_area_inline (spatial_representativeness_id, x, y, spatial_resolution)
-            VALUES (%s, %s, %s, %s)
-        """, args)
-    return len(points_4326)
+    """Store an SR area as AQR3 SRI grid cells.
+
+    Reprojects to EPSG:3035 *and snaps to the resolution* — a cell reference that
+    is merely reprojected does not line up with the EEA's own gridding, and
+    AQR3 keys SRI on (CountryCode, SRSApplicationId, X, Y). Snapping collapses
+    several source points onto one cell, so the returned count is cells written,
+    not points supplied.
+    """
+    cursor.execute("DELETE FROM srs_inline WHERE spatial_representativeness_id = %s", (sr_id,))
+    if not points_4326:
+        return 0
+
+    cells = points_to_inspire_grid([(pt.x, pt.y) for pt in points_4326],
+                                   spatial_resolution, source_srid=4326)
+    resolution = validate_resolution(spatial_resolution)
+    cursor.executemany("""
+        INSERT INTO srs_inline (spatial_representativeness_id, x, y, spatial_resolution)
+        VALUES (%s, %s, %s, %s)
+    """, [(sr_id, x, y, resolution) for x, y in cells])
+    return len(cells)
 
 
 @sr_endpoint.route("/api/management/spatialrepresentativeness/insert", methods=["POST"])
@@ -132,9 +140,9 @@ def insert():
     obj = SpatialRepresentativenessModel(**request.json)
     with CursorFromPool() as cursor:
         cursor.execute("""
-            INSERT INTO spatial_representativeness (id, sr_application_id, application)
-            VALUES (%(id)s, %(sr_application_id)s, %(application)s)
-        """, {"id": obj.id, "sr_application_id": obj.sr_application_id, "application": obj.application})
+            INSERT INTO spatial_representativeness (id, srs_application_id, srs_application)
+            VALUES (%(id)s, %(srs_application_id)s, %(srs_application)s)
+        """, {"id": obj.id, "srs_application_id": obj.srs_application_id, "srs_application": obj.srs_application})
         count = _insert_points(cursor, obj.id, obj.points, obj.spatial_resolution)
     return {"message": "Inserted", "id": obj.id, "point_count": count}, 201
 
@@ -146,10 +154,10 @@ def update():
     with CursorFromPool() as cursor:
         cursor.execute("""
             UPDATE spatial_representativeness
-            SET sr_application_id = %(sr_application_id)s,
-                application = %(application)s
+            SET srs_application_id = %(srs_application_id)s,
+                srs_application = %(srs_application)s
             WHERE id = %(id)s
-        """, {"id": obj.id, "sr_application_id": obj.sr_application_id, "application": obj.application})
+        """, {"id": obj.id, "srs_application_id": obj.srs_application_id, "srs_application": obj.srs_application})
         if cursor.rowcount == 0:
             return {"error": "Not found"}, 404
         if obj.points:
@@ -178,10 +186,10 @@ def get_by_id(sr_id):
     t = Transformer.from_crs("EPSG:3035", "EPSG:4326", always_xy=True)
     with CursorFromPool() as cursor:
         cursor.execute("""
-            SELECT sr.id, sr.sr_application_id, sr.application, sr.created_at,
+            SELECT sr.id, sr.srs_application_id, sr.srs_application, sr.created_at,
                    a.x, a.y, a.spatial_resolution
             FROM spatial_representativeness sr
-            LEFT JOIN sr_area_inline a ON a.spatial_representativeness_id = sr.id
+            LEFT JOIN srs_inline a ON a.spatial_representativeness_id = sr.id
             WHERE sr.id = %s
             ORDER BY a.id
         """, (sr_id,))
@@ -202,8 +210,8 @@ def get_by_id(sr_id):
 
     return jsonify({
         "id":                 first["id"],
-        "sr_application_id":  first["sr_application_id"],
-        "application":        first["application"],
+        "srs_application_id": first["srs_application_id"],
+        "srs_application":    first["srs_application"],
         "created_at":         str(first["created_at"]) if first["created_at"] else None,
         "spatial_resolution": spatial_resolution,
         "points":             points

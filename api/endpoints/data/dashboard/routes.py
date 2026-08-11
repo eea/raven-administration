@@ -41,7 +41,7 @@ def sampling_points():
                     pr.equipment_identifier
                 FROM processes pr
                 LEFT JOIN eea_measurementequipments me ON pr.equipment_id = me.id
-                ORDER BY pr.sampling_point_id, pr.activity_begin DESC
+                ORDER BY pr.sampling_point_id, pr.process_activity_begin DESC
             ) lp ON lp.sampling_point_id = sp.id
             ORDER BY LOWER(s.name), LOWER(COALESCE(NULLIF(po.notation, ''), po.label)), LOWER(t.notation)
         """, n_param)

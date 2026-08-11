@@ -18,9 +18,14 @@ def networks():
         cursor.execute(f"""            
             {with_network_sql}
             SELECT n.id, n.name,
-                   n.administration_level_id, COALESCE(NULLIF(a.notation, ''), a.label) as administration_level
+                   n.network_organisational_level_id, COALESCE(NULLIF(a.notation, ''), a.label) as network_organisational_level,
+                   n.timezone_id, COALESCE(NULLIF(tz.notation, ''), tz.label) as timezone,
+                   n.network_document_id, d.id || ' - ' || COALESCE(dobj.label, '') as network_document
             FROM networks n
-            LEFT JOIN eea_administrativelevels a ON n.administration_level_id = a.id
+            LEFT JOIN eea_administrativelevels a ON n.network_organisational_level_id = a.id
+            LEFT JOIN eea_timezones tz ON n.timezone_id = tz.id
+            LEFT JOIN documents d ON n.network_document_id = d.id
+            LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
             INNER JOIN network_access na ON n.id = na.id
             ORDER BY LOWER(n.name), n.id
         """, n_param)
@@ -35,9 +40,23 @@ def networks_lookups():
     with CursorFromPool() as cursor:
         cursor.execute("SELECT id as value, label FROM eea_administrativelevels ORDER BY LOWER(label)")
         levels = cursor.fetchall()
-        
+
+        cursor.execute("SELECT id as value, COALESCE(NULLIF(notation, ''), label) as label FROM eea_timezones ORDER BY COALESCE(NULLIF(notation, ''), label)")
+        timezones = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT d.id as value, d.id || ' - ' || COALESCE(dobj.label, '') as label
+            FROM documents d
+            LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
+            WHERE d.datatable_id = 'network'
+            ORDER BY d.id
+        """)
+        network_documents = cursor.fetchall()
+
         return jsonify({
-            "levels": levels
+            "levels": levels,
+            "timezones": timezones,
+            "network_documents": network_documents
         })
 
 
@@ -53,7 +72,9 @@ def networks_update():
         sql = """ 
             UPDATE networks
             SET name = %(name)s,
-                administration_level_id = %(administration_level_id)s
+                network_organisational_level_id = %(network_organisational_level_id)s,
+                timezone_id = %(timezone_id)s,
+                network_document_id = %(network_document_id)s
             WHERE id = %(id)s
         """
         cursor.execute(sql, model)
@@ -71,8 +92,8 @@ def networks_insert():
         model = NetworkModel(**request.json)
 
         sql = """ 
-            INSERT INTO networks (id, name, administration_level_id)
-            VALUES (%(id)s, %(name)s, %(administration_level_id)s)
+            INSERT INTO networks (id, name, network_organisational_level_id, timezone_id, network_document_id)
+            VALUES (%(id)s, %(name)s, %(network_organisational_level_id)s, %(timezone_id)s, %(network_document_id)s)
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:

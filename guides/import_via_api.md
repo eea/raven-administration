@@ -1,146 +1,121 @@
-# Import via API
+# Import and export via API
 
-You can import data with csv files into the Raven database.  
-Examples of csv file can be found in the [csv_examples folder](/csv_examples)
+Raven's management tables can be round-tripped as CSV. Export a table, edit it,
+import it back.
+
+## API versions
+
+The CSV headers for these endpoints **are** the database column names, derived at
+runtime from `information_schema`. Aligning the schema with Reportnet3 AQR3 v5.02
+therefore renamed several of them, so both contracts are served:
+
+| Version | Path | Headers |
+|---|---|---|
+| v1 (frozen) | `/api/exports/<table>`, `/api/imports/<table>` | The pre-AQR3 names — unchanged, for existing callers |
+| v2 | `/api/v2/exports/<table>`, `/api/v2/imports/<table>` | AQR3 v5.02 aligned column names |
+
+Renamed columns, v1 header → v2 header:
+
+| Table | v1 | v2 |
+|---|---|---|
+| `authorities` | `organisation_name` | `authority_name` |
+| `authorities` | `organisation_url` | `authority_url` |
+| `authorities` | `organisation_address` | `authority_address` |
+| `authorities` | `instance_id` | `authority_instance_id` |
+| `authorities` | `object_id` | `authority_role_id` |
+| `authorities` | `status_id` | `authority_status_id` |
+| `networks` | `administration_level_id` | `network_organisational_level_id` |
+| `stations` | `eoi_code` | `station_eoi_code` |
+| `stations` | `national_code` | `station_national_code` |
+| `stations` | `area_classification_id` | `station_area_id` |
+| `sampling_points` | `sampling_point_ref` | `sampling_point_reference_id` |
+| `sampling_points` | `spo_category_id` | `sampling_point_category_id` |
+| `processes` | `activity_begin` | `process_activity_begin` |
+| `processes` | `activity_end` | `process_activity_end` |
+| `zones` | `code` | `zone_national_code` |
+| `zones` | `area` | `zone_area` |
+
+Everything else is identical between the two versions.
 
 ## Authentication
 
-Before importing data you will need to retrieve a bearer token.
-
 ```yaml
-POST api/auth/signin
+POST /api/auth/signin
 BODY {"username":"username", "password":"password"}
 ```
 
-**Curl syntax**
+The user needs both the `management` and `all networks` claims, granted in the
+Raven web UI.
 
 ```bash
-curl -H "Content-Type: application/json" -X POST -d '{"username":"username", "password":"password"}' <MY_URL>/api/auth/signin
+curl -H "Content-Type: application/json" -X POST \
+     -d '{"username":"username", "password":"password"}' <MY_URL>/api/auth/signin
 ```
 
-Keep in mind, that the user needs to have access to `management` and `all networks`  
-This can configured within the Raven website
-
-# Importing
-
-Set the bearer token as authorization  
-Attach the csv file as `form-data` with the key `file`
-
-**Curl syntax**
+## Exporting
 
 ```bash
-curl -i -X POST -H "Authorization: Bearer <MY_TOKEN>" -F 'file=@<MY_FILE_CSV>' <MY_URL>
+curl -H "Authorization: Bearer <TOKEN>" <MY_URL>/api/exports/stations      # v1
+curl -H "Authorization: Bearer <TOKEN>" <MY_URL>/api/v2/exports/stations   # v2
 ```
 
-**Python code**
+## Importing
+
+Attach the file as `form-data` under the key `file`.
+
+```bash
+curl -i -X POST -H "Authorization: Bearer <TOKEN>" \
+     -F 'file=@stations.csv' <MY_URL>/api/imports/stations
+```
 
 ```python
 import requests
 
-headers = {'Authorization': f'Bearer {<MY_TOKEN>}'}
-files = {'file': open("<MY_FILE_CSV>", 'rb')}
-response = requests.post(<MY_URL>, files=files, headers=headers)
+headers = {'Authorization': f'Bearer {token}'}
+files = {'file': open('stations.csv', 'rb')}
+requests.post(f'{url}/api/imports/stations', files=files, headers=headers)
 ```
 
-### Authorities
+## Tables
 
-[CSV Example](/csv_examples/responsible_authorities.csv)
+`authorities`, `zones`, `networks`, `stations`, `sampling_points`, `processes`,
+`documents`.
+
+To discover the exact headers for a table and version, export it first — the
+header row is authoritative and always matches what the import will accept.
+`sampling_points` excludes `from_time` and `to_time` from the round-trip.
+
+`zones` also accepts a GeoPackage (`.gpkg`) instead of CSV, in which case the
+geometry comes from the file's geometry column.
+
+## Observations
+
+Separate endpoint, not part of the versioned management round-trip.
 
 ```yaml
-# Endpoint
-POST api/imports/authorities
+POST /api/imports/observations
 # CSV headers
-id,name,organisation,address,locator,postcode,email,phone,website,is_responsible_reporter
+sampling_point_id,from_time,to_time,value,observationverification_id,observationvalidity_id
 ```
 
-### Networks
+Values that already exist are updated, unless `observationverification_id = 1`
+(manually verified), which is never overwritten.
 
-[CSV Example](/csv_examples/networks.csv)
+There is also `POST /api/imports/logger`, which takes JSON keyed by `logger_id`
+rather than `sampling_point_id`:
 
-```yaml
-# Endpoint
-POST api/imports/networks
-# CSV headers
-id,name,media_monitored,responsible_authority_id,organisational,begin_position,end_position,aggregation_timezone
+```json
+{"values": [{"logger_id": "...", "from_time": "...", "to_time": "...", "value": 12.3}]}
 ```
 
-### Stations
+## Reportnet3 reporting export
 
-[CSV Example](/csv_examples/stations.csv)
-
-```yaml
-# Endpoint
-POST api/imports/stations
-# CSV headers
-id,national_station_code,name,network_id,measurement_regime,city,eoi_code,municipality,geom,mobile,area_classification,distance_junction,traffic_volume,heavy_duty_fraction,street_width,height_facades,begin_position,end_position
-```
-
-### Sampling points
-
-[CSV Example](/csv_examples/sampling_points.csv)
+The AQR3 v5.02 reporting CSVs are a different thing entirely — they are the EEA
+submission format, not Raven's internal round-trip. See
+**Data → Dataflow Export** in the UI, or:
 
 ```yaml
-# Endpoint
-POST api/imports/sampling_points
-# CSV headers
-id,station_id,assessment_type,station_classification,industrial_emissions,distance_source,mobile,used_aqd,media_monitored,measurement_regime,main_emission_sources,traffic_emissions,heating_emissions,industrial_emissions,change_aei_stations,logger_id,pollutant,begin_position,end_position,concentration,timestep
-```
-
-### Observing capabilities
-
-[CSV Example](/csv_examples/observation_capability.csv)
-
-```yaml
-# Endpoint
-POST api/imports/observing_capabilities
-# CSV headers
-id,sampling_point_id,sample_id,process_id,begin_position,end_position,process_type,result_nature
-```
-
-### Samples
-
-[CSV Example](/csv_examples/samples.csv)
-
-```yaml
-# Endpoint
-POST api/imports/samples
-# CSV headers
-id,kerb_distance,inlet_height,building_distance
-```
-
-### Processes
-
-[CSV Example](/csv_examples/processes.csv)
-
-```yaml
-# Endpoint
-POST api/imports/processes
-# CSV headers
-id,responsible_authority_id,measurement_type,measurement_method,measurement_equipment,detection_limit,detection_limit_uom,equiv_demonstration,equiv_demonstration_report,documentation,qa_report,duration_unit,duration_number,cadence_unit,cadence_number,uncertainty_estimate,sampling_method,other_sampling_method,analytical_tech,other_analytical_tech,other_measurement_method,sampling_equipment,other_sampling_equipment,other_measurement_equipment
-```
-
-### Observations
-
-[CSV Example](/csv_examples/obs-2019.csv)
-
-Values that already exists in the database will be updated, unless the verification_flag is 1
-
-```yaml
-# Endpoint
-POST api/imports/observations
-# CSV headers
-sampling_point_id,begin_position,end_position,value,validation_flag,verification_flag
-```
-
-### Zones
-
-[GPKG Example](/csv_examples/zones.gpkg)
-
-The zones file must be a geopackage file
-
-```yaml
-# Endpoint
-POST api/imports/zones
-# GEOPACKAGE attributes
-id,area,code,population,population_year,type,year,responsible_authority
+GET  /api/dataflow/csv/tables            # the registry: codes, filenames, columns
+POST /api/dataflow/csv/<TABLE_CODE>      # one table, e.g. STA, SPO, OMR
+POST /api/dataflow/csv/download_all      # everything as a ZIP
 ```

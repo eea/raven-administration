@@ -55,7 +55,7 @@ def latest():
                         pr.equipment_identifier,
                         pr.equipment_id
                     FROM processes pr
-                    ORDER BY pr.sampling_point_id, pr.activity_begin DESC
+                    ORDER BY pr.sampling_point_id, pr.process_activity_begin DESC
                 ) pr ON pr.sampling_point_id = sp.id
                 LEFT JOIN eea_measurementequipments me ON me.id = pr.equipment_id
                 

@@ -51,12 +51,12 @@ def export_exceedances_plans_programs():
             "exceedances": [
                 {
                     "countrycode": "AD",
-                    "assessmentregimeid": "AD_REGIME_ESCALDES_NO2_2024",
+                    "assessmentregimeid": "ARE_ZON_AD000A_0008_LV_H_aMean_2021_1",
                     "dataaggregationprocessid": "P1Y",
-                    "assessmentmethodid": "AD_METHOD_ESCALDES_NO2_001",
-                    "complianceid": "AD_COMP_2024_001",
+                    "assessmentmethodid": "SPO-AD0940A-0008",
                     "reportingyear": 2024,
-                    "airpollutantcode": 7,
+                    "pollutantid": 8,
+                    "attainmentid": "ATT_ZON_AD000A_0008_LV_H_aMean_2024_1",
                     "assessmenttype": "fixed",
                     "isexceedance": "yes",
                     "airpollutionlevel": 45.2,

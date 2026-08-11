@@ -4,10 +4,12 @@ from typing import Optional
 
 class SamplingPointsModel(RavenBaseModel):
     id: str
+    sampling_point_reference_id: Optional[str] = None
     inlet_height: float
     building_distance: float
     kerb_distance: float
     emission_source_distance: float
+    hotspot: bool = False
     logger_id: Optional[str] = None
     private: bool
     use_in_public_api: bool
@@ -16,7 +18,7 @@ class SamplingPointsModel(RavenBaseModel):
     time_resolution_id: str
     unit_id: str
     station_id: str
-    spo_category_id: str
+    sampling_point_category_id: str
 
     def __getitem__(self, key):
         return super().__getattribute__(key)

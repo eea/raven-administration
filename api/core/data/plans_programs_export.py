@@ -12,10 +12,15 @@ The export:
 5. Includes context data for UI display
 """
 
+import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-from core.eea.id_generator import EEAIDGenerator, get_or_validate_country_code
+from core.eea.id_generator import (
+    EEAIDGenerator,
+    IdentifierError,
+    get_or_validate_country_code,
+)
 from core.data.exceedances import (
     Exceedances,
     DIRECTIVE_THRESHOLDS,
@@ -23,6 +28,8 @@ from core.data.exceedances import (
     map_assessment_type
 )
 from core.data.statistics import Statistics
+
+logger = logging.getLogger(__name__)
 
 
 class PlansAndProgramsExport:
@@ -173,17 +180,26 @@ class PlansAndProgramsExport:
             sp.id as sampling_point_id,
             sp.id as sampling_point_code,
             st.name as station_name,
-            st.eoi_code as station_code,
+            st.station_eoi_code as station_code,
             st.longitude as longitude,
             st.latitude as latitude,
             
             -- Zone (via assessment_regimes) - v4 schema
             z.id as zone_id,
-            z.code as zone_code,
+            z.zone_national_code as zone_code,
             z.name as zone_name,
             zc.notation as zone_category,
+
+            -- Assessment regime. ar.id IS the AQR3 AssessmentRegimeId (ARZ_02) and
+            -- already carries the mandatory ARE_ format, so it is read, not rebuilt.
+            -- The component notations are what AttainmentId (CAM_15) is built from.
+            ar.id as assessment_regime_id,
+            ot.notation as objective_type,
+            pt.notation as protection_target,
+            rm.notation as reporting_metric,
             
-            -- Pollutant
+            -- Pollutant. AQR3 PollutantId is the numeric code, not the notation.
+            p.id as pollutant_id,
             p.notation as pollutant,
             p.label as pollutant_label,
             p.uri as pollutant_uri,
@@ -207,13 +223,16 @@ class PlansAndProgramsExport:
         LEFT JOIN assessment_regimes ar ON ad.assessment_regime_id = ar.id
         LEFT JOIN zones z ON ar.zone_id = z.id
         LEFT JOIN eea_zonecategory zc ON z.zone_category_id = zc.id
+        LEFT JOIN eea_objectivetypes ot ON ar.objective_type_id = ot.id
+        LEFT JOIN eea_protectiontargets pt ON ar.protection_target_id = pt.id
+        LEFT JOIN eea_reportingmetrics rm ON ar.reporting_metric_id = rm.id
         
         WHERE 1=1
           AND sp.from_time <= %(reportingyear_end)s::timestamp
           AND (sp.to_time IS NULL OR sp.to_time >= %(reportingyear_start)s::timestamp)
           AND {where_sql}
         
-        ORDER BY z.code, p.notation
+        ORDER BY z.zone_national_code, p.notation
         """
         
         self.cursor.execute(query, params)
@@ -236,22 +255,36 @@ class PlansAndProgramsExport:
             pollutant = row['pollutant']
             zone_code = row.get('zone_code') or row.get('zone_id') or 'UNKNOWN'
             zone_name = row.get('zone_name') or zone_code
-            
-            # Generate EEA IDs
-            assessment_regime_id = self.id_generator.generate_assessment_regime_id(
-                countrycode, zone_name, pollutant, reportingyear
-            )
-            compliance_id = self.id_generator.generate_compliance_id(
-                countrycode, reportingyear, sequence
-            )
-            assessment_method_id = self.id_generator.generate_assessment_method_id(
-                countrycode, zone_name, pollutant, sequence
-            )
-            attainment_id = self.id_generator.generate_attainment_id(
-                countrycode, reportingyear, zone_name, pollutant
-            )
-            sr_id = self.id_generator.generate_sr_id(row['sampling_point_id'])
-            
+
+            # AQR3 v5.02 identifiers.
+            #
+            # AssessmentRegimeId already exists on the regime row in its mandatory
+            # ARE_ format, so it is read rather than rebuilt. AssessmentMethodId is
+            # simply the sampling point id (CAM_05). AttainmentId is per reporting
+            # year, so it is derived from the regime's components.
+            assessment_regime_id = row.get('assessment_regime_id')
+            assessment_method_id = row['sampling_point_id']
+
+            attainment_id = None
+            if row.get('zone_id') and row.get('pollutant_id') is not None:
+                try:
+                    attainment_id = self.id_generator.generate_attainment_id(
+                        zone_id=row['zone_id'],
+                        pollutant_id=row['pollutant_id'],
+                        objective_type=row.get('objective_type'),
+                        protection_target=row.get('protection_target'),
+                        reporting_metric=row.get('reporting_metric'),
+                        reporting_year=reportingyear,
+                        index=sequence,
+                    )
+                except IdentifierError as e:
+                    # An incomplete assessment regime cannot yield a conformant
+                    # AttainmentId. Surface it rather than emitting a bad one.
+                    logger.warning('No AttainmentId for sampling point %s: %s',
+                                   row['sampling_point_id'], e)
+
+            srs_id = row['sampling_point_id']
+
             # Get EEA pollutant code
             air_pollutant_code = get_pollutant_eea_code(pollutant)
             
@@ -268,9 +301,11 @@ class PlansAndProgramsExport:
                 "assessmentregimeid": assessment_regime_id,
                 "dataaggregationprocessid": "P1Y",  # TODO: Get from actual statistic
                 "assessmentmethodid": assessment_method_id,
-                "complianceid": compliance_id,
+                # AQR3 v5.02 renamed these two. The pre-v5.02 keys `complianceid`
+                # and `airpollutantcode` are gone: compliance keys on AttainmentId,
+                # and PollutantId is the numeric code.
                 "reportingyear": reportingyear,
-                "airpollutantcode": air_pollutant_code,
+                "pollutantid": row.get('pollutant_id'),
                 "assessmenttype": assessment_type,
                 "hotspot": False,
                 "isexceedance": "unknown",  # TODO: Calculate from threshold evaluation
@@ -281,7 +316,7 @@ class PlansAndProgramsExport:
                 "maxratiouncertainty": None,
                 "correctionfactor": False,
                 "attainmentid": attainment_id,
-                "sr_id": sr_id,
+                "srsid": srs_id,
                 "preliminaryreason": None,
                 
                 # Nested context for UI display (expected by raven-plan-program import)
@@ -295,7 +330,7 @@ class PlansAndProgramsExport:
                 "station": {
                     "name": row['station_name'],
                     "code": row['station_code'],
-                    "eoi_code": row['station_code'],
+                    "station_eoi_code": row['station_code'],
                     "inspireId": f"{countrycode}.AQ.STATION.{row['station_code']}" if row.get('station_code') else None,
                     "longitude": float(row['longitude']) if row.get('longitude') else None,
                     "latitude": float(row['latitude']) if row.get('latitude') else None

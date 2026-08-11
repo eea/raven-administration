@@ -1,9 +1,10 @@
 const pageOptions = (lookups) => {
   return {
+    entityName: "Document",
     properties: [
       {
         type: "text",
-        label: "Document ID",
+        label: "Id",
         prop: "id",
         required: true,
         default: null,
@@ -23,7 +24,7 @@ const pageOptions = (lookups) => {
       },
       {
         type: "lookup",
-        label: "Document Object",
+        label: "Type",
         prop_id: "documentobject_id",
         prop: "documentobject_label",
         lookup: "documentobjects",

@@ -400,6 +400,46 @@ create table if not exists eea_datatable
 
 comment on table eea_datatable is 'Data table types - samplingprocess, model, assessmentregimezone, planscenario';
 
+create table if not exists eea_resultencoding
+(
+    id       varchar(100) not null primary key,
+    label    varchar(255) not null,
+    notation varchar(100),
+    uri      varchar(255) not null unique
+);
+
+comment on table eea_resultencoding is 'vocabulary/aq/resultencoding (MOE_06, SRS_05)';
+
+create table if not exists eea_modelapplication
+(
+    id       varchar(100) not null primary key,
+    label    varchar(255) not null,
+    notation varchar(100),
+    uri      varchar(255) not null unique
+);
+
+comment on table eea_modelapplication is 'vocabulary/aq/modelapplication (MOE_07)';
+
+create table if not exists eea_spatialresolution
+(
+    id       varchar(100) not null primary key,
+    label    varchar(255) not null,
+    notation varchar(100),
+    uri      varchar(255) not null unique
+);
+
+comment on table eea_spatialresolution is 'vocabulary/aq/spatialresolution (MRI_12, MRE_09, SRI_05, SRE_03). Metres on the EEA INSPIRE grid: 10 / 100 / 1000 / 10000.';
+
+create table if not exists eea_srapplication
+(
+    id       varchar(100) not null primary key,
+    label    varchar(255) not null,
+    notation varchar(100),
+    uri      varchar(255) not null unique
+);
+
+comment on table eea_srapplication is 'vocabulary/aq/SRapplication (SRS_04)';
+
 -- ---------------------------------------------------------------------------
 -- Settings
 -- ---------------------------------------------------------------------------
@@ -502,21 +542,25 @@ create table if not exists user_favorites
 create table if not exists authorities
 (
     id                   varchar(100) not null primary key,
-    person_name          varchar(255),
-    email                varchar(255) not null,
-    organisation_name    varchar(255) not null,
-    organisation_url     varchar(255),
-    organisation_address varchar(255),
-    instance_id          varchar(100)
+    person_name           varchar(255),
+    email                 varchar(255) not null,
+    authority_name        varchar(255) not null,
+    authority_url         varchar(255),
+    authority_address     varchar(255),
+    authority_instance_id varchar(100)
         references eea_authorityinstance
             on update cascade,
-    object_id            varchar(100)
+    authority_role_id     varchar(100)
         references eea_authorityobject
             on update cascade,
-    status_id            varchar(100)
+    authority_status_id   varchar(100)
         references eea_authoritystatus
             on update cascade
 );
+
+comment on column authorities.id is 'AQR3 AUT_02 AuthorityInstanceId';
+comment on column authorities.authority_role_id is 'AQR3 AUT_03 AuthorityRole -> eea_authorityobject';
+comment on column authorities.authority_instance_id is 'AQR3 AUT_05 AuthorityInstance (zone | network | nuts0..3 | station | SPO) -> eea_authorityinstance';
 
 comment on table authorities is 'Reportnet3 authority contacts - standalone, not linked to specific networks/stations';
 
@@ -526,15 +570,23 @@ comment on table authorities is 'Reportnet3 authority contacts - standalone, not
 
 create table if not exists networks
 (
-    id                      varchar(100) not null primary key,
-    name                    varchar(255) not null,
-    administration_level_id varchar(100)
+    id                              varchar(100) not null primary key,
+    name                            varchar(255) not null,
+    network_organisational_level_id varchar(100)
         references eea_administrativelevels
             on update cascade,
-    timezone_id             varchar(100)
+    timezone_id                     varchar(100)
         references eea_timezones
+            on update cascade,
+    network_document_id             varchar(255)
+        references documents
             on update cascade
 );
+
+comment on column networks.name is 'AQR3 STA_04 NetworkName';
+comment on column networks.network_organisational_level_id is 'AQR3 STA_05 NetworkOrganisationalLevel -> eea_administrativelevels';
+comment on column networks.timezone_id is 'AQR3 STA_06 Timezone';
+comment on column networks.network_document_id is 'AQR3 STA_09 NetworkDocumentId';
 
 comment on table networks is 'Reportnet3 network table with timezone';
 
@@ -556,14 +608,14 @@ create table if not exists groupnetwork
 create table if not exists stations
 (
     id                     varchar(100)   not null primary key,
-    eoi_code               varchar(20)    not null,
+    station_eoi_code       varchar(20)    not null,
     name                   varchar(255)   not null,
-    national_code          varchar(20),
+    station_national_code  varchar(20),
     latitude               numeric(10, 7) not null,
     longitude              numeric(10, 7) not null,
     altitude               numeric(6, 1),
     supersite              boolean default false,
-    area_classification_id varchar(100)
+    station_area_id        varchar(100)
         references eea_areaclassifications
             on update cascade,
     document_id            varchar(255)
@@ -574,7 +626,12 @@ create table if not exists stations
             on update cascade on delete cascade
 );
 
-comment on table stations is 'v4.8.0 stations with document reference';
+comment on table stations is 'v5.0.0 stations. Reports as MeasurementStation (STA) plus the default location values for SamplingPointLocation (SPL).';
+comment on column stations.station_eoi_code is 'AQR3 STA_02 StationEoICode';
+comment on column stations.name is 'AQR3 STA_08 StationName';
+comment on column stations.station_national_code is 'AQR3 STA_07 StationNationalCode';
+comment on column stations.station_area_id is 'AQR3 SPL_05 StationArea -> eea_areaclassifications';
+comment on column stations.document_id is 'Raven-internal station document. No AQR3 equivalent (STA_09 is the network document, on networks).';
 
 -- ---------------------------------------------------------------------------
 -- Sampling points
@@ -582,43 +639,96 @@ comment on table stations is 'v4.8.0 stations with document reference';
 
 create table if not exists sampling_points
 (
-    id                       varchar(100)          not null primary key,
-    sampling_point_ref       varchar(32),
-    inlet_height             numeric(32, 3),
-    building_distance        numeric(32, 3),
-    kerb_distance            numeric(32, 3),
-    emission_source_distance numeric(10, 1),
-    logger_id                varchar(255),
-    private                  boolean default false not null,
-    use_in_public_api        boolean default false not null,
-    from_time                timestamp,
-    to_time                  timestamp,
-    pollutant_id             integer               not null
+    id                          varchar(100)          not null primary key,
+    sampling_point_reference_id  varchar(32),
+    inlet_height                numeric(32, 3),
+    building_distance           numeric(32, 3),
+    kerb_distance               numeric(32, 3),
+    emission_source_distance    numeric(10, 1),
+    hotspot                     boolean default false not null,
+    logger_id                   varchar(255),
+    private                     boolean default false not null,
+    use_in_public_api           boolean default false not null,
+    from_time                   timestamp,
+    to_time                     timestamp,
+    pollutant_id                integer               not null
         references eea_pollutants
             on update cascade on delete cascade,
-    time_resolution_id       varchar(100)          not null
+    time_resolution_id          varchar(100)          not null
         references eea_times
             on update cascade on delete cascade,
-    unit_id                  varchar(100)          not null
+    unit_id                     varchar(100)          not null
         references eea_concentrations
             on update cascade on delete cascade,
-    spo_category_id          varchar(100)
+    sampling_point_category_id  varchar(100)
         references eea_spocategory
             on update cascade,
-    station_id               varchar(100)          not null
+    station_id                  varchar(100)          not null
         references stations
             on update cascade on delete cascade,
-    daily_check              boolean default false not null
+    daily_check                 boolean default false not null
 );
 
-comment on table sampling_points is 'v4.4.0 simplified: sample-related data only';
-comment on column sampling_points.pollutant_id is 'FK to eea_pollutants.id (numeric)';
-comment on column sampling_points.time_resolution_id is 'FK to eea_times (hour, day, etc.)';
-comment on column sampling_points.unit_id is 'FK to eea_concentrations (ug.m-3, etc.)';
-comment on column sampling_points.daily_check is 'When true, the daily check feature is enabled for this sampling point (shows checkbox in dashboard).';
+comment on table sampling_points is 'v5.0.0 AQR3 v5.02: operational store for a sampling point. Reports as SamplingPoint (SPO) plus the current row of SamplingPointLocation (SPL).';
+comment on column sampling_points.id is 'AQR3 SPO_02 AssessmentMethodId';
+comment on column sampling_points.sampling_point_reference_id is 'AQR3 SPO_03. Mandatory format: SPOref_<StationEoICode>_<PollutantId>_<idx>';
+comment on column sampling_points.pollutant_id is 'AQR3 SPO_04 PollutantId. FK to eea_pollutants.id (numeric)';
+comment on column sampling_points.hotspot is 'AQR3 SPL_07. Default location value, overridable per period in sampling_point_locations.';
+comment on column sampling_points.sampling_point_category_id is 'AQR3 SPL_06 SamplingPointCategory';
+comment on column sampling_points.time_resolution_id is 'AQR3 OMR_11 TimeResolution. FK to eea_times (hour, day, etc.)';
+comment on column sampling_points.unit_id is 'AQR3 OMR_07 Unit. FK to eea_concentrations (ug.m-3, etc.)';
+comment on column sampling_points.from_time is 'Sampling point active period start. Raven-internal; also the default SPL_03 LocationBegin.';
+comment on column sampling_points.logger_id is 'Raven-internal: logger push identifier. No AQR3 equivalent.';
+comment on column sampling_points.private is 'Raven-internal: hides the series from non-owning networks. No AQR3 equivalent.';
+comment on column sampling_points.use_in_public_api is 'Raven-internal: exposes the series via the public API. No AQR3 equivalent.';
+comment on column sampling_points.daily_check is 'Raven-internal: when true, the daily check feature is enabled (shows checkbox in dashboard). No AQR3 equivalent.';
 
 create index if not exists idx_sp_station_pollutant
     on sampling_points (station_id, pollutant_id);
+
+-- ---------------------------------------------------------------------------
+-- Sampling point locations (AQR3 SPL)
+--
+-- Additive location history. sampling_points and stations remain the
+-- authoritative operational store and the default location values; a row here
+-- overrides them for a given period. The SPL export COALESCEs this table over
+-- sampling_points/stations, so an instance that never records a location change
+-- still reports one complete SPL row per sampling point.
+-- ---------------------------------------------------------------------------
+
+create table if not exists sampling_point_locations
+(
+    sampling_point_id           varchar(100) not null
+        references sampling_points
+            on update cascade on delete cascade,
+    location_begin              timestamp    not null,
+    location_end                timestamp,
+    station_area_id             varchar(100)
+        references eea_areaclassifications
+            on update cascade,
+    sampling_point_category_id  varchar(100)
+        references eea_spocategory
+            on update cascade,
+    hotspot                     boolean,
+    supersite                   boolean,
+    latitude                    numeric(10, 7),
+    longitude                   numeric(10, 7),
+    altitude                    numeric(6, 1),
+    inlet_height                numeric(32, 3),
+    building_distance           numeric(32, 3),
+    kerb_distance               numeric(32, 3),
+    emission_source_distance    numeric(10, 1),
+    primary key (sampling_point_id, location_begin),
+    constraint sampling_point_locations_period
+        check (location_end is null or location_end > location_begin)
+);
+
+comment on table sampling_point_locations is 'v5.0.0 AQR3 SPL. Optional per-period location overrides; PK matches the AQR3 key (CountryCode + AssessmentMethodId + LocationBegin). All attribute columns are nullable and fall back to sampling_points/stations.';
+comment on column sampling_point_locations.location_begin is 'AQR3 SPL_03';
+comment on column sampling_point_locations.location_end is 'AQR3 SPL_04. NULL means still current.';
+
+create index if not exists idx_spl_sp_begin
+    on sampling_point_locations (sampling_point_id, location_begin desc);
 
 -- ---------------------------------------------------------------------------
 -- Processes
@@ -627,8 +737,8 @@ create index if not exists idx_sp_station_pollutant
 create table if not exists processes
 (
     id                                    varchar(100) not null primary key,
-    activity_begin                        varchar(25)  not null,
-    activity_end                          varchar(25),
+    process_activity_begin                timestamp    not null,
+    process_activity_end                  timestamp,
     measurement_type_id                   varchar(100)
         references eea_measurementtypes
             on update cascade,
@@ -655,10 +765,15 @@ create table if not exists processes
             on update cascade,
     process_document_id                   varchar(255)
         references documents
-            on update cascade
+            on update cascade,
+    equipment_identifier                  varchar(255)
 );
 
-comment on table processes is 'v4.8.0 simplified: activity times + document reference';
+comment on table processes is 'v5.0.0 AQR3 SamplingProcess (SPP)';
+comment on column processes.id is 'AQR3 SPP_02 ProcessId';
+comment on column processes.process_activity_begin is 'AQR3 SPP_04';
+comment on column processes.process_activity_end is 'AQR3 SPP_05';
+comment on column processes.equipment_identifier is 'Raven-internal: serial/asset tag of the physical analyser. No AQR3 equivalent.';
 
 create index if not exists idx_processes_sp
     on processes (sampling_point_id);
@@ -683,6 +798,7 @@ create table if not exists observations
     to_time                    timestamp                     not null,
     import_value               numeric(255, 5)               not null,
     scaled_value               numeric(255, 5),
+    data_capture               numeric(5, 2),
     meta                       jsonb,
     constraint un_obs_spoid_fromto
         unique (sampling_point_id, from_time, to_time)
@@ -693,6 +809,7 @@ comment on column observations.observationverification_id is '1=verified, 2=prel
 comment on column observations.observationvalidity_id is '-99=maintenance, -1=not valid, 1=valid, 2=below detection, 3=below+substituted, 4=ozone CCQM';
 comment on column observations.import_value is 'Original imported value (before scaling)';
 comment on column observations.scaled_value is 'Value after calibration scaling';
+comment on column observations.data_capture is 'AQR3 OMR_10 DataCapture (percent). Backfilled from meta->>''instrument_validity'' where ADACS supplied it.';
 comment on column observations.meta is 'NILU instrument metadata: {"instrument_flag": N, "instrument_validity": N.N}. Set by ADACS at import, never modified by QC.';
 
 create index if not exists idx_observations_spid_ft
@@ -956,16 +1073,16 @@ comment on column autovalidated_series.pollutant_id is 'FK to eea_pollutants.id 
 
 create table if not exists zones
 (
-    id               varchar(100) not null primary key,
-    code             varchar(100) not null,
-    name             varchar(254) not null,
+    id                 varchar(100) not null primary key,
+    zone_national_code varchar(100) not null,
+    name               varchar(254) not null,
     geom             geometry     not null
         constraint enforce_dims_geom
             check (st_ndims(geom) = 2)
         constraint enforce_srid_geom
             check (st_srid(geom) = 4326),
-    area             numeric      not null,
-    zone_category_id varchar(100)
+    zone_area          numeric      not null,
+    zone_category_id   varchar(100)
         references eea_zonecategory
             on update cascade,
     zone_type_id     varchar(100)
@@ -973,7 +1090,11 @@ create table if not exists zones
             on update cascade
 );
 
-comment on table zones is 'v4.4.0 simplified zones';
+comment on table zones is 'v5.0.0 zones. Reports as ZoneGeometry (ZGE) and feeds AssessmentRegimeZone (ARZ).';
+comment on column zones.id is 'AQR3 ARZ_03 / ZGE_02 ZoneId';
+comment on column zones.zone_national_code is 'AQR3 ARZ_04 ZoneNationalCode';
+comment on column zones.name is 'AQR3 ARZ_08 ZoneName';
+comment on column zones.zone_area is 'AQR3 ARZ_05 ZoneArea (km2)';
 
 create index if not exists zones_geom_gist
     on zones using gist (geom);
@@ -1017,11 +1138,12 @@ create index if not exists idx_assessmentregime_zones_env_obj
 create table if not exists assessment_regimes
 (
     id                                 varchar(100) not null primary key,
-    fixed_spo_reduction                boolean default false,
-    resident_population_year           integer,
-    resident_population                integer,
+    fixed_measurement_reduction        boolean default false,
+    zone_resident_population_year      integer,
+    zone_resident_population           integer,
     classification_year                integer,
-    classification_report_id           varchar(255),
+    postponement_year                  integer,
+    classification_document_id         varchar(255),
     assessment_threshold_exceedance_id varchar(100)
         references eea_assessmentthresholdexceedances
             on update cascade,
@@ -1042,8 +1164,71 @@ create table if not exists assessment_regimes
             on update cascade on delete cascade
 );
 
-comment on table assessment_regimes is 'v4.4.0 assessment regimes';
+comment on table assessment_regimes is 'v5.0.0 AQR3 AssessmentRegimeZone (ARZ)';
+comment on column assessment_regimes.id is 'AQR3 ARZ_02 AssessmentRegimeId. Mandatory format: ARE_<ZoneId>_<PollutantId>_<ObjectiveType>_<ProtectionTarget>_<ReportingMetric>_<ClassificationYear>_<idx>';
+comment on column assessment_regimes.postponement_year is 'AQR3 ARZ_14 PostponementYear';
+comment on column assessment_regimes.fixed_measurement_reduction is 'AQR3 ARZ_15 FixedMeasurementReduction';
+comment on column assessment_regimes.classification_document_id is 'AQR3 ARZ_19 ClassificationDocumentId';
 comment on column assessment_regimes.pollutant_id is 'FK to eea_pollutants.id (numeric)';
+
+-- ---------------------------------------------------------------------------
+-- Spatial representativeness (AQR3 SRS / SRI / SRE)
+--
+-- These were previously created only by the NILU-only sql/migrate_airquis.py,
+-- so the spatialrepresentativeness module and its exports failed on a fresh
+-- install. They belong in the core schema.
+-- ---------------------------------------------------------------------------
+
+create table if not exists spatial_representativeness
+(
+    id                                      varchar(255) not null primary key,
+    srs_application_id                      varchar(255),
+    srs_application                         varchar(100),
+    representativeness_assessment_method_id varchar(255),
+    result_encoding_id                      varchar(100)
+        references eea_resultencoding
+            on update cascade,
+    created_at                              timestamp default CURRENT_TIMESTAMP
+);
+
+comment on table spatial_representativeness is 'AQR3 SRS. Links an SR area (SPO representativeness or exceedance extent) to the compliance assessment method.';
+comment on column spatial_representativeness.id is 'AQR3 SRS_02 SRSId';
+comment on column spatial_representativeness.srs_application_id is 'AQR3 SRS_03 SRSApplicationId';
+comment on column spatial_representativeness.srs_application is 'AQR3 SRS_04 SRSApplication -> eea_srapplication';
+comment on column spatial_representativeness.result_encoding_id is 'AQR3 SRS_05 ResultEncoding -> eea_resultencoding';
+comment on column spatial_representativeness.representativeness_assessment_method_id is 'AQR3 SRS_06';
+
+create table if not exists srs_inline
+(
+    id                            serial primary key,
+    spatial_representativeness_id varchar(255)
+        references spatial_representativeness
+            on update cascade on delete cascade,
+    x                             bigint,
+    y                             bigint,
+    spatial_resolution            integer
+);
+
+comment on table srs_inline is 'AQR3 SRI. Grid cells of an SR area.';
+comment on column srs_inline.x is 'AQR3 SRI_03. EPSG:3035 easting, snapped to spatial_resolution.';
+comment on column srs_inline.y is 'AQR3 SRI_04. EPSG:3035 northing, snapped to spatial_resolution.';
+comment on column srs_inline.spatial_resolution is 'AQR3 SRI_05 SpatialResolution in metres (10 | 100 | 1000 | 10000)';
+
+create index if not exists idx_srs_inline_sr
+    on srs_inline (spatial_representativeness_id);
+
+create table if not exists srs_external
+(
+    spatial_representativeness_id varchar(255) not null
+        references spatial_representativeness
+            on update cascade on delete cascade,
+    spatial_resolution            integer,
+    geotiff_attachment            varchar(255),
+    primary key (spatial_representativeness_id)
+);
+
+comment on table srs_external is 'AQR3 SRE. SR area supplied as an attached GEOTIFF instead of inline grid cells.';
+comment on column srs_external.geotiff_attachment is 'AQR3 SRE_04 GeoTiffAttachment';
 
 -- ---------------------------------------------------------------------------
 -- Assessment data
@@ -1257,6 +1442,185 @@ create table if not exists notifications_samplingpoints
             on update cascade on delete cascade,
     primary key (sampling_point_id, notification_id)
 );
+
+-- ---------------------------------------------------------------------------
+-- Models / objective estimation (AQR3 MOE, MRI, MRE)
+-- ---------------------------------------------------------------------------
+
+create table if not exists models
+(
+    id                          varchar(100) not null primary key,
+    data_aggregation_process_id varchar(100) not null
+        references eea_aggregationprocess
+            on update cascade,
+    assessment_method_name      varchar(150),
+    pollutant_id                integer
+        references eea_pollutants
+            on update cascade,
+    result_encoding_id          varchar(100)
+        references eea_resultencoding
+            on update cascade,
+    method_application_id       varchar(100)
+        references eea_modelapplication
+            on update cascade,
+    generic_mqi                 numeric(5, 2),
+    data_quality_document_id    varchar(255)
+        references documents
+            on update cascade,
+    method_document_id          varchar(255)
+        references documents
+            on update cascade,
+    constraint models_id_prefix
+        check (id like 'MOD\_%' or id like 'OBE\_%')
+);
+
+comment on table models is 'AQR3 MOE ModelObjectiveEstimation. A model or objective-estimation application.';
+comment on column models.id is 'AQR3 MOE_02 AssessmentMethodId. Mandatory format: MOD_<specific> or OBE_<specific>.';
+comment on column models.data_aggregation_process_id is 'AQR3 MOE_03 DataAggregationProcessId';
+comment on column models.assessment_method_name is 'AQR3 MOE_04 AssessmentMethodName';
+comment on column models.result_encoding_id is 'AQR3 MOE_06 ResultEncoding — inline (moe_result_inline) or external (moe_result_external)';
+comment on column models.method_application_id is 'AQR3 MOE_07 MethodApplication';
+comment on column models.generic_mqi is 'AQR3 MOE_08 GenericMQI (modelling quality indicator)';
+
+-- Gridded model results. Highest-volume table in the schema: a national 100 m
+-- grid at hourly resolution runs to billions of rows, so it is range-partitioned
+-- by year and carries no per-row FKs (integrity is enforced at ingest).
+create table if not exists moe_result_inline
+(
+    assessment_method_id        varchar(100) not null,
+    start_time                  timestamp    not null,
+    data_aggregation_process_id varchar(100) not null,
+    x                           bigint       not null,
+    y                           bigint       not null,
+    pollutant_id                integer,
+    end_time                    timestamp,
+    value                       numeric(10, 2),
+    unit_id                     varchar(100),
+    validity_id                 integer,
+    spatial_resolution          integer,
+    result_time                 timestamp,
+    primary key (assessment_method_id, start_time, data_aggregation_process_id, x, y)
+) partition by range (start_time);
+
+comment on table moe_result_inline is 'AQR3 MRI MOEResultInline. X/Y are EEA INSPIRE grid coordinates in EPSG:3035, snapped to spatial_resolution.';
+comment on column moe_result_inline.x is 'AQR3 MRI_05. EPSG:3035 easting.';
+comment on column moe_result_inline.y is 'AQR3 MRI_06. EPSG:3035 northing.';
+comment on column moe_result_inline.spatial_resolution is 'AQR3 MRI_12 SpatialResolution in metres (10 | 100 | 1000 | 10000)';
+
+create table if not exists moe_result_inline_default
+    partition of moe_result_inline default;
+
+do
+$$
+    declare
+        y integer;
+    begin
+        for y in 2000..2035
+            loop
+                execute format(
+                        'create table if not exists moe_result_inline_%s partition of moe_result_inline for values from (''%s-01-01'') to (''%s-01-01'')',
+                        y, y, y + 1);
+            end loop;
+    end
+$$;
+
+create index if not exists idx_mri_method_start
+    on moe_result_inline (assessment_method_id, start_time);
+
+create table if not exists moe_result_external
+(
+    assessment_method_id        varchar(100) not null
+        references models
+            on update cascade on delete cascade,
+    start_time                  timestamp    not null,
+    data_aggregation_process_id varchar(100) not null
+        references eea_aggregationprocess
+            on update cascade,
+    pollutant_id                integer
+        references eea_pollutants
+            on update cascade,
+    end_time                    timestamp,
+    unit_id                     varchar(100)
+        references eea_concentrations
+            on update cascade,
+    validity_id                 integer
+        references eea_observationvalidity
+            on update cascade,
+    spatial_resolution          integer,
+    result_time                 timestamp,
+    geotiff_attachment          varchar(255),
+    primary key (assessment_method_id, start_time, data_aggregation_process_id)
+);
+
+comment on table moe_result_external is 'AQR3 MRE MOEResultExternal. Gridded model results supplied as an attached GEOTIFF.';
+
+-- ---------------------------------------------------------------------------
+-- Pollution level adjustment (AQR3 ADJ)
+-- ---------------------------------------------------------------------------
+
+create table if not exists pollution_level_adjustment
+(
+    attainment_id                   varchar(100) not null,
+    adjustment_source_id            varchar(100) not null
+        references eea_adjustmentsourcetype
+            on update cascade,
+    adjustment_assessment_method_id varchar(100),
+    adjustment_document_id          varchar(255)
+        references documents
+            on update cascade,
+    primary key (attainment_id, adjustment_source_id)
+);
+
+comment on table pollution_level_adjustment is 'AQR3 ADJ. Deductions for natural sources or winter salting/sanding, per attainment situation.';
+comment on column pollution_level_adjustment.attainment_id is 'AQR3 ADJ_02 AttainmentId — matches compliance_assessment_method.attainment_id';
+comment on column pollution_level_adjustment.adjustment_source_id is 'AQR3 ADJ_03 AdjustmentSource';
+
+-- ---------------------------------------------------------------------------
+-- Compliance assessment method (AQR3 CAM)
+-- ---------------------------------------------------------------------------
+
+create table if not exists compliance_assessment_method
+(
+    reporting_year              integer      not null,
+    assessment_regime_id        varchar(100) not null
+        references assessment_regimes
+            on update cascade on delete cascade,
+    data_aggregation_process_id varchar(100) not null
+        references eea_aggregationprocess
+            on update cascade,
+    assessment_method_id        varchar(100) not null,
+    pollutant_id                integer
+        references eea_pollutants
+            on update cascade,
+    assessment_type_id          varchar(100)
+        references eea_assessmenttypes
+            on update cascade,
+    is_exceedance               boolean,
+    data_coverage               numeric(5, 2),
+    pollution_level             numeric(10, 3),
+    pollution_level_adjusted    numeric(10, 3),
+    relative_uncertainty_limit  numeric(10, 2),
+    assessment_mqi              numeric(5, 2),
+    correction_flag             boolean,
+    attainment_id               varchar(100),
+    srs_id                      varchar(255),
+    preliminary_reason_id       varchar(100)
+        references eea_exceedancereason
+            on update cascade,
+    deletion                    boolean default false not null,
+    calculated_at               timestamp default CURRENT_TIMESTAMP,
+    primary key (reporting_year, assessment_regime_id, data_aggregation_process_id, assessment_method_id)
+);
+
+comment on table compliance_assessment_method is 'AQR3 CAM. Persisted yearly compliance results, regenerated by the exceedance/attainment calculation.';
+comment on column compliance_assessment_method.assessment_method_id is 'AQR3 CAM_05. Either a sampling_points.id (measurement) or a models.id (model/OBE) — deliberately not a FK, since it spans both.';
+comment on column compliance_assessment_method.attainment_id is 'AQR3 CAM_15 AttainmentId. Mandatory format: ATT_<ZoneId>_<PollutantId>_<ObjectiveType>_<ProtectionTarget>_<ReportingMetric>_<ReportingYear>_<idx>';
+comment on column compliance_assessment_method.deletion is 'AQR3 CAM_18 Deletion — flags a previously reported row for withdrawal.';
+
+create index if not exists idx_cam_year
+    on compliance_assessment_method (reporting_year);
+create index if not exists idx_cam_attainment
+    on compliance_assessment_method (attainment_id);
 
 -- ---------------------------------------------------------------------------
 -- Schema version tracking

@@ -16,13 +16,13 @@ def stations():
         with_network_sql, n_param = Q.with_networks_by_access_as_sql()
         cursor.execute(f"""
           {with_network_sql} 
-          SELECT st.id, st.eoi_code, st.name, st.national_code,
+          SELECT st.id, st.station_eoi_code, st.name, st.station_national_code,
                  st.latitude, st.longitude, st.altitude, st.supersite,
-                 st.area_classification_id, COALESCE(NULLIF(ac.notation, ''), ac.label) as area_classification,
+                 st.station_area_id, COALESCE(NULLIF(ac.notation, ''), ac.label) as station_area,
                  st.network_id, n.name as network,
                  st.document_id, d.id || ' - ' || COALESCE(dobj.label, '') as document
           FROM stations st
-          LEFT JOIN eea_areaclassifications ac ON st.area_classification_id = ac.id
+          LEFT JOIN eea_areaclassifications ac ON st.station_area_id = ac.id
           INNER JOIN networks n ON st.network_id = n.id
           INNER JOIN network_access na ON n.id = na.id
           LEFT JOIN documents d ON st.document_id = d.id
@@ -51,9 +51,6 @@ def stations_lookups():
         cursor.execute("SELECT id as value, label FROM eea_areaclassifications ORDER BY LOWER(label)")
         areaclassifications = cursor.fetchall()
         
-        cursor.execute("SELECT id as value, label FROM eea_spocategory ORDER BY LOWER(label)")
-        spocategories = cursor.fetchall()
-        
         cursor.execute("""
             SELECT d.id as value, d.id || ' - ' || COALESCE(dobj.label, '') as label
             FROM documents d
@@ -66,7 +63,6 @@ def stations_lookups():
         return jsonify({
             "networks": networks,
             "areaclassifications": areaclassifications,
-            "spocategories": spocategories,
             "documents": documents
         })
 
@@ -82,14 +78,14 @@ def stations_update():
 
         sql = """ 
             UPDATE stations
-            SET eoi_code = %(eoi_code)s,
+            SET station_eoi_code = %(station_eoi_code)s,
                 name = %(name)s,
-                national_code = %(national_code)s,
+                station_national_code = %(station_national_code)s,
                 latitude = %(latitude)s,
                 longitude = %(longitude)s,
                 altitude = %(altitude)s,
                 supersite = %(supersite)s,
-                area_classification_id = %(area_classification_id)s,
+                station_area_id = %(station_area_id)s,
                 network_id = %(network_id)s,
                 document_id = %(document_id)s
             WHERE id = %(id)s
@@ -111,10 +107,10 @@ def stations_insert():
             raise BadRequest("Access denied for network")
 
         sql = """ 
-            INSERT INTO stations (id, eoi_code, name, national_code, latitude, longitude, 
-                                 altitude, supersite, area_classification_id, network_id, document_id)
-            VALUES (%(id)s, %(eoi_code)s, %(name)s, %(national_code)s, %(latitude)s, %(longitude)s,
-                   %(altitude)s, %(supersite)s, %(area_classification_id)s, %(network_id)s, %(document_id)s)
+            INSERT INTO stations (id, station_eoi_code, name, station_national_code, latitude, longitude, 
+                                 altitude, supersite, station_area_id, network_id, document_id)
+            VALUES (%(id)s, %(station_eoi_code)s, %(name)s, %(station_national_code)s, %(latitude)s, %(longitude)s,
+                   %(altitude)s, %(supersite)s, %(station_area_id)s, %(network_id)s, %(document_id)s)
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:

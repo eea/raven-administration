@@ -80,8 +80,8 @@ def map():
             JOIN stations s               ON s.id                = sp.station_id
             JOIN network_access n         ON n.id                = s.network_id
             JOIN eea_concentrations u     ON sp.unit_id          = u.id
-            LEFT JOIN eea_areaclassifications ac ON s.area_classification_id = ac.id
-            LEFT JOIN eea_spocategory sc  ON sp.spo_category_id  = sc.id
+            LEFT JOIN eea_areaclassifications ac ON s.station_area_id = ac.id
+            LEFT JOIN eea_spocategory sc  ON sp.sampling_point_category_id = sc.id
             {join_aqi}
             WHERE o.to_time = sp.to_time
         """

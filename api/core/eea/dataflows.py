@@ -131,13 +131,13 @@ class Dataflows:
                 SELECT
                 z."id",
                 z."name",
-                z.code,
+                z.zone_national_code,
                 z.type,
                 z.zone_type_uri ,
                 z.population,
                 z.population_year,
                 z."year",
-                z.area,
+                z.zone_area,
                 ra."name" ra_name,
                 ST_AsGML(3,z.geom,15,17,'gml', z."name") gml,
                 ra.organisation ra_organisation,
@@ -150,7 +150,7 @@ class Dataflows:
             FROM
                 zones z
                 INNER JOIN responsible_authorities ra ON ra."id" = z.responsible_authority_id
-            ORDER BY z.code
+            ORDER BY z.zone_national_code
               """)
             rows = cursor.fetchall()
             return Dataflows.map_list_of_dict(rows, Zone)
@@ -241,7 +241,7 @@ class Dataflows:
                       st.end_position,
                       st.network_id,
                       st.municipality,
-                      st.eoi_code,
+                      st.station_eoi_code,
                       st.national_station_code,
                       st.media_monitored,
                       st.mobile,
@@ -262,7 +262,7 @@ class Dataflows:
                       st.end_position,
                       st.network_id,
                       st.municipality,
-                      st.eoi_code,
+                      st.station_eoi_code,
                       st.national_station_code,
                       st.media_monitored,
                       st.mobile,

@@ -48,7 +48,7 @@ const updateRows = async (row) => {
   }
 
   rowsToUpdate.forEach((r) => {
-    r.classification_report_id = selectedReportId.value;
+    r.classification_document_id = selectedReportId.value;
     r.assessment_threshold_exceedance = selectedThreshold.value;
   });
 
@@ -78,7 +78,7 @@ const clearRows = async (row) => {
   }
 
   rowsToClear.forEach((r) => {
-    r.classification_report_id = null;
+    r.classification_document_id = null;
     r.assessment_threshold_exceedance = null;
   });
 

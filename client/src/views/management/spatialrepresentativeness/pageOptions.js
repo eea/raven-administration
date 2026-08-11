@@ -1,9 +1,10 @@
 const pageOptions = (lookups) => {
   return {
+    entityName: "Spatial Representativeness",
     properties: [
       {
         type: "text",
-        label: "SR Id",
+        label: "Id",
         prop: "id",
         required: true,
         default: null,
@@ -12,8 +13,8 @@ const pageOptions = (lookups) => {
       },
       {
         type: "text",
-        label: "SR Application Id",
-        prop: "sr_application_id",
+        label: "Application Id",
+        prop: "srs_application_id",
         required: true,
         default: null,
         enableInEdit: true,
@@ -22,8 +23,8 @@ const pageOptions = (lookups) => {
       {
         type: "lookup",
         label: "Application",
-        prop_id: "application",
-        prop: "application",
+        prop_id: "srs_application",
+        prop: "srs_application",
         lookup: "applications",
         required: true,
         default: null,
