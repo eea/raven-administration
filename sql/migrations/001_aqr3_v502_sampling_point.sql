@@ -66,7 +66,7 @@ alter table sampling_points
 -- 3. Comments
 -- ---------------------------------------------------------------------------
 
-comment on table sampling_points is 'v5.0.0 AQR3 v5.02: operational store for a sampling point. Reports as SamplingPoint (SPO) plus the current row of SamplingPointLocation (SPL).';
+comment on table sampling_points is 'v4.502 AQR3 v5.02: operational store for a sampling point. Reports as SamplingPoint (SPO) plus the current row of SamplingPointLocation (SPL).';
 comment on column sampling_points.id is 'AQR3 SPO_02 AssessmentMethodId';
 comment on column sampling_points.sampling_point_reference_id is 'AQR3 SPO_03. Mandatory format: SPOref_<StationEoICode>_<PollutantId>_<idx>';
 comment on column sampling_points.pollutant_id is 'AQR3 SPO_04 PollutantId. FK to eea_pollutants.id (numeric)';
@@ -112,7 +112,7 @@ create table if not exists sampling_point_locations
         check (location_end is null or location_end > location_begin)
 );
 
-comment on table sampling_point_locations is 'v5.0.0 AQR3 SPL. Optional per-period location overrides; PK matches the AQR3 key (CountryCode + AssessmentMethodId + LocationBegin). All attribute columns are nullable and fall back to sampling_points/stations.';
+comment on table sampling_point_locations is 'v4.502 AQR3 SPL. Optional per-period location overrides; PK matches the AQR3 key (CountryCode + AssessmentMethodId + LocationBegin). All attribute columns are nullable and fall back to sampling_points/stations.';
 comment on column sampling_point_locations.location_begin is 'AQR3 SPL_03';
 comment on column sampling_point_locations.location_end is 'AQR3 SPL_04. NULL means still current.';
 
@@ -130,7 +130,7 @@ create index if not exists idx_spl_sp_begin
 -- ---------------------------------------------------------------------------
 
 insert into schema_version (version, description)
-values ('5.0.0-spo-spl',
+values ('4.502.1',
         'AQR3 v5.02: rename sampling_points.sampling_point_ref/spo_category_id, add hotspot, add sampling_point_locations (SPL)')
 on conflict (version) do nothing;
 

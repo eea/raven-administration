@@ -145,6 +145,12 @@ alter table networks
     add column if not exists network_document_id varchar(255)
         references documents on update cascade;
 
+-- STA_06 Timezone. Present in schema.sql from the start but never added by a
+-- migration, so the comment below aborted this file on existing databases.
+alter table networks
+    add column if not exists timezone_id varchar(100)
+        references eea_timezones on update cascade;
+
 comment on column stations.station_eoi_code is 'AQR3 STA_02 StationEoICode';
 comment on column stations.station_national_code is 'AQR3 STA_07 StationNationalCode';
 comment on column stations.station_area_id is 'AQR3 SPL_05 StationArea -> eea_areaclassifications';
@@ -323,7 +329,7 @@ comment on column srs_inline.spatial_resolution is 'AQR3 SRI_05 SpatialResolutio
 drop function if exists raven_rename_column(text, text, text);
 
 insert into schema_version (version, description)
-values ('5.0.0-renames',
+values ('4.502.2',
         'AQR3 v5.02: rename AUT/STA/SPP/ZGE/ARZ/SRS columns, add observations.data_capture, assessment_regimes.postponement_year, networks.network_document_id, 4 new vocabulary tables, SR DDL into core schema')
 on conflict (version) do nothing;
 

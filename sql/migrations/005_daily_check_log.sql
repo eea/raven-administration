@@ -65,7 +65,7 @@ create unique index if not exists uq_spl_daily_check_per_day
     where type = 'daily_check';
 
 insert into schema_version (version, description)
-values ('5.0.0-dailycheck',
+values ('4.502.5',
         'Raven-internal: add sampling_points.daily_check and sampling_point_log (daily check / manual log per sampling point)')
 on conflict (version) do nothing;
 

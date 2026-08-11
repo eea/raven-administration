@@ -95,7 +95,7 @@ where a.id > b.id
   and a.spatial_resolution = b.spatial_resolution;
 
 insert into schema_version (version, description)
-values ('5.0.0-snapgrid',
+values ('4.502.4',
         'AQR3 v5.02: snap pre-existing srs_inline cells to the EPSG:3035 INSPIRE grid and de-duplicate')
 on conflict (version) do nothing;
 

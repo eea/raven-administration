@@ -626,7 +626,7 @@ create table if not exists stations
             on update cascade on delete cascade
 );
 
-comment on table stations is 'v5.0.0 stations. Reports as MeasurementStation (STA) plus the default location values for SamplingPointLocation (SPL).';
+comment on table stations is 'v4.502 stations. Reports as MeasurementStation (STA) plus the default location values for SamplingPointLocation (SPL).';
 comment on column stations.station_eoi_code is 'AQR3 STA_02 StationEoICode';
 comment on column stations.name is 'AQR3 STA_08 StationName';
 comment on column stations.station_national_code is 'AQR3 STA_07 StationNationalCode';
@@ -669,7 +669,7 @@ create table if not exists sampling_points
     daily_check                 boolean default false not null
 );
 
-comment on table sampling_points is 'v5.0.0 AQR3 v5.02: operational store for a sampling point. Reports as SamplingPoint (SPO) plus the current row of SamplingPointLocation (SPL).';
+comment on table sampling_points is 'v4.502 AQR3 v5.02: operational store for a sampling point. Reports as SamplingPoint (SPO) plus the current row of SamplingPointLocation (SPL).';
 comment on column sampling_points.id is 'AQR3 SPO_02 AssessmentMethodId';
 comment on column sampling_points.sampling_point_reference_id is 'AQR3 SPO_03. Mandatory format: SPOref_<StationEoICode>_<PollutantId>_<idx>';
 comment on column sampling_points.pollutant_id is 'AQR3 SPO_04 PollutantId. FK to eea_pollutants.id (numeric)';
@@ -723,7 +723,7 @@ create table if not exists sampling_point_locations
         check (location_end is null or location_end > location_begin)
 );
 
-comment on table sampling_point_locations is 'v5.0.0 AQR3 SPL. Optional per-period location overrides; PK matches the AQR3 key (CountryCode + AssessmentMethodId + LocationBegin). All attribute columns are nullable and fall back to sampling_points/stations.';
+comment on table sampling_point_locations is 'v4.502 AQR3 SPL. Optional per-period location overrides; PK matches the AQR3 key (CountryCode + AssessmentMethodId + LocationBegin). All attribute columns are nullable and fall back to sampling_points/stations.';
 comment on column sampling_point_locations.location_begin is 'AQR3 SPL_03';
 comment on column sampling_point_locations.location_end is 'AQR3 SPL_04. NULL means still current.';
 
@@ -769,7 +769,7 @@ create table if not exists processes
     equipment_identifier                  varchar(255)
 );
 
-comment on table processes is 'v5.0.0 AQR3 SamplingProcess (SPP)';
+comment on table processes is 'v4.502 AQR3 SamplingProcess (SPP)';
 comment on column processes.id is 'AQR3 SPP_02 ProcessId';
 comment on column processes.process_activity_begin is 'AQR3 SPP_04';
 comment on column processes.process_activity_end is 'AQR3 SPP_05';
@@ -1090,7 +1090,7 @@ create table if not exists zones
             on update cascade
 );
 
-comment on table zones is 'v5.0.0 zones. Reports as ZoneGeometry (ZGE) and feeds AssessmentRegimeZone (ARZ).';
+comment on table zones is 'v4.502 zones. Reports as ZoneGeometry (ZGE) and feeds AssessmentRegimeZone (ARZ).';
 comment on column zones.id is 'AQR3 ARZ_03 / ZGE_02 ZoneId';
 comment on column zones.zone_national_code is 'AQR3 ARZ_04 ZoneNationalCode';
 comment on column zones.name is 'AQR3 ARZ_08 ZoneName';
@@ -1164,7 +1164,7 @@ create table if not exists assessment_regimes
             on update cascade on delete cascade
 );
 
-comment on table assessment_regimes is 'v5.0.0 AQR3 AssessmentRegimeZone (ARZ)';
+comment on table assessment_regimes is 'v4.502 AQR3 AssessmentRegimeZone (ARZ)';
 comment on column assessment_regimes.id is 'AQR3 ARZ_02 AssessmentRegimeId. Mandatory format: ARE_<ZoneId>_<PollutantId>_<ObjectiveType>_<ProtectionTarget>_<ReportingMetric>_<ClassificationYear>_<idx>';
 comment on column assessment_regimes.postponement_year is 'AQR3 ARZ_14 PostponementYear';
 comment on column assessment_regimes.fixed_measurement_reduction is 'AQR3 ARZ_15 FixedMeasurementReduction';
@@ -1806,10 +1806,12 @@ CREATE TABLE IF NOT EXISTS plugin_registry (
 -- --baseline` does the same thing for databases that already exist.
 -- ---------------------------------------------------------------------------
 
+-- Version scheme: 4 = Raven 4, 502 = AQR3 v5.02 schema, last digit = migration
+-- number (4.502.N matches sql/migrations/00N_*.sql).
 insert into schema_version (version, description)
-values ('5.0.0-spo-spl',    'baseline: created from schema.sql'),
-       ('5.0.0-renames',    'baseline: created from schema.sql'),
-       ('5.0.0-newtables',  'baseline: created from schema.sql'),
-       ('5.0.0-snapgrid',   'baseline: created from schema.sql'),
-       ('5.0.0-dailycheck', 'baseline: created from schema.sql')
+values ('4.502.1', 'baseline: created from schema.sql'),
+       ('4.502.2', 'baseline: created from schema.sql'),
+       ('4.502.3', 'baseline: created from schema.sql'),
+       ('4.502.4', 'baseline: created from schema.sql'),
+       ('4.502.5', 'baseline: created from schema.sql')
 on conflict (version) do nothing;

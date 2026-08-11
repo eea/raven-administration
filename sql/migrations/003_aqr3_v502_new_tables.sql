@@ -251,7 +251,7 @@ create index if not exists idx_cam_attainment
 -- ---------------------------------------------------------------------------
 
 insert into schema_version (version, description)
-values ('5.0.0-newtables',
+values ('4.502.3',
         'AQR3 v5.02: add models (MOE), moe_result_inline (MRI, partitioned), moe_result_external (MRE), srs_external (SRE), pollution_level_adjustment (ADJ), compliance_assessment_method (CAM)')
 on conflict (version) do nothing;
 
