@@ -78,7 +78,8 @@ comment on column sampling_points.from_time is 'Sampling point active period sta
 comment on column sampling_points.logger_id is 'Raven-internal: logger push identifier. No AQR3 equivalent.';
 comment on column sampling_points.private is 'Raven-internal: hides the series from non-owning networks. No AQR3 equivalent.';
 comment on column sampling_points.use_in_public_api is 'Raven-internal: exposes the series via the public API. No AQR3 equivalent.';
-comment on column sampling_points.daily_check is 'Raven-internal: when true, the daily check feature is enabled (shows checkbox in dashboard). No AQR3 equivalent.';
+-- daily_check is added and commented by 005_daily_check_log.sql; it does not
+-- exist yet at this point, so commenting on it here would abort the migration.
 
 -- ---------------------------------------------------------------------------
 -- 4. SamplingPointLocation (SPL)

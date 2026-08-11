@@ -1792,3 +1792,24 @@ CREATE TABLE IF NOT EXISTS plugin_registry (
     installed_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ---------------------------------------------------------------------------
+-- Migration baseline
+--
+-- This file IS the post-migration state, so a database created from it must
+-- record every migration as already applied. Without this, sql/apply_migrations.py
+-- (and the boot-time apply in docker-entrypoint.sh) cannot tell a fresh install
+-- from an old database and reports every migration as pending.
+--
+-- MAINTENANCE: every new sql/migrations/NNN_*.sql must add its version here in
+-- the same commit, exactly as it must add its DDL above. `apply_migrations.py
+-- --baseline` does the same thing for databases that already exist.
+-- ---------------------------------------------------------------------------
+
+insert into schema_version (version, description)
+values ('5.0.0-spo-spl',    'baseline: created from schema.sql'),
+       ('5.0.0-renames',    'baseline: created from schema.sql'),
+       ('5.0.0-newtables',  'baseline: created from schema.sql'),
+       ('5.0.0-snapgrid',   'baseline: created from schema.sql'),
+       ('5.0.0-dailycheck', 'baseline: created from schema.sql')
+on conflict (version) do nothing;

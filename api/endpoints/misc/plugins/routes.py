@@ -230,6 +230,7 @@ def uninstall_plugin(plugin_id: str):
     return jsonify({"success": True, "restart_required": had_backend})
 
 
+@plugins_manager_endpoint.route('/api/misc/plugins/<plugin_id>/enable', methods=['POST'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def enable_plugin(plugin_id: str):

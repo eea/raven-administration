@@ -9,6 +9,7 @@ every migration is written to be idempotent, so re-running is safe either way.
 Usage:
     python sql/apply_migrations.py                 # apply pending
     python sql/apply_migrations.py --dry-run       # list pending, change nothing
+    python sql/apply_migrations.py --baseline      # record pending as applied, run nothing
     python sql/apply_migrations.py --db-uri URI    # override $DB_URI
 """
 import argparse
@@ -37,6 +38,18 @@ def declared_version(sql_text, filename):
     return m.group(1)
 
 
+def ensure_schema_version_table(cursor):
+    """Defensive: schema.sql normally creates this. Definition must match it."""
+    cursor.execute("""
+        create table if not exists schema_version
+        (
+            version     varchar(20) not null primary key,
+            description text,
+            applied_at  timestamp default CURRENT_TIMESTAMP
+        )
+    """)
+
+
 def applied_versions(cursor):
     cursor.execute("""
         SELECT EXISTS (SELECT 1 FROM information_schema.tables
@@ -51,11 +64,20 @@ def applied_versions(cursor):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--db-uri', default=os.getenv('DB_URI'))
-    ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--dry-run', action='store_true',
+                    help='list pending migrations and change nothing')
+    ap.add_argument('--baseline', action='store_true',
+                    help='record pending migrations as applied WITHOUT running them. '
+                         'Only for a database whose schema already matches sql/schema.sql '
+                         '(a fresh install predating the schema_version seed). On any other '
+                         'database this permanently skips migrations that still need to run.')
     args = ap.parse_args()
 
     if not args.db_uri:
         raise SystemExit('No database URI. Set DB_URI or pass --db-uri.')
+
+    if args.dry_run and args.baseline:
+        raise SystemExit('--dry-run and --baseline are mutually exclusive.')
 
     files = migration_files()
     if not files:
@@ -66,7 +88,12 @@ def main():
     conn.autocommit = False
     try:
         with conn.cursor() as cur:
+            if args.baseline:
+                ensure_schema_version_table(cur)
             done = applied_versions(cur)
+
+        if args.baseline:
+            print(f'Already recorded: {", ".join(sorted(done)) if done else "(none)"}')
 
         pending = []
         for path in files:
@@ -85,6 +112,21 @@ def main():
             print('\nPending:')
             for path, version, _ in pending:
                 print(f'  {path.name}  -> {version}')
+            return 0
+
+        if args.baseline:
+            # Record only. Migration bodies are never read beyond the version regex.
+            print('\nRecording as applied WITHOUT running (--baseline):')
+            for path, version, _ in pending:
+                print(f'  baseline {path.name}  -> {version}')
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        insert into schema_version (version, description)
+                        values (%s, %s)
+                        on conflict (version) do nothing
+                    """, (version, f'baseline: pre-satisfied by schema.sql ({path.name} not run)'))
+            conn.commit()
+            print(f'\nBaselined {len(pending)} migration(s). Nothing was executed.')
             return 0
 
         for path, version, text in pending:

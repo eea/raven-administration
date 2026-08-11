@@ -19,6 +19,11 @@ def daily_check_state():
     if not ids:
         return jsonify([])
 
+    # Only report on sampling points the caller's networks grant access to.
+    ids = list(Q.sampling_point_ids_by_networks_access(ids))
+    if not ids:
+        return jsonify([])
+
     with CursorFromPool() as cursor:
         cursor.execute("""
             SELECT
@@ -105,15 +110,22 @@ def insert_sampling_point_log():
 
     created_by = get_jwt_identity()
 
+    # Only daily checks are one-per-day. uq_spl_daily_check_per_day is a partial
+    # index over type = 'daily_check', so other types can never conflict — but
+    # inferring it for them would imply they can.
+    conflict_clause = ""
+    if entry_type == 'daily_check':
+        conflict_clause = ("ON CONFLICT (sampling_point_id, created_date) "
+                           "WHERE type = 'daily_check' DO NOTHING")
+
     with CursorFromPool() as cursor:
-        cursor.execute("""
+        cursor.execute(f"""
             INSERT INTO sampling_point_log
                 (sampling_point_id, type, comment, created_by, period_from, period_to)
             VALUES
                 (%(sampling_point_id)s, %(type)s, %(comment)s, %(created_by)s,
                  %(period_from)s::timestamp, %(period_to)s::timestamp)
-            ON CONFLICT (sampling_point_id, created_date) WHERE type = 'daily_check'
-            DO NOTHING
+            {conflict_clause}
             RETURNING id
         """, {
             "sampling_point_id": sampling_point_id,

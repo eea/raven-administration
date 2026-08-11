@@ -101,8 +101,10 @@ const loadDailyCheckState = async () => {
   try {
     const result = await SamplingPointsService.logDailyCheckState(ids);
     dailyCheckDone.value = new Set(result.filter(r => r.done_today).map(r => r.sampling_point_id));
-  } catch {
-    // non-critical: silently ignore
+  } catch (e) {
+    // Non-critical: leave the checkboxes unchecked rather than interrupting the
+    // plot. Logged, not toasted — but never swallowed silently.
+    console.warn("Failed to load daily check state:", e);
   }
 };
 
