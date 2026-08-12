@@ -31,7 +31,7 @@ class PlansAndProgramsExportRequest(BaseModel):
         max_length=2,
         description=(
             "ISO 2-letter country code (e.g., 'NO', 'AD'). "
-            "If not provided, will be extracted from settings.namespace. "
+            "If not provided, will be taken from settings.country_code_id. "
             "If provided, must match the RAVEN instance country."
         )
     )
@@ -87,7 +87,7 @@ class PlansAndProgramsExportRequest(BaseModel):
     def validate_country_code(cls, v):
         """Validate and normalize country code."""
         if v is None:
-            return None  # Will use settings.namespace
+            return None  # Will use settings.country_code_id
         
         # Normalize to uppercase
         v = v.upper().strip()

@@ -24,13 +24,25 @@ def build_context(cursor, year=None):
     """Read settings once and resolve the reporting timezone offset."""
     country_code = get_country_code_from_settings(cursor)
 
-    cursor.execute("""
-        SELECT tz.timezone_offset
-        FROM settings s
-        LEFT JOIN eea_timezones tz ON s.timezone_id = tz.id
-        LIMIT 1
-    """)
-    row = cursor.fetchone()
+    try:
+        cursor.execute("""
+            SELECT tz.timezone_offset
+            FROM settings s
+            LEFT JOIN eea_timezones tz ON s.timezone_id = tz.id
+            LIMIT 1
+        """)
+        row = cursor.fetchone()
+    except Exception as e:
+        # Every AQR3 export goes through here, so an out-of-date `settings` table
+        # otherwise surfaces as a bare UndefinedColumn from 17 different
+        # endpoints. Name the actual cause instead.
+        raise RuntimeError(
+            'Could not read the reporting settings. The `settings` table is probably still on '
+            'the pre-v4 shape (namespace / uom_m / observation_prefix / language_code) rather '
+            'than (country_code_id, timezone_id). Apply the pending SQL migrations: '
+            'python sql/apply_migrations.py'
+        ) from e
+
     offset = (row['timezone_offset'] if row and row['timezone_offset'] else '') if row else ''
 
     return ExportContext(country_code=country_code, timezone_offset=offset, year=year)

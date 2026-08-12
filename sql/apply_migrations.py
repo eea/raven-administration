@@ -90,6 +90,22 @@ def applied_versions(cursor):
     return {r[0] for r in cursor.fetchall()}
 
 
+# psycopg2 opens a transaction before executing, and every migration file also
+# carries its own `begin;`/`commit;`. PostgreSQL therefore emits these two on each
+# file. They say nothing about whether the migration worked, so they are dropped
+# rather than shown — otherwise every run ends with warnings the operator should
+# ignore, which trains them to ignore the real ones.
+_TRANSACTION_NOISE = (
+    'there is already a transaction in progress',
+    'there is no transaction in progress',
+)
+
+
+def _is_transaction_noise(line):
+    lowered = line.lower()
+    return any(noise in lowered for noise in _TRANSACTION_NOISE)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--db-uri', default=os.getenv('DB_URI'))
@@ -161,14 +177,30 @@ def main():
             print(f'\nBaselined {len(pending)} migration(s). Nothing was executed.')
             return 0
 
+        warned = False
         for path, version, text in pending:
             print(f'  apply   {path.name}  -> {version}')
+            # Migrations use `raise notice` / `raise warning` to report what they
+            # actually did and what the operator still has to do. Without this the
+            # messages go nowhere — psycopg2 buffers them on the connection rather
+            # than printing them, so they were invisible in the normal path and in
+            # the Docker entrypoint.
+            del conn.notices[:]
             with conn.cursor() as cur:
                 # Each migration file manages its own begin/commit.
                 cur.execute(text)
             conn.commit()
+            for notice in conn.notices:
+                line = notice.strip()
+                if not line or _is_transaction_noise(line):
+                    continue
+                print(f'          {line}')
+                if line.upper().startswith('WARNING'):
+                    warned = True
 
         print(f'\nApplied {len(pending)} migration(s).')
+        if warned:
+            print('Some migrations raised warnings — read them above before reporting.')
         return 0
     except Exception:
         conn.rollback()

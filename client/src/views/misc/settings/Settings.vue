@@ -20,16 +20,25 @@ onMounted(async () => {
   // Load lookups
   lookups.value = await Service.lookups();
 
-  // Load current settings
+  // Load current settings. Assign the two known fields rather than the whole
+  // row: the endpoint does `SELECT s.*`, so a database still on the pre-v4
+  // settings shape returns namespace/uom_m/... and replacing the object
+  // wholesale would blank country_code_id and leave Save permanently disabled.
   const data = await Service.get();
   if (data && data.length > 0) {
-    settings.value = data[0];
+    settings.value = {
+      country_code_id: data[0].country_code_id ?? "",
+      timezone_id: data[0].timezone_id ?? ""
+    };
   }
 });
 
 const onSave = async () => {
   Eventy.showMessage("Saving settings...", "loading");
-  await Service.save(settings.value);
+  await Service.save({
+    country_code_id: settings.value.country_code_id,
+    timezone_id: settings.value.timezone_id
+  });
   Eventy.showHideMessage("Settings saved successfully", "success", 3000);
 };
 </script>

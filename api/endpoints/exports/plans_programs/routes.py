@@ -28,7 +28,7 @@ def export_exceedances_plans_programs():
     
     Request Body:
         {
-            "countrycode": "AD",          // Optional - uses settings.namespace if not provided
+            "countrycode": "AD",          // Optional - uses settings.country_code_id if not provided
             "reportingyear": 2024,        // Required - year to evaluate
             "directive": "2024/2881",     // Optional - default: "2024/2881"
             "pollutants": ["NO2", "PM10"], // Optional - empty = all pollutants
@@ -192,7 +192,7 @@ def get_export_info():
             "countrycode": {
                 "type": "string",
                 "required": False,
-                "description": "ISO 2-letter country code (defaults to settings.namespace)"
+                "description": "ISO 2-letter country code (defaults to settings.country_code_id)"
             },
             "reportingyear": {
                 "type": "integer",

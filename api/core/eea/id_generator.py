@@ -239,15 +239,22 @@ def get_country_code_from_settings(cursor) -> Optional[str]:
     Raises:
         None - returns None if settings table is empty or cannot be read
     """
+    # A savepoint, because this function is documented to fail gracefully. Without
+    # one, a failure here (an old settings shape, a missing table) aborts the
+    # caller's whole transaction, and the *next* unrelated statement on the same
+    # cursor dies with InFailedSqlTransaction — which reads like a bug somewhere
+    # else entirely.
+    cursor.execute("SAVEPOINT country_code_lookup")
     try:
         cursor.execute("""
-            SELECT s.country_code_id, c.notation 
+            SELECT s.country_code_id, c.notation
             FROM settings s
             LEFT JOIN eea_countries c ON s.country_code_id = c.id
             LIMIT 1
         """)
         row = cursor.fetchone()
-        
+        cursor.execute("RELEASE SAVEPOINT country_code_lookup")
+
         if row:
             # notation from joined eea_countries table
             notation = row.get('notation') if hasattr(row, 'get') else (row[1] if len(row) > 1 else None)
@@ -257,10 +264,15 @@ def get_country_code_from_settings(cursor) -> Optional[str]:
             country_code_id = row.get('country_code_id') if hasattr(row, 'get') else row[0]
             if country_code_id:
                 return str(country_code_id).upper()
-        
+
         return None
     except Exception:
-        # Fail gracefully if settings table doesn't exist or other DB error
+        # Fail gracefully if settings table doesn't exist or other DB error, and
+        # leave the transaction usable for whatever the caller does next.
+        try:
+            cursor.execute("ROLLBACK TO SAVEPOINT country_code_lookup")
+        except Exception:
+            pass
         return None
 
 
@@ -300,7 +312,7 @@ def validate_country_code(cursor, requested_code: Optional[str] = None) -> str:
             raise ValueError(
                 f"Country code mismatch: requested '{requested_upper}', "
                 f"but this RAVEN instance is configured for '{db_country_code}' "
-                f"(from settings.namespace)"
+                f"(from settings.country_code_id)"
             )
         
         return requested_upper
@@ -311,7 +323,7 @@ def validate_country_code(cursor, requested_code: Optional[str] = None) -> str:
     
     # No code in request or database
     raise ValueError(
-        "Country code not found in settings.namespace and not provided in request. "
+        "Country code not found in settings.country_code_id and not provided in request. "
         "Please ensure settings table is configured or provide countrycode parameter."
     )
 

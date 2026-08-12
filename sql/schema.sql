@@ -1808,6 +1808,12 @@ CREATE TABLE IF NOT EXISTS plugin_registry (
 
 -- Version scheme: 4 = Raven 4, 502 = AQR3 v5.02 schema, last digit = migration
 -- number (4.502.N matches sql/migrations/00N_*.sql).
+--
+-- Deployed image tags in raven-v4-deploy add a fourth build component
+-- (RAVEN.EEASCHEMA.DB.PATCH, e.g. 4.502.5.1), where the third component is meant
+-- to name the highest migration here. Three parts = a schema version, four = an
+-- image. That fourth-component value is declared by hand in raven-v4-deploy and
+-- is not derived from this directory, so treat these rows as the authority.
 insert into schema_version (version, description)
 values ('4.502.1', 'baseline: created from schema.sql'),
        ('4.502.2', 'baseline: created from schema.sql'),
