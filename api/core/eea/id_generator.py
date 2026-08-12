@@ -244,7 +244,19 @@ def get_country_code_from_settings(cursor) -> Optional[str]:
     # caller's whole transaction, and the *next* unrelated statement on the same
     # cursor dies with InFailedSqlTransaction — which reads like a bug somewhere
     # else entirely.
-    cursor.execute("SAVEPOINT country_code_lookup")
+    #
+    # Only inside a transaction, though: SAVEPOINT is an error in autocommit mode,
+    # where there is also nothing to protect — each statement is its own
+    # transaction, so a failure cannot poison the next one. The app's pool
+    # (core/database.py CursorFromPool) uses transactions; scripts often do not.
+    use_savepoint = True
+    try:
+        use_savepoint = not cursor.connection.autocommit
+    except Exception:
+        use_savepoint = False
+
+    if use_savepoint:
+        cursor.execute("SAVEPOINT country_code_lookup")
     try:
         cursor.execute("""
             SELECT s.country_code_id, c.notation
@@ -253,7 +265,8 @@ def get_country_code_from_settings(cursor) -> Optional[str]:
             LIMIT 1
         """)
         row = cursor.fetchone()
-        cursor.execute("RELEASE SAVEPOINT country_code_lookup")
+        if use_savepoint:
+            cursor.execute("RELEASE SAVEPOINT country_code_lookup")
 
         if row:
             # notation from joined eea_countries table
@@ -269,10 +282,11 @@ def get_country_code_from_settings(cursor) -> Optional[str]:
     except Exception:
         # Fail gracefully if settings table doesn't exist or other DB error, and
         # leave the transaction usable for whatever the caller does next.
-        try:
-            cursor.execute("ROLLBACK TO SAVEPOINT country_code_lookup")
-        except Exception:
-            pass
+        if use_savepoint:
+            try:
+                cursor.execute("ROLLBACK TO SAVEPOINT country_code_lookup")
+            except Exception:
+                pass
         return None
 
 
