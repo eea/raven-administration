@@ -26,7 +26,26 @@ begin;
 --    floor x/y on the way to bigint rather than letting the cast round.
 do
 $$
+    declare
+        fk record;
     begin
+        -- AirQUIS-era databases carry sr_area_inline (renamed to srs_inline by
+        -- 002) with spatial_resolution as varchar plus an FK to
+        -- eea_spatialresolution(id), which is also varchar. The target schema
+        -- types the column as integer and has no such FK, so the constraint has
+        -- to go first or the retype fails with "key columns are of incompatible
+        -- types". No-op on databases that never had it.
+        for fk in
+            select conname
+            from pg_constraint
+            where conrelid = to_regclass('public.srs_inline')
+              and contype = 'f'
+              and confrelid = to_regclass('public.eea_spatialresolution')
+        loop
+            raise notice 'dropping legacy FK % on srs_inline', fk.conname;
+            execute format('alter table srs_inline drop constraint %I', fk.conname);
+        end loop;
+
         if exists (select 1 from information_schema.columns
                    where table_name = 'srs_inline' and column_name = 'spatial_resolution'
                      and data_type <> 'integer')

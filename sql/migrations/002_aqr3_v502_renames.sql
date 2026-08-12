@@ -174,6 +174,10 @@ do
 $$
 declare
     bad_count integer;
+    dep       record;
+    view_names text[] := '{}';
+    view_defs  text[] := '{}';
+    i         integer;
 begin
     if exists (select 1 from information_schema.columns
                where table_name = 'processes'
@@ -193,11 +197,38 @@ begin
                 bad_count;
         end if;
 
+        -- PostgreSQL refuses to retype a column a view depends on. Databases
+        -- built from raven-rn3-db/schema_v4.sql carry export views over
+        -- processes (v_sampling_process); schema.sql databases have none.
+        -- Capture, drop, retype, restore. Renames earlier in this file have
+        -- already been reflected into the stored definitions, so the captured
+        -- text is current, and casting timestamp->timestamp inside a restored
+        -- view is a harmless no-op.
+        for dep in
+            select c.relname::text as relname, pg_get_viewdef(c.oid, true) as def
+            from pg_depend d
+                     join pg_rewrite r on r.oid = d.objid
+                     join pg_class c on c.oid = r.ev_class
+            where d.refobjid = 'public.processes'::regclass
+              and c.relkind = 'v'
+            group by c.relname, c.oid
+        loop
+            view_names := view_names || dep.relname;
+            view_defs  := view_defs  || dep.def;
+            raise notice 'dropping dependent view % for the processes retype', dep.relname;
+            execute format('drop view %I', dep.relname);
+        end loop;
+
         alter table processes
             alter column process_activity_begin type timestamp
                 using nullif(process_activity_begin, '')::timestamp,
             alter column process_activity_end type timestamp
                 using nullif(process_activity_end, '')::timestamp;
+
+        for i in 1 .. coalesce(array_length(view_names, 1), 0) loop
+            execute format('create view %I as %s', view_names[i], view_defs[i]);
+            raise notice 'restored view %', view_names[i];
+        end loop;
     end if;
 end
 $$;
@@ -225,7 +256,22 @@ comment on column processes.equipment_identifier is 'Raven-internal: serial/asse
 alter table observations
     add column if not exists data_capture numeric(5, 2);
 
+-- meta is in schema.sql but was never added by a migration, so databases built
+-- before it (ravendb4) do not have it and the backfill below would abort with
+-- 'column "meta" does not exist'.
+alter table observations
+    add column if not exists meta jsonb;
+
 comment on column observations.data_capture is 'AQR3 OMR_10 DataCapture (percent). Backfilled from meta->>''instrument_validity'' where ADACS supplied it.';
+
+-- raven_observations_set_timestamp_trigger sets NEW.touched = now() on every
+-- update, unconditionally. touched is the reported OMR ResultTime, so letting it
+-- fire here would stamp the migration date onto ~99.9% of observations while
+-- backfilling an unrelated column. Suspend just that trigger; the verification,
+-- timeserie-time and audit-log triggers stay active. Transactional, so a failure
+-- below leaves the trigger enabled.
+alter table observations
+    disable trigger raven_observations_set_timestamp_trigger;
 
 update observations
 set data_capture = least(100, greatest(0, (meta ->> 'instrument_validity')::numeric))
@@ -233,6 +279,9 @@ where data_capture is null
   and meta ? 'instrument_validity'
   and (meta ->> 'instrument_validity') ~ '^-?\d+(\.\d+)?$'
   and (meta ->> 'instrument_validity')::numeric >= 0;
+
+alter table observations
+    enable trigger raven_observations_set_timestamp_trigger;
 
 -- ---------------------------------------------------------------------------
 -- 6. ZoneGeometry / AssessmentRegimeZone (ZGE, ARZ)

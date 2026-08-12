@@ -24,6 +24,12 @@ MIGRATIONS_DIR = Path(__file__).parent / 'migrations'
 VERSION_RE = re.compile(r"insert\s+into\s+schema_version\s*\([^)]*\)\s*values\s*\(\s*'([^']+)'",
                         re.I | re.S)
 
+# Arbitrary but fixed key, so every runner against a database contends on the
+# same lock. Kubernetes starts one migrating pod per replica (raven-v4 runs two),
+# and the migrations are idempotent but not concurrency-safe.
+ADVISORY_LOCK_KEY = 4502_0001
+LOCK_WAIT_SECONDS = 900
+
 
 def migration_files():
     return sorted(MIGRATIONS_DIR.glob('*.sql'), key=lambda p: p.name)
@@ -36,6 +42,29 @@ def declared_version(sql_text, filename):
             f"{filename}: no `insert into schema_version (...) values ('<version>', ...)` found. "
             f"Every migration must record its own version.")
     return m.group(1)
+
+
+def acquire_advisory_lock(cursor):
+    """Serialise concurrent runners. Session-scoped: released when the connection
+    closes, including on crash, so a dead pod cannot wedge the next one.
+
+    MUST be held before applied_versions() is read — otherwise a second runner
+    computes its pending list from a schema_version the first has not committed
+    yet, and re-applies migrations already in flight.
+    """
+    cursor.execute("SET lock_timeout = %s", (f'{LOCK_WAIT_SECONDS}s',))
+    cursor.execute("SELECT pg_try_advisory_lock(%s)", (ADVISORY_LOCK_KEY,))
+    if cursor.fetchone()[0]:
+        return
+    print(f'Another migration run holds the lock; waiting up to {LOCK_WAIT_SECONDS}s ...')
+    try:
+        cursor.execute("SELECT pg_advisory_lock(%s)", (ADVISORY_LOCK_KEY,))
+    except psycopg2.errors.LockNotAvailable:
+        raise SystemExit(
+            f'Timed out after {LOCK_WAIT_SECONDS}s waiting for the migration lock. '
+            f'Another runner is still working, or a connection is wedged holding '
+            f'advisory lock {ADVISORY_LOCK_KEY}.')
+    print('Lock acquired.')
 
 
 def ensure_schema_version_table(cursor):
@@ -88,6 +117,9 @@ def main():
     conn.autocommit = False
     try:
         with conn.cursor() as cur:
+            # --dry-run only reads, so it must never block behind a real run.
+            if not args.dry_run:
+                acquire_advisory_lock(cur)
             if args.baseline:
                 ensure_schema_version_table(cur)
             done = applied_versions(cur)
