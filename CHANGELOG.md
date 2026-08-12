@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.5.5] - 2026-08-12
+
+### Fixes
+
+- Changed starting year in dataflows from 2013 to 2005
+
 ## [3.5.4] - 2026-08-04
 
 ### Fixes

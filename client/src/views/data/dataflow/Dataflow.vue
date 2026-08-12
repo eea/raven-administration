@@ -20,7 +20,7 @@ onMounted(async () => {
 
 // METHODS
 const years = () => {
-  const start = 2013;
+  const start = 2005;
   const y = new Date().getFullYear();
   year.value = String(y - 1);
   return Array.from({ length: y + 1 - start + 1 }, (_, i) => i + start)
