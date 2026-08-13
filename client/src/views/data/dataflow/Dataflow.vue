@@ -58,8 +58,13 @@ const recalculate = async () => {
   Eventy.showMessage(`Recalculating compliance for ${selectedYear.value}...`, "loading");
   try {
     const summary = await Service.recalculateCompliance(selectedYear.value);
-    const skipped = summary.skipped?.length
-      ? ` ${summary.skipped.length} skipped (incomplete assessment regime).`
+    // Nothing stored is not success — the backend explains why in `message`.
+    if (summary.message) {
+      Eventy.showMessage(summary.message, "warning");
+      return;
+    }
+    const skipped = summary.skipped_total
+      ? ` ${summary.skipped_total} skipped (incomplete assessment regime).`
       : "";
     Eventy.showMessage(
       `ComplianceAssessmentMethod: ${summary.written} row(s) stored for ${summary.reporting_year}.${skipped}`,

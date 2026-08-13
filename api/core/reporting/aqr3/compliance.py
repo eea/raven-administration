@@ -20,6 +20,12 @@ logger = logging.getLogger(__name__)
 _EXCEEDANCE_TRUE = {'yes', 'true', '1'}
 _EXCEEDANCE_FALSE = {'no', 'false', '0'}
 
+# The evaluation drives off sampling_points with a LEFT JOIN to assessmentdata, so
+# a database with no assessment regimes yields one skipped row per sampling point —
+# hundreds of near-identical entries returned to the Dataflow page. Report a sample
+# and a total instead of the whole list.
+_MAX_REPORTED_SKIPS = 20
+
 
 def _as_bool(value):
     if isinstance(value, bool):
@@ -127,9 +133,22 @@ def persist_compliance(cursor, reporting_year, directive=None, pollutants=None, 
         logger.warning('CAM %s: skipped %s row(s) with an incomplete assessment regime',
                        reporting_year, len(skipped))
 
-    return {
+    summary = {
         'reporting_year': reporting_year,
         'evaluated': len(evaluated),
         'written': written,
-        'skipped': skipped,
+        'skipped_total': len(skipped),
+        'skipped': skipped[:_MAX_REPORTED_SKIPS],
     }
+
+    # Nothing written with everything skipped is not a partial result — it means no
+    # assessment regime covers these sampling points. Say so, rather than leaving a
+    # zero that reads like a successful run.
+    if evaluated and not written:
+        summary['message'] = (
+            f'No compliance rows written for {reporting_year}: none of the '
+            f'{len(evaluated)} evaluated sampling point(s) is linked to an assessment '
+            f'regime. Define assessment regimes and link sampling points to them via '
+            f'assessmentdata before reporting CAM.')
+
+    return summary

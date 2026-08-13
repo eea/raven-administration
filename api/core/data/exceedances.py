@@ -584,7 +584,7 @@ class Exceedances:
         self.cursor.execute("""
             SELECT assessmentlocal_id
             FROM assessmentdata
-            WHERE assessmentregime_id = %s
+            WHERE assessment_regime_id = %s
         """, (regime_id,))
         
         return [row['assessmentlocal_id'] for row in self.cursor.fetchall()]
