@@ -5,14 +5,14 @@ core/reporting/aqr3/spec.py — adding a reporting table needs no change here.
 """
 from datetime import datetime
 
-from flask import Blueprint, Response, jsonify, request
+from flask import Blueprint, Response, jsonify, request, stream_with_context
 from werkzeug.exceptions import BadRequest, NotFound
 
 from core.database import CursorFromPool
 from core.jwt_ext_custom import jwt_required_with_exporting_claim
-from core.reporting.aqr3 import AQR3_TABLES, build_csv, build_context, build_zip, resolve
+from core.reporting.aqr3 import AQR3_TABLES, build_context, build_zip, resolve
 from core.reporting.aqr3.compliance import persist_compliance
-from core.utils import U
+from core.reporting.aqr3.writer import primed, stream_csv
 
 dataflow_endpoint = Blueprint('dataflow', __name__)
 
@@ -75,8 +75,19 @@ def export_all_csv():
     year = _requested_year()
     payload, included, skipped = build_zip(year)
 
+    def stream():
+        """The archive spools to disk, so send it back in chunks and close it."""
+        try:
+            while True:
+                block = payload.read(64 * 1024)
+                if not block:
+                    return
+                yield block
+        finally:
+            payload.close()
+
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    response = Response(payload, mimetype='application/zip')
+    response = Response(stream_with_context(stream()), mimetype='application/zip')
     response.headers['Content-Disposition'] = f'attachment; filename=aqr3_export_{timestamp}.zip'
     response.headers['X-AQR3-Included'] = ','.join(included)
     if skipped:
@@ -121,9 +132,28 @@ def export_table_csv(table):
     if spec.year_dependent and year is None:
         raise BadRequest(f'{spec.name} is reported per year — a "year" is required')
 
+    filename = (f'{spec.name}_{year}.csv' if spec.year_dependent else spec.filename)
+
     with CursorFromPool() as cursor:
         ctx = build_context(cursor, year)
-        content = build_csv(spec, ctx, cursor)
 
-    filename = (f'{spec.name}_{year}.csv' if spec.year_dependent else spec.filename)
-    return U.csv_response(content, filename)
+    # Compress only when the client said it can decode it; a plain script that
+    # does not would otherwise save gzip bytes into a .csv. Every browser sends
+    # this, so the download path always gets the compressed version.
+    gzipped = bool(request.accept_encodings['gzip'])
+
+    # Streamed, not built in memory: ObservationMeasurementResult is millions of
+    # rows for a reporting year, and materialising it OOM-killed the worker —
+    # which reached the browser as a 502. Compressed because nothing else does it
+    # (Traefik routes /api straight to the pod, bypassing the client's nginx) and
+    # a full year is ~330 MB of CSV. `primed` draws the first chunk here so a
+    # query error is still a clean 500 rather than a truncated 200.
+    response = Response(
+        stream_with_context(primed(stream_csv(spec, ctx, gzipped=gzipped))),
+        mimetype='text/csv',
+    )
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    if gzipped:
+        response.headers['Content-Encoding'] = 'gzip'
+        response.headers['Vary'] = 'Accept-Encoding'
+    return response
