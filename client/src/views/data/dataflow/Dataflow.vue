@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
 import CommonLayout from "../../../components/CommonLayout.vue";
@@ -13,6 +13,8 @@ const isLoading = ref(true);
 const selectedYear = ref(null);
 const yearOptions = ref([]);
 const tables = ref([]);
+// Filenames the last ZIP exported with a header row and no data.
+const emptyFiles = ref(new Set());
 
 onMounted(async () => {
   try {
@@ -32,6 +34,12 @@ onMounted(async () => {
   } finally {
     isLoading.value = false;
   }
+});
+
+// Which tables are empty is answered per year, so the markers must not survive a
+// change of year — they would then describe a different export than the one shown.
+watch(selectedYear, () => {
+  emptyFiles.value = new Set();
 });
 
 const download = async (table) => {
@@ -83,8 +91,24 @@ const downloadAll = async () => {
   downloadingKey.value = "all";
   Eventy.showMessage("Creating ZIP file with all exports. Please wait...", "loading");
   try {
-    await Service.downloadAll(selectedYear.value);
-    Eventy.hideMessage();
+    const response = await Service.downloadAll(selectedYear.value);
+
+    // Every table is exported now, so a file in the ZIP does not mean it has
+    // data. Mark the header-only ones in the list and summarise the split.
+    const header = response?.headers?.["x-aqr3-empty"] ?? "";
+    emptyFiles.value = new Set(header.split(",").filter(Boolean));
+
+    const total = tables.value.length;
+    const blank = emptyFiles.value.size;
+    if (blank) {
+      Eventy.showMessage(
+        `Exported ${total - blank} of ${total} tables with data. ` +
+          `${blank} exported as headers only — marked "empty" below.`,
+        "warning"
+      );
+    } else {
+      Eventy.hideMessage();
+    }
   } catch {
     // error shown by request helper
   } finally {
@@ -135,6 +159,9 @@ const downloadAll = async () => {
             <td class="py-2 pr-4 font-mono text-nord3">{{ table.code }}</td>
             <td class="py-2 pr-4 font-medium">
               {{ table.name }}<span v-if="table.year_dependent" class="text-nord3 font-normal">_{{ selectedYear }}</span>.csv
+              <span v-if="emptyFiles.has(table.filename)"
+                class="ml-2 px-1.5 py-0.5 rounded text-xs font-normal bg-nord13/40 text-nord3"
+                title="Exported with a header row but no records">empty</span>
             </td>
             <td class="py-2 text-nord3">{{ table.description }}</td>
             <td class="py-2 text-right">

@@ -40,9 +40,9 @@ def _query_params(spec, ctx):
 def iter_csv(spec, ctx, cursor):
     """Yield one AQR3 table as CSV text, a batch of rows at a time.
 
-    Yields nothing at all when the table has no rows — an empty file rather than
-    a header-only one, matching what the ZIP builder and Reportnet3 expect.
-    The header is only emitted once the first row is known to exist.
+    The header is always emitted, including for a table with no rows: a
+    header-only file says "this table was considered and is empty", where a
+    zero-byte file is indistinguishable from an export that failed.
     """
     if spec.year_dependent and ctx.year is None:
         raise ValueError(f'{spec.name} requires a reporting year')
@@ -51,7 +51,10 @@ def iter_csv(spec, ctx, cursor):
 
     fieldnames = spec.headers()
     columns = spec.columns
-    first = True
+
+    header = StringIO()
+    csv.DictWriter(header, fieldnames=fieldnames, quoting=csv.QUOTE_ALL).writeheader()
+    yield header.getvalue()
 
     while True:
         rows = cursor.fetchmany(BATCH_ROWS)
@@ -60,19 +63,16 @@ def iter_csv(spec, ctx, cursor):
 
         buffer = StringIO()
         writer = csv.DictWriter(buffer, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
-        if first:
-            writer.writeheader()
-            first = False
         for row in rows:
             writer.writerow({c.name: c.render(row, ctx) for c in columns})
         yield buffer.getvalue()
 
 
 def build_csv(spec, ctx, cursor):
-    """Render one AQR3 table to a single string. Returns '' when there are no rows.
+    """Render one AQR3 table to a single string — the header row at minimum.
 
-    Kept for the ZIP builder and the tests; it materialises the whole table, so
-    do not use it for a response — routes stream via `stream_csv`.
+    Kept for the tests; it materialises the whole table, so do not use it for a
+    response — routes stream via `stream_csv`.
     """
     return ''.join(iter_csv(spec, ctx, cursor))
 
@@ -134,19 +134,25 @@ def build_csv_for(code_or_spec, year=None):
 
 
 def build_zip(year=None, codes=None):
-    """Render every in-scope table into a ZIP, skipping the empty ones.
+    """Render every in-scope table into a ZIP.
 
-    Year-dependent tables are omitted when no year is supplied rather than
-    failing the whole archive.
+    Tables with no rows are included as a header-only file rather than dropped —
+    the archive is then a complete statement of the reporting year, and a missing
+    file means something went wrong rather than "nothing to report". The only
+    omission left is a year-dependent table when no year was supplied, whose SQL
+    cannot be parameterised at all; that is reported in `skipped`.
 
-    Returns (file object positioned at 0, included, skipped). The file spools to
-    disk past `_ZIP_SPOOL_BYTES` so a full-year archive never sits on the heap;
-    the caller is responsible for closing it.
+    Returns (file object positioned at 0, included, skipped, empty), where
+    `empty` are the included files that carry only a header — reported so the
+    export page can say which tables had nothing, rather than leaving it to be
+    discovered by opening 17 files. The file spools to disk past
+    `_ZIP_SPOOL_BYTES` so a full-year archive never sits on the heap; the caller
+    is responsible for closing it.
     """
     selected = [AQR3_TABLES[c] for c in codes] if codes else list(AQR3_TABLES.values())
 
     payload = SpooledTemporaryFile(max_size=_ZIP_SPOOL_BYTES, suffix='.zip')
-    included, skipped = [], []
+    included, skipped, empty = [], [], []
 
     with CursorFromPool() as cursor:
         ctx = build_context(cursor, year)
@@ -159,21 +165,17 @@ def build_zip(year=None, codes=None):
 
             cursor_name = f'aqr3_zip_{spec.code.lower()}_{next(_cursor_seq)}'
             with NamedCursorFromPool(cursor_name, itersize=BATCH_ROWS) as cursor:
-                chunks = iter_csv(spec, ctx, cursor)
-
-                # Whether a table is empty is only knowable by asking for the
-                # first chunk, so peek before creating the archive member —
-                # otherwise every empty table would get a 0-byte entry.
-                first = next(chunks, None)
-                if first is None:
-                    skipped.append(f'{spec.filename} (no data)')
-                    continue
-
+                has_rows = False
                 with archive.open(spec.filename, 'w') as member:
-                    member.write(first.encode('utf-8'))
-                    for chunk in chunks:
+                    # iter_csv yields the header first, so anything after it is
+                    # data — cheaper than counting rows a second time.
+                    for position, chunk in enumerate(iter_csv(spec, ctx, cursor)):
+                        if position:
+                            has_rows = True
                         member.write(chunk.encode('utf-8'))
                 included.append(spec.filename)
+                if not has_rows:
+                    empty.append(spec.filename)
 
     payload.seek(0)
-    return payload, included, skipped
+    return payload, included, skipped, empty

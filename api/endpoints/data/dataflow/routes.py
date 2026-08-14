@@ -68,12 +68,13 @@ def get_available_years():
 def export_all_csv():
     """Every in-scope table as a ZIP.
 
-    Empty tables and — when no year is given — the year-dependent ones are left
-    out, and what was left out is reported in a header so the omission is visible
-    rather than silent.
+    Tables with no rows are included as a header-only file; only the
+    year-dependent ones are left out, and only when no year was given. Which
+    files are empty and which were omitted come back in headers so the export
+    page can say so rather than leaving it to be discovered file by file.
     """
     year = _requested_year()
-    payload, included, skipped = build_zip(year)
+    payload, included, skipped, empty = build_zip(year)
 
     def stream():
         """The archive spools to disk, so send it back in chunks and close it."""
@@ -90,6 +91,9 @@ def export_all_csv():
     response = Response(stream_with_context(stream()), mimetype='application/zip')
     response.headers['Content-Disposition'] = f'attachment; filename=aqr3_export_{timestamp}.zip'
     response.headers['X-AQR3-Included'] = ','.join(included)
+    # Included but header-only. Every table is now exported, so without this the
+    # page cannot tell a table with nothing to report from one full of data.
+    response.headers['X-AQR3-Empty'] = ','.join(empty)
     if skipped:
         response.headers['X-AQR3-Skipped'] = '; '.join(skipped)
     return response

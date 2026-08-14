@@ -2,12 +2,15 @@ import axios from "axios";
 import ErrorParser from "./error.parser";
 import Eventy from "../helpers/eventy";
 
-export const Request = async (payload) => {
+// `raw` returns the whole axios response instead of just its body, for the few
+// callers that need the response headers (the AQR3 ZIP reports which tables were
+// empty in one). Everything else keeps getting the body.
+export const Request = async (payload, { raw = false } = {}) => {
   try {
     Eventy.showProgress();
     const response = await axios(payload);
     Eventy.hideProgress();
-    if (response) return response.data;
+    if (response) return raw ? response : response.data;
   } catch (error) {
     console.log("ERR", error);
     const message = ErrorParser.asMessage(error);
@@ -52,6 +55,18 @@ export const Download = async (url, data) => {
     data: data
   };
   return await Request(payload);
+};
+
+// Same download, but resolves to the full response so the caller can read
+// headers. The file is still saved by the response interceptor.
+export const DownloadWithHeaders = async (url, data) => {
+  const payload = {
+    method: "post",
+    url: url,
+    responseType: "blob",
+    data: data
+  };
+  return await Request(payload, { raw: true });
 };
 
 export const DownloadGet = async (url) => {

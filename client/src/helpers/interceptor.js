@@ -17,6 +17,9 @@ const Interceptor = {
           link.click();
           document.body.removeChild(link);
           URL.revokeObjectURL(href);
+          // Hand the response back so callers can still read its headers —
+          // the AQR3 ZIP reports which tables came out empty that way.
+          return response;
         } else return response;
       },
       (error) => {
