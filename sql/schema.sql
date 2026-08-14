@@ -467,11 +467,12 @@ create table if not exists documents
     documentobject_id  varchar(50)  not null
         references eea_documentobject
             on update cascade,
-    documentattachment varchar(500) not null,
+    documentattachment varchar(500),
     created_at         timestamp default CURRENT_TIMESTAMP
 );
 
 comment on table documents is 'v4.8.0 centralized document references for RN3 reporting';
+comment on column documents.documentattachment is 'AQR3 DOC_05 DocumentAttachment. Nullable: no part of raven writes this yet, so it exports blank until an attachment path is added.';
 
 create index if not exists idx_documents_datatable
     on documents (datatable_id);
