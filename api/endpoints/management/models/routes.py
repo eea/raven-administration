@@ -22,7 +22,7 @@ from core.reporting.aqr3.grid import (
     validate_resolution,
 )
 
-from .models import ModelObjectiveEstimationModel
+from .models import ModelObjectiveEstimationModel, ModelResultUploadModel
 
 models_endpoint = Blueprint('models', __name__)
 
@@ -83,6 +83,17 @@ def models_lookups():
         """)
         documents = cursor.fetchall()
 
+        # MRI_10 / MRI_11 — needed by the gridded result upload, not by the model
+        # form itself, which is why they were missing.
+        cursor.execute("SELECT id as value, notation as label "
+                       "FROM eea_concentrations ORDER BY LOWER(notation)")
+        units = cursor.fetchall()
+
+        cursor.execute("SELECT id::varchar as value, "
+                       "COALESCE(NULLIF(notation, ''), label) as label "
+                       "FROM eea_observationvalidity ORDER BY id::int")
+        validities = cursor.fetchall()
+
         return jsonify({
             'pollutants': pollutants,
             'aggregation_processes': aggregation_processes,
@@ -90,6 +101,8 @@ def models_lookups():
             'method_applications': method_applications,
             'spatial_resolutions': spatial_resolutions,
             'documents': documents,
+            'units': units,
+            'validities': validities,
         })
 
 
@@ -215,13 +228,26 @@ def upload_results(model_id):
         raise BadRequest("File form does not contain the key 'file'")
 
     form = request.form
+    # Named before the model is built so a blank required field reports its own
+    # name rather than a coercion error on an empty string.
     required = ('spatial_resolution', 'start', 'data_aggregation_process_id')
     missing = [k for k in required if not form.get(k)]
     if missing:
         raise BadRequest(f'Missing required field(s): {", ".join(missing)}')
 
+    meta = ModelResultUploadModel(
+        assessment_method_id=model_id,
+        start_time=form['start'],
+        end_time=form.get('end') or None,
+        data_aggregation_process_id=form['data_aggregation_process_id'],
+        pollutant_id=form.get('pollutant_id') or None,
+        unit_id=form.get('unit_id') or None,
+        validity_id=form.get('validity_id') or None,
+        spatial_resolution=form.get('spatial_resolution'),
+    )
+
     try:
-        resolution = validate_resolution(form.get('spatial_resolution'))
+        resolution = validate_resolution(meta.spatial_resolution)
     except GridError as e:
         raise BadRequest(str(e))
 
@@ -243,16 +269,7 @@ def upload_results(model_id):
         if not cells:
             return jsonify({'msg': 'No data cells found in the raster', 'cells': 0})
 
-        params = {
-            'assessment_method_id': model_id,
-            'start_time': form['start'],
-            'end_time': form.get('end') or None,
-            'data_aggregation_process_id': form['data_aggregation_process_id'],
-            'pollutant_id': form.get('pollutant_id') or None,
-            'unit_id': form.get('unit_id') or None,
-            'validity_id': form.get('validity_id') or None,
-            'spatial_resolution': resolution,
-        }
+        params = {**meta.model_dump(exclude={'value'}), 'spatial_resolution': resolution}
 
         cursor.execute("""
             DELETE FROM moe_result_inline
