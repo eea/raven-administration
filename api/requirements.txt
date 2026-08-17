@@ -17,3 +17,10 @@ Werkzeug==3.1.3
 Flask-Swagger-UI==4.11.1
 numpy>=2.0.0
 pyarrow==18.1.0
+# Imported lazily by core/reporting/aqr3/grid.py (EPSG:3035 INSPIRE snapping for
+# MRI/SRI) and by the GeoTIFF/shapefile parsers in management/models and
+# management/spatialrepresentativeness. Undeclared until now: pyproj happened to
+# be present as a geopandas dependency, and rasterio was absent altogether, so
+# every GeoTIFF upload raised ModuleNotFoundError.
+pyproj==3.7.2
+rasterio==1.4.4
