@@ -17,6 +17,15 @@ const Service = {
   },
   logInsert: async (data) => Post("/api/management/samplingpoints/log/insert", data),
   logDailyCheckState: async (ids) => Get(`/api/management/samplingpoints/log/daily_check_state?ids=${ids.join(",")}`),
+
+  // AQR3 SPL — per-period location overrides.
+  locationList: async (samplingPointId) =>
+    Get(`/api/management/samplingpoints/locations?sampling_point_id=${encodeURIComponent(samplingPointId)}`),
+  locationLookups: async () => Get("/api/management/samplingpoints/locations/lookups"),
+  locationInsert: async (data) => Post("/api/management/samplingpoints/locations/insert", data),
+  locationUpdate: async (key, values) =>
+    Post("/api/management/samplingpoints/locations/update", { key, values }),
+  locationDelete: async (key) => Post("/api/management/samplingpoints/locations/delete", key),
 };
 
 export default Service;
