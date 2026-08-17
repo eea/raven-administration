@@ -3,12 +3,23 @@ Routes for Documents management
 CRUD operations for document metadata
 """
 from flask import Blueprint, request, jsonify
+from werkzeug.exceptions import BadRequest
 from .models import DocumentModel
 from core.query import DeleteModel
 from core.jwt_ext_custom import jwt_required_with_management_claim
 from core.database import CursorFromPool
+from core.reporting.aqr3.attachments import AttachmentReferenceError, validate_reference
 
 documents_endpoint = Blueprint("documents", __name__)
+
+
+def _validated(doc):
+    """DOC_05 must name a PDF, and one Reportnet3 will accept."""
+    try:
+        validate_reference('DOC_05', doc.documentattachment)
+    except AttachmentReferenceError as e:
+        raise BadRequest(str(e))
+    return doc
 
 
 @documents_endpoint.route("/api/management/documents/lookups", methods=["GET"])
@@ -50,6 +61,7 @@ def get_all():
                 d.datatable_id,
                 COALESCE(NULLIF(dobj.notation, ''), dobj.label) as documentobject_label,
                 d.documentobject_id,
+                d.documentattachment,
                 d.document_original_url,
                 d.created_at
             FROM documents d
@@ -66,7 +78,7 @@ def get_all():
 @jwt_required_with_management_claim()
 def insert():
     """Insert a new document"""
-    doc = DocumentModel(**request.json)
+    doc = _validated(DocumentModel(**request.json))
 
     with CursorFromPool() as cursor:
         cursor.execute("""
@@ -74,11 +86,13 @@ def insert():
                 id,
                 datatable_id,
                 documentobject_id,
+                documentattachment,
                 document_original_url
             ) VALUES (
                 %(id)s,
                 %(datatable_id)s,
                 %(documentobject_id)s,
+                %(documentattachment)s,
                 %(document_original_url)s
             )
         """, doc.dict())
@@ -93,7 +107,7 @@ def insert():
 @jwt_required_with_management_claim()
 def update():
     """Update an existing document"""
-    doc = DocumentModel(**request.json)
+    doc = _validated(DocumentModel(**request.json))
 
     if not doc.id:
         return {"error": "Document ID is required for update"}, 400
@@ -104,6 +118,7 @@ def update():
             SET
                 datatable_id = %(datatable_id)s,
                 documentobject_id = %(documentobject_id)s,
+                documentattachment = %(documentattachment)s,
                 document_original_url = %(document_original_url)s
             WHERE id = %(id)s
         """, doc.dict())

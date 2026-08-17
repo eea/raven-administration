@@ -35,6 +35,18 @@ const pageOptions = (lookups) => {
       },
       // OPTIONAL
       {
+        // AQR3 DOC_05. The filename of the PDF uploaded to Reportnet3 alongside
+        // the CSVs — raven records the reference, not the file.
+        type: "text",
+        label: "Attachment",
+        prop: "documentattachment",
+        placeholder: "str: filename of the PDF uploaded to Reportnet3, e.g. plan_2024.pdf",
+        required: false,
+        default: null,
+        enableInEdit: true,
+        showInGrid: true
+      },
+      {
         // AQR3 DOC_06. The alternative to attaching the PDF to the Reportnet3
         // envelope: where the document is already published.
         type: "text",
