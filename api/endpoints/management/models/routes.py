@@ -40,6 +40,7 @@ def models():
         cursor.execute("""
             SELECT m.id,
                    m.data_aggregation_process_id,
+                   COALESCE(NULLIF(ap.notation, ''), ap.label) as data_aggregation_process,
                    m.assessment_method_name,
                    m.pollutant_id, COALESCE(NULLIF(p.notation, ''), p.label) as pollutant,
                    m.result_encoding_id, re.notation as result_encoding,
@@ -50,6 +51,7 @@ def models():
                    (SELECT COUNT(*) FROM moe_result_external e
                      WHERE e.assessment_method_id = m.id) as external_result_count
             FROM models m
+            LEFT JOIN eea_aggregationprocess ap ON m.data_aggregation_process_id = ap.id
             LEFT JOIN eea_pollutants p        ON m.pollutant_id          = p.id
             LEFT JOIN eea_resultencoding re   ON m.result_encoding_id    = re.id
             LEFT JOIN eea_modelapplication ma ON m.method_application_id = ma.id

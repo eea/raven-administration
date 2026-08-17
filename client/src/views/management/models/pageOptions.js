@@ -4,7 +4,9 @@ const pageOptions = (lookups) => ({
   properties: [
     // REQUIRED
     { type: "text", label: "Id", prop: "id", placeholder: "str: MOD_<name> or OBE_<name>", required: true, default: null, enableInEdit: false, showInGrid: true },
-    { type: "lookup", label: "Aggregation Process", prop_id: "data_aggregation_process_id", prop: "data_aggregation_process_id", lookup: "aggregation_processes", required: true, default: null, enableInEdit: true, showInGrid: true },
+    // prop is the joined notation, not the id: the id is a dd.eionet URI, which
+    // filled the grid column with an unreadable URL.
+    { type: "lookup", label: "Aggregation Process", prop_id: "data_aggregation_process_id", prop: "data_aggregation_process", lookup: "aggregation_processes", required: true, default: null, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Pollutant", prop_id: "pollutant_id", prop: "pollutant", lookup: "pollutants", required: true, default: null, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Result Encoding", prop_id: "result_encoding_id", prop: "result_encoding", lookup: "result_encodings", required: true, default: null, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Method Application", prop_id: "method_application_id", prop: "method_application", lookup: "method_applications", required: true, default: null, enableInEdit: true, showInGrid: true },
