@@ -467,13 +467,13 @@ create table if not exists documents
     documentobject_id  varchar(50)  not null
         references eea_documentobject
             on update cascade,
-    documentattachment varchar(500),
+    documentattachment varchar(100),
     document_original_url varchar(100),
     created_at         timestamp default CURRENT_TIMESTAMP
 );
 
 comment on table documents is 'v4.8.0 centralized document references for RN3 reporting';
-comment on column documents.documentattachment is 'AQR3 DOC_05 DocumentAttachment. Nullable: no part of raven writes this yet, so it exports blank until an attachment path is added.';
+comment on column documents.documentattachment is 'AQR3 DOC_05 DocumentAttachment. The filename of the PDF uploaded to Reportnet3 alongside the CSVs; varchar(100) per the guide. Raven stores the reference, not the file.';
 comment on column documents.document_original_url is 'AQR3 DOC_06 DocumentOriginalURL. Where the document is published, for a document not attached to the Reportnet3 envelope. varchar(100) per the guide; the API refuses longer values rather than truncating.';
 
 create index if not exists idx_documents_datatable
@@ -1226,12 +1226,12 @@ create table if not exists srs_external
         references spatial_representativeness
             on update cascade on delete cascade,
     spatial_resolution            integer,
-    geotiff_attachment            varchar(255),
+    geotiff_attachment            varchar(100),
     primary key (spatial_representativeness_id)
 );
 
 comment on table srs_external is 'AQR3 SRE. SR area supplied as an attached GEOTIFF instead of inline grid cells.';
-comment on column srs_external.geotiff_attachment is 'AQR3 SRE_04 GeoTiffAttachment';
+comment on column srs_external.geotiff_attachment is 'AQR3 SRE_04 GeoTiffAttachment. The filename of the GeoTIFF uploaded to Reportnet3; varchar(100) per the guide.';
 
 -- ---------------------------------------------------------------------------
 -- Assessment data
@@ -1551,11 +1551,12 @@ create table if not exists moe_result_external
             on update cascade,
     spatial_resolution          integer,
     result_time                 timestamp,
-    geotiff_attachment          varchar(255),
+    geotiff_attachment          varchar(100),
     primary key (assessment_method_id, start_time, data_aggregation_process_id)
 );
 
 comment on table moe_result_external is 'AQR3 MRE MOEResultExternal. Gridded model results supplied as an attached GEOTIFF.';
+comment on column moe_result_external.geotiff_attachment is 'AQR3 MRE_11 GeoTiffAttachment. The filename of the GeoTIFF uploaded to Reportnet3; varchar(100) per the guide.';
 
 -- ---------------------------------------------------------------------------
 -- Pollution level adjustment (AQR3 ADJ)
