@@ -89,7 +89,28 @@ def get_lookups():
         """)
         spatialresolutions = cursor.fetchall()
 
-    return jsonify({"applications": applications, "spatialresolutions": spatialresolutions})
+        # SRS_05 eea_resultencoding: inline / external / zone
+        cursor.execute("""
+            SELECT COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value
+            FROM eea_resultencoding r
+            ORDER BY LOWER(r.label)
+        """)
+        resultencodings = cursor.fetchall()
+
+        # SRS_06 has no vocabulary: the guide cross-checks it against the
+        # SamplingPoint and Model tables, so offer both rather than free text.
+        cursor.execute("""
+            SELECT id AS value, id || ' (sampling point)' AS label FROM sampling_points
+            UNION ALL
+            SELECT id AS value, id || ' (model)' AS label FROM models
+            ORDER BY label
+        """)
+        assessmentmethods = cursor.fetchall()
+
+    return jsonify({"applications": applications,
+                    "spatialresolutions": spatialresolutions,
+                    "resultencodings": resultencodings,
+                    "assessmentmethods": assessmentmethods})
 
 
 @sr_endpoint.route("/api/management/spatialrepresentativeness", methods=["GET"])
@@ -101,11 +122,17 @@ def get_all():
                 sr.id,
                 sr.srs_application_id,
                 sr.srs_application,
+                sr.result_encoding_id,
+                COALESCE(NULLIF(re.notation, ''), re.label) AS result_encoding,
+                sr.representativeness_assessment_method_id,
                 sr.created_at,
                 COUNT(a.id) AS point_count
             FROM spatial_representativeness sr
+            LEFT JOIN eea_resultencoding re ON sr.result_encoding_id = re.id
             LEFT JOIN srs_inline a ON a.spatial_representativeness_id = sr.id
-            GROUP BY sr.id, sr.srs_application_id, sr.srs_application, sr.created_at
+            GROUP BY sr.id, sr.srs_application_id, sr.srs_application, sr.result_encoding_id,
+                     re.notation, re.label, sr.representativeness_assessment_method_id,
+                     sr.created_at
             ORDER BY LOWER(sr.id)
         """)
         return jsonify(cursor.fetchall())
@@ -140,9 +167,16 @@ def insert():
     obj = SpatialRepresentativenessModel(**request.json)
     with CursorFromPool() as cursor:
         cursor.execute("""
-            INSERT INTO spatial_representativeness (id, srs_application_id, srs_application)
-            VALUES (%(id)s, %(srs_application_id)s, %(srs_application)s)
-        """, {"id": obj.id, "srs_application_id": obj.srs_application_id, "srs_application": obj.srs_application})
+            INSERT INTO spatial_representativeness
+                (id, srs_application_id, srs_application, result_encoding_id,
+                 representativeness_assessment_method_id)
+            VALUES (%(id)s, %(srs_application_id)s, %(srs_application)s, %(result_encoding_id)s,
+                    %(representativeness_assessment_method_id)s)
+        """, {"id": obj.id, "srs_application_id": obj.srs_application_id,
+              "srs_application": obj.srs_application,
+              "result_encoding_id": obj.result_encoding_id,
+              "representativeness_assessment_method_id":
+                  obj.representativeness_assessment_method_id})
         count = _insert_points(cursor, obj.id, obj.points, obj.spatial_resolution)
     return {"message": "Inserted", "id": obj.id, "point_count": count}, 201
 
@@ -155,9 +189,16 @@ def update():
         cursor.execute("""
             UPDATE spatial_representativeness
             SET srs_application_id = %(srs_application_id)s,
-                srs_application = %(srs_application)s
+                srs_application = %(srs_application)s,
+                result_encoding_id = %(result_encoding_id)s,
+                representativeness_assessment_method_id =
+                    %(representativeness_assessment_method_id)s
             WHERE id = %(id)s
-        """, {"id": obj.id, "srs_application_id": obj.srs_application_id, "srs_application": obj.srs_application})
+        """, {"id": obj.id, "srs_application_id": obj.srs_application_id,
+              "srs_application": obj.srs_application,
+              "result_encoding_id": obj.result_encoding_id,
+              "representativeness_assessment_method_id":
+                  obj.representativeness_assessment_method_id})
         if cursor.rowcount == 0:
             return {"error": "Not found"}, 404
         if obj.points:
@@ -187,6 +228,7 @@ def get_by_id(sr_id):
     with CursorFromPool() as cursor:
         cursor.execute("""
             SELECT sr.id, sr.srs_application_id, sr.srs_application, sr.created_at,
+                   sr.result_encoding_id, sr.representativeness_assessment_method_id,
                    a.x, a.y, a.spatial_resolution
             FROM spatial_representativeness sr
             LEFT JOIN srs_inline a ON a.spatial_representativeness_id = sr.id
@@ -212,6 +254,9 @@ def get_by_id(sr_id):
         "id":                 first["id"],
         "srs_application_id": first["srs_application_id"],
         "srs_application":    first["srs_application"],
+        "result_encoding_id": first["result_encoding_id"],
+        "representativeness_assessment_method_id":
+            first["representativeness_assessment_method_id"],
         "created_at":         str(first["created_at"]) if first["created_at"] else None,
         "spatial_resolution": spatial_resolution,
         "points":             points
