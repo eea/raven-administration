@@ -195,11 +195,11 @@ watch(() => props.show, (visible) => {
                  :placeholder="fallback(f.k)" />
         </div>
       </div>
-      <div class="flex justify-end gap-2">
-        <button class="btn text-sm" @click="editing = null">Cancel</button>
-        <button class="btn btn-primary text-sm" :disabled="saving || !form.location_begin" @click="onSave">
+      <div class="flex justify-end pt-2 gap-4">
+        <button class="button" :disabled="saving || !form.location_begin" @click="onSave">
           {{ saving ? "Saving…" : "Save" }}
         </button>
+        <button class="button" @click="editing = null">Cancel</button>
       </div>
     </div>
 

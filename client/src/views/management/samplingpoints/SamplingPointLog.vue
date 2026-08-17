@@ -103,8 +103,8 @@ watch(() => props.show, (v) => {
         <label class="block text-xs font-semibold text-nord3 mb-1">Comment <span class="text-nord11">*</span></label>
         <textarea v-model="form.comment" rows="3" class="input w-full text-sm resize-none" placeholder="Enter log comment..." />
       </div>
-      <div class="flex justify-end gap-2">
-        <button class="btn btn-primary text-sm" :disabled="saving || !form.comment.trim() || !form.period_from || !form.period_to" @click="onSave">
+      <div class="flex justify-end pt-2 gap-4">
+        <button class="button" :disabled="saving || !form.comment.trim() || !form.period_from || !form.period_to" @click="onSave">
           {{ saving ? "Saving…" : "Save" }}
         </button>
       </div>
