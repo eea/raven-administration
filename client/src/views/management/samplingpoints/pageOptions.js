@@ -18,6 +18,11 @@ const pageOptions = (lookups) => ({
 
     // OPTIONAL
     { type: "text", label: "Reference Id", prop: "sampling_point_reference_id", placeholder: "str: SPOref_<StationEoICode>_<PollutantId>_<idx>", required: false, default: null, enableInEdit: true, showInGrid: false },
+    // Active period. from_time is the default AQR3 SPL_03 LocationBegin, which is
+    // part of the AQR3 key — left empty, SamplingPointLocation.csv reports a blank
+    // mandatory column. Per-period overrides live in the Locations dialog.
+    { type: "eeaDatetime", label: "Active From", prop: "from_time", required: false, default: null, enableInEdit: true, showInGrid: true },
+    { type: "eeaDatetime", label: "Active To", prop: "to_time", required: false, default: null, enableInEdit: true, showInGrid: false },
     { type: "checkbox", label: "Hotspot", prop: "hotspot", required: false, default: false, enableInEdit: true, showInGrid: false },
     { type: "text", label: "Logger Id", prop: "logger_id", placeholder: "str: Logger id for push functionality", required: false, default: null, enableInEdit: true, showInGrid: false },
     { type: "checkbox", label: "Daily Check", prop: "daily_check", required: false, default: false, enableInEdit: true, showInGrid: false }

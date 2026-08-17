@@ -31,7 +31,7 @@ EXPORTABLE = {
     "zones": [],
     "networks": [],
     "stations": [],
-    "sampling_points": ["from_time", "to_time"],
+    "sampling_points": [],
     "processes": [],
     "documents": [],
 }

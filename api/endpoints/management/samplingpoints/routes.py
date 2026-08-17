@@ -20,6 +20,8 @@ def samplingpoints():
             SELECT
               sp.id,
               sp.sampling_point_reference_id,
+              to_char(sp.from_time, 'YYYY-MM-DD HH24:MI') as from_time,
+              to_char(sp.to_time,   'YYYY-MM-DD HH24:MI') as to_time,
               sp.inlet_height,
               sp.building_distance,
               sp.kerb_distance,
@@ -97,6 +99,8 @@ def samplingpoints_update():
           UPDATE sampling_points
           SET
             sampling_point_reference_id=%(sampling_point_reference_id)s,
+            from_time=%(from_time)s::timestamp,
+            to_time=%(to_time)s::timestamp,
             inlet_height=%(inlet_height)s,
             building_distance=%(building_distance)s,
             kerb_distance=%(kerb_distance)s,
@@ -132,12 +136,14 @@ def samplingpoints_insert():
 
         sql = """
           INSERT INTO sampling_points (
-            id, sampling_point_reference_id, inlet_height, building_distance, kerb_distance,
+            id, sampling_point_reference_id, from_time, to_time,
+            inlet_height, building_distance, kerb_distance,
             emission_source_distance, hotspot, logger_id, private, use_in_public_api, daily_check,
             pollutant_id, time_resolution_id, unit_id, station_id, sampling_point_category_id
           )
           VALUES (
-            %(id)s, %(sampling_point_reference_id)s, %(inlet_height)s, %(building_distance)s, %(kerb_distance)s,
+            %(id)s, %(sampling_point_reference_id)s, %(from_time)s::timestamp, %(to_time)s::timestamp,
+            %(inlet_height)s, %(building_distance)s, %(kerb_distance)s,
             %(emission_source_distance)s, %(hotspot)s, %(logger_id)s, %(private)s, %(use_in_public_api)s, %(daily_check)s,
             %(pollutant_id)s, %(time_resolution_id)s, %(unit_id)s, %(station_id)s, %(sampling_point_category_id)s
           )
@@ -161,6 +167,6 @@ def samplingpoints_delete():
 
         rows = Q.delete("sampling_points", model)
         if rows == 0:
-            raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
+            raise BadRequest("Could not delete for ids " + ','.join(model.ids))
 
         return jsonify({"msg": "Sampling point deleted successfully"})

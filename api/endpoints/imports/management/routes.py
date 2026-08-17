@@ -25,7 +25,10 @@ IMPORTABLE = {
     "zones": [],
     "networks": [],
     "stations": [],
-    "sampling_points": ["from_time", "to_time"],
+    # from_time/to_time are in the round-trip: from_time is the default AQR3
+    # SPL_03 LocationBegin and part of the AQR3 key, and a country with hundreds
+    # of sampling points needs a bulk way to set it.
+    "sampling_points": [],
     "processes": [],
     "documents": [],
 }
