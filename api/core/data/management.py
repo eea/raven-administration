@@ -3,6 +3,7 @@ from pandas import DataFrame
 import geopandas as gp
 import io
 from shapely import wkt
+from werkzeug.exceptions import BadRequest
 
 
 # ---------------------------------------------------------------------------
@@ -115,13 +116,31 @@ class Management:
             self.df = pd.DataFrame(gdf.drop(columns=['geometry']))  # Dont need geopandas geometry functionality anymore.
 
         else:
-            raise Exception("File type is not supported")
+            raise BadRequest(f'File type is not supported: {file.filename}. '
+                             f'Upload a .csv or .gpkg file.')
 
         # Accept the headers this API version publishes, then work internally
         # with the current column names.
         self.df = self._rename_in(self.df)
 
         self.__validate()
+
+    # For the message when a value will not convert. The importer's own type names,
+    # not the caller's, so an unmapped type still produces something readable.
+    __TYPE_NAMES = {
+        "numeric": "a number",
+        "varchar": "text",
+        "bool": "true or false",
+        "geometry": "WKT geometry",
+        "timestamp": "a timestamp",
+        "timestamptz": "a timestamp",
+        "date": "a date",
+    }
+
+    def __expected(self, row):
+        if row.data_type.startswith("int"):
+            return "a whole number"
+        return self.__TYPE_NAMES.get(row.data_type, row.data_type)
 
     def __validate(self):
         self.df = self.df.astype(object)
@@ -134,40 +153,62 @@ class Management:
 
             # Does it contain all required columns
             if not row.column_name in self.df.columns:
-                raise Exception("Header " + row.column_name + " was not found")
+                raise BadRequest(
+                    f'Header {row.column_name} was not found. The file must carry a column for '
+                    f'every field of {self.table_name}: '
+                    f'{", ".join(self.df_schema.column_name)}.')
 
             # Does it contain any null values if required
             if not row.optional and self.df[row.column_name].isnull().values.any():
-                raise Exception("Column " + row.column_name + " cannot have empty values")
+                raise BadRequest(f'Column {row.column_name} cannot have empty values.')
 
-            # Validations raises an exception if it fails
-            if row.column_name.upper() == "BEGIN_POSITION" or row.column_name.upper() == "END_POSITION":
-                pd.to_datetime(self.df[self.df[row.column_name].notna()][row.column_name], format="%Y-%m-%dT%H:%M:%S%z")
-
-            elif row.data_type.startswith("int"):
-                self.df[self.df[row.column_name].notna()][row.column_name].astype(int)
-
-            elif row.data_type == "numeric":
-                self.df[self.df[row.column_name].notna()][row.column_name].astype(float)
-
-            elif row.data_type == "varchar":
-                self.df[self.df[row.column_name].notna()][row.column_name].astype(str)
-
-            elif row.data_type == "bool":
-                bool_list = ['true', 'True', 'TRUE', True, 'false', 'False', 'FALSE', False]
-                if (not self.df[row.column_name].isin(bool_list).any()) and (self.df[row.column_name].notna().any()):
-                    raise Exception("Column " + row.column_name + " must be boolean value")
-
-            elif row.data_type == "geometry":
-                self.df[self.df[row.column_name].notna()][row.column_name].apply(wkt.loads)
-
-            elif row.data_type in ("timestamp", "timestamptz", "date"):
-                pd.to_datetime(self.df[self.df[row.column_name].notna()][row.column_name])
-
-            else:
-                raise Exception("Not implemented check for type: " + row.data_type)
+            # A value that will not convert is the caller's data, not a server
+            # fault, so report which column and what was expected rather than
+            # letting a bare pandas or shapely error become a 500.
+            try:
+                self.__validate_column_type(row)
+            except (BadRequest, NotImplementedError):
+                # Already precise, or a raven gap rather than the caller's data.
+                raise
+            except Exception as e:
+                raise BadRequest(
+                    f'Column {row.column_name} expects {self.__expected(row)}, but a value '
+                    f'could not be read: {e}') from e
 
         self.exclude_column_names(self.df_schema, exclude_list)
+
+    def __validate_column_type(self, row):
+        """Raise if any non-null value in the column will not convert."""
+        if row.column_name.upper() == "BEGIN_POSITION" or row.column_name.upper() == "END_POSITION":
+            pd.to_datetime(self.df[self.df[row.column_name].notna()][row.column_name], format="%Y-%m-%dT%H:%M:%S%z")
+
+        elif row.data_type.startswith("int"):
+            self.df[self.df[row.column_name].notna()][row.column_name].astype(int)
+
+        elif row.data_type == "numeric":
+            self.df[self.df[row.column_name].notna()][row.column_name].astype(float)
+
+        elif row.data_type == "varchar":
+            self.df[self.df[row.column_name].notna()][row.column_name].astype(str)
+
+        elif row.data_type == "bool":
+            bool_list = ['true', 'True', 'TRUE', True, 'false', 'False', 'FALSE', False]
+            if (not self.df[row.column_name].isin(bool_list).any()) and (self.df[row.column_name].notna().any()):
+                raise BadRequest(f'Column {row.column_name} must be a boolean value '
+                                 f'(true or false).')
+
+        elif row.data_type == "geometry":
+            self.df[self.df[row.column_name].notna()][row.column_name].apply(wkt.loads)
+
+        elif row.data_type in ("timestamp", "timestamptz", "date"):
+            pd.to_datetime(self.df[self.df[row.column_name].notna()][row.column_name])
+
+        else:
+            # Not the caller's fault: the importer has no check for a type the
+            # schema uses, so this stays a server error.
+            raise NotImplementedError(
+                f'{self.table_name}.{row.column_name} is {row.data_type}, which the management '
+                f'importer has no validation for — add one to __validate_column_type.')
 
     def generic_select(self):
         sql = f"""
