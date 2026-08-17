@@ -695,7 +695,8 @@ DOC = TableSpec(
                dt.notation   AS data_table,
                dobj.notation AS document_type,
                d.id          AS document_id,
-               d.documentattachment AS document_attachment
+               d.documentattachment AS document_attachment,
+               d.document_original_url
         FROM documents d
         LEFT JOIN eea_datatable dt        ON d.datatable_id      = dt.id
         LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
@@ -707,8 +708,8 @@ DOC = TableSpec(
         Column('DocumentType', 'document_type'),
         Column('DocumentId', 'document_id'),
         Column('DocumentAttachment', 'document_attachment'),
-        # DOC_06 has no column yet: raven stores one attachment reference per
-        # document and does not separately record the original external URL.
+        # DOC_05 and DOC_06 are alternatives: a document is either attached to the
+        # Reportnet3 envelope or published somewhere and referenced by URL.
         Column('DocumentOriginalURL', 'document_original_url'),
     ),
 )

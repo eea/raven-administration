@@ -32,6 +32,19 @@ const pageOptions = (lookups) => {
         default: null,
         enableInEdit: true,
         showInGrid: true
+      },
+      // OPTIONAL
+      {
+        // AQR3 DOC_06. The alternative to attaching the PDF to the Reportnet3
+        // envelope: where the document is already published.
+        type: "text",
+        label: "Original URL",
+        prop: "document_original_url",
+        placeholder: "str: where the document is published (max 100 chars)",
+        required: false,
+        default: null,
+        enableInEdit: true,
+        showInGrid: true
       }
     ],
     lookups: lookups

@@ -468,11 +468,13 @@ create table if not exists documents
         references eea_documentobject
             on update cascade,
     documentattachment varchar(500),
+    document_original_url varchar(100),
     created_at         timestamp default CURRENT_TIMESTAMP
 );
 
 comment on table documents is 'v4.8.0 centralized document references for RN3 reporting';
 comment on column documents.documentattachment is 'AQR3 DOC_05 DocumentAttachment. Nullable: no part of raven writes this yet, so it exports blank until an attachment path is added.';
+comment on column documents.document_original_url is 'AQR3 DOC_06 DocumentOriginalURL. Where the document is published, for a document not attached to the Reportnet3 envelope. varchar(100) per the guide; the API refuses longer values rather than truncating.';
 
 create index if not exists idx_documents_datatable
     on documents (datatable_id);

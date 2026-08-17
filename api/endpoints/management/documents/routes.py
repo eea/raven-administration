@@ -50,6 +50,7 @@ def get_all():
                 d.datatable_id,
                 COALESCE(NULLIF(dobj.notation, ''), dobj.label) as documentobject_label,
                 d.documentobject_id,
+                d.document_original_url,
                 d.created_at
             FROM documents d
             LEFT JOIN eea_datatable dt ON d.datatable_id = dt.id
@@ -72,11 +73,13 @@ def insert():
             INSERT INTO documents (
                 id,
                 datatable_id,
-                documentobject_id
+                documentobject_id,
+                document_original_url
             ) VALUES (
                 %(id)s,
                 %(datatable_id)s,
-                %(documentobject_id)s
+                %(documentobject_id)s,
+                %(document_original_url)s
             )
         """, doc.dict())
 
@@ -98,9 +101,10 @@ def update():
     with CursorFromPool() as cursor:
         cursor.execute("""
             UPDATE documents
-            SET 
+            SET
                 datatable_id = %(datatable_id)s,
-                documentobject_id = %(documentobject_id)s
+                documentobject_id = %(documentobject_id)s,
+                document_original_url = %(document_original_url)s
             WHERE id = %(id)s
         """, doc.dict())
 
