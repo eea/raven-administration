@@ -48,10 +48,10 @@ def zones_update():
         
         sql = f""" 
             UPDATE zones
-            SET 
-                code = %(zone_national_code)s,
+            SET
+                zone_national_code = %(zone_national_code)s,
                 name = %(name)s,
-                area = %(zone_area)s,
+                zone_area = %(zone_area)s,
                 zone_type_id = %(zone_type_id)s,
                 zone_category_id = %(zone_category_id)s,
                 geom = {geom_sql}
@@ -93,6 +93,6 @@ def zones_delete():
     model = DeleteModel(**request.json)
     rows = Q.delete("zones", model)
     if rows == 0:
-        raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
+        raise BadRequest("Could not delete for ids " + ','.join(model.ids))
 
     return jsonify({"success": True})

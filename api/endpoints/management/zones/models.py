@@ -1,14 +1,13 @@
-from pydantic import BaseModel
 from typing import Optional
 from core.base_model import RavenBaseModel
 
 
 class ZoneModel(RavenBaseModel):
-    
+
     id: str
-    code: str
+    zone_national_code: str   # AQR3 ARZ_04
     name: str
-    area: float
+    zone_area: float          # AQR3 ARZ_05 (km2)
     zone_type_id: Optional[str] = None
     zone_category_id: Optional[str] = None
     geojson: str  # GeoJSON string representation of the geometry
