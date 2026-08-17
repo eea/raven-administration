@@ -22,7 +22,9 @@ from core.reporting.aqr3.grid import (
     validate_resolution,
 )
 
-from .models import ModelObjectiveEstimationModel, ModelResultUploadModel
+from core.reporting.aqr3.attachments import AttachmentReferenceError, validate_reference
+from .models import (ExternalResultKey, ExternalResultModel,
+                     ModelObjectiveEstimationModel, ModelResultUploadModel)
 
 models_endpoint = Blueprint('models', __name__)
 
@@ -297,3 +299,147 @@ def upload_results(model_id):
         'spatial_resolution': resolution,
         'srid': 3035,
     })
+
+
+# ---------------------------------------------------------------------------
+# External gridded results (AQR3 MRE)
+#
+# One row per timestep rather than per grid cell: MRE says "the values are in
+# this GeoTIFF", which the reporting country uploads to Reportnet3 itself, so
+# raven records the reference and never the raster.
+#
+# Composite primary key (assessment_method_id, start_time,
+# data_aggregation_process_id), so these are child routes of a model rather than
+# a Manager page — Q.delete's `where id in (...)` cannot address the key, and
+# adding a surrogate id would let two rows differ by surrogate while colliding on
+# the AQR3 key at export.
+# ---------------------------------------------------------------------------
+
+_MRE_VALUES = ('pollutant_id', 'end_time', 'unit_id', 'validity_id', 'spatial_resolution',
+               'geotiff_attachment')
+
+
+def _validated_external(model):
+    try:
+        validate_reference('MRE_11', model.geotiff_attachment)
+    except AttachmentReferenceError as e:
+        raise BadRequest(str(e))
+    return model
+
+
+def _model_exists(cursor, model_id):
+    cursor.execute('SELECT 1 FROM models WHERE id = %s', (model_id,))
+    if cursor.fetchone() is None:
+        raise BadRequest(f'Unknown model {model_id}')
+
+
+@models_endpoint.route('/api/management/models/<model_id>/external-results', methods=['GET'])
+@jwt_required_with_management_claim()
+def external_results(model_id):
+    with CursorFromPool() as cursor:
+        _model_exists(cursor, model_id)
+        cursor.execute("""
+            SELECT to_char(e.start_time, 'YYYY-MM-DD HH24:MI') AS start_time,
+                   to_char(e.end_time,   'YYYY-MM-DD HH24:MI') AS end_time,
+                   e.data_aggregation_process_id,
+                   COALESCE(NULLIF(ap.notation, ''), ap.label) AS data_aggregation_process,
+                   e.pollutant_id,
+                   COALESCE(NULLIF(p.notation, ''), p.label) AS pollutant,
+                   e.unit_id, u.notation AS unit,
+                   e.validity_id,
+                   e.spatial_resolution,
+                   e.geotiff_attachment,
+                   to_char(e.result_time, 'YYYY-MM-DD HH24:MI') AS result_time
+            FROM moe_result_external e
+            LEFT JOIN eea_aggregationprocess ap ON e.data_aggregation_process_id = ap.id
+            LEFT JOIN eea_pollutants p          ON e.pollutant_id = p.id
+            LEFT JOIN eea_concentrations u      ON e.unit_id = u.id
+            WHERE e.assessment_method_id = %(model_id)s
+            ORDER BY e.start_time DESC, e.data_aggregation_process_id
+        """, {'model_id': model_id})
+        return jsonify(cursor.fetchall())
+
+
+@models_endpoint.route('/api/management/models/<model_id>/external-results/insert',
+                       methods=['POST'])
+@jwt_required_with_management_claim()
+def external_results_insert(model_id):
+    payload = dict(request.json or {}, assessment_method_id=model_id)
+    model = _validated_external(ExternalResultModel(**payload))
+
+    columns = ('assessment_method_id', 'start_time', 'data_aggregation_process_id') + _MRE_VALUES
+    values = ', '.join(
+        f'%({c})s::timestamp' if c in ('start_time', 'end_time') else f'%({c})s'
+        for c in columns)
+    with CursorFromPool() as cursor:
+        _model_exists(cursor, model_id)
+        cursor.execute(f"""
+            INSERT INTO moe_result_external ({', '.join(columns)}, result_time)
+            VALUES ({values}, now())
+        """, model)
+    return jsonify({'msg': 'External result created'}), 201
+
+
+@models_endpoint.route('/api/management/models/<model_id>/external-results/update',
+                       methods=['POST'])
+@jwt_required_with_management_claim()
+def external_results_update(model_id):
+    """Update one row, identified by `key`, with the values in `values`.
+
+    start_time and data_aggregation_process_id are both part of the key and
+    editable, so the key travels separately: an UPDATE keyed on the new values
+    would match nothing and leave the original row behind.
+    """
+    body = request.json or {}
+    if 'key' not in body or 'values' not in body:
+        raise BadRequest('Body must be {key: {start_time, data_aggregation_process_id}, '
+                         'values: {...}}')
+
+    key = ExternalResultKey(**dict(body['key'], assessment_method_id=model_id))
+    model = _validated_external(
+        ExternalResultModel(**dict(body['values'], assessment_method_id=model_id)))
+
+    assignments = ', '.join(
+        ['start_time = %(new_start_time)s::timestamp',
+         'data_aggregation_process_id = %(new_data_aggregation_process_id)s',
+         'result_time = now()'] +
+        [f'{c} = %({c})s::timestamp' if c == 'end_time' else f'{c} = %({c})s'
+         for c in _MRE_VALUES])
+
+    params = {c: model[c] for c in _MRE_VALUES}
+    params.update(new_start_time=model.start_time,
+                  new_data_aggregation_process_id=model.data_aggregation_process_id,
+                  assessment_method_id=model_id,
+                  start_time=key.start_time,
+                  data_aggregation_process_id=key.data_aggregation_process_id)
+
+    with CursorFromPool() as cursor:
+        cursor.execute(f"""
+            UPDATE moe_result_external
+            SET {assignments}
+            WHERE assessment_method_id = %(assessment_method_id)s
+              AND start_time = %(start_time)s::timestamp
+              AND data_aggregation_process_id = %(data_aggregation_process_id)s
+        """, params)
+        if cursor.rowcount == 0:
+            raise BadRequest(f'No external result for {key.start_time} / '
+                             f'{key.data_aggregation_process_id}')
+    return jsonify({'msg': 'External result updated'})
+
+
+@models_endpoint.route('/api/management/models/<model_id>/external-results/delete',
+                       methods=['POST'])
+@jwt_required_with_management_claim()
+def external_results_delete(model_id):
+    key = ExternalResultKey(**dict(request.json or {}, assessment_method_id=model_id))
+    with CursorFromPool() as cursor:
+        cursor.execute("""
+            DELETE FROM moe_result_external
+            WHERE assessment_method_id = %(assessment_method_id)s
+              AND start_time = %(start_time)s::timestamp
+              AND data_aggregation_process_id = %(data_aggregation_process_id)s
+        """, key)
+        if cursor.rowcount == 0:
+            raise BadRequest(f'No external result for {key.start_time} / '
+                             f'{key.data_aggregation_process_id}')
+    return jsonify({'msg': 'External result deleted'})
