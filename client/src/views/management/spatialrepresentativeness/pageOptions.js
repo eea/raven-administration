@@ -68,6 +68,19 @@ const pageOptions = (lookups) => {
         showInGrid: true
       },
       {
+        // AQR3 SRE_04 — only meaningful when Result Encoding is "external": the
+        // area is then reported as this GeoTIFF instead of as inline grid cells.
+        // The API creates or removes the srs_external row from the encoding.
+        type: "text",
+        label: "GeoTIFF (external)",
+        prop: "geotiff_attachment",
+        placeholder: "str: file name uploaded to Reportnet3, e.g. srs_NO0001.tif",
+        required: false,
+        default: null,
+        enableInEdit: true,
+        showInGrid: true
+      },
+      {
         // A computed COUNT, so it belongs in the grid and not in the form.
         // Was "numeric", which Crud does not recognise — it happened to render
         // nothing in edit mode and so looked correct.

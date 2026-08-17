@@ -21,6 +21,11 @@ class SpatialRepresentativenessModel(BaseModel):
     # sampling point for spo_sr, a model for exc_sr. No vocabulary; the guide
     # cross-checks it against the SamplingPoint and Model tables.
     representativeness_assessment_method_id: Optional[str] = Field(None, max_length=255)
+    # AQR3 SRE_04 — the filename of the GeoTIFF uploaded to Reportnet3, when the
+    # area is reported externally rather than as inline grid cells. srs_external
+    # is 1:1 with this row, so it is carried here rather than in its own model;
+    # the routes upsert or delete that row from result_encoding_id.
+    geotiff_attachment: Optional[str] = Field(None, max_length=100)
 
 
 class DeleteModel(BaseModel):

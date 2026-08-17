@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
+from werkzeug.exceptions import BadRequest
 from core.jwt_ext_custom import jwt_required_with_management_claim
 from core.database import CursorFromPool
+from core.reporting.aqr3.attachments import AttachmentReferenceError, validate_reference
 from core.reporting.aqr3.grid import points_to_inspire_grid, validate_resolution
 from .models import SpatialRepresentativenessModel, DeleteModel
 import io
@@ -125,17 +127,47 @@ def get_all():
                 sr.result_encoding_id,
                 COALESCE(NULLIF(re.notation, ''), re.label) AS result_encoding,
                 sr.representativeness_assessment_method_id,
+                ext.geotiff_attachment,
                 sr.created_at,
                 COUNT(a.id) AS point_count
             FROM spatial_representativeness sr
             LEFT JOIN eea_resultencoding re ON sr.result_encoding_id = re.id
+            LEFT JOIN srs_external ext ON ext.spatial_representativeness_id = sr.id
             LEFT JOIN srs_inline a ON a.spatial_representativeness_id = sr.id
             GROUP BY sr.id, sr.srs_application_id, sr.srs_application, sr.result_encoding_id,
                      re.notation, re.label, sr.representativeness_assessment_method_id,
-                     sr.created_at
+                     ext.geotiff_attachment, sr.created_at
             ORDER BY LOWER(sr.id)
         """)
         return jsonify(cursor.fetchall())
+
+
+def _sync_external(cursor, obj):
+    """Keep srs_external in step with the SR's result encoding.
+
+    srs_external is strictly 1:1 with spatial_representativeness, and which of the
+    two representations applies is what result_encoding_id says. So an SR encoded
+    as `external` gets (or keeps) its row, and one switched back to inline loses
+    it — leaving a stale external row would make SRE export a GeoTIFF reference
+    for an area that is reported as grid cells.
+    """
+    if (obj.result_encoding_id or '').lower() == 'external':
+        try:
+            validate_reference('SRE_04', obj.geotiff_attachment)
+        except AttachmentReferenceError as e:
+            raise BadRequest(str(e))
+        cursor.execute("""
+            INSERT INTO srs_external (spatial_representativeness_id, spatial_resolution,
+                                      geotiff_attachment)
+            VALUES (%(id)s, %(spatial_resolution)s, %(geotiff_attachment)s)
+            ON CONFLICT (spatial_representativeness_id) DO UPDATE
+               SET spatial_resolution = excluded.spatial_resolution,
+                   geotiff_attachment = excluded.geotiff_attachment
+        """, {'id': obj.id, 'spatial_resolution': obj.spatial_resolution,
+              'geotiff_attachment': obj.geotiff_attachment})
+    else:
+        cursor.execute('DELETE FROM srs_external WHERE spatial_representativeness_id = %s',
+                       (obj.id,))
 
 
 def _insert_points(cursor, sr_id, points_4326, spatial_resolution):
@@ -177,6 +209,7 @@ def insert():
               "result_encoding_id": obj.result_encoding_id,
               "representativeness_assessment_method_id":
                   obj.representativeness_assessment_method_id})
+        _sync_external(cursor, obj)
         count = _insert_points(cursor, obj.id, obj.points, obj.spatial_resolution)
     return {"message": "Inserted", "id": obj.id, "point_count": count}, 201
 
@@ -201,6 +234,7 @@ def update():
                   obj.representativeness_assessment_method_id})
         if cursor.rowcount == 0:
             return {"error": "Not found"}, 404
+        _sync_external(cursor, obj)
         if obj.points:
             _insert_points(cursor, obj.id, obj.points, obj.spatial_resolution)
     return {"message": "Updated"}, 200
@@ -229,8 +263,11 @@ def get_by_id(sr_id):
         cursor.execute("""
             SELECT sr.id, sr.srs_application_id, sr.srs_application, sr.created_at,
                    sr.result_encoding_id, sr.representativeness_assessment_method_id,
-                   a.x, a.y, a.spatial_resolution
+                   ext.geotiff_attachment,
+                   COALESCE(a.spatial_resolution, ext.spatial_resolution) AS spatial_resolution,
+                   a.x, a.y
             FROM spatial_representativeness sr
+            LEFT JOIN srs_external ext ON ext.spatial_representativeness_id = sr.id
             LEFT JOIN srs_inline a ON a.spatial_representativeness_id = sr.id
             WHERE sr.id = %s
             ORDER BY a.id
@@ -257,8 +294,11 @@ def get_by_id(sr_id):
         "result_encoding_id": first["result_encoding_id"],
         "representativeness_assessment_method_id":
             first["representativeness_assessment_method_id"],
+        "geotiff_attachment": first["geotiff_attachment"],
         "created_at":         str(first["created_at"]) if first["created_at"] else None,
-        "spatial_resolution": spatial_resolution,
+        # With no inline points there is no per-cell resolution to read, so fall
+        # back to the external row's — the SELECT already COALESCEs them.
+        "spatial_resolution": spatial_resolution or first["spatial_resolution"],
         "points":             points
     })
 
