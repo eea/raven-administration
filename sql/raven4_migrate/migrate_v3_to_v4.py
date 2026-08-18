@@ -12,9 +12,35 @@ Key transformations:
 
 Usage:
     python migrate_v3_to_v4.py [--dry-run] [--batch-size=10000]
-    python migrate_v3_to_v4.py --init-only   # blank DB with schema + EEA lookups, no source DB needed
+    python migrate_v3_to_v4.py --init-only       # blank DB with schema + EEA lookups, no source DB
+    python migrate_v3_to_v4.py --remediate-only  # derive AQR3 columns in an existing v4 DB
 
 The migration runs in a single transaction - if any part fails, nothing is committed.
+
+Schema source: sql/schema.sql, which since schema version 4.502.11 also embodies
+migrations 001-010 (archived under sql/migrations/archive/). The DML those migrations
+carried lives in remediate_legacy_data() below, because it depends on rows rather than
+structure and so cannot live in schema.sql.
+
+WHAT THIS DOES NOT MIGRATE, deliberately -- these are AQR3 v5.02 entities with no v3
+source data, and they are filled through the admin UI after the migration:
+
+    sampling_point_locations        SPL location history. The export falls back to
+                                    sampling_points.from_time/to_time when absent.
+    moe_result_external / srs_external / moe_result_inline / models
+                                    MOE/MRI/MRE/SRE modelling results.
+    pollution_level_adjustment      ADJ. Partly seeded by remediate_legacy_data() where
+                                    exceedancedescriptions.adjustment_source exists.
+    compliance_assessment_method    CAM. Derived by POST /api/dataflow/compliance/recalculate.
+    documents.documentattachment    DOC_05 / DOC_06. Reportnet3 attachment filename and
+    documents.document_original_url published URL; no v3 equivalent.
+
+KNOWN DEFECT, not introduced by the fold-in: clear_migration_tables() TRUNCATEs
+exceedancedescriptions, attainments and exceedingmethods, but no migrate_* function
+repopulates them -- nothing here reads those tables from v3. So re-running this script
+against a database whose exceedance data was entered through the UI DESTROYS it, and
+that is the source of AQR3 dataflow G. Take a dump first, or remove those three from
+the list if the target already holds exceedance data.
 """
 
 import os
@@ -48,9 +74,21 @@ TARGET_DB = {
 }
 
 
+# log() writes ✓/⚠/❌, and on Windows a redirected stdout defaults to cp1252, which
+# cannot encode them: piping this script's output made it die with UnicodeEncodeError
+# mid-migration -- and then die a second time inside its own `except` handler, hiding
+# the real error. Anything that captures this output hits that, including CI and any
+# wrapper that subprocesses it.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError):
+        pass
+
+
 def log(msg):
     """Print timestamped log message"""
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
 
 
 # Case mapping for values that differ between v3 URIs and v4 notations
@@ -161,18 +199,30 @@ def extract_pollutant_id_from_uri(uri):
 class Migration:
     """Handle Raven v3 → v4 migration with transaction support"""
     
-    def __init__(self, dry_run=False, batch_size=10000, recreate_schema=False, init_only=False):
+    def __init__(self, dry_run=False, batch_size=10000, recreate_schema=False, init_only=False,
+                 remediate_only=False):
         self.dry_run = dry_run
         self.batch_size = batch_size
         self.recreate_schema = recreate_schema
         self.init_only = init_only
+        self.remediate_only = remediate_only
         self.source_conn = None
         self.target_conn = None
         self.stats = {}
-    
+
+    def target_uri(self):
+        """The target as a libpq URI, for subprocesses that take --db-uri."""
+        return (f"postgresql://{TARGET_DB['user']}:{TARGET_DB['password']}"
+                f"@{TARGET_DB['host']}:{TARGET_DB['port']}/{TARGET_DB['database']}")
+
+    @property
+    def target_only(self):
+        """True when no source database is needed."""
+        return self.init_only or self.remediate_only
+
     def connect(self):
-        """Connect to both databases (or only target when --init-only)"""
-        if not self.init_only:
+        """Connect to both databases (or only target when --init-only/--remediate-only)"""
+        if not self.target_only:
             log("Connecting to source database (ravendb)...")
             self.source_conn = psycopg2.connect(**SOURCE_DB)
             self.source_conn.set_session(readonly=True)
@@ -182,7 +232,8 @@ class Migration:
         # Don't autocommit - we want transaction control
         self.target_conn.autocommit = False
 
-        log("✓ Connected to target database" if self.init_only else "✓ Connected to both databases")
+        log("✓ Connected to target database" if self.target_only
+            else "✓ Connected to both databases")
     
     def close(self):
         """Close connections"""
@@ -287,28 +338,155 @@ class Migration:
             return
         
         log("   Lookups empty - populating from RDF vocabularies...")
-        
-        # Import and run the populate script
+
+        # sql/populate_vocabularies.py is the canonical loader and lives in this repo,
+        # so it ships in every image. The old path went four levels up to
+        # ../../../../raven-rn3-db/populate_lookups_v4_2.py -- outside the repo and
+        # absent from the container -- so this step raised FileNotFoundError on any
+        # target whose eea_pollutants was empty, which is every fresh install.
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        populate_script = os.path.join(script_dir, '..', '..', '..', '..', 'raven-rn3-db', 'populate_lookups_v4_2.py')
-        
+        populate_script = os.path.join(script_dir, '..', 'populate_vocabularies.py')
+
         if not os.path.exists(populate_script):
             raise FileNotFoundError(f"Populate script not found: {populate_script}")
-        
-        # Run populate script in subprocess
+
+        # It takes --db-uri (defaulting to $DB_URI), not the TARGET_DB_* variables this
+        # script uses, so pass the target explicitly rather than letting it pick up
+        # whichever DB_URI the environment happens to carry -- which on a developer
+        # machine is usually a different database entirely.
         import subprocess
         result = subprocess.run(
-            [sys.executable, populate_script],
-            capture_output=True, text=True, cwd=os.path.dirname(populate_script)
+            [sys.executable, populate_script, '--db-uri', self.target_uri()],
+            capture_output=True, text=True,
+            cwd=os.path.dirname(os.path.abspath(populate_script))
         )
-        
+
         if result.returncode != 0:
             log(f"   ⚠ Populate script output: {result.stderr}")
             raise RuntimeError(f"Populate script failed: {result.stderr}")
-        
+
         log("   ✓ Lookup tables populated")
         cur.close()
     
+    def remediate_legacy_data(self):
+        """Derive AQR3 v5.02 columns from data an older Raven already holds.
+
+        This is the DML half of migrations 002, 003 and 004. Their DDL is in
+        sql/schema.sql; these three statements are not expressible there because they
+        depend on rows rather than structure, so they moved here when 001-010 were
+        archived (see sql/migrations/archive/README.md).
+
+        Be clear about when this does work. A plain v3 -> v4 run populates none of the
+        three inputs: observations.meta is written as NULL below (it is an ADACS-only
+        field), and exceedancedescriptions / srs_inline are never migrated at all. So
+        during a v3 -> v4 run this is a no-op by construction, and that is fine -- it
+        earns its place because --remediate-only makes it runnable against a database
+        that DOES hold such rows: one fed by ADACS or AirQUIS, or populated through the
+        admin UI. Each statement is idempotent and reports what it changed.
+        """
+        log("\n🔧 Remediating legacy data (AQR3 v5.02 derived columns)...")
+
+        cur = self.target_conn.cursor()
+
+        # --- 002: observations.data_capture from the ADACS instrument validity ------
+        #
+        # OMR_14 DataCapture is the share of the averaging period with valid raw data.
+        # ADACS records it in observations.meta; nothing else does, so it is only
+        # derivable where meta is present.
+        #
+        # The trigger suspension is load-bearing, not tidiness:
+        # raven_observations_set_timestamp_trigger sets `touched` on every UPDATE, and
+        # `touched` is exported as the AQR3 ResultTime. Without this, backfilling a
+        # derived column would rewrite the reported time of every observation it
+        # touches, silently changing what has already been submitted.
+        cur.execute("""
+            select count(*) from information_schema.columns
+            where table_schema = 'public' and table_name = 'observations'
+              and column_name = 'meta'
+        """)
+        if cur.fetchone()[0]:
+            cur.execute("alter table observations disable trigger "
+                        "raven_observations_set_timestamp_trigger")
+            try:
+                cur.execute("""
+                    update observations
+                       set data_capture = (meta->>'instrument_validity')::numeric
+                     where data_capture is null
+                       and meta ? 'instrument_validity'
+                       and (meta->>'instrument_validity') ~ '^[0-9]+(\\.[0-9]+)?$'
+                """)
+                log(f"   ✓ observations.data_capture: {cur.rowcount:,} row(s) derived from meta")
+            finally:
+                cur.execute("alter table observations enable trigger "
+                            "raven_observations_set_timestamp_trigger")
+        else:
+            log("   - observations.meta absent; nothing to derive for data_capture")
+
+        # --- 003: pollution_level_adjustment from exceedance descriptions ----------
+        #
+        # ADJ_02/ADJ_03: one row per (attainment, adjustment source). The v3-era
+        # exceedancedescriptions.adjustment_source already names the source, so the ADJ
+        # row can be created; the quantities (adjusted concentration, method, document)
+        # are entered afterwards in the admin UI, which is why only two of the four
+        # columns are written here.
+        cur.execute("""
+            select to_regclass('public.exceedancedescriptions') is not null
+               and exists (select 1 from information_schema.columns
+                           where table_schema = 'public'
+                             and table_name = 'exceedancedescriptions'
+                             and column_name = 'adjustment_source')
+        """)
+        if cur.fetchone()[0]:
+            cur.execute("""
+                insert into pollution_level_adjustment (attainment_id, adjustment_source_id)
+                select distinct ed.attainment_id, ed.adjustment_source
+                  from exceedancedescriptions ed
+                 where ed.adjustment_source is not null
+                   and ed.attainment_id is not null
+                on conflict (attainment_id, adjustment_source_id) do nothing
+            """)
+            log(f"   ✓ pollution_level_adjustment: {cur.rowcount:,} row(s) seeded "
+                f"from exceedancedescriptions")
+        else:
+            log("   - exceedancedescriptions.adjustment_source absent; no ADJ rows to seed")
+
+        # --- 004: snap srs_inline to the EPSG:3035 INSPIRE grid --------------------
+        #
+        # SRI_03/SRI_04 must be INSPIRE grid cell coordinates: the south-west corner of
+        # a cell whose side is spatial_resolution metres. Rows written before that rule
+        # was enforced hold arbitrary coordinates, and snapping can collide two rows
+        # onto one cell, so de-duplicate afterwards -- keeping the lowest ctid, which is
+        # arbitrary but deterministic.
+        #
+        # Only the DML lives here. 004's ALTER COLUMN retypes stayed in the archive:
+        # they apply to a database whose srs_inline descends from the NILU-only
+        # sr_area_inline, and schema.sql already declares the final types.
+        cur.execute("select to_regclass('public.srs_inline') is not null")
+        if cur.fetchone()[0]:
+            cur.execute("""
+                update srs_inline
+                   set x = floor(x::numeric / spatial_resolution)::bigint * spatial_resolution,
+                       y = floor(y::numeric / spatial_resolution)::bigint * spatial_resolution
+                 where spatial_resolution is not null
+                   and spatial_resolution > 0
+                   and (x % spatial_resolution <> 0 or y % spatial_resolution <> 0)
+            """)
+            snapped = cur.rowcount
+            cur.execute("""
+                delete from srs_inline a
+                 where a.ctid > (select min(b.ctid) from srs_inline b
+                                  where b.spatial_representativeness_id
+                                        = a.spatial_representativeness_id
+                                    and b.x = a.x and b.y = a.y
+                                    and b.spatial_resolution = a.spatial_resolution)
+            """)
+            log(f"   ✓ srs_inline: {snapped:,} cell(s) snapped to the EPSG:3035 grid, "
+                f"{cur.rowcount:,} duplicate(s) removed")
+        else:
+            log("   - srs_inline absent; no grid snapping needed")
+
+        cur.close()
+
     def clear_migration_tables(self):
         """Clear data tables before migration (preserve lookups)"""
         log("\n🗑️ Clearing existing data from target tables...")
@@ -348,12 +526,27 @@ class Migration:
             log("=" * 60)
             if self.init_only:
                 log("RAVEN v4 DATABASE INITIALISATION")
+            elif self.remediate_only:
+                log("RAVEN v4 LEGACY DATA REMEDIATION")
+                log(f"Mode: {'DRY RUN' if self.dry_run else 'LIVE'}")
             else:
                 log("RAVEN v3 → v4 DATA MIGRATION")
                 log(f"Mode: {'DRY RUN' if self.dry_run else 'LIVE'}")
                 log(f"Batch size: {self.batch_size:,}")
             log("=" * 60)
-            
+
+            # Remediation acts on an existing populated database, so it must not touch
+            # the schema or the lookups -- and above all must not clear any table.
+            if self.remediate_only:
+                self.remediate_legacy_data()
+                if self.dry_run:
+                    log("\n🔄 DRY RUN - Rolling back all changes...")
+                    self.target_conn.rollback()
+                else:
+                    log("\n💾 Committing remediation...")
+                    self.target_conn.commit()
+                return
+
             # Setup: ensure schema and lookups exist
             self.setup_schema()
             self.populate_lookups()
@@ -386,7 +579,12 @@ class Migration:
             self.migrate_assessment_tables()
             self.migrate_supporting_tables()
             self.migrate_notifications()
-            
+
+            # Last, so it sees everything the migration wrote. A no-op on a pure v3
+            # source -- see remediate_legacy_data's docstring for why it runs anyway.
+            self.remediate_legacy_data()
+
+
             # Commit or rollback
             if self.dry_run:
                 log("\n🔄 DRY RUN - Rolling back all changes...")
@@ -593,11 +791,17 @@ class Migration:
         # v3: id, name, begin_position, end_position, network_id, city, national_station_code,
         #     media_monitored, mobile, measurement_regime, area_classification, distance_junction,
         #     traffic_volume, heavy_duty_fraction, street_width, height_facades, geom, municipality,
-        #     station_eoi_code, city_code
+        #     eoi_code, city_code
         # v4.8.0: id, station_eoi_code, name, station_national_code, lat, lon, alt, supersite, station_area_id, document_id, network_id
         # Note: document_id will be NULL - needs to be populated separately via documents table
+        #
+        # The SELECT below reads the SOURCE, so it must use v3 spellings: eoi_code
+        # (renamed to station_eoi_code by migration 002) and national_station_code
+        # (which v4 calls station_national_code). Verified by introspecting
+        # dev-db-dmz02/ravendb 2026-08-18. A rename pass once applied the v4 names
+        # here too, which made this query fail against every v3 database.
         src.execute("""
-            SELECT id, station_eoi_code, name, national_station_code, 
+            SELECT id, eoi_code, name, national_station_code,
                    ST_Y(geom) as latitude, ST_X(geom) as longitude, ST_Z(geom) as altitude,
                    area_classification, network_id
             FROM stations
@@ -633,7 +837,8 @@ class Migration:
         # v4.4.0: id, sampling_point_reference_id, inlet_height, building_distance, kerb_distance, emission_source_distance,
         #         logger_id, private, use_in_public_api, from_time, to_time,
         #         pollutant_id, time_resolution_id, unit_id, sampling_point_category_id, station_id
-        # Need station.eoi_code for generating sampling_point_reference_id
+        # Need the station's EoI code for generating sampling_point_reference_id.
+        # v3 spelling: st.eoi_code (migration 002 renamed it to station_eoi_code in v4).
         src.execute("""
             SELECT DISTINCT ON (sp.id)
                 sp.id,
@@ -650,7 +855,7 @@ class Migration:
                 sp.concentration,
                 sp.station_classification,
                 sp.station_id,
-                st.station_eoi_code
+                st.eoi_code
             FROM sampling_points sp
             LEFT JOIN observing_capabilities oc ON sp.id = oc.sampling_point_id
             LEFT JOIN samples s ON oc.sample_id = s.id
@@ -966,16 +1171,19 @@ class Migration:
         src = self.source_conn.cursor()
         tgt = self.target_conn.cursor()
         
-        # v4.4.0: id, code, name, geom, area, zone_category_id, zone_type_id
+        # v3 source: id, code, name, geom, area, type
+        # v4 target: id, zone_national_code, name, geom, zone_area, zone_category_id,
+        #            zone_type_id -- code/area were renamed by migration 002 (ZGE_02, ZGE_09).
         src.execute("SELECT id, code, name, geom, area, type FROM zones")
         rows = src.fetchall()
-        
+
         for row in rows:
             id_val, code, name, geom, area, type_uri = row
             zone_type_id = extract_notation_from_uri(type_uri)
-            
+
             tgt.execute("""
-                INSERT INTO zones (id, code, name, geom, area, zone_category_id, zone_type_id)
+                INSERT INTO zones (id, zone_national_code, name, geom, zone_area,
+                                   zone_category_id, zone_type_id)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (id_val, code, name, geom, area, None, zone_type_id))
@@ -1009,10 +1217,14 @@ class Migration:
             objective_type_id = extract_notation_from_uri(row_dict.get('objecttype'))
             
             if pollutant_id:
+                # Migration 002 renamed four of these: fixed_spo_reduction ->
+                # fixed_measurement_reduction (ARZ_14), resident_population[_year] ->
+                # zone_resident_population[_year] (ARZ_12/13), classification_report_id ->
+                # classification_document_id (ARZ_19).
                 tgt.execute("""
-                    INSERT INTO assessment_regimes 
-                    (id, fixed_spo_reduction, resident_population_year, resident_population,
-                     classification_year, classification_report_id,
+                    INSERT INTO assessment_regimes
+                    (id, fixed_measurement_reduction, zone_resident_population_year,
+                     zone_resident_population, classification_year, classification_document_id,
                      assessment_threshold_exceedance_id, pollutant_id, protection_target_id,
                      objective_type_id, reporting_metric_id, zone_id)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -1248,10 +1460,20 @@ def main():
     parser.add_argument('--recreate-schema', action='store_true', help='Drop and recreate schema')
     parser.add_argument('--init-only', action='store_true',
                         help='Create schema and populate EEA lookup tables only (no v3 source needed)')
+    parser.add_argument('--remediate-only', action='store_true',
+                        help='Derive the AQR3 v5.02 columns that can be computed from data an '
+                             'existing v4 database already holds (observations.data_capture, '
+                             'pollution_level_adjustment, srs_inline grid snapping) and change '
+                             'nothing else. No v3 source needed; safe to re-run.')
     args = parser.parse_args()
-    
+
+    if args.init_only and args.remediate_only:
+        parser.error('--init-only and --remediate-only are mutually exclusive: one creates an '
+                     'empty database, the other only rewrites rows in a populated one.')
+
     migration = Migration(dry_run=args.dry_run, batch_size=args.batch_size,
-                          recreate_schema=args.recreate_schema, init_only=args.init_only)
+                          recreate_schema=args.recreate_schema, init_only=args.init_only,
+                          remediate_only=args.remediate_only)
     migration.run()
 
 
