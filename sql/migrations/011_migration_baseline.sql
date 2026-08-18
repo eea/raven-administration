@@ -80,77 +80,77 @@ $$
         if not exists (select 1 from information_schema.columns
                        where table_schema = 'public' and table_name = 'sampling_points'
                          and column_name = 'hotspot') then
-            missing := missing || '001: sampling_points.hotspot';
+            missing := array_append(missing, '001: sampling_points.hotspot');
         end if;
         if to_regclass('public.sampling_point_locations') is null then
-            missing := missing || '001: table sampling_point_locations';
+            missing := array_append(missing, '001: table sampling_point_locations');
         end if;
 
         -- 002 AQR3 v5.02 renames and additions
         if not exists (select 1 from information_schema.columns
                        where table_schema = 'public' and table_name = 'stations'
                          and column_name = 'station_eoi_code') then
-            missing := missing || '002: stations.station_eoi_code (still eoi_code?)';
+            missing := array_append(missing, '002: stations.station_eoi_code (still eoi_code?)');
         end if;
         if not exists (select 1 from information_schema.columns
                        where table_schema = 'public' and table_name = 'zones'
                          and column_name = 'zone_national_code') then
-            missing := missing || '002: zones.zone_national_code (still code?)';
+            missing := array_append(missing, '002: zones.zone_national_code (still code?)');
         end if;
         if not exists (select 1 from information_schema.columns
                        where table_schema = 'public' and table_name = 'assessment_regimes'
                          and column_name = 'fixed_measurement_reduction') then
-            missing := missing || '002: assessment_regimes.fixed_measurement_reduction';
+            missing := array_append(missing, '002: assessment_regimes.fixed_measurement_reduction');
         end if;
         if not exists (select 1 from information_schema.columns
                        where table_schema = 'public' and table_name = 'observations'
                          and column_name = 'data_capture') then
-            missing := missing || '002: observations.data_capture';
+            missing := array_append(missing, '002: observations.data_capture');
         end if;
         if to_regclass('public.spatial_representativeness') is null then
-            missing := missing || '002: table spatial_representativeness';
+            missing := array_append(missing, '002: table spatial_representativeness');
         end if;
 
         -- 003 the new AQR3 v5.02 tables
         if to_regclass('public.models') is null then
-            missing := missing || '003: table models (MOE)';
+            missing := array_append(missing, '003: table models (MOE)');
         end if;
         if to_regclass('public.moe_result_inline') is null then
-            missing := missing || '003: table moe_result_inline (MRI)';
+            missing := array_append(missing, '003: table moe_result_inline (MRI)');
         end if;
         if to_regclass('public.moe_result_external') is null then
-            missing := missing || '003: table moe_result_external (MRE)';
+            missing := array_append(missing, '003: table moe_result_external (MRE)');
         end if;
         if to_regclass('public.srs_external') is null then
-            missing := missing || '003: table srs_external (SRE)';
+            missing := array_append(missing, '003: table srs_external (SRE)');
         end if;
         if to_regclass('public.pollution_level_adjustment') is null then
-            missing := missing || '003: table pollution_level_adjustment (ADJ)';
+            missing := array_append(missing, '003: table pollution_level_adjustment (ADJ)');
         end if;
         if to_regclass('public.compliance_assessment_method') is null then
-            missing := missing || '003: table compliance_assessment_method (CAM)';
+            missing := array_append(missing, '003: table compliance_assessment_method (CAM)');
         end if;
 
         -- 005 daily check / manual log
         if not exists (select 1 from information_schema.columns
                        where table_schema = 'public' and table_name = 'sampling_points'
                          and column_name = 'daily_check') then
-            missing := missing || '005: sampling_points.daily_check';
+            missing := array_append(missing, '005: sampling_points.daily_check');
         end if;
         if to_regclass('public.sampling_point_log') is null then
-            missing := missing || '005: table sampling_point_log';
+            missing := array_append(missing, '005: table sampling_point_log');
         end if;
 
         -- 006 settings brought forward from the v3 shape
         if not exists (select 1 from information_schema.columns
                        where table_schema = 'public' and table_name = 'settings'
                          and column_name = 'country_code_id') then
-            missing := missing || '006: settings.country_code_id';
+            missing := array_append(missing, '006: settings.country_code_id');
         end if;
         if not exists (select 1 from information_schema.columns
                        where table_schema = 'public' and table_name = 'settings'
                          and column_name = 'timezone_id') then
-            missing := missing || '006: settings.timezone_id';
+            missing := array_append(missing, '006: settings.timezone_id');
         end if;
 
         -- 007 timezone_offset must be GENERATED, not merely present
@@ -159,36 +159,36 @@ $$
         where table_schema = 'public' and table_name = 'eea_timezones'
           and column_name = 'timezone_offset';
         if generated is null then
-            missing := missing || '007: eea_timezones.timezone_offset (absent)';
+            missing := array_append(missing, '007: eea_timezones.timezone_offset (absent)');
         elsif generated <> 'ALWAYS' then
-            missing := missing || '007: eea_timezones.timezone_offset is not a generated '
-                                  'column, so exported datetimes carry no UTC offset';
+            missing := array_append(missing, '007: eea_timezones.timezone_offset is not a generated '
+                                  'column, so exported datetimes carry no UTC offset');
         end if;
 
         -- 008 assessment_regime_id rename
         if not exists (select 1 from information_schema.columns
                        where table_schema = 'public' and table_name = 'assessmentdata'
                          and column_name = 'assessment_regime_id') then
-            missing := missing || '008: assessmentdata.assessment_regime_id '
-                                  '(still assessmentregime_id?)';
+            missing := array_append(missing, '008: assessmentdata.assessment_regime_id '
+                                  '(still assessmentregime_id?)');
         end if;
         if not exists (select 1 from information_schema.columns
                        where table_schema = 'public' and table_name = 'attainments'
                          and column_name = 'assessment_regime_id') then
-            missing := missing || '008: attainments.assessment_regime_id '
-                                  '(still assessmentregime_id?)';
+            missing := array_append(missing, '008: attainments.assessment_regime_id '
+                                  '(still assessmentregime_id?)');
         end if;
 
         -- 009 / 010 document attachment and original URL
         if not exists (select 1 from information_schema.columns
                        where table_schema = 'public' and table_name = 'documents'
                          and column_name = 'documentattachment') then
-            missing := missing || '009: documents.documentattachment';
+            missing := array_append(missing, '009: documents.documentattachment');
         end if;
         if not exists (select 1 from information_schema.columns
                        where table_schema = 'public' and table_name = 'documents'
                          and column_name = 'document_original_url') then
-            missing := missing || '010: documents.document_original_url';
+            missing := array_append(missing, '010: documents.document_original_url');
         end if;
 
         if array_length(missing, 1) > 0 then
