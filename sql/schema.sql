@@ -1800,28 +1800,40 @@ CREATE TABLE IF NOT EXISTS plugin_registry (
 -- ---------------------------------------------------------------------------
 -- Migration baseline
 --
--- This file IS the post-migration state, so a database created from it must
--- record every migration as already applied. Without this, sql/apply_migrations.py
--- (and the boot-time apply in docker-entrypoint.sh) cannot tell a fresh install
--- from an old database and reports every migration as pending.
+-- This file IS the whole schema, so a database created from it has nothing to
+-- migrate. It records the current schema version so sql/apply_migrations.py --
+-- and the boot-time apply in docker-entrypoint.sh:15-21 and
+-- raven-v4-deploy/docker/Dockerfile.api:46-49, both of which exit 1 on failure --
+-- see a fresh install as up to date instead of reporting migrations pending.
 --
--- MAINTENANCE: every new sql/migrations/NNN_*.sql must add its version here in
--- the same commit, exactly as it must add its DDL above. `apply_migrations.py
--- --baseline` does the same thing for databases that already exist.
+-- ONE row, the newest. Not one per migration file. The old form listed every
+-- version and drifted: it stopped at 4.502.5 while eleven migrations existed, so
+-- every fresh install reported six migrations pending forever, and applying them
+-- re-ran renames against a schema that already had the new names.
+--
+-- Version scheme: 4 = Raven 4, 502 = AQR3 v5.02 schema, last component = the
+-- highest sql/migrations/NNN_*.sql. Deployed image tags in raven-v4-deploy add a
+-- fourth build component (RAVEN.EEASCHEMA.DB.PATCH, e.g. 4.502.11.3): three
+-- parts = a schema version, four = an image. The fourth component is declared by
+-- hand in raven-v4-deploy and is not derived from anything here.
+--
+-- History: migrations 001-010 were folded into this file at 4.502.11 and moved to
+-- sql/migrations/archive/, which apply_migrations.py cannot see -- its
+-- migration_files() (:35) globs *.sql NON-recursively.
+-- sql/migrations/011_migration_baseline.sql is the only file left: it holds the
+-- version slot so the next migration is 012, and it refuses to record itself
+-- against a database that predates the fold-in.
+--
+-- MAINTENANCE for the next migration (012):
+--   1. add its DDL above, and
+--   2. REPLACE the version below with 4.502.12 -- do not append.
+-- tests/integration/test_schema_migration_parity.py enforces both halves: it
+-- builds a database from this file and asserts apply_migrations.py --dry-run
+-- reports nothing pending, and that replaying sql/migrations/archive/ on top
+-- changes no column, index, constraint or trigger. `apply_migrations.py
+-- --baseline` is the equivalent one-off for a database that already exists.
 -- ---------------------------------------------------------------------------
 
--- Version scheme: 4 = Raven 4, 502 = AQR3 v5.02 schema, last digit = migration
--- number (4.502.N matches sql/migrations/00N_*.sql).
---
--- Deployed image tags in raven-v4-deploy add a fourth build component
--- (RAVEN.EEASCHEMA.DB.PATCH, e.g. 4.502.5.1), where the third component is meant
--- to name the highest migration here. Three parts = a schema version, four = an
--- image. That fourth-component value is declared by hand in raven-v4-deploy and
--- is not derived from this directory, so treat these rows as the authority.
 insert into schema_version (version, description)
-values ('4.502.1', 'baseline: created from schema.sql'),
-       ('4.502.2', 'baseline: created from schema.sql'),
-       ('4.502.3', 'baseline: created from schema.sql'),
-       ('4.502.4', 'baseline: created from schema.sql'),
-       ('4.502.5', 'baseline: created from schema.sql')
+values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011')
 on conflict (version) do nothing;

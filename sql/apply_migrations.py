@@ -6,6 +6,12 @@ sql/migrations/NNN_*.sql carry the same changes for existing databases; both are
 updated in the same commit. Each migration records itself in schema_version, and
 every migration is written to be idempotent, so re-running is safe either way.
 
+Migrations 001-010 were folded into sql/schema.sql at 4.502.11 and moved to
+sql/migrations/archive/, which this script cannot see (see migration_files()).
+sql/migrations/011_migration_baseline.sql is the only live one; it holds the
+version slot so the next migration is 012, and it refuses to apply itself to a
+database that predates the fold-in.
+
 Usage:
     python sql/apply_migrations.py                 # apply pending
     python sql/apply_migrations.py --dry-run       # list pending, change nothing
@@ -32,6 +38,14 @@ LOCK_WAIT_SECONDS = 900
 
 
 def migration_files():
+    """Live migrations, in filename order.
+
+    NON-recursive on purpose, and that is load-bearing. Migrations 001-010 were
+    folded into sql/schema.sql and moved to sql/migrations/archive/; making this
+    glob recursive would resurrect all ten against every database, re-running
+    renames against a schema that already carries the new names.
+    tests/unit/test_migration_layout.py asserts this returns exactly one file.
+    """
     return sorted(MIGRATIONS_DIR.glob('*.sql'), key=lambda p: p.name)
 
 
@@ -115,7 +129,9 @@ def main():
                     help='record pending migrations as applied WITHOUT running them. '
                          'Only for a database whose schema already matches sql/schema.sql '
                          '(a fresh install predating the schema_version seed). On any other '
-                         'database this permanently skips migrations that still need to run.')
+                         'database this permanently skips migrations that still need to run '
+                         '-- including the fold-in guard in 011_migration_baseline.sql, which '
+                         'exists to catch exactly that mistake. Verify the schema first.')
     args = ap.parse_args()
 
     if not args.db_uri:
