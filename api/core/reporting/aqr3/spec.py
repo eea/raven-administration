@@ -42,6 +42,41 @@ class Column:
 DATETIME = object()
 
 
+# --------------------------------------------------------------------------
+# Only series with a real EEA pollutant are reportable.
+#
+# PollutantId is codelist-constrained in the reporting guide (codelist
+# aq/pollutant), so Reportnet3 rejects any value that is not an EEA code. Since
+# 4.502.12 sampling_points.pollutant_id is NULLABLE, and NULL is the marker for
+# "this component has no EEA pollutant code": the aq/pollutant vocabulary has no
+# term for it, so the local component is identified by
+# plugin_sp_extended.plugin_pollutant_id (nilu-pollutants plugin) instead. Such a
+# series is genuinely not reportable, and omitting it is correct — the alternative
+# is emitting an empty mandatory field, which fails QC anyway.
+#
+# `> 0` rather than `IS NOT NULL` on purpose, and it covers both cases:
+#   * NULL > 0 is NULL, so NULL-pollutant series drop out;
+#   * a NEGATIVE id also drops out. nilu-pollutants < 1.1.0 mirrored local
+#     pollutants into eea_pollutants under id = -plugin_pollutants.id, and any
+#     database not yet cleaned up (see nilu-private-migration/
+#     cleanup_invented_vocabulary.py) can still hold them.
+#
+# The same reasoning applies to the other two mandatory measurement fields, and it
+# is already enforced structurally: unit_id and time_resolution_id are equally
+# nullable, and OMR reaches eea_concentrations and eea_times through INNER JOINs,
+# so a series with no unit or no resolution term is excluded from OMR without
+# needing a predicate here. That is now the normal path for local series, not a
+# data error — do not "fix" those joins to LEFT JOIN.
+#
+# tests/unit/test_aqr3_registry.py asserts that every spec emitting a PollutantId
+# column carries this predicate, so a newly added table cannot silently
+# reintroduce the leak.
+# --------------------------------------------------------------------------
+def _reportable(alias):
+    """SQL predicate keeping only rows with a real (positive, non-NULL) EEA pollutant."""
+    return f'{alias}.pollutant_id > 0'
+
+
 @dataclass(frozen=True)
 class TableSpec:
     code: str
@@ -147,7 +182,7 @@ SPO = TableSpec(
     code='SPO', name='SamplingPoint',
     description='Links each AssessmentMethodId to its SamplingPointReferenceId, pollutant and station EoI code.',
     params=('country_code',),
-    sql="""
+    sql=f"""
         SELECT %(country_code)s AS country_code,
                sp.id            AS assessment_method_id,
                sp.sampling_point_reference_id,
@@ -155,6 +190,7 @@ SPO = TableSpec(
                st.station_eoi_code
         FROM sampling_points sp
         JOIN stations st ON sp.station_id = st.id
+        WHERE {_reportable('sp')}
         ORDER BY sp.id
     """,
     columns=(
@@ -229,7 +265,7 @@ SPP = TableSpec(
     code='SPP', name='SamplingProcess',
     description='Measurement techniques and methodologies: equipment configuration, quality information and operational periods.',
     params=('country_code',),
-    sql="""
+    sql=f"""
         SELECT %(country_code)s AS country_code,
                p.id             AS process_id,
                p.sampling_point_id AS assessment_method_id,
@@ -251,6 +287,7 @@ SPP = TableSpec(
         LEFT JOIN eea_measurementequipments   me ON p.equipment_id                 = me.id
         LEFT JOIN eea_analyticaltechnique     at ON p.analytical_technique_id      = at.id
         LEFT JOIN eea_equivalencedemonstrated ed ON p.equivalence_demonstrated_id  = ed.id
+        WHERE {_reportable('sp')}
         ORDER BY p.id, p.process_activity_begin
     """,
     columns=(
@@ -278,7 +315,7 @@ MOE = TableSpec(
     code='MOE', name='ModelObjectiveEstimation',
     description='Modelling and objective-estimation applications: how results are encoded, what they are used for, and their quality indicator.',
     params=('country_code',),
-    sql="""
+    sql=f"""
         SELECT %(country_code)s AS country_code,
                m.id             AS assessment_method_id,
                m.data_aggregation_process_id,
@@ -292,6 +329,7 @@ MOE = TableSpec(
         FROM models m
         LEFT JOIN eea_resultencoding   re ON m.result_encoding_id    = re.id
         LEFT JOIN eea_modelapplication ma ON m.method_application_id = ma.id
+        WHERE {_reportable('m')}
         ORDER BY m.id, m.data_aggregation_process_id
     """,
     columns=(
@@ -316,7 +354,7 @@ OMR = TableSpec(
     description='Air quality measurement values with their time reference, for the selected reporting year.',
     params=('country_code', 'year'),
     year_dependent=True,
-    sql="""
+    sql=f"""
         SELECT %(country_code)s AS country_code,
                sp.id            AS assessment_method_id,
                o.from_time      AS start_time,
@@ -335,6 +373,7 @@ OMR = TableSpec(
         JOIN eea_times tr          ON sp.time_resolution_id = tr.id
         WHERE o.from_time >= make_timestamp(%(year)s, 1, 1, 0, 0, 0)
           AND o.from_time <  make_timestamp(%(year)s + 1, 1, 1, 0, 0, 0)
+          AND {_reportable('sp')}
         ORDER BY sp.id, o.from_time
     """,
     columns=(
@@ -361,7 +400,7 @@ MRI = TableSpec(
     description='Gridded model or objective-estimation results, one row per EPSG:3035 grid cell.',
     params=('country_code', 'year'),
     year_dependent=True,
-    sql="""
+    sql=f"""
         SELECT %(country_code)s AS country_code,
                r.assessment_method_id,
                r.start_time,
@@ -379,6 +418,7 @@ MRI = TableSpec(
         LEFT JOIN eea_concentrations co ON r.unit_id = co.id
         WHERE r.start_time >= make_timestamp(%(year)s, 1, 1, 0, 0, 0)
           AND r.start_time <  make_timestamp(%(year)s + 1, 1, 1, 0, 0, 0)
+          AND {_reportable('r')}
         ORDER BY r.assessment_method_id, r.start_time, r.x, r.y
     """,
     columns=(
@@ -409,7 +449,7 @@ MRE = TableSpec(
     description='Gridded model results supplied as an attached GEOTIFF rather than inline grid cells.',
     params=('country_code', 'year'),
     year_dependent=True,
-    sql="""
+    sql=f"""
         SELECT %(country_code)s AS country_code,
                r.assessment_method_id,
                r.start_time,
@@ -425,6 +465,7 @@ MRE = TableSpec(
         LEFT JOIN eea_concentrations co ON r.unit_id = co.id
         WHERE r.start_time >= make_timestamp(%(year)s, 1, 1, 0, 0, 0)
           AND r.start_time <  make_timestamp(%(year)s + 1, 1, 1, 0, 0, 0)
+          AND {_reportable('r')}
         ORDER BY r.assessment_method_id, r.start_time
     """,
     columns=(
@@ -470,7 +511,7 @@ ARZ = TableSpec(
     code='ARZ', name='AssessmentRegimeZone',
     description='Air quality zones and their assessment regimes: objective, target, pollutant, metric, threshold and exemptions.',
     params=('country_code',),
-    sql="""
+    sql=f"""
         SELECT %(country_code)s AS country_code,
                ar.id            AS assessment_regime_id,
                ar.zone_id,
@@ -498,6 +539,7 @@ ARZ = TableSpec(
         LEFT JOIN eea_objectivetypes ot                ON ar.objective_type_id    = ot.id
         LEFT JOIN eea_reportingmetrics rm              ON ar.reporting_metric_id  = rm.id
         LEFT JOIN eea_assessmentthresholdexceedances ate ON ar.assessment_threshold_exceedance_id = ate.id
+        WHERE {_reportable('ar')}
         ORDER BY ar.id
     """,
     columns=(
@@ -531,7 +573,7 @@ CAM = TableSpec(
     description='Yearly compliance situation per assessment regime and assessment method, with uncertainty and exceedance reason.',
     params=('country_code', 'year'),
     year_dependent=True,
-    sql="""
+    sql=f"""
         SELECT %(country_code)s AS country_code,
                c.reporting_year,
                c.assessment_regime_id,
@@ -554,6 +596,7 @@ CAM = TableSpec(
         LEFT JOIN eea_assessmenttypes ast  ON c.assessment_type_id    = ast.id
         LEFT JOIN eea_exceedancereason er  ON c.preliminary_reason_id  = er.id
         WHERE c.reporting_year = %(year)s
+          AND {_reportable('c')}
         ORDER BY c.assessment_regime_id, c.assessment_method_id, c.data_aggregation_process_id
     """,
     columns=(

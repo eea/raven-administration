@@ -654,13 +654,16 @@ create table if not exists sampling_points
     use_in_public_api           boolean default false not null,
     from_time                   timestamp,
     to_time                     timestamp,
-    pollutant_id                integer               not null
+    -- Nullable since 4.502.12: NULL means no EEA vocabulary term applies, not that the
+    -- value is unknown. The EEA vocabularies have nothing sub-hourly, no unit for
+    -- non-concentrations, and no code for local components. See migration 012.
+    pollutant_id                integer
         references eea_pollutants
             on update cascade on delete cascade,
-    time_resolution_id          varchar(100)          not null
+    time_resolution_id          varchar(100)
         references eea_times
             on update cascade on delete cascade,
-    unit_id                     varchar(100)          not null
+    unit_id                     varchar(100)
         references eea_concentrations
             on update cascade on delete cascade,
     sampling_point_category_id  varchar(100)
@@ -675,11 +678,11 @@ create table if not exists sampling_points
 comment on table sampling_points is 'v4.502 AQR3 v5.02: operational store for a sampling point. Reports as SamplingPoint (SPO) plus the current row of SamplingPointLocation (SPL).';
 comment on column sampling_points.id is 'AQR3 SPO_02 AssessmentMethodId';
 comment on column sampling_points.sampling_point_reference_id is 'AQR3 SPO_03. Mandatory format: SPOref_<StationEoICode>_<PollutantId>_<idx>';
-comment on column sampling_points.pollutant_id is 'AQR3 SPO_04 PollutantId. FK to eea_pollutants.id (numeric)';
+comment on column sampling_points.pollutant_id is 'AQR3 SPO_04 PollutantId -> eea_pollutants. NULL when the component has no EEA pollutant code; the local component is then identified by plugin_sp_extended.plugin_pollutant_id (nilu-pollutants plugin). NULL is not reportable and is excluded from every AQR3 table.';
 comment on column sampling_points.hotspot is 'AQR3 SPL_07. Default location value, overridable per period in sampling_point_locations.';
 comment on column sampling_points.sampling_point_category_id is 'AQR3 SPL_06 SamplingPointCategory';
-comment on column sampling_points.time_resolution_id is 'AQR3 OMR_11 TimeResolution. FK to eea_times (hour, day, etc.)';
-comment on column sampling_points.unit_id is 'AQR3 OMR_07 Unit. FK to eea_concentrations (ug.m-3, etc.)';
+comment on column sampling_points.time_resolution_id is 'AQR3 OMR_11 TimeResolution -> eea_times (hour, day, etc.). NULL when the sampling interval has no aq/primaryObservation term - the vocabulary has nothing sub-hourly - in which case the true interval in seconds is in plugin_sp_extended.timestep.';
+comment on column sampling_points.unit_id is 'AQR3 OMR_07 Unit -> eea_concentrations (ug.m-3, etc.). NULL when the measured quantity is not a concentration and so has no uom/concentration term (wind speed, temperature, pressure...); the real unit is then in plugin_sp_extended.unit.';
 comment on column sampling_points.from_time is 'Sampling point active period start. Raven-internal; also the default SPL_03 LocationBegin.';
 comment on column sampling_points.logger_id is 'Raven-internal: logger push identifier. No AQR3 equivalent.';
 comment on column sampling_points.private is 'Raven-internal: hides the series from non-owning networks. No AQR3 equivalent.';
@@ -1834,6 +1837,18 @@ CREATE TABLE IF NOT EXISTS plugin_registry (
 -- --baseline` is the equivalent one-off for a database that already exists.
 -- ---------------------------------------------------------------------------
 
+-- One row per LIVE migration in sql/migrations/, because this file embodies all of
+-- them. Anything seeded here is skipped on a fresh install; anything missing is
+-- reported as pending and run. 001-010 are folded in and archived, so they are
+-- covered by 4.502.11 rather than listed individually — that is the drift this
+-- replaced, where one row was appended per migration and the list stopped at
+-- 4.502.5 while eleven existed.
+--
+-- MAINTENANCE: fold each new migration's DDL into this file and add its version
+-- here in the same commit. tests/unit/test_migration_layout.py asserts these rows
+-- match what sql/migrations/ declares.
 insert into schema_version (version, description)
-values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011')
+values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
+       ('4.502.12', 'baseline: schema.sql embodies migration 012 '
+                    '(pollutant_id / unit_id / time_resolution_id nullable)')
 on conflict (version) do nothing;
