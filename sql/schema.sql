@@ -611,7 +611,10 @@ create table if not exists groupnetwork
 create table if not exists stations
 (
     id                     varchar(100)   not null primary key,
-    station_eoi_code       varchar(20)    not null,
+    -- Nullable since 4.502.13: an EOI code is assigned by EIONET, so a site outside
+    -- any EEA reporting obligation (industrial, internal) simply has none. NULL means
+    -- no EEA identifier applies; such stations are excluded from AQR3 exports.
+    station_eoi_code       varchar(20),
     name                   varchar(255)   not null,
     station_national_code  varchar(20),
     latitude               numeric(10, 7) not null,
@@ -630,7 +633,7 @@ create table if not exists stations
 );
 
 comment on table stations is 'v4.502 stations. Reports as MeasurementStation (STA) plus the default location values for SamplingPointLocation (SPL).';
-comment on column stations.station_eoi_code is 'AQR3 STA_02 StationEoICode';
+comment on column stations.station_eoi_code is 'AQR3 STA_02 StationEoICode, assigned by EIONET. NULL for sites with no EEA identifier (industrial and internal monitoring points), which are not reportable: core/reporting/aqr3/spec.py excludes them from STA and SPO, and their sampling points get no sampling_point_reference_id.';
 comment on column stations.name is 'AQR3 STA_08 StationName';
 comment on column stations.station_national_code is 'AQR3 STA_07 StationNationalCode';
 comment on column stations.station_area_id is 'AQR3 SPL_05 StationArea -> eea_areaclassifications';
@@ -1850,5 +1853,7 @@ CREATE TABLE IF NOT EXISTS plugin_registry (
 insert into schema_version (version, description)
 values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
        ('4.502.12', 'baseline: schema.sql embodies migration 012 '
-                    '(pollutant_id / unit_id / time_resolution_id nullable)')
+                    '(pollutant_id / unit_id / time_resolution_id nullable)'),
+       ('4.502.13', 'baseline: schema.sql embodies migration 013 '
+                    '(station_eoi_code nullable)')
 on conflict (version) do nothing;

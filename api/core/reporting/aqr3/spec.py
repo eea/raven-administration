@@ -77,6 +77,23 @@ def _reportable(alias):
     return f'{alias}.pollutant_id > 0'
 
 
+# --------------------------------------------------------------------------
+# Only stations with an EEA identifier are reported.
+#
+# AQR3 STA_02 StationEoICode is assigned by EIONET, and since 4.502.13
+# stations.station_eoi_code is NULLABLE: a site outside any reporting obligation
+# (industrial, internal — 633 of 749 on the AirQUIS production database) has none.
+# StationEoICode is mandatory in the guide and is the key STA is organised by, so
+# a station without one cannot appear in a report keyed on it.
+#
+# Same shape as _reportable(): the two tables that emit StationEoICode filter it,
+# and tests/unit/test_aqr3_registry.py asserts they keep doing so.
+# --------------------------------------------------------------------------
+def _reportable_station(alias):
+    """SQL predicate keeping only stations that have an EEA identifier."""
+    return f'{alias}.station_eoi_code IS NOT NULL'
+
+
 @dataclass(frozen=True)
 class TableSpec:
     code: str
@@ -143,7 +160,7 @@ STA = TableSpec(
     code='STA', name='MeasurementStation',
     description='Air quality measuring stations: EoI codes, names, the networks they belong to and the timezone those networks operate in.',
     params=('country_code',),
-    sql="""
+    sql=f"""
         SELECT %(country_code)s        AS country_code,
                st.station_eoi_code,
                n.id                    AS network_id,
@@ -157,6 +174,7 @@ STA = TableSpec(
         JOIN networks n ON st.network_id = n.id
         LEFT JOIN eea_administrativelevels al ON n.network_organisational_level_id = al.id
         LEFT JOIN eea_timezones tz            ON n.timezone_id = tz.id
+        WHERE {_reportable_station('st')}
         ORDER BY st.station_eoi_code
     """,
     columns=(
@@ -191,6 +209,7 @@ SPO = TableSpec(
         FROM sampling_points sp
         JOIN stations st ON sp.station_id = st.id
         WHERE {_reportable('sp')}
+          AND {_reportable_station('st')}
         ORDER BY sp.id
     """,
     columns=(
