@@ -8,6 +8,7 @@ import "chartjs-adapter-luxon";
 
 import CommonLayout from "../../../components/CommonLayout.vue";
 import DatetimePicker from "../../../components/DatetimePicker.vue";
+import DateRangePresets from "../../../components/DateRangePresets.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import DataTable from "../../../components/DataTable.vue";
@@ -31,6 +32,11 @@ const timeseries = ref([]);
 const fromtime = ref(sub(new Date(), { days: 14 }));
 const totime = ref(new Date());
 const selectedId = ref();
+
+const onPresetSelect = ({ from, to }) => {
+  fromtime.value = from;
+  totime.value = to;
+};
 
 const timevalues = ref([]);
 const groupMembers = ref([]);
@@ -395,6 +401,10 @@ const getRowId = (params) => String(params.data.id);
         <div>
           <div class="font-bold">To</div>
           <DatetimePicker v-model="totime" />
+        </div>
+        <div>
+          <br />
+          <DateRangePresets @select="onPresetSelect" />
         </div>
       </div>
 

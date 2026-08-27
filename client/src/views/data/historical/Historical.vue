@@ -8,27 +8,25 @@ import "chartjs-adapter-luxon";
 import zoomPlugin from "chartjs-plugin-zoom";
 import Plot, { palette, hexToRgba } from "./plot";
 
-import { format, sub, isAfter, isBefore, startOfWeek } from "date-fns";
+import { format, isAfter, isBefore, startOfWeek } from "date-fns";
 import { groupBy, downloadCsv } from "../../../helpers/utils";
 import { datetimeCellRenderer, granularityFromHistoricalRow } from "../../../helpers/datetimeHighlight";
 import Eventy from "../../../helpers/eventy";
-import IconCalendar from "~icons/ic/round-access-time";
 import IconModify from "~icons/material-symbols/tune";
 import IconReplot from "~icons/material-symbols/bar-chart";
 import IconList from "~icons/material-symbols/table-rows-narrow";
 import IconPivot from "~icons/material-symbols/pivot-table-chart";
 
 import CommonLayout from "../../../components/CommonLayout.vue";
-import CMenu from "../../../components/CMenu.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import DatetimePicker from "../../../components/DatetimePicker.vue";
+import DateRangePresets from "../../../components/DateRangePresets.vue";
 import DataTable from "../../../components/DataTable.vue";
 import FavoritesPicker from "../../../components/favorites/FavoritesPicker.vue";
 
 Chart.register(zoomPlugin);
 
-const menuRef = ref();
 const timeseries = ref([]);
 const timeseriesGridApi = ref();
 
@@ -131,27 +129,9 @@ const onDownload = async () => {
   const exportColumns = gridDataColumns.value.filter((c) => c.field !== "_color");
   downloadCsv(filteredGridData.value, exportColumns, "historical_data");
 };
-const changeDates = (s) => {
-  const d = new Date();
-  if (s == "This week") {
-    fromtime.value = startOfWeek(d, { weekStartsOn: 1 });
-    totime.value = d;
-  } else if (s == "Last week") {
-    fromtime.value = sub(startOfWeek(d, { weekStartsOn: 1 }), { days: 7 });
-    totime.value = startOfWeek(d, { weekStartsOn: 1 });
-  } else if (s == "This month") {
-    fromtime.value = new Date(d.getFullYear(), d.getMonth(), 1);
-    totime.value = d;
-  } else if (s == "Last month") {
-    fromtime.value = new Date(d.getFullYear(), d.getMonth() - 1, 1);
-    totime.value = new Date(d.getFullYear(), new Date().getMonth(), 0);
-  } else if (s == "This year") {
-    fromtime.value = new Date(d.getFullYear(), 0, 1);
-    totime.value = d;
-  } else if (s == "Last year") {
-    fromtime.value = new Date(d.getFullYear() - 1, 0, 1);
-    totime.value = new Date(d.getFullYear(), 0, 1);
-  }
+const onPresetSelect = ({ from, to }) => {
+  fromtime.value = from;
+  totime.value = to;
 };
 
 const formatValues = (meanvalues, axes) => {
@@ -255,14 +235,6 @@ const cmp_timeseries = computed(() => {
     return isAfter(new Date(t.totime), fromtime.value) && isBefore(new Date(t.fromtime), totime.value);
   });
 });
-
-const onMenuClick = ({ action }) => {
-  changeDates(action);
-};
-
-const onPresetClick = (e) => {
-  menuRef.value?.showMenu({}, e);
-};
 
 const timeseriesColumns = [
   { field: "station", headerName: "Station", flex: 1, filter: true },
@@ -374,18 +346,6 @@ const pivotData = computed(() => {
 
 <template>
   <CommonLayout class="flex flex-col gap-4">
-    <c-menu ref="menuRef" @on-click="onMenuClick">
-      <template #default="{ handleAction }">
-        <div class="px-2 font-bold">Presets:</div>
-        <div class="border-l-2 border-nord14 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('This week')">This week</div>
-        <div class="border-l-2 border-nord14 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('Last week')">Last week</div>
-        <div class="border-l-2 border-nord11 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('This month')">This month</div>
-        <div class="border-l-2 border-nord11 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('Last month')">Last month</div>
-        <div class="border-l-2 border-nord15 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('This year')">This year</div>
-        <div class="border-l-2 border-nord15 pl-2 pr-4 py-1.5 cursor-pointer hover:bg-nord6" @click="handleAction('Last year')">Last year</div>
-      </template>
-    </c-menu>
-
     <ToolBar title="Historical data" :show-add="false" :show-filter="false" @download-click="onDownload" />
 
     <Transition name="collapse">
@@ -401,10 +361,7 @@ const pivotData = computed(() => {
         </div>
         <div>
           <br />
-          <button class="button flex gap-2" @click="onPresetClick">
-            <icon-calendar class="self-center text-nord10 text-lg p-0!" />
-            <div class="self-center">Presets</div>
-          </button>
+          <DateRangePresets @select="onPresetSelect" />
         </div>
       </div>
 

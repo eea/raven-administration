@@ -47,6 +47,17 @@ const loadPluginStatus = async () => {
   modules.value = getmodules();
 };
 
+// A plugin may declare the group permission keys that gate it, via
+// window.__ravenPlugins[id].groupPermissions (the same list the Groups editor
+// renders as checkboxes). If it declares any and the user's JWT grants none of
+// them, hide the plugin's menu groups. Plugins that declare none stay visible.
+const isPluginPermitted = (pid, jwt) => {
+  const declared = (window.__ravenPlugins?.[pid]?.groupPermissions ?? []).map((g) => g.key);
+  if (!declared.length) return true;
+  const pp = jwt.plugin_permissions ?? {};
+  return declared.some((k) => pp[k]);
+};
+
 const getmodules = () => {
   var token = sessionStorage.getItem("token");
   if (!token) return [];
@@ -127,12 +138,17 @@ const getmodules = () => {
     ...Object.values(pluginModules).flatMap((m) => {
       const pid = m.pluginId;
       const isEnabled = pid ? (pluginStatus.value[pid]?.enabled ?? true) : true;
-      return isEnabled ? (m.getMenuGroups?.(jwt) ?? m.menuGroups ?? []) : [];
+      if (!isEnabled || (pid && !isPluginPermitted(pid, jwt))) return [];
+      return m.getMenuGroups?.(jwt) ?? m.menuGroups ?? [];
     }),
     // Plugin-contributed menu groups (runtime — registered via window.__ravenRuntime)
+    // Dropping the groups entirely (rather than setting show: false) keeps them out
+    // of the show-ORing merge below, which would otherwise reveal a core group
+    // header — e.g. Management — to a user who lacks the core claim for it.
     ...Object.entries(runtimePlugins).flatMap(([pid, p]) => {
       const isEnabled = pluginStatus.value[pid]?.enabled ?? true;
-      return isEnabled ? (p.menuGroups ?? []) : [];
+      if (!isEnabled || !isPluginPermitted(pid, jwt)) return [];
+      return p.menuGroups ?? [];
     })
   ];
   // Merge groups with the same name so runtime plugins can contribute items to
