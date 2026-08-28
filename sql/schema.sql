@@ -446,12 +446,17 @@ comment on table eea_srapplication is 'vocabulary/aq/SRapplication (SRS_04)';
 
 create table if not exists settings
 (
-    country_code_id varchar(10)
+    country_code_id        varchar(10)
         references eea_countries
             on update cascade,
-    timezone_id     varchar(100)
+    timezone_id            varchar(100)
         references eea_timezones
-            on update cascade
+            on update cascade,
+    -- Instance-wide Observation Change History config:
+    --   { hidden_columns: [...], rules: [ {id, label, action, enabled_by_default,
+    --                                      match, conditions: [{field, op, value}]} ] }
+    -- Rule ids are stable slugs because user_log_preferences references them.
+    observation_log_config jsonb not null default '{}'::jsonb
 );
 
 -- ---------------------------------------------------------------------------
@@ -536,6 +541,20 @@ create table if not exists user_favorites
     created timestamp    default now(),
     updated timestamp,
     unique (user_id, name)
+);
+
+-- Per-user deviations from settings.observation_log_config for the Observation
+-- Change History. Stores only the departure from the instance default —
+-- { disabled_rule_ids: [...], hidden_columns: [...] } — so that an administrator
+-- editing the house rules propagates to everyone instead of being shadowed by
+-- stale per-user copies.
+create table if not exists user_log_preferences
+(
+    user_id integer primary key
+        references users
+            on delete cascade,
+    config  jsonb     not null default '{}',
+    updated timestamp default now()
 );
 
 -- ---------------------------------------------------------------------------
@@ -1855,5 +1874,7 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
        ('4.502.12', 'baseline: schema.sql embodies migration 012 '
                     '(pollutant_id / unit_id / time_resolution_id nullable)'),
        ('4.502.13', 'baseline: schema.sql embodies migration 013 '
-                    '(station_eoi_code nullable)')
+                    '(station_eoi_code nullable)'),
+       ('4.502.14', 'baseline: schema.sql embodies migration 014 '
+                    '(observation log filter rules and per-user history preferences)')
 on conflict (version) do nothing;

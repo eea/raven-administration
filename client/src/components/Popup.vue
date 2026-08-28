@@ -42,6 +42,14 @@ export default {
       <div class="select-none font-bold flex justify-between">
         <div>{{ title }}</div>
         <div class="flex items-center gap-2">
+          <!-- Header, deliberately, not the body: the body below is overflow-y-auto,
+               so an absolutely-positioned dropdown opened from inside it would be
+               clipped. Note also that this container carries -translate-x-1/2, and a
+               transform establishes the containing block for position:fixed
+               descendants — so CMenu would anchor to this box rather than the
+               viewport and mis-clamp. Slotted content should use the FavoritesPicker
+               pattern (relative wrapper + absolute panel) instead. -->
+          <slot name="actions"></slot>
           <icon-close class="self-center text-nord3 hover:cursor-pointer hover:text-nord0" @click="onClose" />
         </div>
       </div>

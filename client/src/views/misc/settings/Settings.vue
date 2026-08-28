@@ -4,11 +4,13 @@ import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import Service from "./service";
+import LogFilterRules from "./LogFilterRules.vue";
 import Eventy from "../../../helpers/eventy";
 
 const settings = ref({
   country_code_id: "",
-  timezone_id: ""
+  timezone_id: "",
+  observation_log_config: {}
 });
 
 const lookups = ref({
@@ -28,7 +30,8 @@ onMounted(async () => {
   if (data && data.length > 0) {
     settings.value = {
       country_code_id: data[0].country_code_id ?? "",
-      timezone_id: data[0].timezone_id ?? ""
+      timezone_id: data[0].timezone_id ?? "",
+      observation_log_config: data[0].observation_log_config ?? {}
     };
   }
 });
@@ -37,7 +40,8 @@ const onSave = async () => {
   Eventy.showMessage("Saving settings...", "loading");
   await Service.save({
     country_code_id: settings.value.country_code_id,
-    timezone_id: settings.value.timezone_id
+    timezone_id: settings.value.timezone_id,
+    observation_log_config: settings.value.observation_log_config
   });
   Eventy.showHideMessage("Settings saved successfully", "success", 3000);
 };
@@ -74,6 +78,10 @@ const onSave = async () => {
         <div>
           <button class="button" :disabled="!settings.country_code_id || !settings.timezone_id" @click="onSave">Save Settings</button>
         </div>
+      </div>
+
+      <div class="border-t border-nord4 mt-6 pt-4">
+        <log-filter-rules v-model="settings.observation_log_config" />
       </div>
     </container>
   </common-layout>

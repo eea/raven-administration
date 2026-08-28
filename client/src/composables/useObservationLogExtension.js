@@ -81,6 +81,11 @@ export default function useObservationLogExtension() {
     extMap.value = merged;
   }
 
+  // DISPLAY ONLY. The ?? "" collapses "this log row has no extension row" and "the
+  // extension row exists but the comment is empty" into the same value, which is fine
+  // for a table cell and wrong for anything that has to distinguish them. Filtering
+  // deliberately does not go through here: it happens in SQL (see
+  // api/core/observation_log_filters.py), where NOT EXISTS keeps the two cases apart.
   const cell = (logId, key) => extMap.value.get(logId)?.[key] ?? "";
 
   return { extraColumns, hasExtensions, extMap, reset, fetchFor, cell };

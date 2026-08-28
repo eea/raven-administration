@@ -4,7 +4,7 @@ import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import DataTable from "../../../components/DataTable.vue";
-import ObservationLog from "./ObservationLog.vue";
+import ObservationLog from "../../../components/observationlog/ObservationLogPopup.vue";
 import FavoritesPicker from "../../../components/favorites/FavoritesPicker.vue";
 import IconClose from "~icons/mdi/close";
 
@@ -28,7 +28,7 @@ const selected = ref({});
 
 const showTable = ref(false);
 const showLog = ref(false);
-const logRows = ref([]);
+const logCtx = ref({ samplingPointId: null, fromDt: null, toDt: null });
 
 const columns = shallowRef([
   { field: "id", headerName: "Id", width: 100 },
@@ -130,16 +130,16 @@ const onSetLevel = async (level) => {
   Eventy.showHideMessage("Verification flag updated", "success");
 };
 
-const onShowHistory = async () => {
+const onShowHistory = () => {
   const row = selected.value;
   if (!row?.id) return;
-  Eventy.showMessage("Loading history. Please wait", "loading");
   const m = parseInt(row.month);
   const y = parseInt(year.value);
   const fromDt = `${y}-${String(m).padStart(2, "0")}-01 00:00`;
   const nextMonth = m === 12 ? `${y + 1}-01-01 00:00` : `${y}-${String(m + 1).padStart(2, "0")}-01 00:00`;
-  logRows.value = (await Service.log(row.id, fromDt, nextMonth)).rows;
-  Eventy.hideMessage();
+  // The popup fetches and pages itself, so there is no pre-fetch to wait on and no
+  // loading toast. It also no longer stops at the first 500 entries.
+  logCtx.value = { samplingPointId: row.id, fromDt, toDt: nextMonth };
   showLog.value = true;
 };
 
@@ -161,7 +161,13 @@ const onDownload = () => {
 
 <template>
   <common-layout>
-    <observation-log :show="showLog" :rows="logRows" @close="showLog = false" />
+    <observation-log
+      :show="showLog"
+      :sampling-point-id="logCtx.samplingPointId"
+      :from-dt="logCtx.fromDt"
+      :to-dt="logCtx.toDt"
+      @close="showLog = false"
+    />
 
     <tool-bar title="Verify" v-model:q="q" :show-filter="true" :show-add="false" :show-column-picker="false" @download-click="onDownload" />
 

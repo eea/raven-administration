@@ -12,7 +12,7 @@ import DateRangePresets from "../../../components/DateRangePresets.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import DataTable from "../../../components/DataTable.vue";
-import ObservationLogPopup from "./ObservationLogPopup.vue";
+import ObservationLogPopup from "../../../components/observationlog/ObservationLogPopup.vue";
 import FavoritesPicker from "../../../components/favorites/FavoritesPicker.vue";
 import IconClose from "~icons/mdi/close";
 
@@ -389,7 +389,13 @@ const getRowId = (params) => String(params.data.id);
 
 <template>
   <common-layout>
-    <observation-log-popup :show="showLog" :row="logRow" @close="showLog = false" />
+    <observation-log-popup
+      :show="showLog"
+      :sampling-point-id="logRow?.sampling_point_id"
+      :from-dt="logRow?.fromtime"
+      :to-dt="logRow?.totime"
+      @close="showLog = false"
+    />
     <tool-bar title="Validate" :show-filter="false" :show-add="false" :show-column-picker="false" @download-click="onDownload" />
 
     <container>

@@ -3,9 +3,9 @@ import { Get, Post } from "../../../helpers/request";
 const Service = {
   get: async (data) => Post("/api/qualitycontrol/validate/timevalues", data),
   timeseries: async () => Get("/api/qualitycontrol/validate/timeseries"),
-  validate: async (data) => Post("/api/qualitycontrol/validate/flag", data),
-  log: async (sampling_point_id, from_dt, to_dt, offset = 0) =>
-    Get(`/api/qualitycontrol/log?sampling_point_id=${encodeURIComponent(sampling_point_id)}&from_dt=${encodeURIComponent(from_dt)}&to_dt=${encodeURIComponent(to_dt)}&limit=10&offset=${offset}`)
+  validate: async (data) => Post("/api/qualitycontrol/validate/flag", data)
+  // `log` moved to components/observationlog/service.js, where the page size is a
+  // prop rather than a hardcoded limit=10.
 };
 
 export default Service;
