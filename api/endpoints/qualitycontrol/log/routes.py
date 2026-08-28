@@ -33,6 +33,10 @@ def get_log():
         cursor.execute(f"""
             SELECT
                 l.id,
+                -- Read by ObservationLog.vue to scope the plugin log extension. Without
+                -- it that component bails before fetching, so plugin columns (QA flag,
+                -- comment) never render on the Verify page at all.
+                l.sampling_point_id,
                 to_char(l.changed_at, 'YYYY-MM-DD HH24:MI:SS') AS changed_at,
                 l.changed_by,
                 l.change_source,

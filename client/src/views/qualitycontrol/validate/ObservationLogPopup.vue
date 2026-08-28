@@ -2,6 +2,7 @@
 import { ref, watch } from "vue";
 import Popup from "../../../components/Popup.vue";
 import Service from "./service";
+import useObservationLogExtension from "../../../composables/useObservationLogExtension";
 
 const props = defineProps({
   show: Boolean,
@@ -26,8 +27,7 @@ const hasMore = ref(false);
 const offset = ref(0);
 const loading = ref(false);
 
-const pluginLogExt = ref(null);
-const extMap = ref(new Map());
+const { extraColumns, cell, reset: resetExt, fetchFor } = useObservationLogExtension();
 
 watch(
   () => props.show,
@@ -36,18 +36,7 @@ watch(
       logRows.value = [];
       offset.value = 0;
       hasMore.value = false;
-      pluginLogExt.value = null;
-      extMap.value = new Map();
-      const plugins = window.__ravenPlugins || {};
-      for (const p of Object.values(plugins)) {
-        if (p.observationLogExtension) {
-          pluginLogExt.value = p.observationLogExtension;
-          extMap.value = await p.observationLogExtension.getExtraData({
-            samplingPointId: props.row.sampling_point_id,
-          }).catch(() => new Map());
-          break;
-        }
-      }
+      resetExt();
       await loadMore();
     }
   }
@@ -66,6 +55,12 @@ const loadMore = async () => {
     logRows.value.push(...result.rows);
     hasMore.value = result.has_more;
     offset.value += result.rows.length;
+    // Per page, for the rows this page actually added. Previously the extension was
+    // fetched once before any rows existed, so "Load more" rows never got values.
+    await fetchFor({
+      samplingPointId: props.row.sampling_point_id,
+      logIds: result.rows.map((r) => r.id),
+    });
   } finally {
     loading.value = false;
   }
@@ -93,7 +88,7 @@ const srcColor = (src) => SOURCE_COLORS[src] ?? "bg-nord4/20 text-nord3";
             <th class="whitespace-nowrap">Verif. old→new</th>
             <th class="whitespace-nowrap">Validity old→new</th>
             <th class="whitespace-nowrap">Value old→new</th>
-            <th v-for="col in pluginLogExt?.extraColumns || []" :key="col.key" class="whitespace-nowrap">{{ col.label }}</th>
+            <th v-for="col in extraColumns" :key="col.key" class="whitespace-nowrap">{{ col.label }}</th>
           </tr>
         </thead>
         <tbody>
@@ -129,8 +124,8 @@ const srcColor = (src) => SOURCE_COLORS[src] ?? "bg-nord4/20 text-nord3";
               </span>
               <span v-else class="text-nord3">—</span>
             </td>
-            <td v-for="col in pluginLogExt?.extraColumns || []" :key="col.key" class="text-sm">
-              {{ extMap.get(r.id)?.[col.key] ?? '' }}
+            <td v-for="col in extraColumns" :key="col.key" class="text-sm">
+              {{ cell(r.id, col.key) }}
             </td>
           </tr>
         </tbody>

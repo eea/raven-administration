@@ -1,6 +1,7 @@
 <script setup>
-import { ref, watch } from "vue";
+import { watch } from "vue";
 import Popup from "../../../components/Popup.vue";
+import useObservationLogExtension from "../../../composables/useObservationLogExtension";
 
 const props = defineProps({
   show: Boolean,
@@ -20,26 +21,19 @@ const SOURCE_COLORS = {
   plugin_nilu_qa: "bg-nord15/20 text-nord15",
 };
 
-const pluginLogExt = ref(null);
-const extMap = ref(new Map());
+const { extraColumns, cell, reset: resetExt, fetchFor } = useObservationLogExtension();
 
 watch(
   () => props.show,
   async (val) => {
     if (!val) return;
-    pluginLogExt.value = null;
-    extMap.value = new Map();
+    resetExt();
+    // sampling_point_id is returned by /api/qualitycontrol/log. It was missing from
+    // that SELECT, so this used to be undefined and the function returned here —
+    // meaning the plugin columns never rendered on this page at all.
     const samplingPointId = props.rows[0]?.sampling_point_id;
     if (!samplingPointId) return;
-    const plugins = window.__ravenPlugins || {};
-    for (const p of Object.values(plugins)) {
-      if (p.observationLogExtension) {
-        pluginLogExt.value = p.observationLogExtension;
-        extMap.value = await p.observationLogExtension.getExtraData({ samplingPointId })
-          .catch(() => new Map());
-        break;
-      }
-    }
+    await fetchFor({ samplingPointId, logIds: props.rows.map((r) => r.id) });
   }
 );
 
@@ -63,7 +57,7 @@ const srcColor = (src) => SOURCE_COLORS[src] ?? "bg-nord4/20 text-nord3";
             <th class="whitespace-nowrap">Verif. old→new</th>
             <th class="whitespace-nowrap">Validity old→new</th>
             <th class="whitespace-nowrap">Value old→new</th>
-            <th v-for="col in pluginLogExt?.extraColumns || []" :key="col.key" class="whitespace-nowrap">{{ col.label }}</th>
+            <th v-for="col in extraColumns" :key="col.key" class="whitespace-nowrap">{{ col.label }}</th>
           </tr>
         </thead>
         <tbody>
@@ -99,8 +93,8 @@ const srcColor = (src) => SOURCE_COLORS[src] ?? "bg-nord4/20 text-nord3";
               </span>
               <span v-else class="text-nord3">—</span>
             </td>
-            <td v-for="col in pluginLogExt?.extraColumns || []" :key="col.key" class="text-sm">
-              {{ extMap.get(r.id)?.[col.key] ?? '' }}
+            <td v-for="col in extraColumns" :key="col.key" class="text-sm">
+              {{ cell(r.id, col.key) }}
             </td>
           </tr>
         </tbody>
