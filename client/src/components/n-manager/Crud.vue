@@ -118,7 +118,9 @@ const isFormValid = computed(() => {
               <div v-else-if="p.type == 'lookup'">
                 <div class="font-bold">{{ p.label }}:</div>
                 <select v-model="obj[p.prop_id]" class="select w-full">
-                  <option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value">{{ p.label }}</option>
+                  <!-- ?? []: a plugin-contributed lookup can resolve to nothing when the
+                       plugin owning the data is absent or refused by permission. -->
+                  <option v-for="p in options.lookups?.[p.lookup] ?? []" :key="p.value" :value="p.value">{{ p.label }}</option>
                 </select>
               </div>
               <div v-else-if="p.type == 'eeaDatetime'">
@@ -154,7 +156,9 @@ const isFormValid = computed(() => {
               <div v-else-if="p.type == 'lookup'">
                 <div class="font-bold">{{ p.label }}:</div>
                 <select v-model="obj[p.prop_id]" class="select w-full">
-                  <option v-for="p in options.lookups[p.lookup]" :key="p.value" :value="p.value">{{ p.label }}</option>
+                  <!-- ?? []: a plugin-contributed lookup can resolve to nothing when the
+                       plugin owning the data is absent or refused by permission. -->
+                  <option v-for="p in options.lookups?.[p.lookup] ?? []" :key="p.value" :value="p.value">{{ p.label }}</option>
                 </select>
               </div>
               <div v-else-if="p.type == 'eeaDatetime'">

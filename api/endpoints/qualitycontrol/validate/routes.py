@@ -48,7 +48,9 @@ def timevalues():
             FROM sampling_point_groups g1
             JOIN sampling_point_groups g2 ON g1.group_id = g2.group_id
             JOIN sampling_points sp ON sp.id = g2.sampling_point_id
-            JOIN eea_pollutants p ON p.id = sp.pollutant_id
+            -- LEFT: pollutant_id nullable since migration 012; a group member with a local
+            -- pollutant must still be offered as a comparison series.
+            LEFT JOIN eea_pollutants p ON p.id = sp.pollutant_id
             WHERE g1.sampling_point_id = %(sp_id)s
               AND g2.sampling_point_id != %(sp_id)s
             ORDER BY LOWER(p.notation)

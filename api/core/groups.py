@@ -29,7 +29,10 @@ class Groups:
                    COALESCE(NULLIF(p.notation, ''), p.label) AS pollutant
             FROM sampling_point_groups g
             JOIN sampling_points sp ON sp.id = g.sampling_point_id
-            JOIN eea_pollutants p ON p.id = sp.pollutant_id
+            -- LEFT: pollutant_id is nullable since migration 012 (a local pollutant held
+            -- by the nilu-pollutants plugin). A group member must not disappear from its
+            -- own group just because its component has no EEA vocabulary term.
+            LEFT JOIN eea_pollutants p ON p.id = sp.pollutant_id
             WHERE g.group_id = (
                 SELECT group_id FROM sampling_point_groups WHERE sampling_point_id = %(sp_id)s
             )

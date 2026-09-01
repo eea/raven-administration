@@ -17,11 +17,17 @@ class Q:
         with CursorFromPool() as cursor:
             cursor.execute("""
                 select CONCAT(s.name,', ', p.notation,', ', t.label, ', ', u.notation )  as label, sp.id as value
-                from sampling_points sp, stations s, eea_pollutants p, eea_times t, eea_concentrations u
-                where sp.station_id = s.id
-                and sp.pollutant_id = p.id
-                and sp.time_resolution_id = t.id
-                and sp.unit_id = u.id
+                from sampling_points sp
+                join stations s on sp.station_id = s.id
+                -- LEFT, not inner: pollutant_id, time_resolution_id and unit_id are all
+                -- nullable since migration 012, for series whose component or unit has no
+                -- EEA term (a local pollutant, or m/s and degC). Inner joins here dropped
+                -- 2,177 of 3,580 production sampling points without a trace. CONCAT treats
+                -- NULL as empty, so a partially-configured series gets a shorter label
+                -- rather than vanishing from the picker.
+                left join eea_pollutants p on sp.pollutant_id = p.id
+                left join eea_times t on sp.time_resolution_id = t.id
+                left join eea_concentrations u on sp.unit_id = u.id
                 order by LOWER(s.name), LOWER(p.notation), LOWER(t.label)
             """)
             return cursor.fetchall()
@@ -33,12 +39,13 @@ class Q:
             cursor.execute(f"""
                 {with_network_sql}
                 select CONCAT(s.name,', ', p.notation,', ', t.label, ', ', u.notation )  as label, sp.id as value
-                from sampling_points sp, stations s, eea_pollutants p, eea_times t, eea_concentrations u, network_access n
-                where sp.station_id = s.id
-                and n.id = s.network_id
-                and sp.pollutant_id = p.id
-                and sp.time_resolution_id = t.id
-                and sp.unit_id = u.id
+                from sampling_points sp
+                join stations s on sp.station_id = s.id
+                join network_access n on n.id = s.network_id
+                -- LEFT: nullable measurement config, see Q.timeseries().
+                left join eea_pollutants p on sp.pollutant_id = p.id
+                left join eea_times t on sp.time_resolution_id = t.id
+                left join eea_concentrations u on sp.unit_id = u.id
                 order by LOWER(s.name), LOWER(p.notation), LOWER(t.label)
             """, n_param)
             return cursor.fetchall()
@@ -58,19 +65,14 @@ class Q:
                   FROM
                  (
                   SELECT sp.id as sp, sp.id as value, s.name, COALESCE(NULLIF(po.notation, ''), po.label) as pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.notation as timestep, t.timestep as timestep_seconds, u.notation as unit
-                    FROM
-                        network_access n,
-                        stations s,
-                        sampling_points sp,
-                        eea_pollutants po,
-                        eea_times t,
-                        eea_concentrations u
+                    FROM network_access n
+                    JOIN stations s ON n.id = s.network_id
+                    JOIN sampling_points sp ON s.id = sp.station_id
+                    -- LEFT: nullable measurement config, see Q.timeseries().
+                    LEFT JOIN eea_pollutants po ON sp.pollutant_id = po.id
+                    LEFT JOIN eea_times t ON sp.time_resolution_id = t.id
+                    LEFT JOIN eea_concentrations u ON sp.unit_id = u.id
                     WHERE 1=1
-                        and n.id = s.network_id
-                        and s.id = sp.station_id
-                        and sp.pollutant_id = po.id
-                        and sp.time_resolution_id = t.id
-                        and sp.unit_id = u.id
                         and sp.from_time is not null
                         and sp.to_time is not null
                     GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label), sp.from_time,  sp.to_time, t.notation, t.timestep, u.notation
@@ -97,9 +99,10 @@ class Q:
                     FROM network_access n
                     JOIN stations s ON n.id = s.network_id
                     JOIN sampling_points sp ON s.id = sp.station_id
-                    JOIN eea_pollutants po ON sp.pollutant_id = po.id
-                    JOIN eea_times t ON sp.time_resolution_id = t.id
-                    JOIN eea_concentrations u ON sp.unit_id = u.id
+                    -- LEFT: nullable measurement config, see Q.timeseries().
+                    LEFT JOIN eea_pollutants po ON sp.pollutant_id = po.id
+                    LEFT JOIN eea_times t ON sp.time_resolution_id = t.id
+                    LEFT JOIN eea_concentrations u ON sp.unit_id = u.id
                     LEFT JOIN (
                         SELECT DISTINCT ON (pr.sampling_point_id)
                             pr.sampling_point_id,
@@ -159,14 +162,20 @@ class Q:
             from networks
             {"" if can_see_all_networks() else "where id in %(networkids)s"}
           ),
-          sampling_point_access as 
+          sampling_point_access as
           (
+            -- eea_pollutants was joined in here as `p.pollutant_id = po.id` without
+            -- contributing a single column: this CTE only ever returns p.id. That made it
+            -- an access filter by accident, and once migration 012 allowed a NULL
+            -- pollutant_id it silently removed 591 of 3,580 sampling points from every
+            -- caller — including the 581 that carry a local pollutant via the
+            -- nilu-pollutants plugin. Access is a question about networks, not about
+            -- whether a component happens to have an EEA vocabulary term.
             select p.id
-            from stations s, sampling_points p,  eea_pollutants po, network_access n
+            from stations s, sampling_points p, network_access n
             where 1=1
             and s.network_id = n.id
             and s.id = p.station_id
-            and p.pollutant_id = po.id
           )
         """
         return sql, {"networkids": tuple(get_networks())}

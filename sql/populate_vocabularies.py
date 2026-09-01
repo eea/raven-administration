@@ -264,11 +264,17 @@ def derive_id(concept, id_from):
     return concept.get('notation') or suffix or None
 
 
-def upsert(cursor, table, concepts, id_from, widths, extra_timestep=False):
+def upsert(cursor, table, concepts, id_from, widths, extra_timestep=False,
+           notation_from='notation'):
     """Insert or refresh rows. Returns (written, rejected).
 
     Upserts with DO UPDATE rather than DO NOTHING so a corrected label upstream
     actually propagates — the pre-existing loader could only ever grow a table.
+
+    notation_from='label' stores the label as the notation, for a vocabulary that
+    supplies no notation of its own. Applied here rather than in parse_rdf/parse_csv
+    because those are deliberately vocabulary-agnostic, and because derive_id must
+    keep reading the real URI suffix (meteoparameter ids have to stay 51-99).
     """
     written, rejected = 0, []
     has_notation = 'notation' in widths
@@ -283,8 +289,9 @@ def upsert(cursor, table, concepts, id_from, widths, extra_timestep=False):
         cols = ['id', 'label']
         vals = [clip(row_id, widths.get('id')), clip(concept['label'], widths.get('label'))]
         if has_notation:
+            notation = concept['label'] if notation_from == 'label' else concept['notation']
             cols.append('notation')
-            vals.append(clip(concept['notation'], widths.get('notation')))
+            vals.append(clip(notation, widths.get('notation')))
         if has_uri:
             cols.append('uri')
             vals.append(clip(concept['uri'], widths.get('uri')))
@@ -417,7 +424,8 @@ def main():
                         continue
                     t_widths = widths if target == vocab.table else column_widths(cursor, target)
                     written, rej = upsert(cursor, target, concepts, vocab.id_from, t_widths,
-                                         extra_timestep=(vocab.table == 'eea_times'))
+                                         extra_timestep=(vocab.table == 'eea_times'),
+                                         notation_from=vocab.notation_from)
                     total += written
                     rejected.extend(rej)
 

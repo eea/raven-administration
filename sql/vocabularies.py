@@ -20,6 +20,15 @@ Vocabulary URLs are a path suffix, not a query parameter:
                                                      (uom/concentration notation is 'µg/m3')
                                                      or is a short code (datatable notation is 'ARZ')
     numeric_uri_suffix  id = int(last URI segment)   pollutants and meteoparameters
+
+`notation_from` exists because one vocabulary supplies no notation at all. When
+skos:notation is absent the parser falls back to the URI's last segment, which is
+usually the right answer — but for aq/meteoparameter that segment is a bare number
+('51', '52', ...). Every display in Raven reads
+`COALESCE(NULLIF(notation, ''), label)`, precisely so a vocabulary without a notation
+falls through to its label; a synthesised numeric notation defeats that and the UI
+shows "51" instead of "Wind velocity". `notation_from='label'` stores the label as
+the notation, which is what the retired sql/meteo.sql did for these same concepts.
 """
 from dataclasses import dataclass, field
 from typing import Tuple
@@ -34,6 +43,7 @@ class Vocabulary:
     path: str                          # '<collection>/<vocabulary>'
     aqr3: str = ''                     # attribute code(s) this feeds, for the summary
     id_from: str = 'notation'          # notation | uri_suffix | numeric_uri_suffix
+    notation_from: str = 'notation'    # notation | label
     fmt: str = 'rdf'                   # rdf | csv
     prefer: Tuple[str, ...] = ()       # try these paths first (recast before base)
     fallback: Tuple[dict, ...] = ()     # used only when every fetch attempt fails
@@ -254,8 +264,12 @@ VOCABULARIES = (
     Vocabulary('eea_pollutants', 'aq/pollutant', aqr3='PollutantId (most tables)',
                id_from='numeric_uri_suffix'),
     # Meteoparameters share eea_pollutants' id space by design (ids start at 51).
+    # notation_from='label': this vocabulary ships an empty skos:notation for every
+    # concept but 51, so the URI-suffix fallback would store '51', '52', ... as the
+    # notation - and notation wins the COALESCE every display uses. See the module
+    # docstring. 1,542 sampling points read as bare integers before this.
     Vocabulary('eea_pollutants', 'aq/meteoparameter', aqr3='PollutantId (meteo parameters)',
-               id_from='numeric_uri_suffix'),
+               id_from='numeric_uri_suffix', notation_from='label'),
     Vocabulary('eea_areaclassifications', 'aq/areaclassification', aqr3='SPL_05 StationArea'),
     Vocabulary('eea_spocategory', 'aq/samplingpointcategory', aqr3='SPL_06 SamplingPointCategory',
                fallback=SPO_CATEGORY_FALLBACK,

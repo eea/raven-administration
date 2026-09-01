@@ -32,7 +32,8 @@ const onContextMenuAction = ({ action, data }) => {
 
 onMounted(async () => {
   const lookups = await service.lookups();
-  options.value = extendOptions(pageOptions(lookups));
+  // await: extendOptions may fetch plugin-contributed lookup lists.
+  options.value = await extendOptions(pageOptions(lookups));
 });
 </script>
 

@@ -129,9 +129,11 @@ class Mean:
                    net.name "network", lp.equipment, lp.equipment_identifier
             FROM stations sta
             JOIN sampling_points spo ON sta.id = spo.station_id
-            JOIN eea_pollutants po ON spo.pollutant_id = po.id
-            JOIN eea_times ti ON spo.time_resolution_id = ti.id
-            JOIN eea_concentrations con ON spo.unit_id = con.id
+            -- LEFT: pollutant_id / time_resolution_id / unit_id are all nullable since
+            -- migration 012. Inner joins here excluded the series from its own export.
+            LEFT JOIN eea_pollutants po ON spo.pollutant_id = po.id
+            LEFT JOIN eea_times ti ON spo.time_resolution_id = ti.id
+            LEFT JOIN eea_concentrations con ON spo.unit_id = con.id
             JOIN networks net ON sta.network_id = net.id
             LEFT JOIN (
                 SELECT DISTINCT ON (pr.sampling_point_id)

@@ -49,7 +49,9 @@ def scaling_points():
             FROM scaling_points sc
             JOIN related r ON r.id = sc.sampling_point_id
             JOIN sampling_points sp ON sp.id = sc.sampling_point_id
-            JOIN eea_pollutants p ON p.id = sp.pollutant_id
+            -- LEFT: pollutant_id nullable since migration 012; a scaling point must not
+            -- disappear because its series carries a local pollutant.
+            LEFT JOIN eea_pollutants p ON p.id = sp.pollutant_id
             ORDER BY sc.timestamp, sc.sampling_point_id
         """, {"sp_id": model.sampling_point_id})
         return jsonify(cursor.fetchall())
@@ -260,7 +262,10 @@ def preview():
         cursor.execute("""
             SELECT sp.id, COALESCE(NULLIF(p.notation, ''), p.label) AS pollutant
             FROM sampling_points sp
-            JOIN eea_pollutants p ON p.id = sp.pollutant_id
+            -- LEFT: pollutant_id nullable since migration 012. An inner join here dropped
+            -- the id from pollutant_map, and the caller then labelled the row with its raw
+            -- sampling point id via pollutant_map.get(sp_id, sp_id).
+            LEFT JOIN eea_pollutants p ON p.id = sp.pollutant_id
             WHERE sp.id = ANY(%(sp_ids)s)
         """, {"sp_ids": sp_ids_in_result})
         pollutant_map = {row["id"]: row["pollutant"] for row in cursor.fetchall()}
@@ -283,7 +288,8 @@ def group_members():
                    COALESCE(NULLIF(p.notation, ''), p.label) AS pollutant
             FROM calculated_series cs
             JOIN sampling_points sp ON sp.id IN (cs.primary, cs.secondary)
-            JOIN eea_pollutants p ON p.id = sp.pollutant_id
+            -- LEFT: pollutant_id nullable since migration 012.
+            LEFT JOIN eea_pollutants p ON p.id = sp.pollutant_id
             WHERE (cs.primary = %(sp_id)s OR cs.secondary = %(sp_id)s)
               AND sp.id != %(sp_id)s
               AND NOT EXISTS (SELECT 1 FROM calculated_series cs2 WHERE cs2.result = sp.id)
@@ -303,13 +309,14 @@ def timeseries():
             {with_network_sql},
             timeseries as (
                 select CONCAT(s.name,', ', p.notation,', ', t.label, ', ', u.notation )  as label, sp.id as value
-                from sampling_points sp, stations s, eea_pollutants p, eea_times t, eea_concentrations u, network_access n
-                where sp.station_id = s.id
-                and n.id = s.network_id
-                and sp.pollutant_id = p.id
-                and sp.time_resolution_id = t.id
-                and sp.unit_id = u.id
-                and NOT EXISTS (SELECT 1 FROM calculated_series cs WHERE cs.result = sp.id)
+                from sampling_points sp
+                join stations s on sp.station_id = s.id
+                join network_access n on n.id = s.network_id
+                -- LEFT: nullable measurement config since migration 012.
+                left join eea_pollutants p on sp.pollutant_id = p.id
+                left join eea_times t on sp.time_resolution_id = t.id
+                left join eea_concentrations u on sp.unit_id = u.id
+                where NOT EXISTS (SELECT 1 FROM calculated_series cs WHERE cs.result = sp.id)
                 order by LOWER(s.name), LOWER(p.notation), LOWER(t.label)
             ),
             scaling_points_with_timeseries as (

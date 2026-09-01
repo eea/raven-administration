@@ -75,11 +75,13 @@ def map():
                 {aqi_color}
             FROM observations o
             JOIN sampling_points sp       ON o.sampling_point_id = sp.id
-            JOIN eea_pollutants p         ON sp.pollutant_id     = p.id
-            JOIN eea_times t              ON sp.time_resolution_id = t.id
+            -- LEFT: nullable measurement config since migration 012. Access is enforced
+            -- by network_access below, not by the vocabulary joins.
+            LEFT JOIN eea_pollutants p    ON sp.pollutant_id     = p.id
+            LEFT JOIN eea_times t         ON sp.time_resolution_id = t.id
             JOIN stations s               ON s.id                = sp.station_id
             JOIN network_access n         ON n.id                = s.network_id
-            JOIN eea_concentrations u     ON sp.unit_id          = u.id
+            LEFT JOIN eea_concentrations u ON sp.unit_id         = u.id
             LEFT JOIN eea_areaclassifications ac ON s.station_area_id = ac.id
             LEFT JOIN eea_spocategory sc  ON sp.sampling_point_category_id = sc.id
             {join_aqi}

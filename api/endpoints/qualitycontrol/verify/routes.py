@@ -38,14 +38,17 @@ def datasets():
                 from 
                 (
                   select s.name, p.id, EXTRACT(year FROM o.from_time) as year,EXTRACT(month FROM o.from_time) as month, COALESCE(NULLIF(po.notation, ''), po.label) pollutant, COALESCE(NULLIF(t.notation, ''), t.label) as timestep, o.observationverification_id, count(*) as c
-                  from stations s, sampling_points p, observations o,  eea_pollutants po, eea_times t, network_access n
+                  from stations s
+                  join network_access n on n.id = s.network_id
+                  join sampling_points p on s.id = p.station_id
+                  join observations o on p.id = o.sampling_point_id
+                  -- LEFT: pollutant_id / time_resolution_id are nullable since migration
+                  -- 012. As inner joins these hid whole months of a local-pollutant series
+                  -- from Verify, even though the observations were there to approve.
+                  left join eea_pollutants po on p.pollutant_id = po.id
+                  left join eea_times t on p.time_resolution_id = t.id
                   where EXTRACT(year FROM o.from_time) = %(year)s
-                  and n.id = s.network_id
                   and s.id = %(station_id)s
-                  and s.id = p.station_id
-                  and p.id = o.sampling_point_id
-                  and p.pollutant_id = po.id
-                  and p.time_resolution_id = t.id
                   group by s.name, EXTRACT(year FROM o.from_time), EXTRACT(month FROM o.from_time), o.observationverification_id, COALESCE(NULLIF(po.notation, ''), po.label), p.id, t.notation, t.label
                 ) aa
                 group by aa.name,aa.id, aa.year, aa.month, aa.pollutant, aa.timestep

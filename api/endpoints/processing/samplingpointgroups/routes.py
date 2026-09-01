@@ -27,8 +27,10 @@ def list_groups():
             FROM sampling_point_groups g
             JOIN sampling_points sp ON sp.id = g.sampling_point_id
             JOIN stations s ON sp.station_id = s.id
-            JOIN eea_pollutants p ON sp.pollutant_id = p.id
             JOIN network_access n ON s.network_id = n.id
+            -- LEFT: pollutant_id nullable since migration 012. As an inner join a member
+            -- with a local pollutant was dropped from both members and member_count.
+            LEFT JOIN eea_pollutants p ON sp.pollutant_id = p.id
             GROUP BY g.group_id
             ORDER BY MIN(LOWER(s.name)), g.group_id
         """, n_param)
@@ -105,8 +107,10 @@ def list_members(group_id):
             FROM sampling_point_groups g
             JOIN sampling_points sp ON sp.id = g.sampling_point_id
             JOIN stations s ON sp.station_id = s.id
-            JOIN eea_pollutants p ON sp.pollutant_id = p.id
-            JOIN eea_times t ON sp.time_resolution_id = t.id
+            -- LEFT: nullable measurement config since migration 012, so every member of
+            -- the group is listed and removable.
+            LEFT JOIN eea_pollutants p ON sp.pollutant_id = p.id
+            LEFT JOIN eea_times t ON sp.time_resolution_id = t.id
             WHERE g.group_id = %(group_id)s
             ORDER BY LOWER(p.notation)
         """, {"group_id": group_id})
@@ -191,10 +195,12 @@ def lookup_samplingpoints():
                 CONCAT(s.name, ', ', COALESCE(NULLIF(p.notation, ''), p.label), ', ', COALESCE(NULLIF(t.notation, ''), t.label), ', ', u.notation) AS label
             FROM sampling_points sp
             JOIN stations s ON sp.station_id = s.id
-            JOIN eea_pollutants p ON sp.pollutant_id = p.id
-            JOIN eea_times t ON sp.time_resolution_id = t.id
-            JOIN eea_concentrations u ON sp.unit_id = u.id
             JOIN network_access n ON s.network_id = n.id
+            -- LEFT: nullable measurement config since migration 012, so a local-pollutant
+            -- series can be added to a group at all. CONCAT treats NULL as empty.
+            LEFT JOIN eea_pollutants p ON sp.pollutant_id = p.id
+            LEFT JOIN eea_times t ON sp.time_resolution_id = t.id
+            LEFT JOIN eea_concentrations u ON sp.unit_id = u.id
             LEFT JOIN sampling_point_groups g ON g.sampling_point_id = sp.id
             WHERE ({member_filter})
             ORDER BY LOWER(s.name), LOWER(p.notation)

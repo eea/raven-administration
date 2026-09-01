@@ -44,11 +44,13 @@ def latest():
             FROM
                 observations             o
                 JOIN sampling_points     sp ON o.sampling_point_id = sp.id
-                JOIN eea_pollutants      p  ON sp.pollutant_id    = p.id
-                JOIN eea_times           t  ON sp.time_resolution_id = t.id
+                -- LEFT: nullable measurement config since migration 012. Access is
+                -- enforced by network_access below, not by the vocabulary joins.
+                LEFT JOIN eea_pollutants p  ON sp.pollutant_id    = p.id
+                LEFT JOIN eea_times      t  ON sp.time_resolution_id = t.id
                 JOIN stations            s  ON sp.station_id       = s.id
                 JOIN network_access      n  ON s.network_id        = n.id
-                JOIN eea_concentrations  u  ON sp.unit_id          = u.id
+                LEFT JOIN eea_concentrations u ON sp.unit_id       = u.id
                 LEFT JOIN (
                     SELECT DISTINCT ON (pr.sampling_point_id)
                         pr.sampling_point_id,

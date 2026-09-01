@@ -18,11 +18,13 @@ def calculate():
             {with_network_sql},            
             timeseries as (
                 select s.name as station, s.id as sta_id, po.notation,p.id
-                from stations s, sampling_points p,  eea_pollutants po, network_access n
-                where 1=1
-                and s.network_id = n.id
-                and s.id = p.station_id
-                and p.pollutant_id = po.id
+                from stations s
+                join network_access n on s.network_id = n.id
+                join sampling_points p on s.id = p.station_id
+                -- LEFT: pollutant_id nullable since migration 012. As an inner join this
+                -- CTE dropped the series entirely, so any calculated_series referencing it
+                -- vanished from the grid along with it.
+                left join eea_pollutants po on p.pollutant_id = po.id
             )
             select 	
                 spo_pri.sta_id,
@@ -64,7 +66,9 @@ def calculate_insert():
             # Auto-name from pollutant notations
             cursor.execute("""
                 SELECT COALESCE(NULLIF(p.notation,''), p.label) AS notation
-                FROM sampling_points sp JOIN eea_pollutants p ON p.id = sp.pollutant_id
+                -- LEFT: pollutant_id nullable since migration 012. The group auto-name is
+                -- built from these rows, so an inner join silently shortened it.
+                FROM sampling_points sp LEFT JOIN eea_pollutants p ON p.id = sp.pollutant_id
                 WHERE sp.id = ANY(%(ids)s::varchar[])
                 ORDER BY CASE sp.id
                     WHEN %(primary)s THEN 1
@@ -157,11 +161,13 @@ def calculate_download():
             {with_network_sql},            
             timeseries as (
                 select s.name as station, s.id as sta_id, po.notation,p.id
-                from stations s, sampling_points p,  eea_pollutants po, network_access n
-                where 1=1
-                and s.network_id = n.id
-                and s.id = p.station_id
-                and p.pollutant_id = po.id
+                from stations s
+                join network_access n on s.network_id = n.id
+                join sampling_points p on s.id = p.station_id
+                -- LEFT: pollutant_id nullable since migration 012. As an inner join this
+                -- CTE dropped the series entirely, so any calculated_series referencing it
+                -- vanished from the grid along with it.
+                left join eea_pollutants po on p.pollutant_id = po.id
             )
             select 	
 	              spo_pri.station,

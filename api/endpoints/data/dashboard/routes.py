@@ -31,9 +31,11 @@ def sampling_points():
             FROM network_access n
             JOIN stations s ON n.id = s.network_id
             JOIN sampling_points sp ON s.id = sp.station_id
-            JOIN eea_pollutants po ON sp.pollutant_id = po.id
-            JOIN eea_times t ON sp.time_resolution_id = t.id
-            JOIN eea_concentrations u ON sp.unit_id = u.id
+            -- LEFT: nullable measurement config since migration 012. Access is enforced
+            -- by network_access above, not by the vocabulary joins.
+            LEFT JOIN eea_pollutants po ON sp.pollutant_id = po.id
+            LEFT JOIN eea_times t ON sp.time_resolution_id = t.id
+            LEFT JOIN eea_concentrations u ON sp.unit_id = u.id
             LEFT JOIN (
                 SELECT DISTINCT ON (pr.sampling_point_id)
                     pr.sampling_point_id,

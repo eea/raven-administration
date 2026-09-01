@@ -69,9 +69,12 @@ def missing_values():
                 to_char(sp.to_time,'yyyy-mm-dd HH24:mi') as totime
             from sampling_points sp
             join stations s on sp.station_id = s.id
-            join eea_pollutants p on sp.pollutant_id = p.id
-            join eea_concentrations c on sp.unit_id = c.id
-            join eea_times t on sp.time_resolution_id = t.id
+            -- LEFT: nullable measurement config since migration 012. A series that stops
+            -- reporting still needs to raise a notification when its component or unit
+            -- has no EEA vocabulary term.
+            left join eea_pollutants p on sp.pollutant_id = p.id
+            left join eea_concentrations c on sp.unit_id = c.id
+            left join eea_times t on sp.time_resolution_id = t.id
             where sp.to_time is not null
             and sp.to_time < now() - interval '3 hours'
             order by LOWER(s.name), LOWER(COALESCE(NULLIF(p.notation, ''), p.label))
@@ -96,9 +99,12 @@ def sampling_points():
                 COALESCE(NULLIF(t.notation, ''), t.label) as timestep
             from sampling_points sp
             join stations s on sp.station_id = s.id
-            join eea_pollutants p on sp.pollutant_id = p.id
-            join eea_concentrations c on sp.unit_id = c.id
-            join eea_times t on sp.time_resolution_id = t.id
+            -- LEFT: nullable measurement config since migration 012. A series that stops
+            -- reporting still needs to raise a notification when its component or unit
+            -- has no EEA vocabulary term.
+            left join eea_pollutants p on sp.pollutant_id = p.id
+            left join eea_concentrations c on sp.unit_id = c.id
+            left join eea_times t on sp.time_resolution_id = t.id
             order by LOWER(s.name), LOWER(COALESCE(NULLIF(p.notation, ''), p.label))
         """
         cursor.execute(sql)

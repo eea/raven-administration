@@ -25,11 +25,13 @@ def convert():
             from converted_series cs
             join eea_concentrations s on cs.source = s.id
             join sampling_points p on cs.sampling_point_id = p.id
-            join eea_concentrations sp_unit on p.unit_id = sp_unit.id
             join stations st on p.station_id = st.id
-            join eea_pollutants po on p.pollutant_id = po.id
-            join eea_times ti on p.time_resolution_id = ti.id
             join network_access n on n.id = st.network_id
+            -- LEFT: nullable measurement config since migration 012. An existing
+            -- conversion must stay listed and deletable regardless.
+            left join eea_concentrations sp_unit on p.unit_id = sp_unit.id
+            left join eea_pollutants po on p.pollutant_id = po.id
+            left join eea_times ti on p.time_resolution_id = ti.id
         """, n_param)
         convertions = cursor.fetchall()
         return jsonify(convertions)
@@ -133,9 +135,12 @@ def convert_timeseries():
             FROM sampling_points sp
             JOIN stations s ON sp.station_id = s.id
             JOIN network_access n ON n.id = s.network_id
-            JOIN eea_pollutants p ON sp.pollutant_id = p.id
-            JOIN eea_times t ON sp.time_resolution_id = t.id
-            JOIN eea_concentrations u ON sp.unit_id = u.id
+            -- LEFT: nullable measurement config since migration 012. A series with a
+            -- non-EEA unit is exactly the kind that needs converting, so excluding it
+            -- from the picker defeated the feature.
+            LEFT JOIN eea_pollutants p ON sp.pollutant_id = p.id
+            LEFT JOIN eea_times t ON sp.time_resolution_id = t.id
+            LEFT JOIN eea_concentrations u ON sp.unit_id = u.id
             WHERE sp.id NOT IN (SELECT sampling_point_id FROM converted_series)
             ORDER BY LOWER(s.name), LOWER(p.notation), LOWER(t.label)
         """, n_param)
@@ -157,15 +162,17 @@ def convert_download():
                 s.notation as source,
                 t.notation as target,
                 cs.factor::double PRECISION as factor
-            from converted_series cs, eea_concentrations s, eea_concentrations t, stations st, sampling_points p,  eea_pollutants po, eea_times ti, network_access n
+            from converted_series cs
+            join eea_concentrations s on cs.source = s.id
+            join eea_concentrations t on cs.target = t.id
+            join sampling_points p on cs.sampling_point_id = p.id
+            join stations st on p.station_id = st.id
+            join network_access n on n.id = st.network_id
+            -- LEFT: nullable measurement config since migration 012, so the CSV lists
+            -- every conversion the grid above shows.
+            left join eea_pollutants po on p.pollutant_id = po.id
+            left join eea_times ti on p.time_resolution_id = ti.id
             where 1=1
-            and n.id = st.network_id
-            and cs.source = s.id
-            and cs.target = t.id
-            and cs.sampling_point_id = p.id
-            and p.station_id = st.id
-            and p.pollutant_id = po.id
-            and p.time_resolution_id = ti.id
             order by LOWER(st.name), LOWER(po.notation), LOWER(ti.label)
         """, n_param)
         conversions = cursor.fetchall()
