@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import jsonify, Blueprint, request
 from werkzeug.exceptions import BadRequest
 from flask_jwt_extended import jwt_required
@@ -84,13 +86,25 @@ def flag():
     if Q.has_no_access(m.sampling_point_id):
         raise BadRequest("Access denied for samplingpoint")
 
+    # Half-open month window rather than EXTRACT(year/month FROM from_time): only a
+    # range predicate can use idx_observations_spid_ft (sampling_point_id, from_time).
+    month_start = datetime(m.year, m.month, 1)
+    next_month = datetime(m.year + 1, 1, 1) if m.month == 12 else datetime(m.year, m.month + 1, 1)
+
     with CursorFromPool() as cursor:
         set_log_context(cursor, 'qc_verify')
         cursor.execute("""
-            where EXTRACT(year FROM from_time) = %(year)s
-            and EXTRACT(month FROM from_time) = %(month)s            
-            and sampling_point_id = %(sampling_point_id)s
-        """, m)
+            update observations
+            set observationverification_id = %(level)s
+            where sampling_point_id = %(sampling_point_id)s
+            and from_time >= %(month_start)s
+            and from_time < %(next_month)s
+        """, {
+            "level": m.level,
+            "sampling_point_id": m.sampling_point_id,
+            "month_start": month_start,
+            "next_month": next_month,
+        })
         if cursor.rowcount == 0:
             raise BadRequest("Could set verification flag")
         return jsonify({"success": True})

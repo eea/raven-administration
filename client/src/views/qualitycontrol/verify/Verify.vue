@@ -16,6 +16,7 @@ import { filterList } from "../../../helpers/utils";
 import IconLink from "~icons/ph/link-simple-duotone";
 import IconCircle from "~icons/ph/circle-duotone";
 import IconHistory from "~icons/ph/clock-counter-clockwise-duotone";
+import IconArchive from "~icons/mdi/history";
 
 const year = ref("");
 const stationId = ref();
@@ -61,6 +62,53 @@ const showDatasets = async () => {
 
 const load = async () => {
   datasets.value = await Service.datasets({ year: parseInt(year.value), station_id: stationId.value });
+  await loadPluginMenu();
+};
+
+// PLUGIN CONTEXT MENU //
+//
+// Deliberately unlike Validate.vue's `validateContextMenu`, which breaks after the first
+// plugin: here every plugin that registers `verifyContextMenu` contributes items, because
+// these are additive read-only entries rather than a replacement for the page's own actions.
+//
+// A hook may narrow itself to specific rows via getRowAvailability, returning the
+// "<samplingPointId>:<month>" keys it can serve. That keeps a plugin from advertising an
+// action that leads to an empty dialog. Omitting it means "every row".
+const pluginMenu = ref([]);
+
+const loadPluginMenu = async () => {
+  const entries = [];
+  for (const p of Object.values(window.__ravenPlugins || {})) {
+    const hook = p.verifyContextMenu;
+    if (!hook) continue;
+
+    // A plugin that throws must not take the page's own context menu down with it.
+    const items = (await Promise.resolve(hook.getItems?.()).catch(() => [])) || [];
+    if (!items.length) continue;
+
+    let rows = null;
+    if (hook.getRowAvailability) {
+      const keys = await Promise.resolve(
+        hook.getRowAvailability({
+          stationId: stationId.value,
+          year: parseInt(year.value),
+          rows: datasets.value.map((d) => ({ id: d.id, month: d.month }))
+        })
+      ).catch(() => null);
+      if (keys) rows = new Set(keys);
+    }
+
+    for (const item of items) {
+      entries.push({ idx: entries.length, pluginId: p.pluginId, hook, item, rows });
+    }
+  }
+  pluginMenu.value = entries;
+};
+
+const pluginItemsFor = (row) => {
+  if (!row) return [];
+  const key = `${row.id}:${row.month}`;
+  return pluginMenu.value.filter((e) => e.rows === null || e.rows.has(key));
 };
 
 // STYLING //
@@ -119,6 +167,17 @@ const onContextMenuAction = async ({ action, data }) => {
     await onSetLevel(3);
   } else if (action === "history") {
     await onShowHistory();
+  } else if (action.startsWith("plugin:")) {
+    const entry = pluginMenu.value[parseInt(action.slice(7))];
+    if (!entry) return;
+    await Promise.resolve(
+      entry.hook.onSelect(entry.item, {
+        row: selected.value,
+        year: parseInt(year.value),
+        reload: load,
+        showMessage: (msg, type) => Eventy.showHideMessage(msg, type || "success")
+      })
+    ).catch((err) => Eventy.showHideMessage(err?.message || "Plugin action failed", "error"));
   }
 };
 
@@ -226,6 +285,16 @@ const onDownload = () => {
           <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('history')" v-if="contextData?.row">
             <icon-history class="text-nord9 text-base self-center" />
             <div class="self-center ml-1">View history</div>
+          </div>
+          <!-- Plugin-contributed entries, only for rows the plugin said it can serve. -->
+          <div
+            v-for="entry in pluginItemsFor(contextData?.row)"
+            :key="`${entry.pluginId}:${entry.idx}`"
+            class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6"
+            @click="handleAction(`plugin:${entry.idx}`)"
+          >
+            <icon-archive class="text-nord3 text-base self-center" />
+            <div class="self-center ml-1">{{ entry.item.label }}</div>
           </div>
         </template>
       </DataTable>
