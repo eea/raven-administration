@@ -7,7 +7,15 @@ const emit = defineEmits(["on-close"]);
 const props = defineProps({
   show: Boolean,
   title: String,
-  status: Object
+  status: Object,
+  // Classes for the body element. The default reproduces the original markup exactly,
+  // so popups that do not pass this are unaffected.
+  //
+  // Pass "flex-1 min-h-0 flex flex-col" when the content needs to own its own
+  // scrolling — a popup holding a wide table must, because a nested overflow-x-auto
+  // div inside the default overflow-y-auto body is as tall as the table, which puts
+  // its horizontal scrollbar below the visible area where nobody can reach it.
+  bodyClass: { type: String, default: "overflow-y-auto flex-1" }
 });
 
 const onClose = () => {
@@ -54,7 +62,7 @@ export default {
         </div>
       </div>
       <div class="border border-gray-300"></div>
-      <div class="overflow-y-auto flex-1"><slot></slot></div>
+      <div :class="bodyClass"><slot></slot></div>
     </div>
   </div>
 </template>

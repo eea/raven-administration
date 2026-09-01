@@ -75,10 +75,13 @@ watch(() => props.show, (v) => {
 </script>
 
 <template>
-  <popup :show="show" :title="typeFilter === 'daily_check' ? `Daily check log — ${samplingPoint?.id ?? ''}` : `Sampling point log — ${samplingPoint?.id ?? ''}`" @on-close="emit('close')" class="max-w-3xl w-full">
+  <!-- body-class: the table below owns the scrolling. Left on Popup's default, the
+       table's own overflow-x-auto div would be as tall as the table and put its
+       horizontal scrollbar below the visible area. -->
+  <popup :show="show" :title="typeFilter === 'daily_check' ? `Daily check log — ${samplingPoint?.id ?? ''}` : `Sampling point log — ${samplingPoint?.id ?? ''}`" @on-close="emit('close')" class="max-w-3xl w-full" body-class="flex-1 min-h-0 flex flex-col">
 
     <!-- Add entry toggle (hidden in read-only/filtered mode) -->
-    <div v-if="!typeFilter" class="flex justify-end mb-3">
+    <div v-if="!typeFilter" class="flex justify-end mb-3 shrink-0">
       <button
         class="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded border border-nord10 text-nord10 hover:bg-nord10/10"
         @click="showAddForm = !showAddForm">
@@ -88,7 +91,7 @@ watch(() => props.show, (v) => {
     </div>
 
     <!-- Add entry form (hidden in read-only/filtered mode) -->
-    <div v-if="showAddForm && !typeFilter" class="mb-4 p-3 border border-nord4 rounded bg-white">
+    <div v-if="showAddForm && !typeFilter" class="mb-4 p-3 border border-nord4 rounded bg-white shrink-0">
       <div class="grid grid-cols-2 gap-3 mb-3">
         <div>
           <label class="block text-xs font-semibold text-nord3 mb-1">Period from <span class="text-nord11">*</span></label>
@@ -113,9 +116,9 @@ watch(() => props.show, (v) => {
     <!-- Log entries table -->
     <div v-if="loading" class="text-nord3 text-sm py-4 text-center">Loading…</div>
     <div v-else-if="rows.length === 0" class="text-nord3 text-sm py-4 text-center">No log entries found.</div>
-    <div v-else class="overflow-x-auto">
+    <div v-else class="flex-1 min-h-0 overflow-auto">
       <table class="table w-full text-sm">
-        <thead>
+        <thead class="sticky top-0 z-10">
           <tr>
             <th class="whitespace-nowrap">Created</th>
             <th>By</th>

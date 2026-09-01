@@ -123,7 +123,23 @@ const isEmptyByFilter = computed(() => isEmpty.value && activeRuleCount.value > 
 </script>
 
 <template>
-  <popup :show="show" title="Observation Change History" @on-close="emit('close')" class="max-w-5xl w-full">
+  <!--
+    Near-full-screen, and the body owns its own scrolling rather than using Popup's
+    default overflow-y-auto: with every column shown the table is wider than the popup,
+    so the horizontal scrollbar has to be reachable without scrolling to the bottom of
+    the rows first.
+
+    The cap is in px on purpose. `html, body` set text-[14px], so 1rem = 14px here and
+    rem-based widths come out ~12.5% smaller than they read — max-w-5xl (64rem) was
+    896px, not 1024px. 1680px comfortably clears the ~1554px the full column set needs.
+  -->
+  <popup
+    :show="show"
+    title="Observation Change History"
+    @on-close="emit('close')"
+    class="w-[95vw] max-w-[1680px] h-[85vh]"
+    body-class="flex-1 min-h-0 flex flex-col"
+  >
     <template #actions>
       <observation-log-filter-menu
         :columns="allColumns"
@@ -137,19 +153,38 @@ const isEmptyByFilter = computed(() => isEmpty.value && activeRuleCount.value > 
       />
     </template>
 
-    <div v-if="isEmptyByFilter" class="text-nord3 text-sm py-4 text-center">
+    <!--
+      One v-if chain, not a chain plus a loose sibling: exactly one of these claims
+      flex-1, otherwise two flex-1 children would split the height between an empty
+      header-only table and the loading message. Centred because the popup now has a
+      fixed height, so a top-aligned message would sit above a large blank area.
+    -->
+    <div v-if="loading && logRows.length === 0" class="flex-1 min-h-0 flex items-center justify-center text-nord3 text-sm">
+      Loading…
+    </div>
+    <div v-else-if="isEmptyByFilter" class="flex-1 min-h-0 flex flex-col items-center justify-center text-nord3 text-sm">
       <div>No entries match the {{ activeRuleCount }} active filter{{ activeRuleCount === 1 ? "" : "s" }}.</div>
       <button class="button mt-2" @click="onShowAll">Show all</button>
     </div>
-    <div v-else-if="isEmpty" class="text-nord3 text-sm py-4 text-center">No history entries found.</div>
-    <div v-else class="overflow-x-auto">
+    <div v-else-if="isEmpty" class="flex-1 min-h-0 flex items-center justify-center text-nord3 text-sm">
+      No history entries found.
+    </div>
+    <!--
+      One scroll container owning BOTH axes, height-constrained by flex-1 min-h-0.
+      That is the whole fix: an element only pins its horizontal scrollbar to its own
+      bottom edge when it has a definite height. The previous overflow-x-auto div was
+      as tall as the table, so its scrollbar sat hundreds of pixels below the popup.
+    -->
+    <div v-else class="flex-1 min-h-0 overflow-auto">
       <table class="table w-full text-sm">
-        <thead>
+        <!-- Sticky against the scroller above, not the popup panel. .table th is
+             already opaque (bg-gray-100), so rows cannot show through. -->
+        <thead class="sticky top-0 z-10">
           <tr>
-            <th v-for="col in visibleCoreColumns" :key="col.key" class="whitespace-nowrap">
+            <th v-for="col in visibleCoreColumns" :key="col.key" class="whitespace-nowrap border-b border-nord4">
               {{ col.label }}
             </th>
-            <th v-for="col in visibleExtraColumns" :key="col.key" class="whitespace-nowrap">
+            <th v-for="col in visibleExtraColumns" :key="col.key" class="whitespace-nowrap border-b border-nord4">
               {{ col.label }}
             </th>
           </tr>
@@ -157,7 +192,9 @@ const isEmptyByFilter = computed(() => isEmpty.value && activeRuleCount.value > 
         <tbody>
           <tr v-for="r in logRows" :key="r.id">
             <td v-if="isVisible('changed_at')" class="whitespace-nowrap font-mono text-xs">{{ r.changed_at }}</td>
-            <td v-if="isVisible('changed_by')">{{ r.changed_by ?? "—" }}</td>
+            <td v-if="isVisible('changed_by')">
+              <div class="max-w-[10rem] truncate" :title="r.changed_by ?? ''">{{ r.changed_by ?? "—" }}</div>
+            </td>
             <td v-if="isVisible('change_source')">
               <span class="px-1.5 py-0.5 rounded text-xs font-medium" :class="srcColor(r.change_source)">
                 {{ r.change_source }}
@@ -187,19 +224,25 @@ const isEmptyByFilter = computed(() => isEmpty.value && activeRuleCount.value > 
               </span>
               <span v-else class="text-nord3">—</span>
             </td>
+            <!--
+              Capped on an inner div, not the td: .table sets no table-layout, so auto
+              layout applies and max-width on a cell is only loosely honoured, while on
+              a block child it is exact. Without this a single 89-character migrated
+              comment sets the column width for every row and costs ~640px.
+            -->
             <td v-for="col in visibleExtraColumns" :key="col.key" class="text-sm">
-              {{ cell(r.id, col.key) }}
+              <div class="max-w-[20rem] truncate" :title="cell(r.id, col.key)">{{ cell(r.id, col.key) }}</div>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div class="mt-3 flex justify-center" v-if="hasMore">
+    <!-- Outside the scroller, so it stays put instead of scrolling away sideways. -->
+    <div class="mt-3 flex justify-center shrink-0" v-if="hasMore">
       <button class="button" :disabled="loading" @click="loadMore">
         {{ loading ? "Loading…" : "Load more" }}
       </button>
     </div>
-    <div v-if="loading && logRows.length === 0" class="text-nord3 text-sm py-4 text-center">Loading…</div>
   </popup>
 </template>

@@ -123,16 +123,18 @@ watch(() => props.show, (visible) => {
 </script>
 
 <template>
+  <!-- body-class: the table below owns the scrolling, so its horizontal scrollbar
+       stays at the visible bottom edge instead of below the full table. -->
   <popup :show="show" :title="`Location history — ${samplingPoint?.id ?? ''}`"
-         @on-close="emit('close')" class="max-w-5xl w-full">
+         @on-close="emit('close')" class="max-w-5xl w-full" body-class="flex-1 min-h-0 flex flex-col">
 
-    <p class="text-xs text-nord3 mb-3">
+    <p class="text-xs text-nord3 mb-3 shrink-0">
       AQR3 reports one location per period (SPL). A relocation closes the current period and
       opens a new one, so a measurement can be traced to where it was taken. Fields left empty
       fall back to the sampling point and its station — the fallback is shown beside each.
     </p>
 
-    <div v-if="!editing" class="flex justify-end mb-3">
+    <div v-if="!editing" class="flex justify-end mb-3 shrink-0">
       <button class="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded border border-nord10 text-nord10 hover:bg-nord10/10"
               @click="openAdd">
         <icon-add class="text-base" /> Add period
@@ -140,7 +142,7 @@ watch(() => props.show, (visible) => {
     </div>
 
     <!-- Add / edit form -->
-    <div v-if="editing" class="mb-4 p-3 border border-nord4 rounded bg-white">
+    <div v-if="editing" class="mb-4 p-3 border border-nord4 rounded bg-white shrink-0">
       <div class="grid grid-cols-3 gap-3 mb-3">
         <div>
           <label class="block text-xs font-semibold text-nord3 mb-1">
@@ -209,9 +211,9 @@ watch(() => props.show, (visible) => {
       No location periods. The export falls back to the sampling point's active period
       ({{ fallback('from_time') }}) and its current coordinates.
     </div>
-    <div v-else class="overflow-x-auto">
+    <div v-else class="flex-1 min-h-0 overflow-auto">
       <table class="table w-full text-sm">
-        <thead>
+        <thead class="sticky top-0 z-10">
           <tr>
             <th class="whitespace-nowrap">Begin</th>
             <th class="whitespace-nowrap">End</th>

@@ -116,22 +116,24 @@ watch(() => props.show, (visible) => {
 </script>
 
 <template>
+  <!-- body-class: the table below owns the scrolling, so its horizontal scrollbar
+       stays at the visible bottom edge instead of below the full table. -->
   <popup :show="show" :title="`External gridded results — ${model?.id ?? ''}`"
-         @on-close="emit('close')" class="max-w-5xl w-full">
+         @on-close="emit('close')" class="max-w-5xl w-full" body-class="flex-1 min-h-0 flex flex-col">
 
-    <p class="text-xs text-nord3 mb-3">
+    <p class="text-xs text-nord3 mb-3 shrink-0">
       One row per timestep (AQR3 MRE), each naming a GeoTIFF that carries the values. Unlike
       inline results, the raster is uploaded to Reportnet 3 by you and raven records only the
       file name — so the name here must match the file you attach there.
     </p>
 
-    <div v-if="!editing" class="flex justify-end mb-3">
+    <div v-if="!editing" class="flex justify-end mb-3 shrink-0">
       <button class="button" @click="openAdd">
         <span class="flex items-center gap-1.5"><icon-add class="text-base" /> Add result</span>
       </button>
     </div>
 
-    <div v-if="editing" class="mb-4 p-3 border border-nord4 rounded bg-white">
+    <div v-if="editing" class="mb-4 p-3 border border-nord4 rounded bg-white shrink-0">
       <div class="grid grid-cols-3 gap-3 mb-3">
         <div>
           <label class="block text-xs font-semibold text-nord3 mb-1">
@@ -207,9 +209,9 @@ watch(() => props.show, (visible) => {
     <div v-else-if="rows.length === 0" class="text-nord3 text-sm py-4 text-center">
       No external results for this model.
     </div>
-    <div v-else class="overflow-x-auto">
+    <div v-else class="flex-1 min-h-0 overflow-auto">
       <table class="table w-full text-sm">
-        <thead>
+        <thead class="sticky top-0 z-10">
           <tr>
             <th class="whitespace-nowrap">Start</th>
             <th class="whitespace-nowrap">End</th>
