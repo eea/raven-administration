@@ -10,6 +10,7 @@ import Version from "../helpers/version";
 import Eventy from "../helpers/eventy";
 import { Get } from "../helpers/request";
 import { runtimePlugins } from "../helpers/runtime-plugins";
+import { copyToClipboard } from "../helpers/utilsCopy";
 
 const router = useRouter();
 const modules = ref([]);
@@ -181,6 +182,18 @@ const signout = async () => {
   Auth.signout();
   router.push({ name: "Login" });
 };
+
+const onCopyVersion = async () => {
+  // Version.get() seeds current as "-" until /api/version resolves; copying that would
+  // silently put a dash on the clipboard.
+  if (!version.value.current || version.value.current === "-") return;
+  const ok = await copyToClipboard(version.value.current);
+  Eventy.showHideMessage(
+    ok ? `Version ${version.value.current} copied` : "Could not copy version",
+    ok ? "success" : "error",
+    2000
+  );
+};
 </script>
 
 <template>
@@ -211,7 +224,15 @@ const signout = async () => {
     <div class="">
       <div class="flex px-1 text-xs font-bold border-b border-nord4 gap-1">
         <icon-new-version class="self-center text-nord11 hover:text-nord12" v-if="!version.isLatest" />
-        <div class="self-center">v.{{ version.current }}</div>
+        <!-- Copies the bare version, without the "v." prefix — that is what gets pasted
+             into a ticket. No select-none needed; the sidebar root already sets it. -->
+        <div
+          class="self-center cursor-pointer hover:text-nord10"
+          title="Double-click to copy"
+          @dblclick="onCopyVersion"
+        >
+          v.{{ version.current }}
+        </div>
       </div>
       <div class="flex py-2 px-2 hover:cursor-pointer hover:bg-nord8/20 hover:text-nord10" @click="signout">
         <icon-logout class="self-center" />
