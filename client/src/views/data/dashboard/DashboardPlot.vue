@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { format, sub, add } from "date-fns";
 import Chart from "chart.js/auto";
@@ -10,6 +10,7 @@ import { groupBy } from "../../../helpers/utils";
 import Service from "./service";
 import SamplingPointsService from "../../management/samplingpoints/service";
 import Eventy from "../../../helpers/eventy";
+import Auth from "../../../helpers/auth";
 import SamplingPointLog from "../../management/samplingpoints/SamplingPointLog.vue";
 import CMenu from "../../../components/CMenu.vue";
 import IconRefresh  from "~icons/material-symbols/refresh";
@@ -61,9 +62,30 @@ const logSp       = ref(null);
 const dailyCheckDone   = ref(new Set());
 const addingDailyCheck = ref(new Set()); // sp ids currently being submitted
 
+// The daily-check endpoints require the management claim while the whole Dashboard runs on
+// the data claim, and interceptor.js turns their 403 into a redirect to /forbidden. So a
+// data-only user must neither call them on load nor be shown a control that would.
+// Truthy test, not === true, matching how MenuBar.vue gates on jwt.management.
+const canDailyCheck = !!Auth.claims().management;
+
+// is_calculated / is_daily_check live on the allTimeseries prop, which the parent fetches
+// in parallel with this card's chart data. They are looked up at render time rather than
+// captured in buildChart(): a card whose chart data arrived first used to read an empty
+// allTimeseries and keep `false` forever, hiding the daily-check box until a manual refresh.
+const seriesMeta = computed(() => new Map(props.allTimeseries.map(sp => [sp.sampling_point_id, sp])));
+
+const legend = computed(() => legendItems.value.map((item) => {
+  const meta = seriesMeta.value.get(item.sampling_point_id);
+  return {
+    ...item,
+    is_calculated: meta?.is_calculated ?? false,
+    is_daily_check: meta?.is_daily_check ?? false
+  };
+}));
+
 const pickerItems = () => {
-  const items = legendItems.value.length
-    ? legendItems.value
+  const items = legend.value.length
+    ? legend.value
     : props.allTimeseries
         .filter(sp => props.plot.seriesIds?.includes(sp.sampling_point_id))
         .map(sp => ({ sampling_point_id: sp.sampling_point_id, label: [sp.station, sp.pollutant].filter(Boolean).join(" — "), color: null, is_calculated: sp.is_calculated }));
@@ -98,7 +120,7 @@ const navigateWithSp = (routeName, spId) => {
 
 const loadDailyCheckState = async () => {
   const ids = props.plot.seriesIds;
-  if (!ids?.length) return;
+  if (!ids?.length || !canDailyCheck) return;
   try {
     const result = await SamplingPointsService.logDailyCheckState(ids);
     dailyCheckDone.value = new Set(result.filter(r => r.done_today).map(r => r.sampling_point_id));
@@ -186,7 +208,8 @@ const buildChart = (data) => {
     const first    = values[0];
     const eq       = [first.equipment, first.equipment_identifier].filter(Boolean).join(" / ");
     const label    = [first.station, first.component, first.unit, eq].filter(Boolean).join(" - ");
-    legendItems.value.push({ color, label, hidden: false, sampling_point_id: spId, is_calculated: props.allTimeseries.find(s => s.sampling_point_id === spId)?.is_calculated ?? false, is_daily_check: props.allTimeseries.find(s => s.sampling_point_id === spId)?.is_daily_check ?? false });
+    // Chart-derived state only. Server metadata is joined on in the `legend` computed.
+    legendItems.value.push({ color, label, hidden: false, sampling_point_id: spId });
     return Plot.dataset(label, pts, color, props.plot.plotType ?? "line", axis);
   });
 
@@ -396,9 +419,9 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Legend -->
-    <div v-if="legendItems.length" class="flex flex-wrap gap-x-4 gap-y-1 px-3 pb-2 pt-1 border-t border-nord4 max-h-16 overflow-y-auto shrink-0">
+    <div v-if="legend.length" class="flex flex-wrap gap-x-4 gap-y-1 px-3 pb-2 pt-1 border-t border-nord4 max-h-16 overflow-y-auto shrink-0">
       <div
-        v-for="(item, i) in legendItems" :key="item.label"
+        v-for="(item, i) in legend" :key="item.label"
         class="flex items-center gap-1.5 select-none text-xs text-nord3"
         :style="{ opacity: item.hidden ? 0.35 : (hoveredIdx === -1 || hoveredIdx === i ? 1 : 0.35) }">
         <div class="flex items-center gap-1.5 cursor-pointer"
@@ -407,7 +430,7 @@ onBeforeUnmount(() => {
           <span>{{ item.label }}</span>
         </div>
         <button
-          v-if="item.is_daily_check"
+          v-if="item.is_daily_check && canDailyCheck"
           class="ml-0.5 p-0 leading-none rounded hover:text-nord14 transition-colors"
           :class="dailyCheckDone.has(item.sampling_point_id) ? 'text-nord14 cursor-default' : 'text-nord3'"
           :disabled="dailyCheckDone.has(item.sampling_point_id) || addingDailyCheck.has(item.sampling_point_id)"
