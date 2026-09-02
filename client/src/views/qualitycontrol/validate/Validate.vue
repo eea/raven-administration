@@ -12,14 +12,14 @@ import DateRangePresets from "../../../components/DateRangePresets.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import DataTable from "../../../components/DataTable.vue";
+import CMenu from "../../../components/CMenu.vue";
 import ObservationLogPopup from "../../../components/observationlog/ObservationLogPopup.vue";
 import FavoritesPicker from "../../../components/favorites/FavoritesPicker.vue";
+import FlagMenuItems from "./FlagMenuItems.vue";
 import IconClose from "~icons/mdi/close";
 
-import IconCircle from "~icons/ph/circle-duotone";
 import IconLink from "~icons/ph/link-simple-duotone";
 import IconHistory from "~icons/ph/clock-counter-clockwise-duotone";
-import IconChat from "~icons/ph/chat-circle-duotone";
 
 import Eventy from "../../../helpers/eventy";
 import { downloadCsv } from "../../../helpers/utils";
@@ -144,6 +144,9 @@ onMounted(async () => {
   if (route.query.ids) selectedId.value = route.query.ids.split(";")[0];
   if (route.query.from) fromtime.value = new Date(route.query.from);
   if (route.query.to) totime.value = new Date(route.query.to);
+  // ?ts=<observation to_time> — set by right-clicking a point on a Dashboard chart. Held
+  // until load() has rows, then scrolled to and highlighted.
+  if (route.query.ts) pendingScrollTs.value = route.query.ts;
   if (route.query.ids || route.query.from || route.query.to) showData();
 });
 
@@ -190,6 +193,7 @@ const showData = async () => {
 };
 
 const load = async () => {
+  highlightId.value = null;
   const response = await Service.get({
     sampling_point_id: selectedId.value,
     from_dt: format(fromtime.value, "yyyy-MM-dd HH:00"),
@@ -210,6 +214,14 @@ const load = async () => {
   if (chart) { chart.destroy(); chart = null; }
   chart = new Chart("chart", Plot.config(onDatapointSelection, timestep));
   formatAndLoad();
+
+  // Consumed once, so the plugin's reload callback and the post-validate reload below
+  // don't yank the table back to the deep-linked row.
+  if (pendingScrollTs.value) {
+    const ts = pendingScrollTs.value;
+    pendingScrollTs.value = null;
+    await scrollToTimestamp(ts);
+  }
 };
 const formatAndLoad = () => {
   chart.data = formatValues();
@@ -220,11 +232,23 @@ const getRowStyle = (params) => {
   const row = params.data;
   if (!row) return { background: "" };
 
-  if (row.observationvalidity_id < 1) {
-    return { background: "rgba(191, 97, 106, 0.1)" }; // nord11/10
+  // The deep-linked row (?ts=) wins over the invalid-row tint: making that one row
+  // obvious is the entire point of the jump from the Dashboard.
+  if (highlightId.value != null && row.id === highlightId.value) {
+    return {
+      background: "rgba(129, 161, 193, 0.35)", // nord9
+      outline: "1px solid var(--color-nord10)",
+      outlineOffset: "-1px"
+    };
   }
 
-  return { background: "" };
+  // outline is reset explicitly: ag-Grid assigns these styles onto the row element, so a
+  // key left out of the object keeps whatever the highlight branch last set.
+  if (row.observationvalidity_id < 1) {
+    return { background: "rgba(191, 97, 106, 0.1)", outline: "" }; // nord11/10
+  }
+
+  return { background: "", outline: "" };
 };
 
 const onDownload = () => {
@@ -265,16 +289,6 @@ const onContextMenuAction = async ({ action, data }) => {
     const flag = parseInt(action);
     await onValidate(flag, data?.row);
   }
-};
-
-const onPluginValidate = async (item, row) => {
-  if (!pluginMenuHook.value) return;
-  await pluginMenuHook.value.onSelect(item, {
-    selectedIds: row ? [row.id] : [],
-    samplingPointId: selectedId.value,
-    reload: load,
-    showMessage: (msg, type) => Eventy.showHideMessage(msg, type, 3000),
-  });
 };
 
 const onValidate = async (flag, row) => {
@@ -340,6 +354,53 @@ const onGridReady = (api) => {
   gridApi.value = api;
 };
 
+// Deep-link target from the Dashboard: ?ts=<observation to_time>
+const pendingScrollTs = ref(null);
+const highlightId = ref(null);
+
+const parseTs = (value) => new Date(String(value).replace(" ", "T")).getTime();
+
+// ag-Grid receives rowData through a prop watcher, so the row nodes may not exist yet on
+// the tick the response lands. first-data-rendered is no help here: the grid sits inside a
+// v-show and mounts with empty data, so it may already have fired.
+const waitForRows = async () => {
+  for (let i = 0; i < 5; i++) {
+    if (gridApi.value?.getDisplayedRowCount()) return true;
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+  return !!gridApi.value?.getDisplayedRowCount();
+};
+
+const scrollToTimestamp = async (ts) => {
+  const target = parseTs(ts);
+  if (Number.isNaN(target) || !timevalues.value.length) return;
+
+  await nextTick();
+  const ready = await waitForRows();
+  if (!ready) return;
+
+  // Nearest row, not an exact match. The Dashboard sends the observation's to_time in the
+  // same 'YYYY-MM-DD HH:MM:SS' format so this normally lands exactly, but nearest keeps
+  // working if the Dashboard ever moves off meantype 0 and sends aggregate boundaries.
+  let best = null;
+  let bestDiff = Infinity;
+  gridApi.value.forEachNode((node) => {
+    const diff = Math.abs(parseTs(node.data?.totime) - target);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = node;
+    }
+  });
+  if (!best) return;
+
+  gridApi.value.deselectAll();
+  best.setSelected(true);
+  highlightId.value = best.data.id;
+  gridApi.value.redrawRows(); // getRowStyle owns the highlight, so it has to re-run
+  // Node, not row index: the grid is sorted 'fromtime desc', the reverse of the response.
+  gridApi.value.ensureNodeVisible(best, "middle");
+};
+
 const formatValues = () => {
   let colors = [];
   let data = [];
@@ -360,10 +421,9 @@ const formatValues = () => {
 const pluginMenuItems = ref([]);
 const pluginMenuHook = ref(null);
 
-const chartMenu = ref({ visible: false, x: 0, y: 0, row: null });
 const chartMenuRef = ref(null);
 
-const onDatapointSelection = async (event, sel) => {
+const onDatapointSelection = (event, sel) => {
   if (!sel?.length) return;
   const row = sel[0].element.$context.raw.obj;
   // Select the corresponding grid row
@@ -373,15 +433,10 @@ const onDatapointSelection = async (event, sel) => {
       if (node.data.id === row.id) node.setSelected(true);
     });
   }
-  // Show floating flag menu at click position, then clamp to viewport
-  chartMenu.value = { visible: true, x: event.native.clientX, y: event.native.clientY, row };
-  await nextTick();
-  if (chartMenuRef.value) {
-    const { offsetWidth: w, offsetHeight: elHeight } = chartMenuRef.value;
-    const vw = window.innerWidth, vh = window.innerHeight;
-    chartMenu.value.x = Math.min(chartMenu.value.x, vw - w - 8);
-    chartMenu.value.y = Math.min(chartMenu.value.y, vh - elHeight - 8);
-  }
+  // Same { row } shape DataTable passes for a grid right-click, so onContextMenuAction
+  // serves both entry points. CMenu owns the placement — this menu used to clamp with a
+  // bare Math.min, which put a 36-flag list at a negative top and hid its first items.
+  chartMenuRef.value?.showMenu({ row }, event.native);
 };
 
 const getRowId = (params) => String(params.data.id);
@@ -450,88 +505,18 @@ const getRowId = (params) => String(params.data.id);
       <div class="h-full">
         <DataTable :data="timevalues" :columns="columns" :get-row-style="getRowStyle" :filter="false" :floating-filter="false" selection-mode="multiRow" :get-row-id="getRowId" @context-menu-action="onContextMenuAction" @grid-ready="onGridReady">
           <template #context-menu-items="{ handleAction }">
-            <!-- Plugin QA flag menu (active when nilu-qa or similar plugin is enabled) -->
-            <template v-if="pluginMenuItems.length">
-              <div class="px-2 font-bold text-base text-nord3">Set QA flag:</div>
-              <div v-for="item in pluginMenuItems" :key="item.id"
-                   class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6"
-                   @click="handleAction('plugin:' + item.id)">
-                <icon-circle :class="item.flagtype === 0 ? 'text-nord14' : 'text-nord11'" class="text-base self-center" />
-                <icon-chat v-if="item.isautolog" class="text-nord9 text-xs self-center ml-1" title="Requires comment" />
-                <div class="self-center ml-1">{{ item.name }}</div>
-              </div>
-            </template>
-            <!-- Default EEA validity choices (used when no plugin overrides) -->
-            <template v-else>
-              <div class="px-2 font-bold text-base text-nord3">Set validation to:</div>
-              <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('-99')">
-                <icon-circle class="text-nord11 text-base self-center" />
-                <div class="self-center ml-1">Not valid due to maintenance (-99)</div>
-              </div>
-              <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('-1')">
-                <icon-circle class="text-nord11 text-base self-center" />
-                <div class="self-center ml-1">Not valid (-1)</div>
-              </div>
-              <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('1')">
-                <icon-circle class="text-nord14 text-base self-center" />
-                <div class="self-center ml-1">Valid (1)</div>
-              </div>
-              <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('2')">
-                <icon-circle class="text-nord14 text-base self-center" />
-                <div class="self-center ml-1">Valid, below detection limit (2)</div>
-              </div>
-              <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('3')">
-                <icon-circle class="text-nord14 text-base self-center" />
-                <div class="self-center ml-1">Valid, 0.5*detection limit (3)</div>
-              </div>
-            </template>
+            <flag-menu-items :items="pluginMenuItems" @select="handleAction" />
           </template>
         </DataTable>
       </div>
     </div>
   </common-layout>
 
-  <!-- Floating flag menu triggered by chart click -->
-  <div v-if="chartMenu.visible"
-       class="fixed inset-0 z-40"
-       @click.self="chartMenu.visible = false">
-    <div ref="chartMenuRef" class="absolute z-50 bg-white border border-nord4 rounded shadow-lg py-1 min-w-48"
-         :style="{ left: chartMenu.x + 'px', top: chartMenu.y + 'px' }">
-      <!-- Plugin QA flag menu -->
-      <template v-if="pluginMenuItems.length">
-        <div class="px-2 font-bold text-base text-nord3">Set QA flag:</div>
-        <div v-for="item in pluginMenuItems" :key="item.id"
-             class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6"
-             @click="onPluginValidate(item, chartMenu.row); chartMenu.visible = false">
-          <icon-circle :class="item.flagtype === 0 ? 'text-nord14' : 'text-nord11'" class="text-base self-center" />
-          <icon-chat v-if="item.isautolog" class="text-nord9 text-xs self-center ml-1" title="Requires comment" />
-          <div class="self-center ml-1">{{ item.name }}</div>
-        </div>
-      </template>
-      <!-- Default EEA validity choices -->
-      <template v-else>
-        <div class="px-2 font-bold text-base text-nord3">Set validation to:</div>
-        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(-99, chartMenu.row); chartMenu.visible = false">
-          <icon-circle class="text-nord11 text-base self-center" />
-          <div class="self-center ml-1">Not valid due to maintenance (-99)</div>
-        </div>
-        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(-1, chartMenu.row); chartMenu.visible = false">
-          <icon-circle class="text-nord11 text-base self-center" />
-          <div class="self-center ml-1">Not valid (-1)</div>
-        </div>
-        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(1, chartMenu.row); chartMenu.visible = false">
-          <icon-circle class="text-nord14 text-base self-center" />
-          <div class="self-center ml-1">Valid (1)</div>
-        </div>
-        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(2, chartMenu.row); chartMenu.visible = false">
-          <icon-circle class="text-nord14 text-base self-center" />
-          <div class="self-center ml-1">Valid, below detection limit (2)</div>
-        </div>
-        <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="onValidate(3, chartMenu.row); chartMenu.visible = false">
-          <icon-circle class="text-nord14 text-base self-center" />
-          <div class="self-center ml-1">Valid, 0.5*detection limit (3)</div>
-        </div>
-      </template>
-    </div>
-  </div>
+  <!-- Flag menu triggered by a chart datapoint click. Same items and same handler as the
+       grid's right-click menu; CMenu keeps it inside the viewport. -->
+  <c-menu ref="chartMenuRef" @on-click="onContextMenuAction">
+    <template #default="{ handleAction }">
+      <flag-menu-items :items="pluginMenuItems" @select="handleAction" />
+    </template>
+  </c-menu>
 </template>

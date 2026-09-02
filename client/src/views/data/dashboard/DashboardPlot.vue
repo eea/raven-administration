@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
-import { format, sub } from "date-fns";
+import { format, sub, add } from "date-fns";
 import Chart from "chart.js/auto";
 import "chartjs-adapter-luxon";
 import zoomPlugin from "chartjs-plugin-zoom";
@@ -11,6 +11,7 @@ import Service from "./service";
 import SamplingPointsService from "../../management/samplingpoints/service";
 import Eventy from "../../../helpers/eventy";
 import SamplingPointLog from "../../management/samplingpoints/SamplingPointLog.vue";
+import CMenu from "../../../components/CMenu.vue";
 import IconRefresh  from "~icons/material-symbols/refresh";
 import IconTune     from "~icons/material-symbols/tune";
 import IconDelete   from "~icons/material-symbols/delete-outline";
@@ -174,7 +175,13 @@ const buildChart = (data) => {
     const [spId, values] = entry;
     const color    = palette[i % palette.length];
     const byDt     = new Map(values.map(o => [o.datetime, o]));
-    const pts      = allTimestamps.map(ts => ({ x: ts.replace(" ", "T"), y: byDt.get(ts)?.value ?? null }));
+    // obj carries the source row so a right-click can identify the observation behind the
+    // point — same convention as the Validate chart. Null for timestamps this series has
+    // no row for (the timestamp axis is the union across all series).
+    const pts      = allTimestamps.map(ts => {
+      const o = byDt.get(ts);
+      return { x: ts.replace(" ", "T"), y: o?.value ?? null, obj: o ?? null };
+    });
     const axis     = axes.find(a => a === values[0].unit);
     const first    = values[0];
     const eq       = [first.equipment, first.equipment_identifier].filter(Boolean).join(" / ");
@@ -210,6 +217,47 @@ const setPreset = (key) => {
 };
 
 const resetZoom = () => { if (chart) chart.resetZoom(); };
+
+// Right-click a datapoint -> the clicked series' nav targets, keyed to that observation.
+const pointMenuRef = ref(null);
+const pointInfo    = ref(null);
+
+const onCanvasContextMenu = (e) => {
+  if (!chart) return;
+  // 'nearest', not the chart's configured 'index' mode: index returns one element per
+  // dataset, which loses which series was clicked. Hidden datasets are skipped for us.
+  const hits = chart.getElementsAtEventForMode(e, "nearest", { intersect: false }, true);
+  if (!hits.length) return;
+
+  const { datasetIndex, index } = hits[0];
+  const point  = chart.data.datasets[datasetIndex]?.data?.[index];
+  const series = legendItems.value[datasetIndex];
+  if (!point || point.y == null || !series) return; // a gap in the series
+
+  pointInfo.value = {
+    spId: series.sampling_point_id,
+    seriesLabel: series.label,
+    datetime: point.obj?.datetime ?? String(point.x).replace("T", " "),
+  };
+  pointMenuRef.value?.showMenu(pointInfo.value, e);
+};
+
+const onPointMenuAction = ({ action, data }) => {
+  if (!data?.spId) return;
+  const { from_dt, to_dt } = getDateRange(props.plot.timePreset);
+
+  if (action === "validate") {
+    // getDateRange truncates to HH:00 and Validate queries from_time < to_dt, so a point
+    // in the current partial hour would fall outside the window without this nudge.
+    const to = format(add(new Date(to_dt.replace(" ", "T")), { hours: 1 }), "yyyy-MM-dd HH:00");
+    router.push({ name: "Validate", query: { ids: data.spId, from: from_dt, to, ts: data.datetime } });
+  } else if (action === "historical") {
+    // Just the clicked series — the toolbar button is the one that opens the whole plot.
+    router.push({ name: "Historical", query: { ids: data.spId, from: from_dt, to: to_dt } });
+  } else if (action === "log") {
+    navigateWithSp("ViewDailyCheck", data.spId);
+  }
+};
 
 const goToHistorical = () => {
   const { from_dt, to_dt } = getDateRange(props.plot.timePreset);
@@ -261,10 +309,14 @@ onMounted(() => {
     loadDailyCheckState();
   }
   document.addEventListener("click", onPickerClickOutside);
+  // On the canvas rather than through Plot.config: Chart.js 4 has no onContextMenu option,
+  // and historical/plot.js is shared with the Historical page, which this doesn't cover.
+  canvasRef.value?.addEventListener("contextmenu", onCanvasContextMenu);
 });
 onBeforeUnmount(() => {
   if (chart) { chart.destroy(); chart = null; }
   document.removeEventListener("click", onPickerClickOutside);
+  canvasRef.value?.removeEventListener("contextmenu", onCanvasContextMenu);
 });
 </script>
 
@@ -368,4 +420,26 @@ onBeforeUnmount(() => {
     </div>
 
   </div>
+
+  <!-- Datapoint right-click menu -->
+  <c-menu ref="pointMenuRef" @on-click="onPointMenuAction">
+    <template #default="{ handleAction }">
+      <div class="px-2 pb-1.5 mb-1 border-b border-nord6">
+        <div class="font-bold text-sm text-nord2 truncate max-w-72" :title="pointInfo?.seriesLabel">{{ pointInfo?.seriesLabel }}</div>
+        <div class="text-xs font-mono text-nord3">{{ pointInfo?.datetime }}</div>
+      </div>
+      <div class="pl-2 pr-4 py-1.5 flex items-center gap-1.5 cursor-pointer hover:bg-nord6 whitespace-nowrap" @click="handleAction('validate')">
+        <icon-validate class="text-base text-nord9" />
+        <span>Validate at this point</span>
+      </div>
+      <div class="pl-2 pr-4 py-1.5 flex items-center gap-1.5 cursor-pointer hover:bg-nord6 whitespace-nowrap" @click="handleAction('historical')">
+        <icon-history class="text-base text-nord9" />
+        <span>Open in Historical here</span>
+      </div>
+      <div class="pl-2 pr-4 py-1.5 flex items-center gap-1.5 cursor-pointer hover:bg-nord6 whitespace-nowrap" @click="handleAction('log')">
+        <icon-log class="text-base text-nord9" />
+        <span>Daily check log</span>
+      </div>
+    </template>
+  </c-menu>
 </template>
