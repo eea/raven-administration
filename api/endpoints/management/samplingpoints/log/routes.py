@@ -25,16 +25,22 @@ def daily_check_state():
         return jsonify([])
 
     with CursorFromPool() as cursor:
+        # LEFT JOIN rather than EXISTS: the dashboard's comment dialog prefills today's
+        # comment when editing it. This cannot fan out — uq_spl_daily_check_per_day is a
+        # unique partial index on (sampling_point_id, created_date) where
+        # type = 'daily_check', so at most one row matches per sampling point.
         cursor.execute("""
             SELECT
                 sp.id AS sampling_point_id,
-                EXISTS (
-                    SELECT 1 FROM sampling_point_log l
-                    WHERE l.sampling_point_id = sp.id
-                      AND l.type = 'daily_check'
-                      AND l.created_date = CURRENT_DATE
-                ) AS done_today
+                (l.id IS NOT NULL) AS done_today,
+                l.comment,
+                l.created_by,
+                to_char(l.created_at, 'YYYY-MM-DD HH24:MI') AS created_at
             FROM sampling_points sp
+            LEFT JOIN sampling_point_log l
+                   ON l.sampling_point_id = sp.id
+                  AND l.type = 'daily_check'
+                  AND l.created_date = CURRENT_DATE
             WHERE sp.id = ANY(%(ids)s)
         """, {"ids": ids})
         return jsonify(cursor.fetchall())
@@ -93,6 +99,9 @@ def insert_sampling_point_log():
     comment = data.get('comment', '').strip()
     period_from = data.get('period_from')
     period_to = data.get('period_to')
+    # Opt-in: replace today's daily-check comment instead of leaving it alone. Only the
+    # dashboard's comment dialog sets it, because that is an explicit edit by the user.
+    overwrite = bool(data.get('overwrite'))
 
     if not sampling_point_id:
         raise BadRequest("sampling_point_id is required")
@@ -115,8 +124,16 @@ def insert_sampling_point_log():
     # inferring it for them would imply they can.
     conflict_clause = ""
     if entry_type == 'daily_check':
-        conflict_clause = ("ON CONFLICT (sampling_point_id, created_date) "
-                           "WHERE type = 'daily_check' DO NOTHING")
+        if overwrite:
+            # Only the comment is replaced: created_by / created_at still record who
+            # performed the check and when, and period_from / period_to keep the window
+            # it was performed for. Editing the note is not redoing the check.
+            conflict_clause = ("ON CONFLICT (sampling_point_id, created_date) "
+                               "WHERE type = 'daily_check' "
+                               "DO UPDATE SET comment = EXCLUDED.comment")
+        else:
+            conflict_clause = ("ON CONFLICT (sampling_point_id, created_date) "
+                               "WHERE type = 'daily_check' DO NOTHING")
 
     with CursorFromPool() as cursor:
         cursor.execute(f"""

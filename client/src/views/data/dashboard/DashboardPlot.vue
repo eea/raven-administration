@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { format, sub, add } from "date-fns";
 import Chart from "chart.js/auto";
@@ -13,6 +13,7 @@ import Eventy from "../../../helpers/eventy";
 import Auth from "../../../helpers/auth";
 import SamplingPointLog from "../../management/samplingpoints/SamplingPointLog.vue";
 import CMenu from "../../../components/CMenu.vue";
+import Popup from "../../../components/Popup.vue";
 import IconRefresh  from "~icons/material-symbols/refresh";
 import IconTune     from "~icons/material-symbols/tune";
 import IconDelete   from "~icons/material-symbols/delete-outline";
@@ -58,8 +59,9 @@ const pickerRef     = ref(null);
 const showLog     = ref(false);
 const logSp       = ref(null);
 
-// Daily check state
-const dailyCheckDone   = ref(new Set());
+// Daily check state. A Map, not a Set: the comment dialog prefills today's comment when
+// editing it. Map.has() keeps every existing `dailyCheckDone.has(id)` call working.
+const dailyCheckDone   = ref(new Map()); // sp id -> { comment, created_by, created_at }
 const addingDailyCheck = ref(new Set()); // sp ids currently being submitted
 
 // The daily-check endpoints require the management claim while the whole Dashboard runs on
@@ -123,7 +125,7 @@ const loadDailyCheckState = async () => {
   if (!ids?.length || !canDailyCheck) return;
   try {
     const result = await SamplingPointsService.logDailyCheckState(ids);
-    dailyCheckDone.value = new Set(result.filter(r => r.done_today).map(r => r.sampling_point_id));
+    dailyCheckDone.value = new Map(result.filter(r => r.done_today).map(r => [r.sampling_point_id, r]));
   } catch (e) {
     // Non-critical: leave the checkboxes unchecked rather than interrupting the
     // plot. Logged, not toasted — but never swallowed silently.
@@ -153,6 +155,54 @@ const addDailyCheck = async (spId) => {
     const next = new Set(addingDailyCheck.value);
     next.delete(spId);
     addingDailyCheck.value = next;
+  }
+};
+
+// Right-click a daily-check box — ticked or not — to log the check with a comment, or to
+// edit the comment on today's existing check.
+const commentDialog = ref({ show: false, spId: null, label: "", comment: "", existing: null, saving: false });
+const commentRef    = ref(null);
+
+const openCommentDialog = (item) => {
+  if (!canDailyCheck) return;
+  const existing = dailyCheckDone.value.get(item.sampling_point_id) ?? null;
+  commentDialog.value = {
+    show: true,
+    spId: item.sampling_point_id,
+    label: item.label,
+    comment: existing?.comment ?? "",
+    existing,
+    saving: false
+  };
+  nextTick(() => commentRef.value?.focus());
+};
+
+const saveCommentDialog = async () => {
+  const { spId, comment, existing, saving } = commentDialog.value;
+  const text = comment.trim();
+  if (!text || saving) return;
+
+  const { from_dt, to_dt } = getDateRange(props.plot.timePreset);
+  commentDialog.value.saving = true;
+  try {
+    await SamplingPointsService.logInsert({
+      sampling_point_id: spId,
+      type: "daily_check",
+      comment: text,
+      period_from: from_dt,
+      period_to: to_dt,
+      // An explicit edit, so today's entry may be rewritten. The one-click path below
+      // deliberately omits this and keeps its DO NOTHING behaviour, so a quick click can
+      // never clobber a comment someone typed.
+      overwrite: true
+    });
+    await loadDailyCheckState();
+    commentDialog.value.show = false;
+    Eventy.showHideMessage(existing ? "Daily check comment updated." : "Daily check logged.", "success", 2500);
+  } catch {
+    Eventy.showHideMessage("Failed to save the daily check.", "error", 4000);
+  } finally {
+    commentDialog.value.saving = false;
   }
 };
 
@@ -429,13 +479,19 @@ onBeforeUnmount(() => {
           <div class="w-2 h-2 rounded-full shrink-0" :style="{ background: item.color }"></div>
           <span>{{ item.label }}</span>
         </div>
+        <!-- Not :disabled — a disabled button dispatches no mouse events at all, so
+             right-clicking an already-ticked box to edit its comment would do nothing.
+             addDailyCheck() guards the already-done and in-flight cases itself. -->
         <button
           v-if="item.is_daily_check && canDailyCheck"
           class="ml-0.5 p-0 leading-none rounded hover:text-nord14 transition-colors"
           :class="dailyCheckDone.has(item.sampling_point_id) ? 'text-nord14 cursor-default' : 'text-nord3'"
-          :disabled="dailyCheckDone.has(item.sampling_point_id) || addingDailyCheck.has(item.sampling_point_id)"
-          :title="dailyCheckDone.has(item.sampling_point_id) ? 'Daily check done today' : 'Daily check'"
-          @click.stop="addDailyCheck(item.sampling_point_id)">
+          :aria-disabled="dailyCheckDone.has(item.sampling_point_id) || addingDailyCheck.has(item.sampling_point_id)"
+          :title="dailyCheckDone.has(item.sampling_point_id)
+            ? 'Daily check done today — right-click to edit the comment'
+            : 'Daily check — right-click to add a comment'"
+          @click.stop="addDailyCheck(item.sampling_point_id)"
+          @contextmenu.prevent.stop="openCommentDialog(item)">
           <icon-check-box v-if="dailyCheckDone.has(item.sampling_point_id)" class="text-sm" />
           <icon-check-box-blank v-else class="text-sm" />
         </button>
@@ -443,6 +499,35 @@ onBeforeUnmount(() => {
     </div>
 
   </div>
+
+  <!-- Daily check comment dialog (right-click on a daily-check box) -->
+  <popup
+    :show="commentDialog.show"
+    :title="`Daily check — ${commentDialog.label}`"
+    class="max-w-lg w-full"
+    @on-close="commentDialog.show = false">
+    <div class="text-sm text-nord3 mb-2">
+      <template v-if="commentDialog.existing">
+        Already checked today by {{ commentDialog.existing.created_by ?? "unknown" }}<!--
+        -->{{ commentDialog.existing.created_at ? ` at ${commentDialog.existing.created_at.slice(11)}` : "" }}.
+        Editing that entry's comment.
+      </template>
+      <template v-else>Logs today's daily check with this comment.</template>
+    </div>
+    <textarea
+      ref="commentRef"
+      v-model="commentDialog.comment"
+      rows="4"
+      class="input w-full text-sm resize-none"
+      placeholder="Enter a comment…"
+      @keydown.ctrl.enter.prevent="saveCommentDialog" />
+    <div class="flex justify-end gap-3 pt-3">
+      <button class="button" @click="commentDialog.show = false">Cancel</button>
+      <button class="button" :disabled="commentDialog.saving || !commentDialog.comment.trim()" @click="saveCommentDialog">
+        {{ commentDialog.saving ? "Saving…" : "Save" }}
+      </button>
+    </div>
+  </popup>
 
   <!-- Datapoint right-click menu -->
   <c-menu ref="pointMenuRef" @on-click="onPointMenuAction">
