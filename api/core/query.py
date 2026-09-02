@@ -11,6 +11,35 @@ class DeleteModel(BaseModel):
         return super().__getattribute__(key)
 
 
+def vocab_option(alias=None, with_id=False):
+    """SQL for a lookup dropdown's option text: 'notation — label'.
+
+    The notation alone is not enough to choose from. eea_pollutants has 12 groups sharing
+    one notation — the three BaP rows read 'BaP (29)', 'BaP (6015)', 'BaP (7029)' with
+    nothing to tell them apart, while their labels say precip / air+aerosol /
+    precip+dry_dep. eea_concentrations is 80 near-identical strings (mg/m3, mg/l, mg/m3.h,
+    mgS.m-1). The label is what a reader needs, and it is very nearly unique: only 1 of 690
+    pollutants shares a label with another.
+
+    Collapses to the label alone when notation is blank or identical to it — otherwise the
+    40 eea_pollutants rows whose notation *is* their label would read
+    'Wind velocity — Wind velocity'. Migration 015 set notation = label for every
+    aq/meteoparameter concept deliberately, so this is a normal case, not an edge case.
+
+    Notation leads rather than trails because a native <select> matches keyboard typeahead
+    against the *start* of the option text: label-first would break typing 'NO2' to reach
+    NO2. Callers should keep ORDER BY keyed on notation first for the same reason, so the
+    visible order matches the leading characters.
+
+    with_id appends ' [id]', for eea_pollutants only — that id is the AQR3 PollutantId and
+    is worth keeping visible when cross-checking an export.
+    """
+    p = f'{alias}.' if alias else ''
+    expr = (f"CASE WHEN NULLIF({p}notation, '') IS NULL OR {p}notation = {p}label "
+            f"THEN {p}label ELSE {p}notation || ' — ' || {p}label END")
+    return f"{expr} || ' [' || {p}id || ']'" if with_id else expr
+
+
 class Q:
     @staticmethod
     def timeseries():
@@ -216,13 +245,13 @@ class Q:
 
     @staticmethod
     def pollutants_lookup(exclude_ids=None):
-        """Centralized pollutant lookup - uses notation if available, otherwise label"""
+        """Centralized pollutant lookup - 'notation — label [id]', see vocab_option()."""
         with CursorFromPool() as cursor:
             exclude_clause = "WHERE id NOT IN %(exclude_ids)s" if exclude_ids else ""
             cursor.execute(f"""
-                SELECT id as value, COALESCE(NULLIF(notation, ''), label) || ' (' || id || ')' as label 
-                FROM eea_pollutants 
+                SELECT id as value, {vocab_option(with_id=True)} as label
+                FROM eea_pollutants
                 {exclude_clause}
-                ORDER BY LOWER(COALESCE(NULLIF(notation, ''), label))
+                ORDER BY LOWER(COALESCE(NULLIF(notation, ''), label)), LOWER(label)
             """, {"exclude_ids": tuple(exclude_ids)} if exclude_ids else {})
             return cursor.fetchall()

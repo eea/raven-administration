@@ -1,7 +1,7 @@
 from flask import jsonify, Blueprint, request
 from core.jwt_ext_custom import jwt_required_with_management_claim
 from core.database import CursorFromPool
-from core.query import Q
+from core.query import Q, vocab_option
 
 management_endpoint = Blueprint('management', __name__)
 
@@ -92,7 +92,8 @@ def authorities():
 @jwt_required_with_management_claim()
 def concentrations():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.notation as label, r.id as value from eea_concentrations r order by r.notation")
+        cursor.execute(f"select {vocab_option('r')} as label, r.id as value "
+                       f"from eea_concentrations r order by LOWER(r.notation), LOWER(r.label)")
         concentrations = cursor.fetchall()
         return jsonify(concentrations)
 
@@ -202,7 +203,10 @@ def processtypevalues():
 @jwt_required_with_management_claim()
 def pollutants():
     with CursorFromPool() as cursor:
-        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) || ' (' || r.id || ')' as label, r.uri as value from eea_pollutants r order by LOWER(r.notation), LOWER(r.label)")
+        # NB value is the uri here, not the id — this endpoint feeds the views that store a
+        # pollutant by URI. Only the label text changes.
+        cursor.execute(f"select {vocab_option('r', with_id=True)} as label, r.uri as value "
+                       f"from eea_pollutants r order by LOWER(r.notation), LOWER(r.label)")
         pollutants = cursor.fetchall()
         return jsonify(pollutants)
 
@@ -212,7 +216,10 @@ def pollutants():
 def aqipollutants():
     with CursorFromPool() as cursor:
         pollutants_to_select = ['PM10', 'PM2.5', 'NO2', 'O3', 'SO2']
-        cursor.execute("select COALESCE(NULLIF(r.notation, ''), r.label) || ' (' || r.id || ')' as label, r.id as value from eea_pollutants r where r.notation in %(pollutants_to_select)s order by r.notation", {"pollutants_to_select": tuple(pollutants_to_select)})
+        cursor.execute(f"select {vocab_option('r', with_id=True)} as label, r.id as value "
+                       f"from eea_pollutants r where r.notation in %(pollutants_to_select)s "
+                       f"order by LOWER(r.notation), LOWER(r.label)",
+                       {"pollutants_to_select": tuple(pollutants_to_select)})
         pollutants = cursor.fetchall()
         return jsonify(pollutants)
 
@@ -274,8 +281,8 @@ def timezones():
 def timesteps():
     type = request.args.get("type", default="aq", type=str)
     with CursorFromPool() as cursor:
-        cursor.execute("""
-        select COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value
+        cursor.execute(f"""
+        select {vocab_option('r')} as label, r.id as value
         from eea_times r
         where r.uri ~ %(type)s
         order by LOWER(r.notation), LOWER(r.label)

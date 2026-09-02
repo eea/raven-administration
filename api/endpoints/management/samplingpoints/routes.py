@@ -3,7 +3,7 @@ from werkzeug.exceptions import BadRequest
 from core.database import CursorFromPool
 from endpoints.management.samplingpoints.models import SamplingPointsModel
 from core.jwt_ext_custom import jwt_required_with_management_claim
-from core.query import Q, DeleteModel
+from core.query import Q, DeleteModel, vocab_option
 from core.query_access import Access
 
 
@@ -68,10 +68,15 @@ def samplingpoints_lookups():
         
         pollutants = Q.pollutants_lookup()
         
-        cursor.execute("SELECT id as value, COALESCE(NULLIF(notation, ''), label) as label FROM eea_times ORDER BY COALESCE(NULLIF(notation, ''), label)")
+        # Both lists show 'notation — label': the notation alone is not enough to pick from.
+        # 80 unit notations are near-indistinguishable (mg/m3, mg/l, mg/m3.h, mgS.m-1), and
+        # eea_times carries two rows with the same notation. See core.query.vocab_option.
+        cursor.execute(f"SELECT id as value, {vocab_option()} as label FROM eea_times "
+                       f"ORDER BY LOWER(notation), LOWER(label)")
         time_resolutions = cursor.fetchall()
-        
-        cursor.execute("SELECT id as value, notation as label FROM eea_concentrations ORDER BY LOWER(notation)")
+
+        cursor.execute(f"SELECT id as value, {vocab_option()} as label FROM eea_concentrations "
+                       f"ORDER BY LOWER(notation), LOWER(label)")
         units = cursor.fetchall()
         
         cursor.execute("SELECT id as value, label FROM eea_spocategory ORDER BY LOWER(label)")
