@@ -7,7 +7,7 @@ import shutil
 import logging
 
 import requests
-from flask import jsonify, Blueprint, request, current_app
+from flask import jsonify, Blueprint, request, send_file
 from werkzeug.exceptions import BadRequest, NotFound
 from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 from core.plugin_registry import PluginRegistry
@@ -31,17 +31,22 @@ def list_plugins():
 
 @plugins_manager_endpoint.route('/api/misc/plugins/enabled', methods=['GET'])
 def list_enabled_plugins():
-    """Public endpoint: returns enabled plugin IDs with has_client flag.
-    Used by the frontend to inject runtime plugin scripts without a build step."""
+    """Public endpoint: returns enabled plugin IDs with has_client flag and version.
+    Used by the frontend to inject runtime plugin scripts without a build step.
+
+    `version` is here so the frontend can cache-bust the injected script URL. Plugin JS
+    is served from a fixed path (/api/plugins/<id>/client.js) with no content hash, so
+    without it a browser can keep running the previous version's code after an upgrade,
+    with no way for anyone to tell."""
     from core.database import CursorFromPool
     with CursorFromPool() as cursor:
-        cursor.execute("SELECT id FROM plugin_registry WHERE enabled = TRUE ORDER BY name")
+        cursor.execute("SELECT id, version FROM plugin_registry WHERE enabled = TRUE ORDER BY name")
         rows = cursor.fetchall()
     result = []
     for row in rows:
         pid = row['id']
         has_client = os.path.isfile(os.path.join(_API_PLUGINS_DIR, pid, 'client.js'))
-        result.append({'id': pid, 'has_client': has_client})
+        result.append({'id': pid, 'has_client': has_client, 'version': row['version']})
     return jsonify(result)
 
 
@@ -52,9 +57,11 @@ def serve_plugin_client(plugin_id: str):
     client_js = os.path.join(_API_PLUGINS_DIR, plugin_id, 'client.js')
     if not os.path.isfile(client_js):
         return ('', 404)
-    with open(client_js, 'r', encoding='utf-8') as f:
-        content = f.read()
-    return current_app.response_class(content, mimetype='application/javascript')
+    # conditional=True adds ETag/Last-Modified and honours If-None-Match, so an unchanged
+    # file costs a 304 instead of a re-download — and, more importantly, a *changed* file
+    # can no longer be served from cache. The previous hand-built response carried no
+    # validators at all, which left a stale copy indistinguishable from a fresh one.
+    return send_file(client_js, mimetype='application/javascript', conditional=True)
 
 
 @plugins_manager_endpoint.route('/api/plugins/<plugin_id>/js/<filename>', methods=['GET'])
@@ -68,9 +75,9 @@ def serve_plugin_js(plugin_id: str, filename: str):
     js_file = os.path.join(_API_PLUGINS_DIR, plugin_id, 'js', filename)
     if not os.path.isfile(js_file):
         return ('', 404)
-    with open(js_file, 'r', encoding='utf-8') as f:
-        content = f.read()
-    return current_app.response_class(content, mimetype='application/javascript')
+    # Validators as above. These bundles are loaded by client.js at runtime rather than
+    # awaited by main.js, so a stale one is even harder to notice.
+    return send_file(js_file, mimetype='application/javascript', conditional=True)
 
 
 @plugins_manager_endpoint.route('/api/misc/plugins/<plugin_id>/public-config', methods=['GET'])

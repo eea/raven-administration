@@ -60,7 +60,13 @@ async function loadRuntimePlugins() {
       if (!p.has_client) continue;
       await new Promise((resolve) => {
         const script = document.createElement("script");
-        script.src = `/api/plugins/${p.id}/client.js`;
+        // ?v=<version>: plugin JS lives at a fixed path with no content hash, so without
+        // this a browser can keep executing the previous version after an upgrade — the
+        // failure is silent, since the stale code registers itself perfectly happily.
+        // Omitted when the API does not report a version, so an older API still works.
+        script.src = p.version
+          ? `/api/plugins/${p.id}/client.js?v=${encodeURIComponent(p.version)}`
+          : `/api/plugins/${p.id}/client.js`;
         script.onload = resolve;
         script.onerror = resolve; // non-fatal — continue loading other plugins
         document.head.appendChild(script);
