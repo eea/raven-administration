@@ -1876,5 +1876,16 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
        ('4.502.13', 'baseline: schema.sql embodies migration 013 '
                     '(station_eoi_code nullable)'),
        ('4.502.14', 'baseline: schema.sql embodies migration 014 '
-                    '(observation log filter rules and per-user history preferences)')
+                    '(observation log filter rules and per-user history preferences)'),
+       -- 015-017 correct vocabulary data rather than DDL, and a fresh install never takes
+       -- the defect any more: populate_vocabularies.py derives the meteoparameter notation
+       -- from the label, and data.sql / statistics.sql / meteo.sql seed only ids that
+       -- follow the convention. All three match zero rows here, so they are recorded
+       -- rather than run.
+       ('4.502.15', 'baseline: no-op on a fresh install -- the loader already stores the '
+                    'aq/meteoparameter label as the notation (migration 015)'),
+       ('4.502.16', 'baseline: no-op on a fresh install -- the seeds already use the short '
+                    'EEA code as eea_*.id and the full URI as uri (migration 016)'),
+       ('4.502.17', 'baseline: no-op on a fresh install -- meteo.sql already seeds '
+                    'aq/meteoparameter under id = the URI last segment (migration 017)')
 on conflict (version) do nothing;

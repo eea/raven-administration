@@ -36,8 +36,14 @@ git clone https://git.nilu.no/raven/raven-administration
 7. Run the `sql\meteo.sql` script
 8. Run the `sql\aqi.sql` script
 9. Run the `sql\notifications.sql` script
-10. Run the `sql\meteo_concentration.sql` script
-11. Run the `sql\statistics.sql` script
+10. Run the `sql\statistics.sql` script
+
+`sql\meteo_concentration.sql` used to be step 10. It seeded ten `uom/meteo` units into
+`eea_concentrations`, which reports the `uom/concentration` vocabulary (AQR3 OMR_11), and it
+keyed them by their full URI. Non-concentration units are handled properly now: since
+migration 012 a series with no vocabulary unit carries `unit_id = NULL` and the real unit as
+text in `plugin_sp_extended.unit`. Migration `016_vocabulary_id_normalisation.sql` removes
+the rows from databases that already have them.
 
 ## Set environment varables
 

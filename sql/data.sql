@@ -436,9 +436,14 @@ INSERT INTO public.eea_measurementmethods (id, label, notation, uri) VALUES ('po
 INSERT INTO public.eea_measurementmethods (id, label, notation, uri) VALUES ('reflect', 'Reflectrometry', 'Reflectrometry', 'http://dd.eionet.europa.eu/vocabulary/aq/measurementmethod/reflect');
 INSERT INTO public.eea_measurementmethods (id, label, notation, uri) VALUES ('saltzman', 'Saltzman - colorimetric microdetermination of NO2', 'Saltzman - colorimetric microdetermination of NO2', 'http://dd.eionet.europa.eu/vocabulary/aq/measurementmethod/saltzman');
 
-INSERT INTO public.eea_measurementregimevalues (id, label, notation, uri) VALUES ('continuousDataCollection', 'continuous data collection', 'continuous data collection', 'http://inspire.ec.europa.eu/codelist/measurementregimevalue/continuousdatacollection');
+-- ids are the URI's last segment, all four lowercase. Two of them used to be
+-- camelCased ('continuousDataCollection', 'periodicDataCollection') while the other two
+-- were not, so a database normalised by migration 016_vocabulary_id_normalisation.sql --
+-- which derives the id from the URI -- disagreed with a fresh install on exactly those
+-- two rows. Nothing references this table, so the spelling is free to be consistent.
+INSERT INTO public.eea_measurementregimevalues (id, label, notation, uri) VALUES ('continuousdatacollection', 'continuous data collection', 'continuous data collection', 'http://inspire.ec.europa.eu/codelist/measurementregimevalue/continuousdatacollection');
 INSERT INTO public.eea_measurementregimevalues (id, label, notation, uri) VALUES ('demanddrivendatacollection', 'demand driven data collection', 'demand driven data collection', 'http://inspire.ec.europa.eu/codelist/measurementregimevalue/demanddrivendatacollection');
-INSERT INTO public.eea_measurementregimevalues (id, label, notation, uri) VALUES ('periodicDataCollection', 'periodic data collection', 'periodic data collection', 'http://inspire.ec.europa.eu/codelist/measurementregimevalue/periodicdatacollection');
+INSERT INTO public.eea_measurementregimevalues (id, label, notation, uri) VALUES ('periodicdatacollection', 'periodic data collection', 'periodic data collection', 'http://inspire.ec.europa.eu/codelist/measurementregimevalue/periodicdatacollection');
 INSERT INTO public.eea_measurementregimevalues (id, label, notation, uri) VALUES ('onceoffdatacollection', 'once-off data collection', 'once-off data collection', 'http://inspire.ec.europa.eu/codelist/measurementregimevalue/onceoffdatacollection');
 
 INSERT INTO public.eea_measurementtypes (id, label, notation, uri) VALUES ('active', 'Active sampling', 'Active sampling', 'http://dd.eionet.europa.eu/vocabulary/aq/measurementtype/active');

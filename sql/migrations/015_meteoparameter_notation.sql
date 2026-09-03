@@ -28,8 +28,8 @@
 -- because roughly a dozen queries read eea_pollutants.notation *bare* rather
 -- than through the COALESCE — and one of them (core/data/statistics.py) filters
 -- on it. Blanking would turn a useless number into a useless blank there; the
--- label fixes every reader at once. This is also what the retired sql/meteo.sql
--- did for these same concepts.
+-- label fixes every reader at once. This is also what sql/meteo.sql -- the offline
+-- seed for these same concepts -- does, so the two agree row for row.
 --
 -- The loader is fixed in the same commit (Vocabulary.notation_from='label'),
 -- otherwise the next vocabulary refresh would write the numbers straight back.

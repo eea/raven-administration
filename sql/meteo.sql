@@ -1,21 +1,49 @@
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999951, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/51', 'Wind velocity', 'Wind velocity');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999952, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/52', 'Wind direction', 'Wind direction');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999953, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/53', 'Pressure', 'Pressure');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999954, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/54', 'Temperature', 'Temperature');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999955, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/55', 'Absolute humidity', 'Absolute humidity');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999956, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/56', 'Mixing height', 'Mixing height');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999958, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/58', 'Relative humidity', 'Relative humidity');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999959, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/59', 'Duration of sunlight', 'Duration of sunlight');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999960, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/60', 'Precipitation', 'Precipitation');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999961, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/61', 'Wind component south-north', 'Wind component south-north');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999962, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/62', 'Wind component west-east', 'Wind component west-east');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999963, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/63', 'Wind component vertical', 'Wind component vertical');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999964, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/64', 'Volume of air', 'Volume of air');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999971, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/71', 'Direct solar IR radiation', 'Direct solar IR radiation');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999972, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/72', 'Direct solar UV radiation', 'Direct solar UV radiation');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999973, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/73', 'Direct solar radiation', 'Direct solar radiation');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999974, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/74', 'Global radiation', 'Global radiation');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999975, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/75', 'Diffused radiation', 'Diffused radiation');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999976, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/76', 'Reflected radiation', 'Reflected radiation');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999977, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/77', 'Direct solar visible radiation', 'Direct solar visible radiation');
-INSERT INTO "eea_pollutants"(id, uri, label, notation) VALUES (999999, 'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/99', 'No meteo measured', 'No meteo measured');
+-- EEA aq/meteoparameter concepts, for an install that does not run
+-- sql/populate_vocabularies.py. The rows produced here are identical to the ones that
+-- loader writes, so the two compose in either order (`on conflict do nothing`).
+--
+-- These ids used to be `999900 + N` -- a NILU offset standing for meteoparameter N --
+-- which made eea_pollutants hold 21 rows that are not in any EEA vocabulary, under keys
+-- EEA has never issued. The convention for this table is id = int(the URI's last
+-- segment) (`numeric_uri_suffix` in sql/vocabularies.py), the same as for aq/pollutant:
+-- the two vocabularies deliberately share one id space. Migration
+-- 017_meteoparameter_offset_ids.sql moves databases that took the old spelling.
+--
+-- notation = label on purpose. EEA ships an empty skos:notation for every one of these
+-- concepts, and every pollutant display in Raven reads
+-- COALESCE(NULLIF(notation, ''), label) -- so a synthesised notation (the bare number)
+-- wins that COALESCE and 1,542 sampling points render as "51" instead of "Wind
+-- velocity". See migration 015_meteoparameter_notation.sql and Vocabulary.notation_from.
+--
+-- id, notation and uri are all derived from the two columns below rather than repeated,
+-- so they cannot drift apart.
+insert into eea_pollutants (id, label, notation, uri)
+select v.id, v.label, v.label as notation,
+       'http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/' || v.id as uri
+  from (values
+          (51, 'Wind velocity'),
+          (52, 'Wind direction'),
+          (53, 'Pressure'),
+          (54, 'Temperature'),
+          (55, 'Absolute humidity'),
+          (56, 'Mixing height'),
+          (58, 'Relative humidity'),
+          (59, 'Duration of sunlight'),
+          (60, 'Precipitation'),
+          (61, 'Wind component south-north'),
+          (62, 'Wind component west-east'),
+          (63, 'Wind component vertical'),
+          (64, 'Volume of air'),
+          (71, 'Direct solar IR radiation'),
+          (72, 'Direct solar UV radiation'),
+          (73, 'Direct solar radiation'),
+          (74, 'Global radiation'),
+          (75, 'Diffused radiation'),
+          (76, 'Reflected radiation'),
+          (77, 'Direct solar visible radiation'),
+          (99, 'No meteo measured')
+       ) as v(id, label)
+-- Untargeted, so it absorbs a conflict on the id primary key AND on the unique uri.
+-- Both matter: a database that already ran populate_vocabularies.py holds these ids, and
+-- one that ran the old version of this file holds these URIs under 999900 + N.
+on conflict do nothing;

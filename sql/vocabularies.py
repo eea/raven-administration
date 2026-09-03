@@ -28,7 +28,8 @@ usually the right answer — but for aq/meteoparameter that segment is a bare nu
 `COALESCE(NULLIF(notation, ''), label)`, precisely so a vocabulary without a notation
 falls through to its label; a synthesised numeric notation defeats that and the UI
 shows "51" instead of "Wind velocity". `notation_from='label'` stores the label as
-the notation, which is what the retired sql/meteo.sql did for these same concepts.
+the notation, which is what sql/meteo.sql — the offline seed for these same concepts —
+does too, so the two produce identical rows.
 """
 from dataclasses import dataclass, field
 from typing import Tuple
