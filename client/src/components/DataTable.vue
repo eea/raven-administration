@@ -5,6 +5,7 @@ import { ref, watch, computed } from "vue";
 import { themeQuartz } from "ag-grid-community";
 import CMenu from "./CMenu.vue";
 import { rowsToCsv, columnHeadersToCsv, copyToClipboard, copyCellValue } from "../helpers/utilsCopy.js";
+import { numericAwareComparator } from "../helpers/gridSort.js";
 import IconCopy from "~icons/ic/twotone-content-copy";
 // import IconCopyCell from "~icons/ic/twotone-content-copy";
 // import IconCopyRows from "~icons/ic/twotone-content-paste";
@@ -133,6 +134,11 @@ const defaultColDef = {
   cellRendererParams: {
     suppressCount: true
   },
+  // Sort numbers held in varchar columns as numbers — id columns are varchar in the
+  // schema but numeric at some installations, so 1213 used to sort before 694. Anything
+  // non-numeric (dates, text, booleans) keeps ag-Grid's existing order. A column that
+  // defines its own comparator still wins: colDef beats defaultColDef.
+  comparator: numericAwareComparator,
   // Needed so HTML in renderer is rendered as HTML, but don't override
   // explicit cellRenderers (e.g. custom icons like DeleteIcon).
   cellRendererSelector: (params) => {
