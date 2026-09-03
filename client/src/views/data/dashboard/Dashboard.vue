@@ -47,9 +47,15 @@ const loadPlots = () => {
 // ── Available timeseries (loaded once) ───────────────────────────────────────
 const allTimeseries = ref([]);
 
+// ── Latest values, indexed by sampling_point_id (loaded once, shared by every card
+// so each DashboardPlot doesn't fire its own /api/data/latest fetch) ────────────
+const latestBySpId = ref(new Map());
+
 onMounted(async () => {
   loadPlots();
   allTimeseries.value = await Service.samplingPoints();
+  const latestList = await Service.latest();
+  latestBySpId.value = new Map(latestList.map((r) => [r.id, r]));
 });
 
 // ── Add / Edit popup ─────────────────────────────────────────────────────────
@@ -199,7 +205,7 @@ const onRemove = (id) => {
 
     <!-- Responsive plot grid -->
     <div v-if="plots.length" class="p-3 grid gap-4 grid-cols-1 xl:grid-cols-2 items-start">
-      <dashboard-plot v-for="(plot, i) in plots" :key="plot.id" :class="{ 'xl:col-span-2': plot.fullWidth || (!plot.fullWidth && plots.filter((p) => !p.fullWidth).length % 2 !== 0 && i === plots.length - 1) }" :plot="plot" :all-timeseries="allTimeseries" @update="onUpdate" @remove="onRemove" @edit="openEdit" />
+      <dashboard-plot v-for="(plot, i) in plots" :key="plot.id" :class="{ 'xl:col-span-2': plot.fullWidth || (!plot.fullWidth && plots.filter((p) => !p.fullWidth).length % 2 !== 0 && i === plots.length - 1) }" :plot="plot" :all-timeseries="allTimeseries" :latest-by-sp-id="latestBySpId" @update="onUpdate" @remove="onRemove" @edit="openEdit" />
     </div>
 
     <div v-else class="flex-1 flex flex-col items-center justify-center gap-3 text-nord3 select-none">

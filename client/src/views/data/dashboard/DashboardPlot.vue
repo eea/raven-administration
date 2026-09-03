@@ -23,6 +23,8 @@ import IconScale    from "~icons/uil/process";
 import IconLog      from "~icons/material-symbols/assignment-outline";
 import IconCheckBox     from "~icons/material-symbols/check-box";
 import IconCheckBoxBlank from "~icons/material-symbols/check-box-outline-blank";
+import IconCoverageFull from "~icons/material-symbols/check-circle-outline";
+import IconCoveragePartial from "~icons/material-symbols/error-outline";
 
 Chart.register(zoomPlugin);
 
@@ -31,6 +33,7 @@ const router = useRouter();
 const props = defineProps({
   plot:          { type: Object,  required: true },
   allTimeseries: { type: Array,   default: () => [] },
+  latestBySpId:  { type: Map,     default: () => new Map() },
 });
 
 const emit = defineEmits(["update", "remove", "edit"]);
@@ -77,13 +80,71 @@ const canDailyCheck = !!Auth.claims().management;
 const seriesMeta = computed(() => new Map(props.allTimeseries.map(sp => [sp.sampling_point_id, sp])));
 
 const legend = computed(() => legendItems.value.map((item) => {
-  const meta = seriesMeta.value.get(item.sampling_point_id);
+  const meta   = seriesMeta.value.get(item.sampling_point_id);
+  const latest = props.latestBySpId.get(item.sampling_point_id);
   return {
     ...item,
     is_calculated: meta?.is_calculated ?? false,
-    is_daily_check: meta?.is_daily_check ?? false
+    is_daily_check: meta?.is_daily_check ?? false,
+    equipment: meta?.equipment ?? null,
+    equipment_identifier: meta?.equipment_identifier ?? null,
+    timestep: meta?.timestep ?? null,
+    latestValue: latest?.value ?? null,
+    latestUnit: latest?.unit ?? null,
+    latestHour: latest?.to_time ?? null, // "YYYY-MM-DD HH:MM"
+    aqiLevel: latest?.eea_aqi_level ?? null,
+    aqiColor: latest?.eea_aqi_color ?? null,
+    aqiDesc: latest?.eea_aqi_desc ?? null,
+    observationvalidity_id: latest?.observationvalidity_id ?? null,
+    observationverification_id: latest?.observationverification_id ?? null,
   };
 }));
+
+// OMR_08 / OMR_09 — fixed EEA reporting vocabularies (schema.sql, sql/vocabularies.py
+// fallback constants), not something a deployment redefines the meaning of. No lookup
+// endpoint exists in the app for these; unmapped/future codes still show, just as the raw code.
+const VALIDITY_LABELS = {
+  "-99": "Not valid due to station maintenance or calibration",
+  "-1": "Not valid",
+  "1": "Valid",
+  "2": "Valid, below detection limit",
+  "3": "Valid, below detection limit and value substituted",
+  "4": "Valid, ozone CCQM comparison",
+};
+const VERIFICATION_LABELS = { "1": "Verified", "2": "Preliminary verified", "3": "Not verified" };
+
+const qaLine = (item) => {
+  const parts = [];
+  if (item.observationvalidity_id != null) parts.push(VALIDITY_LABELS[item.observationvalidity_id] ?? `code ${item.observationvalidity_id}`);
+  if (item.observationverification_id != null) parts.push(VERIFICATION_LABELS[item.observationverification_id] ?? `code ${item.observationverification_id}`);
+  return parts.join(" · ");
+};
+
+// Compact "HH:MM" for the legend row; full "YYYY-MM-DD HH:MM" stays available in the popover.
+const shortHour = (toTime) => toTime ? toTime.slice(11) : "";
+
+// Right-click the AQI/value/coverage cluster to see the detail (AQI description, instrument,
+// full timestamp, exact coverage counts). Not a hover v-tooltip: vue-follow-tooltip's directive
+// has no `updated` hook and its beforeUnmount never removes the floating element it appends to
+// <html> — if the host gets unmounted while a tooltip is showing (which happens here, since the
+// cluster is behind a v-if that flips as chart/latest data reloads), the tooltip is orphaned,
+// keeps following the cursor forever, and silently eats clicks elsewhere on the page (including
+// the daily-check checkbox's right-click, a few pixels away). Teleported to body + fixed
+// positioning at the click point, so it isn't clipped by the legend's own overflow-y-auto.
+const infoPopover     = ref(null); // { spId, x, y } | null
+const infoPopoverItem = computed(() => legend.value.find(i => i.sampling_point_id === infoPopover.value?.spId) ?? null);
+
+const toggleInfoPopover = (item, e) => {
+  infoPopover.value = infoPopover.value?.spId === item.sampling_point_id
+    ? null
+    : { spId: item.sampling_point_id, x: e.clientX, y: e.clientY };
+};
+
+const onInfoPopoverClickOutside = (e) => {
+  if (infoPopover.value && !e.target.closest(".legend-info-popover")) {
+    infoPopover.value = null;
+  }
+};
 
 const pickerItems = () => {
   const items = legend.value.length
@@ -243,6 +304,13 @@ const buildChart = (data) => {
   const allTimestamps = [...new Set(data.map(o => o.datetime))].sort();
   legendItems.value   = [];
 
+  // Coverage = non-null points actually returned vs. points expected for the shown period
+  // at that series' own timestep. Computed here (not server-side): the Dashboard always
+  // requests raw/Original data, for which the API's own "coverage" field is hardcoded to
+  // 100 (it's meant for aggregated mean types, not raw rows).
+  const { from_dt, to_dt } = getDateRange(props.plot.timePreset);
+  const periodSeconds = (new Date(to_dt.replace(" ", "T")) - new Date(from_dt.replace(" ", "T"))) / 1000;
+
   const datasets = grouped.map((entry, i) => {
     const [spId, values] = entry;
     const color    = palette[i % palette.length];
@@ -258,8 +326,14 @@ const buildChart = (data) => {
     const first    = values[0];
     const eq       = [first.equipment, first.equipment_identifier].filter(Boolean).join(" / ");
     const label    = [first.station, first.component, first.unit, eq].filter(Boolean).join(" - ");
+
+    const timestepSeconds = seriesMeta.value.get(spId)?.timestep_seconds;
+    const nonNullCount    = values.filter(v => v.value != null).length;
+    const expectedCount   = timestepSeconds ? Math.max(1, Math.round(periodSeconds / timestepSeconds)) : null;
+    const coveragePct     = expectedCount ? Math.min(100, Math.round((nonNullCount / expectedCount) * 100)) : null;
+
     // Chart-derived state only. Server metadata is joined on in the `legend` computed.
-    legendItems.value.push({ color, label, hidden: false, sampling_point_id: spId });
+    legendItems.value.push({ color, label, hidden: false, sampling_point_id: spId, coveragePct, coverageCounts: { nonNullCount, expectedCount } });
     return Plot.dataset(label, pts, color, props.plot.plotType ?? "line", axis);
   });
 
@@ -382,6 +456,7 @@ onMounted(() => {
     loadDailyCheckState();
   }
   document.addEventListener("click", onPickerClickOutside);
+  document.addEventListener("click", onInfoPopoverClickOutside);
   // On the canvas rather than through Plot.config: Chart.js 4 has no onContextMenu option,
   // and historical/plot.js is shared with the Historical page, which this doesn't cover.
   canvasRef.value?.addEventListener("contextmenu", onCanvasContextMenu);
@@ -389,6 +464,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (chart) { chart.destroy(); chart = null; }
   document.removeEventListener("click", onPickerClickOutside);
+  document.removeEventListener("click", onInfoPopoverClickOutside);
   canvasRef.value?.removeEventListener("contextmenu", onCanvasContextMenu);
 });
 </script>
@@ -479,6 +555,20 @@ onBeforeUnmount(() => {
           <div class="w-2 h-2 rounded-full shrink-0" :style="{ background: item.color }"></div>
           <span>{{ item.label }}</span>
         </div>
+
+        <!-- AQI / latest value+hour / coverage — compact readout, right-click for full detail -->
+        <div v-if="item.aqiLevel || item.latestHour"
+             class="flex items-center gap-1 cursor-context-menu"
+             title="Right-click for details"
+             @contextmenu.prevent.stop="toggleInfoPopover(item, $event)">
+          <div v-if="item.aqiLevel" class="w-2 h-2 rounded-full shrink-0" :style="{ background: item.aqiColor + 'BB', border: `1px solid ${item.aqiColor}` }"></div>
+          <span v-if="item.latestHour" class="font-mono whitespace-nowrap">
+            {{ item.latestValue ?? "—" }}{{ item.latestUnit ? ` ${item.latestUnit}` : "" }} · {{ shortHour(item.latestHour) }}
+          </span>
+          <icon-coverage-full v-if="item.coveragePct === 100" class="text-sm text-nord14 shrink-0" />
+          <icon-coverage-partial v-else-if="item.coveragePct != null" class="text-sm text-nord12 shrink-0" />
+        </div>
+
         <!-- Not :disabled — a disabled button dispatches no mouse events at all, so
              right-clicking an already-ticked box to edit its comment would do nothing.
              addDailyCheck() guards the already-done and in-flight cases itself. -->
@@ -499,6 +589,20 @@ onBeforeUnmount(() => {
     </div>
 
   </div>
+
+  <!-- AQI/value/coverage info popover (right-click the cluster in the legend) -->
+  <Teleport to="body">
+    <div v-if="infoPopover && infoPopoverItem"
+         class="legend-info-popover fixed z-50 bg-white border border-nord4 rounded shadow-lg py-1.5 px-2.5 text-xs text-nord1 flex flex-col gap-0.5 whitespace-nowrap"
+         :style="{ left: infoPopover.x + 'px', top: infoPopover.y + 8 + 'px' }">
+      <div v-if="infoPopoverItem.aqiDesc">AQI: {{ infoPopoverItem.aqiDesc }}</div>
+      <div v-if="infoPopoverItem.latestHour">Latest: {{ infoPopoverItem.latestValue ?? "—" }} {{ infoPopoverItem.latestUnit }} at {{ infoPopoverItem.latestHour }}</div>
+      <div v-if="infoPopoverItem.coveragePct != null">Coverage: {{ infoPopoverItem.coveragePct }}% ({{ infoPopoverItem.coverageCounts.nonNullCount }}/{{ infoPopoverItem.coverageCounts.expectedCount }} points)</div>
+      <div v-if="infoPopoverItem.timestep">Timestep: {{ infoPopoverItem.timestep }}</div>
+      <div v-if="qaLine(infoPopoverItem)">QA: {{ qaLine(infoPopoverItem) }}</div>
+      <div v-if="infoPopoverItem.equipment || infoPopoverItem.equipment_identifier">Instrument: {{ [infoPopoverItem.equipment, infoPopoverItem.equipment_identifier].filter(Boolean).join(" / ") }}</div>
+    </div>
+  </Teleport>
 
   <!-- Daily check comment dialog (right-click on a daily-check box) -->
   <popup

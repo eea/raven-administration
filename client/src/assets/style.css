@@ -82,6 +82,7 @@ input:disabled {
 
 .tooltip {
   @apply bg-gray-50 border border-nord4 rounded p-2 font-sans  z-9999 transition-opacity duration-300 m-0 self-center;
+  white-space: pre-line;
 }
 
 input[type="checkbox"]:not(:disabled) {
