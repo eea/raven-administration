@@ -5,6 +5,8 @@ from datetime import datetime
 from pydantic import parse_obj_as
 from typing import List
 
+from core import series_metadata as smeta
+
 
 # class MeanValue(BaseModel):
 #     sp_id: str
@@ -57,7 +59,7 @@ class Mean:
     Params = None
 
     @staticmethod
-    def Aggregate(cursor: any, meanType: MeanType, ids: tuple, fromTime: str, toTime: str, coverage: int = 75, verificationFlag: int = 3, fraction: int = 10, addMetadata: bool = False, useInvalidValues: bool = False):
+    def Aggregate(cursor: any, meanType: MeanType, ids: tuple, fromTime: str, toTime: str, coverage: int = 75, verificationFlag: int = 3, fraction: int = 10, addMetadata: bool = False, useInvalidValues: bool = False, pluginMetadata: bool = False):
         sql = ""
         params = {"ids": ids, "fromTime": fromTime, "toTime": toTime, "verificationFlag": verificationFlag, "coverage": coverage, "fraction": fraction, "useInvalidValues": useInvalidValues}
 
@@ -106,7 +108,7 @@ class Mean:
                 r["valid"] = (r.get("coverage") or 0) >= coverage
 
         if addMetadata:
-            timeseries = Mean.GetTimeseries(ids, cursor)
+            timeseries = Mean.GetTimeseries(ids, cursor, pluginMetadata)
             for r in rows:
                 t = next(filter(lambda x: x["sampling_point_id"] == r["sampling_point_id"], timeseries))
                 r["network"] = t["network"]
@@ -123,9 +125,31 @@ class Mean:
         # return MeanValues(meanvalues=rows)
 
     @staticmethod
-    def GetTimeseries(ids: tuple, cursor: any):
-        sql = """
-            SELECT spo.id "sampling_point_id", sta.name "station", COALESCE(NULLIF(po.notation, ''), po.label) "component", ti.notation "timestep", con.notation "unit", sta.longitude "lng", sta.latitude "lat",
+    def GetTimeseries(ids: tuple, cursor: any, pluginMetadata: bool = False):
+        """
+        Series metadata for the rows Aggregate() returns.
+
+        pluginMetadata fills component / unit / timestep from plugin tables where the
+        series has no EEA vocabulary term (see core/series_metadata.py). Opt-in, and
+        deliberately off by default: these same rows feed the observations CSV export
+        and the eight attainment directives, and core/eea/generate_attainment/
+        directives/tv.py groups by ["sampling_point_id", "unit", ...]. pandas groupby
+        drops rows whose key is NaN, so turning a NULL unit into 'm/s' would quietly
+        pull previously-excluded series into an attainment result. Only the dashboard,
+        which needs the unit to group its chart axes, asks for it.
+        """
+        component = "COALESCE(NULLIF(po.notation, ''), po.label)"
+        timestep = 'ti.notation'
+        unit = 'con.notation'
+        plugin_joins = ''
+        if pluginMetadata:
+            component = smeta.expr('pollutant', "NULLIF(po.notation, '')", 'po.label')
+            timestep = smeta.expr('timestep', 'ti.notation')
+            unit = smeta.expr('unit', 'con.notation')
+            plugin_joins = smeta.joins('spo')
+
+        sql = f"""
+            SELECT spo.id "sampling_point_id", sta.name "station", {component} "component", {timestep} "timestep", {unit} "unit", sta.longitude "lng", sta.latitude "lat",
                    net.name "network", lp.equipment, lp.equipment_identifier
             FROM stations sta
             JOIN sampling_points spo ON sta.id = spo.station_id
@@ -144,6 +168,7 @@ class Mean:
                 LEFT JOIN eea_measurementequipments me ON pr.equipment_id = me.id
                 ORDER BY pr.sampling_point_id, pr.process_activity_begin DESC
             ) lp ON lp.sampling_point_id = spo.id
+            {plugin_joins}
             WHERE spo.id IN %(ids)s
         """
         cursor.execute(sql, {"ids": ids})

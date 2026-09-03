@@ -3,6 +3,7 @@ from core.database import CursorFromPool
 from core.jwt_ext_custom import jwt_required_with_data_claim
 from core.data.mean import Mean, MeanType
 from core.query import Q
+from core import series_metadata as smeta
 from endpoints.data.historical.models import HistoricalModel
 
 dashboard_endpoint = Blueprint('dashboard', __name__)
@@ -13,14 +14,22 @@ dashboard_endpoint = Blueprint('dashboard', __name__)
 def sampling_points():
     with CursorFromPool() as cursor:
         with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+        # Local component / unit / timestep for series that have no EEA vocabulary term.
+        # Plugin-supplied, and identical to the bare EEA column when no plugin provides
+        # them; the EEA term always wins. See core/series_metadata.py.
+        # Bound to names because ORDER BY needs the same expressions: PostgreSQL only
+        # accepts a bare output name there, not one inside LOWER(...).
+        pollutant = smeta.expr('pollutant', "NULLIF(po.notation, '')", 'po.label')
+        timestep = smeta.expr('timestep', 't.notation')
+        unit = smeta.expr('unit', 'u.notation')
         cursor.execute(f"""
             {with_network_sql}
             SELECT
                 s.name AS station,
-                COALESCE(NULLIF(po.notation, ''), po.label) AS pollutant,
-                t.notation AS timestep,
-                t.timestep AS timestep_seconds,
-                u.notation AS unit,
+                {pollutant} AS pollutant,
+                {timestep} AS timestep,
+                {smeta.expr('timestep_seconds', 't.timestep')} AS timestep_seconds,
+                {unit} AS unit,
                 lp.equipment,
                 lp.equipment_identifier,
                 sp.id AS sampling_point_id,
@@ -45,7 +54,10 @@ def sampling_points():
                 LEFT JOIN eea_measurementequipments me ON pr.equipment_id = me.id
                 ORDER BY pr.sampling_point_id, pr.process_activity_begin DESC
             ) lp ON lp.sampling_point_id = sp.id
-            ORDER BY LOWER(s.name), LOWER(COALESCE(NULLIF(po.notation, ''), po.label)), LOWER(t.notation)
+            {smeta.joins('sp')}
+            -- Ordered by the composed expressions, so a local series sorts among the
+            -- others instead of trailing as a NULL pollutant.
+            ORDER BY LOWER(s.name), LOWER({pollutant}), LOWER({timestep})
         """, n_param)
         return jsonify(cursor.fetchall())
 
@@ -58,5 +70,9 @@ def dashboard():
         sampling_point_ids = Q.sampling_point_ids_by_networks_access(m.sampling_point_ids)
         if not sampling_point_ids:
             return jsonify([])
-        meanvalues = Mean.Aggregate(cursor, MeanType(m.meantype), sampling_point_ids, m.from_dt, m.to_dt, m.coverage, 3, 3, True)
+        # pluginMetadata: the plot builds its legend label from `component`/`unit` and
+        # groups its y axes by `unit`, so a series with no EEA term needs the local one
+        # or it lands unlabelled on a shared NULL axis. Opt-in per call site -- see
+        # Mean.GetTimeseries for why the exports and attainment paths must not have it.
+        meanvalues = Mean.Aggregate(cursor, MeanType(m.meantype), sampling_point_ids, m.from_dt, m.to_dt, m.coverage, 3, 3, True, pluginMetadata=True)
         return jsonify(meanvalues)
