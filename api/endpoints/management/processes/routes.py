@@ -6,6 +6,7 @@ from core.query_access import Access
 from endpoints.management.processes.models import ProcessModel
 from core.query import Q, DeleteModel
 from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
+from core import series_metadata as smeta
 
 
 processes_endpoint = Blueprint('processes', __name__)
@@ -58,12 +59,25 @@ def processes_lookups():
     with CursorFromPool() as cursor:
         # Get sampling points accessible to user
         with_samplingpoints_sql, n_param = Q.with_sampling_points_by_networks_access()
+        # Same label shape as the Validate page's timeseries select
+        # (Q.timeseries_with_time_by_access) -- station, pollutant, timestep, unit, plus
+        # the plugin-supplied internal comment. See core/series_metadata.py.
+        pollutant = smeta.expr('pollutant', "NULLIF(po.notation, '')", 'po.label')
+        timestep = smeta.expr('timestep', 't.notation')
+        unit = smeta.expr('unit', 'u.notation')
+        comment = smeta.expr('comment', 'NULL::text')
         cursor.execute(f"""
             {with_samplingpoints_sql}
-            SELECT sp.id as value, sp.id as label
+            SELECT sp.id as value,
+                   CONCAT(s.name, ', ', {pollutant}, ', ', {timestep}, ', ', {unit}, ', ', {comment}) as label
             FROM sampling_points sp
+            JOIN stations s ON sp.station_id = s.id
+            LEFT JOIN eea_pollutants po ON sp.pollutant_id = po.id
+            LEFT JOIN eea_times t ON sp.time_resolution_id = t.id
+            LEFT JOIN eea_concentrations u ON sp.unit_id = u.id
+            {smeta.joins('sp')}
             INNER JOIN sampling_point_access spa ON sp.id = spa.id
-            ORDER BY sp.id
+            ORDER BY LOWER(s.name), LOWER({pollutant}), LOWER({timestep})
         """, n_param)
         sampling_points = cursor.fetchall()
         

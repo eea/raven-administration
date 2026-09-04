@@ -471,7 +471,7 @@ const getRowId = (params) => String(params.data.id);
 
       <div>
         <div class="font-bold flex items-center gap-2">
-          Timeseries
+          Sampling Point
           <FavoritesPicker title="Filter by favorite" @select="applyFavorite" />
           <div v-if="activeFavorite" class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-nord6 border border-nord4 text-xs font-normal text-nord2 cursor-pointer hover:border-nord11 select-none" title="Clear favorite filter" @click="activeFavorite = null">
             <span class="truncate max-w-40">{{ activeFavorite.name }}</span>
@@ -480,7 +480,7 @@ const getRowId = (params) => String(params.data.id);
         </div>
         <select class="select w-full" v-model="selectedId">
           <option v-for="t in cmp_timeseries" :key="t.value" :value="t.value">{{ t.label }}</option>
-          <option v-if="cmp_timeseries.length == 0" :value="0" disabled>No timeseries found for time period</option>
+          <option v-if="cmp_timeseries.length == 0" :value="0" disabled>No sampling points found for time period</option>
         </select>
       </div>
 

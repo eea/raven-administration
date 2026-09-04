@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 # The metadata core knows how to fill. A closed set on purpose: a plugin registering
 # 'units' or 'pollutant_name' would otherwise be silently ignored, which reads exactly
 # like the plugin not being installed.
-SLOTS = ('pollutant', 'unit', 'timestep', 'timestep_seconds')
+SLOTS = ('pollutant', 'unit', 'timestep', 'timestep_seconds', 'comment')
 
 # Substituted with the sampling-point alias of the calling query. Required, because the
 # alias differs per call site -- 'sp' in the dashboard route, 'spo' in Mean.GetTimeseries.

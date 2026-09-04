@@ -1,5 +1,6 @@
 from core.database import CursorFromPool
 from core.jwt_ext_custom import can_see_all_networks, get_networks
+from core import series_metadata as smeta
 from pydantic import BaseModel
 from typing import List, Union
 
@@ -83,17 +84,21 @@ class Q:
     def timeseries_with_time_by_access():
         with CursorFromPool() as cursor:
             with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+            # Plugin-supplied internal note, see core/series_metadata.py. No core term
+            # exists for it, so the core side is a literal NULL and the whole expression
+            # is bound to a name because it's repeated in SELECT and GROUP BY.
+            comment = smeta.expr('comment', 'NULL::text')
             cursor.execute(f"""
                 {with_network_sql}
                 SELECT
                   aa.value,
-                  CONCAT(aa.name,', ', aa.pollutant,', ', aa.timestep, ', ', aa.unit ) as label,
+                  CONCAT(aa.name,', ', aa.pollutant,', ', aa.timestep, ', ', aa.unit, ', ', aa.comment ) as label,
                       to_char(aa.fromtime, 'YYYY-MM-DD"T"HH24:MI:SS') as fromtime,
                       to_char(aa.totime, 'YYYY-MM-DD"T"HH24:MI:SS') as totime,
                       aa.timestep_seconds
                   FROM
                  (
-                  SELECT sp.id as sp, sp.id as value, s.name, COALESCE(NULLIF(po.notation, ''), po.label) as pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.notation as timestep, t.timestep as timestep_seconds, u.notation as unit
+                  SELECT sp.id as sp, sp.id as value, s.name, COALESCE(NULLIF(po.notation, ''), po.label) as pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.notation as timestep, t.timestep as timestep_seconds, u.notation as unit, {comment} as comment
                     FROM network_access n
                     JOIN stations s ON n.id = s.network_id
                     JOIN sampling_points sp ON s.id = sp.station_id
@@ -101,10 +106,11 @@ class Q:
                     LEFT JOIN eea_pollutants po ON sp.pollutant_id = po.id
                     LEFT JOIN eea_times t ON sp.time_resolution_id = t.id
                     LEFT JOIN eea_concentrations u ON sp.unit_id = u.id
+                    {smeta.joins('sp')}
                     WHERE 1=1
                         and sp.from_time is not null
                         and sp.to_time is not null
-                    GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label), sp.from_time,  sp.to_time, t.notation, t.timestep, u.notation
+                    GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label), sp.from_time,  sp.to_time, t.notation, t.timestep, u.notation, {comment}
                 ) aa
                 order by LOWER(aa.name), aa.pollutant, aa.timestep
             """, n_param)
