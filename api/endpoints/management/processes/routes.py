@@ -69,7 +69,7 @@ def processes_lookups():
         cursor.execute(f"""
             {with_samplingpoints_sql}
             SELECT sp.id as value,
-                   CONCAT(s.name, ', ', {pollutant}, ', ', {timestep}, ', ', {unit}, ', ', {comment}) as label
+                   CONCAT(sp.id, ', ', s.name, ', ', {pollutant}, ', ', {timestep}, ', ', {unit}, ', ', {comment}) as label
             FROM sampling_points sp
             JOIN stations s ON sp.station_id = s.id
             LEFT JOIN eea_pollutants po ON sp.pollutant_id = po.id

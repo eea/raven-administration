@@ -92,7 +92,7 @@ class Q:
                 {with_network_sql}
                 SELECT
                   aa.value,
-                  CONCAT(aa.name,', ', aa.pollutant,', ', aa.timestep, ', ', aa.unit, ', ', aa.comment ) as label,
+                  CONCAT(aa.value,', ', aa.name,', ', aa.pollutant,', ', aa.timestep, ', ', aa.unit, ', ', aa.comment ) as label,
                       to_char(aa.fromtime, 'YYYY-MM-DD"T"HH24:MI:SS') as fromtime,
                       to_char(aa.totime, 'YYYY-MM-DD"T"HH24:MI:SS') as totime,
                       aa.timestep_seconds
