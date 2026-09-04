@@ -45,8 +45,12 @@ class Q:
     @staticmethod
     def timeseries():
         with CursorFromPool() as cursor:
-            cursor.execute("""
-                select CONCAT(s.name,', ', p.notation,', ', t.label, ', ', u.notation )  as label, sp.id as value
+            # Plugin-supplied local component/unit/timestep, see core/series_metadata.py.
+            pollutant = smeta.expr('pollutant', "NULLIF(p.notation, '')", 'p.label')
+            timestep = smeta.expr('timestep', 't.label')
+            unit = smeta.expr('unit', 'u.notation')
+            cursor.execute(f"""
+                select CONCAT(s.name,', ', {pollutant},', ', {timestep}, ', ', {unit} )  as label, sp.id as value
                 from sampling_points sp
                 join stations s on sp.station_id = s.id
                 -- LEFT, not inner: pollutant_id, time_resolution_id and unit_id are all
@@ -58,7 +62,8 @@ class Q:
                 left join eea_pollutants p on sp.pollutant_id = p.id
                 left join eea_times t on sp.time_resolution_id = t.id
                 left join eea_concentrations u on sp.unit_id = u.id
-                order by LOWER(s.name), LOWER(p.notation), LOWER(t.label)
+                {smeta.joins('sp')}
+                order by LOWER(s.name), LOWER({pollutant}), LOWER({timestep})
             """)
             return cursor.fetchall()
 
@@ -66,9 +71,13 @@ class Q:
     def timeseries_by_access():
         with CursorFromPool() as cursor:
             with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+            # Plugin-supplied local component/unit/timestep, see core/series_metadata.py.
+            pollutant = smeta.expr('pollutant', "NULLIF(p.notation, '')", 'p.label')
+            timestep = smeta.expr('timestep', 't.label')
+            unit = smeta.expr('unit', 'u.notation')
             cursor.execute(f"""
                 {with_network_sql}
-                select CONCAT(s.name,', ', p.notation,', ', t.label, ', ', u.notation )  as label, sp.id as value
+                select CONCAT(s.name,', ', {pollutant},', ', {timestep}, ', ', {unit} )  as label, sp.id as value
                 from sampling_points sp
                 join stations s on sp.station_id = s.id
                 join network_access n on n.id = s.network_id
@@ -76,7 +85,8 @@ class Q:
                 left join eea_pollutants p on sp.pollutant_id = p.id
                 left join eea_times t on sp.time_resolution_id = t.id
                 left join eea_concentrations u on sp.unit_id = u.id
-                order by LOWER(s.name), LOWER(p.notation), LOWER(t.label)
+                {smeta.joins('sp')}
+                order by LOWER(s.name), LOWER({pollutant}), LOWER({timestep})
             """, n_param)
             return cursor.fetchall()
 
@@ -88,6 +98,10 @@ class Q:
             # exists for it, so the core side is a literal NULL and the whole expression
             # is bound to a name because it's repeated in SELECT and GROUP BY.
             comment = smeta.expr('comment', 'NULL::text')
+            # Plugin-supplied local component/unit/timestep, same reasoning as comment.
+            pollutant = smeta.expr('pollutant', "NULLIF(po.notation, '')", 'po.label')
+            timestep = smeta.expr('timestep', 't.notation')
+            unit = smeta.expr('unit', 'u.notation')
             cursor.execute(f"""
                 {with_network_sql}
                 SELECT
@@ -98,7 +112,7 @@ class Q:
                       aa.timestep_seconds
                   FROM
                  (
-                  SELECT sp.id as sp, sp.id as value, s.name, COALESCE(NULLIF(po.notation, ''), po.label) as pollutant,  sp.from_time as fromtime, sp.to_time as totime, t.notation as timestep, t.timestep as timestep_seconds, u.notation as unit, {comment} as comment
+                  SELECT sp.id as sp, sp.id as value, s.name, {pollutant} as pollutant,  sp.from_time as fromtime, sp.to_time as totime, {timestep} as timestep, t.timestep as timestep_seconds, {unit} as unit, {comment} as comment
                     FROM network_access n
                     JOIN stations s ON n.id = s.network_id
                     JOIN sampling_points sp ON s.id = sp.station_id
@@ -110,7 +124,7 @@ class Q:
                     WHERE 1=1
                         and sp.from_time is not null
                         and sp.to_time is not null
-                    GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label), sp.from_time,  sp.to_time, t.notation, t.timestep, u.notation, {comment}
+                    GROUP by s.name, sp.id, sp.pollutant_id, sp.from_time,  sp.to_time, t.timestep, {pollutant}, {timestep}, {unit}, {comment}
                 ) aa
                 order by LOWER(aa.name), aa.pollutant, aa.timestep
             """, n_param)
@@ -120,16 +134,20 @@ class Q:
     def timeseries_columns_with_time_by_access():
         with CursorFromPool() as cursor:
             with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+            # Plugin-supplied local component/unit/timestep, see core/series_metadata.py.
+            pollutant = smeta.expr('pollutant', "NULLIF(po.notation, '')", 'po.label')
+            timestep = smeta.expr('timestep', 't.notation')
+            unit = smeta.expr('unit', 'u.notation')
             cursor.execute(f"""
                 {with_network_sql}
-                SELECT aa.name as station, aa.pollutant, aa.timestep, aa.unit, aa.value as sampling_point_id,                   
+                SELECT aa.name as station, aa.pollutant, aa.timestep, aa.unit, aa.value as sampling_point_id,
                       to_char(aa.fromtime, 'YYYY-MM-DD"T"HH24:MI:SS') as fromtime,
                       to_char(aa.totime, 'YYYY-MM-DD"T"HH24:MI:SS') as totime,
                       aa.equipment, aa.equipment_identifier
                   FROM
                 (
-                  SELECT sp.id as sp, sp.id as value, s.name, COALESCE(NULLIF(po.notation, ''), po.label) as pollutant,
-                         sp.from_time as fromtime, sp.to_time as totime, t.notation as timestep, u.notation as unit,
+                  SELECT sp.id as sp, sp.id as value, s.name, {pollutant} as pollutant,
+                         sp.from_time as fromtime, sp.to_time as totime, {timestep} as timestep, {unit} as unit,
                          lp.equipment, lp.equipment_identifier
                     FROM network_access n
                     JOIN stations s ON n.id = s.network_id
@@ -147,10 +165,11 @@ class Q:
                         LEFT JOIN eea_measurementequipments me ON pr.equipment_id = me.id
                         ORDER BY pr.sampling_point_id, pr.process_activity_begin DESC
                     ) lp ON lp.sampling_point_id = sp.id
+                    {smeta.joins('sp')}
                     WHERE sp.from_time is not null
                       AND sp.to_time is not null
-                    GROUP by s.name, sp.id, sp.pollutant_id, COALESCE(NULLIF(po.notation, ''), po.label),
-                             sp.from_time, sp.to_time, t.notation, u.notation, lp.equipment, lp.equipment_identifier
+                    GROUP by s.name, sp.id, sp.pollutant_id,
+                             sp.from_time, sp.to_time, {pollutant}, {timestep}, {unit}, lp.equipment, lp.equipment_identifier
                 ) aa
                 order by LOWER(aa.name), LOWER(aa.pollutant), LOWER(aa.timestep)
             """, n_param)

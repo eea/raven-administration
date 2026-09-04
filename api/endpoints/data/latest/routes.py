@@ -3,6 +3,7 @@ from flask import jsonify, Blueprint
 from core.database import CursorFromPool
 from core.jwt_ext_custom import jwt_required_with_data_claim
 from core.query import Q
+from core import series_metadata as smeta
 latest_endpoint = Blueprint('latest', __name__)
 
 
@@ -11,6 +12,11 @@ latest_endpoint = Blueprint('latest', __name__)
 def latest():
     with CursorFromPool() as cursor:
         with_network_sql, n_param = Q.with_networks_by_access_as_sql()
+        # Local component / unit / timestep for series that have no EEA vocabulary term.
+        # Plugin-supplied, same pattern as the dashboard's sampling_points endpoint.
+        pollutant = smeta.expr('pollutant', "NULLIF(p.notation, '')", 'p.label')
+        timestep = smeta.expr('timestep', 't.notation')
+        unit = smeta.expr('unit', 'u.notation')
         sql = f"""
             {with_network_sql}
             SELECT
@@ -19,11 +25,11 @@ def latest():
                 to_char(sp.to_time,   'yyyy-mm-dd HH24:mi') AS to_time,
                 o.observationvalidity_id,
                 o.observationverification_id,
-                COALESCE(NULLIF(p.notation, ''), p.label) AS pollutant,
-                t.notation           AS timestep,
+                {pollutant} AS pollutant,
+                {timestep} AS timestep,
                 s.name               AS station,
                 n.name               AS network,
-                u.notation           AS unit,
+                {unit} AS unit,
                 COALESCE(NULLIF(me.notation, ''), me.label) AS equipment,
                 pr.equipment_identifier,
                 CASE
@@ -51,6 +57,7 @@ def latest():
                 JOIN stations            s  ON sp.station_id       = s.id
                 JOIN network_access      n  ON s.network_id        = n.id
                 LEFT JOIN eea_concentrations u ON sp.unit_id       = u.id
+                {smeta.joins('sp')}
                 LEFT JOIN (
                     SELECT DISTINCT ON (pr.sampling_point_id)
                         pr.sampling_point_id,
