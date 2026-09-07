@@ -25,7 +25,8 @@ from core.data.exceedances import (
     Exceedances,
     DIRECTIVE_THRESHOLDS,
     get_pollutant_eea_code,
-    map_assessment_type
+    map_assessment_type,
+    resolve_aggregation_process,
 )
 from core.data.statistics import Statistics
 
@@ -194,9 +195,14 @@ class PlansAndProgramsExport:
             -- already carries the mandatory ARE_ format, so it is read, not rebuilt.
             -- The component notations are what AttainmentId (CAM_15) is built from.
             ar.id as assessment_regime_id,
-            ot.notation as objective_type,
-            pt.notation as protection_target,
-            rm.notation as reporting_metric,
+            -- COALESCE to the id because sql/data.sql seeds these three vocabularies as
+            -- (id, label, uri) only, leaving notation NULL on a fresh install. The id is
+            -- the short EEA code under the v4 convention, so it is the same string.
+            -- Without this, objective_type and reporting_metric arrive as None and
+            -- DataAggregationProcessId cannot be resolved for any row.
+            COALESCE(NULLIF(ot.notation, ''), ot.id) as objective_type,
+            COALESCE(NULLIF(pt.notation, ''), pt.id) as protection_target,
+            COALESCE(NULLIF(rm.notation, ''), rm.id) as reporting_metric,
             
             -- Pollutant. AQR3 PollutantId is the numeric code, not the notation.
             p.id as pollutant_id,
@@ -290,6 +296,15 @@ class PlansAndProgramsExport:
             
             # Map assessment type
             assessment_type = map_assessment_type(row.get('assessment_type_notation', ''))
+
+            # AQR3 CAM_04. The regime's ReportingMetric says what is measured; the
+            # aggregation process says what is measured and against which level, and
+            # the level moved between directives. Unresolved means this row is skipped
+            # by persist_compliance and counted, rather than filed under a statistic
+            # that was never calculated.
+            aggregation_process = resolve_aggregation_process(
+                pollutant, row.get('objective_type'), row.get('reporting_metric'),
+                directive)
             
             # For now, create a placeholder structure
             # TODO: Integrate with actual exceedance evaluation
@@ -299,7 +314,7 @@ class PlansAndProgramsExport:
                 # EEA Compliance Structure
                 "countrycode": countrycode,
                 "assessmentregimeid": assessment_regime_id,
-                "dataaggregationprocessid": "P1Y",  # TODO: Get from actual statistic
+                "dataaggregationprocessid": aggregation_process,
                 "assessmentmethodid": assessment_method_id,
                 # AQR3 v5.02 renamed these two. The pre-v5.02 keys `complianceid`
                 # and `airpollutantcode` are gone: compliance keys on AttainmentId,

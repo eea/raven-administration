@@ -16,6 +16,7 @@ Architecture:
 """
 
 import logging
+import re
 from typing import Dict, List, Optional, Any
 from core.data.statistics import Statistics
 
@@ -472,6 +473,125 @@ ASSESSMENT_TYPE_MAPPING = {
     'Objective estimation': 'objective',
     'Other measurement': 'other',
 }
+
+
+# ============================================================================
+# REPORTING METRIC -> AGGREGATION PROCESS (AQR3 CAM_04)
+# ============================================================================
+
+# AQR3 ARZ_12 ReportingMetric names *what* is measured -- an annual mean, a count of
+# days above the limit. AQR3 CAM_04 DataAggregationProcessId names what is measured
+# *and the level it is measured against*: P1Y-daysAbove45, not daysAbove. That level is
+# directive-specific -- PM10's daily limit is 50 under 2008/50 and 45 under 2024/2881,
+# NO2's alert threshold 400 then 200 -- so it is read from DIRECTIVE_THRESHOLDS and
+# never written here.
+#
+# Each entry is (which aggregation terms can report this metric, a term to fall back on
+# when the pollutant has no threshold of this kind). The counting metrics have no
+# fallback on purpose: the number in the term *is* the threshold, and inventing one
+# would report a count against a limit nobody set.
+_METRIC_AGGREGATION = {
+    'aMean':         (re.compile(r'^P1Y$'),                     'P1Y'),
+    'wMean':         (re.compile(r'^winter-avg$'),              'winter-avg'),
+    # The Average Exposure Indicator is a three-calendar-year running mean, and the
+    # critical levels and monitoring objectives Norway reports are annual means, so
+    # these three resolve from the metric alone -- DIRECTIVE_THRESHOLDS holds only
+    # exceedance thresholds and has no CL, MO, ECO or ERT entry to consult.
+    'AEI':           (re.compile(r'^P3Y$'),                     'P3Y'),
+    'NA':            (re.compile(r'^P1Y$'),                     'P1Y'),
+    'AOT40c':        (re.compile(r'^AOT40c$'),                  'AOT40c'),
+    'AOT40c-5yr':    (re.compile(r'^AOT40c-P5Y$'),              'AOT40c-P5Y'),
+    # dmaxAbove as well as daysAbove: ozone counts days by their maximum 8-hour mean,
+    # so its daily-count terms are spelled P1Y-dmaxAbove120 rather than P1Y-daysAbove120.
+    'daysAbove':     (re.compile(r'^P1Y-(?:days|dmax)Above\d'), None),
+    'daysAbove-3yr': (re.compile(r'^P3Y-(?:days|dmax)Above\d'), None),
+    'hrsAbove':      (re.compile(r'^P1Y-hrsAbove\d'),           None),
+    '3hAbove':       (re.compile(r'^P1Y-3hAbove\d'),            None),
+    '3dAbove':       (re.compile(r'^P1Y-3(?:days|dmax)Above\d'), None),
+    # CO is counted by its maximum daily 8-hour mean, which is why the vocabulary
+    # spells its term P1Y-8hdmxAbove10 and why the reporting metric for it is separate
+    # from plain daysAbove (days above a daily value, CO's 2024/2881 addition).
+    'daysAboveCO':   (re.compile(r'^P1Y-8hdmxAbove\d'),         None),
+    'AOT40f':        (re.compile(r'^AOT40f$'),                  'AOT40f'),
+    # No fallback: the vocabulary carries both P1Y-P1D-per90.4 and -per90.41 and
+    # nothing in DIRECTIVE_THRESHOLDS says which the 90.4th percentile means, so this
+    # resolves only once a threshold declares one.
+    '90.4th':        (re.compile(r'^P1Y-P1D-per90\.4'),         None),
+}
+
+
+def _threshold_pollutant(notation: str) -> Optional[str]:
+    """The DIRECTIVE_THRESHOLDS key for a pollutant notation.
+
+    The vocabulary names the metals by the fraction they are measured in -- 'As in
+    PM10' -- while the threshold table keys them by the element, because the target
+    value applies to the element however it is sampled.
+    """
+    if not notation:
+        return None
+    text = str(notation).strip()
+    if text in DIRECTIVE_THRESHOLDS:
+        return text
+    element = text.split(' in ')[0].strip()
+    return element if element in DIRECTIVE_THRESHOLDS else None
+
+
+def resolve_aggregation_process(pollutant: str, objective_type: str,
+                                reporting_metric: str, directive: str) -> Optional[str]:
+    """The aq/aggregationprocess term a compliance row is about (AQR3 CAM_04).
+
+    Returns None when the statistic cannot be determined, rather than guessing.
+    CAM_04 is part of the CAM primary key, so a wrong value does not merely mislabel a
+    row -- it files the row under a statistic that was never calculated, and two
+    regimes reporting different metrics collapse into one key. persist_compliance skips
+    a row with no aggregation process and counts it, which is visible; a silent 'P1Y'
+    on all of them was not.
+
+    The result is also what `Exceedances.get_threshold` takes as its `reportingmetric`
+    argument, so resolving it here is what makes a real threshold lookup possible.
+    """
+    metric = (reporting_metric or '').strip()
+    objective = (objective_type or '').strip()
+
+    if not metric and not objective:
+        # No assessment regime on this row at all -- a sampling point nothing reports.
+        # persist_compliance already counts those as skipped, so saying so again once
+        # per row would bury the cases that are worth reading.
+        return None
+
+    rule = _METRIC_AGGREGATION.get(metric)
+    if rule is None:
+        logger.warning('No aggregation process shape known for reporting metric %r '
+                       '(pollutant %r, objective %r); DataAggregationProcessId (CAM_04) '
+                       'left unresolved', reporting_metric, pollutant, objective_type)
+        return None
+    pattern, fallback = rule
+
+    key = _threshold_pollutant(pollutant)
+    thresholds = DIRECTIVE_THRESHOLDS.get(key, {}).get(objective, {}) if key else {}
+    matches = sorted({
+        data['statistic'] for data in thresholds.values()
+        if data.get('statistic') and directive in data
+        and pattern.match(data['statistic'])
+    })
+
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        # Two thresholds of the same shape for one pollutant, objective and directive.
+        # The metric cannot separate them, and choosing would be arbitrary.
+        logger.warning('%s %s %s under %s matches %s; DataAggregationProcessId (CAM_04) '
+                       'is ambiguous and left unresolved',
+                       pollutant, objective_type, metric, directive, ', '.join(matches))
+        return None
+    if fallback:
+        return fallback
+
+    logger.warning('%s has no %s threshold for %s under %s, so the aggregation process '
+                   'reporting %r cannot be identified. CAM_04 needs the threshold level, '
+                   'which only the directive supplies.',
+                   pollutant, objective_type, metric, directive, metric)
+    return None
 
 
 def map_assessment_type(notation: str):

@@ -525,6 +525,14 @@ INSERT INTO public.eea_reportingmetrics (id, label, uri) VALUES ('AOT40c', 'AOT4
 INSERT INTO public.eea_reportingmetrics (id, label, uri) VALUES ('AOT40c-5yr', 'AOT40 vegetation protection averaged', 'http://dd.eionet.europa.eu/vocabulary/aq/reportingmetric/AOT40c-5yr');
 INSERT INTO public.eea_reportingmetrics (id, label, uri) VALUES ('AOT40f', 'AOT 40 forest protection', 'http://dd.eionet.europa.eu/vocabulary/aq/reportingmetric/AOT40f');
 INSERT INTO public.eea_reportingmetrics (id, label, uri) VALUES ('daysAbove', 'Days in exceedance in a calendar year', 'http://dd.eionet.europa.eu/vocabulary/aq/reportingmetric/daysAbove');
+-- Two terms the aq/reportingmetric vocabulary publishes that this seed was
+-- missing. `3dAbove` reports the PM10 and PM2.5 alert thresholds (three
+-- consecutive days) and `daysAboveCO` the CO limit value, which is counted by the
+-- maximum daily 8-hour mean rather than a daily value. A regime using a metric
+-- absent from here cannot resolve its DataAggregationProcessId, so every one of
+-- its CAM rows would be skipped.
+INSERT INTO public.eea_reportingmetrics (id, label, uri) VALUES ('3dAbove', 'Three consecutive days in exceedance', 'http://dd.eionet.europa.eu/vocabulary/aq/reportingmetric/3dAbove');
+INSERT INTO public.eea_reportingmetrics (id, label, uri) VALUES ('daysAboveCO', 'Days in exceedance in a calendar year - CO', 'http://dd.eionet.europa.eu/vocabulary/aq/reportingmetric/daysAboveCO');
 
 INSERT INTO public.eea_resultnaturevalues (id, label, notation, uri) VALUES ('primary', 'primary', 'primary', 'http://inspire.ec.europa.eu/codelist/resultnaturevalue/primary');
 INSERT INTO public.eea_resultnaturevalues (id, label, notation, uri) VALUES ('processed', 'processed', 'processed', 'http://inspire.ec.europa.eu/codelist/resultnaturevalue/processed');
