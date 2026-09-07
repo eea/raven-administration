@@ -13,6 +13,7 @@ const Processes = () => import("./views/management/processes/Processes.vue");
 const AssessmentRegimes = () => import("./views/management/assessmentregimes/AssessmentRegimes.vue");
 const AssessmentRegimeZones = () => import("./views/management/assessmentregimezones/AssessmentRegimeZones.vue");
 const PollutionLevelAdjustment = () => import("./views/management/pollutionleveladjustment/PollutionLevelAdjustment.vue");
+const ComplianceAssessmentMethod = () => import("./views/management/complianceassessmentmethod/ComplianceAssessmentMethod.vue");
 const Documents = () => import("./views/management/documents/Documents.vue");
 const SpatialRepresentativeness = () => import("./views/management/spatialrepresentativeness/SpatialRepresentativeness.vue");
 const Models = () => import("./views/management/models/Models.vue");
@@ -70,6 +71,7 @@ const routes = [
   { path: "/management/assessmentregimes", component: AssessmentRegimes, name: "AssessmentRegimes" },
   { path: "/management/assessmentregimezones", component: AssessmentRegimeZones, name: "AssessmentRegimeZones" },
   { path: "/management/pollutionleveladjustment", component: PollutionLevelAdjustment, name: "PollutionLevelAdjustment" },
+  { path: "/management/complianceassessmentmethod", component: ComplianceAssessmentMethod, name: "ComplianceAssessmentMethod" },
   { path: "/management/documents", component: Documents, name: "Documents" },
   { path: "/management/spatialrepresentativeness", component: SpatialRepresentativeness, name: "SpatialRepresentativeness" },
   { path: "/management/models", component: Models, name: "Models" },

@@ -45,6 +45,9 @@ class Endpoints:
         from endpoints.management.pollutionleveladjustment.routes import adjustments_endpoint
         app.register_blueprint(adjustments_endpoint)
 
+        from endpoints.management.complianceassessmentmethod.routes import compliance_endpoint
+        app.register_blueprint(compliance_endpoint)
+
         from endpoints.management.documents.routes import documents_endpoint
         app.register_blueprint(documents_endpoint)
 

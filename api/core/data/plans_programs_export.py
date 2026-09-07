@@ -314,7 +314,10 @@ class PlansAndProgramsExport:
                 "absoluteuncertaintylimit": row.get('uncertainty_estimate'),
                 "relativeuncertaintylimit": None,
                 "maxratiouncertainty": None,
-                "correctionfactor": False,
+                # None, not False: CAM_14 is entered by hand until the evaluation
+                # computes it, and persist_compliance keeps a stored value only while
+                # the computed one is NULL. A placeholder False would win every time.
+                "correctionfactor": None,
                 "attainmentid": attainment_id,
                 "srsid": srs_id,
                 "preliminaryreason": None,

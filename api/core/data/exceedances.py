@@ -15,8 +15,11 @@ Architecture:
 - Evaluates per assessment regime (zone + pollutant + objective type)
 """
 
+import logging
 from typing import Dict, List, Optional, Any
 from core.data.statistics import Statistics
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -451,39 +454,58 @@ def get_pollutant_eea_code(pollutant: str) -> Optional[int]:
 # Reference: EEA assessment type vocabulary
 # ============================================================================
 
+# The published aq/assessmenttype concepts, which are what eea_assessmenttypes.id
+# holds. CAM_07 and compliance_assessment_method.assessment_type_id both reference
+# them, so anything outside this set is either a NULL or a foreign key violation.
+ASSESSMENT_TYPE_IDS = frozenset(
+    ('fixed', 'fixedrandom', 'indicative', 'model', 'objective', 'other'))
+
+# Labels to ids, for the v3 path where the label was stored rather than the code.
+# Every value here must be in ASSESSMENT_TYPE_IDS: 'modelling' is not a term EEA
+# issues (it is 'model'), and mapping objective estimation onto modelling reported
+# one assessment type as another.
 ASSESSMENT_TYPE_MAPPING = {
     'Fixed measurement': 'fixed',
-    'Fixed random measurements': 'fixed',
+    'Fixed random measurements': 'fixedrandom',
     'Indicative measurement': 'indicative',
-    'Modelling': 'modelling',
-    'Objective estimation': 'modelling',
-    'Other measurement': 'fixed'  # Default to fixed
+    'Modelling': 'model',
+    'Objective estimation': 'objective',
+    'Other measurement': 'other',
 }
 
 
-def map_assessment_type(notation: str) -> str:
-    """
-    Map RAVEN assessment type notation to EEA simplified format.
-    
-    RAVEN stores full notation (e.g., 'Fixed measurement'), but EEA
-    Plans & Programs expects simplified format ('fixed', 'indicative', 'modelling').
-    
-    Args:
-        notation: RAVEN assessment type notation
-        
-    Returns:
-        EEA format: 'fixed', 'indicative', or 'modelling'
-        Defaults to 'fixed' if notation not recognized
-        
+def map_assessment_type(notation: str):
+    """Resolve an assessment type to its aq/assessmenttype id.
+
+    In v4 the value handed in is already the id -- the exceedance query reads
+    `eea_assessmenttypes.notation`, and on a normalised database that is the id -- so
+    the common case is identity. The label map is the v3 path, where the label was
+    stored instead.
+
+    Returns None for anything unrecognised, rather than defaulting. This used to
+    default to 'fixed', and because the label map was keyed on labels while v4 hands
+    over codes, *every* value fell through: 103 of 543 CAM rows reported AssessmentType
+    'fixed' where assessmentdata said 'objective'. A blank is incomplete, but a wrong
+    assessment type is a false statement about how the air was assessed.
+
     Example:
-        >>> map_assessment_type('Fixed measurement')
-        'fixed'
-        >>> map_assessment_type('Indicative measurement')
-        'indicative'
-        >>> map_assessment_type('Modelling')
-        'modelling'
+        >>> map_assessment_type('objective')
+        'objective'
+        >>> map_assessment_type('Objective estimation')
+        'objective'
+        >>> map_assessment_type('nonsense') is None
+        True
     """
-    return ASSESSMENT_TYPE_MAPPING.get(notation, 'fixed')
+    if not notation:
+        return None
+    text = str(notation).strip()
+    if text in ASSESSMENT_TYPE_IDS:
+        return text
+    mapped = ASSESSMENT_TYPE_MAPPING.get(text)
+    if mapped is None:
+        logger.warning('No aq/assessmenttype term for %r; AssessmentType (CAM_07) is '
+                       'left blank rather than guessed', notation)
+    return mapped
 
 
 

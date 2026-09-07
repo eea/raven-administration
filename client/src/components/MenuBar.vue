@@ -79,7 +79,8 @@ const getmodules = () => {
         { name: "Assessment Regime Zones", comp: "AssessmentRegimeZones", show: jwt.management && jwt.allnetworks },
         { name: "Spatial Representativeness", comp: "SpatialRepresentativeness", show: jwt.management },
         { name: "Models / OBE", comp: "Models", show: jwt.management && jwt.allnetworks },
-        { name: "Pollution Level Adjustments", comp: "PollutionLevelAdjustment", show: jwt.management && jwt.allnetworks }
+        { name: "Pollution Level Adjustments", comp: "PollutionLevelAdjustment", show: jwt.management && jwt.allnetworks },
+        { name: "Compliance Assessment Method", comp: "ComplianceAssessmentMethod", show: jwt.management && jwt.allnetworks }
       ]
     },
     {
