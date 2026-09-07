@@ -249,7 +249,15 @@ VOCABULARIES = (
                fallback=AUTHORITY_ROLE_FALLBACK,
                fallback_note='vocabulary returns HTTP 500; values inferred from the guide '
                              'description only - confirm with EEA'),
+    # uri_suffix, not the default notation: this vocabulary's skos:notation is a
+    # cross-reference to the AQR3 attribute that carries the id, not a code for the
+    # concept -- AUTH_01 for nuts0, STA_03 for AirQualityNetwork, and ARZ_05 for
+    # nuts1, nuts2 AND nuts3. Keying on it merged the three NUTS levels into one row,
+    # so an authority could not be reported at NUTS 1 or 2 at all. The concept name is
+    # also what the guide's Authority example writes in the AuthorityInstance column,
+    # so AUT_05 exports it. Migration 019 moves databases already loaded the old way.
     Vocabulary('eea_authorityinstance', 'aq/authorityinstance', aqr3='AUT_05 AuthorityInstance',
+               id_from='uri_suffix',
                fallback=AUTHORITY_INSTANCE_FALLBACK,
                fallback_note='values listed verbatim in the guide description'),
     Vocabulary('eea_authoritystatus', 'aq/authoritystatus', aqr3='AUT_10 AuthorityStatus',

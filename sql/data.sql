@@ -681,8 +681,9 @@ INSERT INTO public.eea_observationverification (id, label, notation, uri) VALUES
 --   eea_documentobject            DOC_03 DocumentType
 --   eea_environmentalobjective    used by assessmentregime_zones
 --
--- Populate with raven-rn3-db/populate_lookups_v4_2.py (fetches from
--- dd.eionet.europa.eu), then set settings.country_code_id to the reporting
+-- Populate with sql/populate_vocabularies.py (fetches from dd.eionet.europa.eu
+-- and follows the id convention in sql/vocabularies.py), then set
+-- settings.country_code_id to the reporting
 -- country — CountryCode is the first column of all 17 AQR3 tables and stays
 -- blank until it is set.
 -- ===========================================================================

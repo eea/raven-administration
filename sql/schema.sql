@@ -563,7 +563,7 @@ create table if not exists user_log_preferences
 
 create table if not exists authorities
 (
-    id                   varchar(100) not null primary key,
+    id                   varchar(100) not null,
     person_name           varchar(255),
     email                 varchar(255) not null,
     authority_name        varchar(255) not null,
@@ -572,19 +572,36 @@ create table if not exists authorities
     authority_instance_id varchar(100)
         references eea_authorityinstance
             on update cascade,
-    authority_role_id     varchar(100)
+    authority_role_id     varchar(100) not null
         references eea_authorityobject
             on update cascade,
     authority_status_id   varchar(100)
         references eea_authoritystatus
-            on update cascade
+            on update cascade,
+    -- AQR3 marks AuthorityInstanceId, AuthorityRole and Email all as primary key, so
+    -- one instance carries several authorities -- a country reports both a reporting
+    -- authority and, separately, its reference laboratory. CountryCode is the fourth
+    -- key attribute and is instance-wide (settings.country_code_id), not a column here.
+    primary key (id, authority_role_id, email)
 );
 
-comment on column authorities.id is 'AQR3 AUT_02 AuthorityInstanceId';
-comment on column authorities.authority_role_id is 'AQR3 AUT_03 AuthorityRole -> eea_authorityobject';
-comment on column authorities.authority_instance_id is 'AQR3 AUT_05 AuthorityInstance (zone | network | nuts0..3 | station | SPO) -> eea_authorityinstance';
+comment on column authorities.id is
+    'AQR3 AUT_02 AuthorityInstanceId. One third of the primary key: several '
+    'authorities may share an instance, differing by role and email';
+comment on column authorities.authority_role_id is
+    'AQR3 AUT_03 AuthorityRole -> eea_authorityobject. Part of the primary key';
+comment on column authorities.email is
+    'AQR3 AUT_04 Email. Part of the primary key -- it is what separates two '
+    'organisations holding the same role for the same instance';
+comment on column authorities.authority_instance_id is
+    'AQR3 AUT_05 AuthorityInstance -> eea_authorityinstance, keyed by concept name '
+    '(nuts0..nuts3 | zone | AirQualityNetwork | AirQualityStationEoICode | '
+    'SamplingPoint | Model)';
 
-comment on table authorities is 'Reportnet3 authority contacts - standalone, not linked to specific networks/stations';
+comment on table authorities is
+    'Reportnet3 authority contacts, feeding AQR3 AUT. Keyed on (AuthorityInstanceId, '
+    'AuthorityRole, Email) as AQR3 specifies; CountryCode, the fourth key attribute, '
+    'is instance-wide and comes from settings.country_code_id';
 
 -- ---------------------------------------------------------------------------
 -- Networks
@@ -1887,5 +1904,11 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
        ('4.502.16', 'baseline: no-op on a fresh install -- the seeds already use the short '
                     'EEA code as eea_*.id and the full URI as uri (migration 016)'),
        ('4.502.17', 'baseline: no-op on a fresh install -- meteo.sql already seeds '
-                    'aq/meteoparameter under id = the URI last segment (migration 017)')
+                    'aq/meteoparameter under id = the URI last segment (migration 017)'),
+       ('4.502.18', 'baseline: schema.sql embodies migration 018 '
+                    '(authorities keys on id, authority_role_id and email)'),
+       -- 019 moves vocabulary rows rather than DDL, and data.sql deliberately leaves
+       -- aq/authorityinstance unseeded, so there is never anything here to move.
+       ('4.502.19', 'baseline: no-op on a fresh install -- vocabularies.py loads '
+                    'aq/authorityinstance under id = the concept name (migration 019)')
 on conflict (version) do nothing;

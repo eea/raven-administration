@@ -124,7 +124,11 @@ AUT = TableSpec(
                a.id                      AS authority_instance_id,
                ar.notation               AS authority_role,
                a.email,
-               ai.notation               AS authority_instance,
+               -- The concept name, which for this vocabulary is the id (it loads
+               -- with id_from='uri_suffix'). Its notation is a cross-reference to the
+               -- AQR3 attribute holding the id -- 'AUTH_01', 'STA_03' -- whereas the
+               -- guide's Authority example writes 'nuts0' in this column.
+               ai.id                     AS authority_instance,
                a.authority_name,
                a.authority_url,
                a.authority_address,
