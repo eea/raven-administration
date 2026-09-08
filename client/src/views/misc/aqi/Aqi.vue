@@ -108,7 +108,7 @@ const isSaveDisabled = computed(() => {
 
 <template>
   <common-layout>
-    <tool-bar title="Local AQI" :show-column-picker="false" :show-add="false" :show-download="false" :show-filter="false" />
+    <tool-bar title="Local AQI" :show-add="false" :show-download="false" :show-filter="false" />
 
     <container v-if="showEmptyMessage">
       <div class="font-bold">Raven uses EEA methodology for air quality index calculations, but you can set up your own local AQI configuration.</div>

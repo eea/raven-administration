@@ -1145,38 +1145,6 @@ create index if not exists zones_geom_gist
     on zones using gist (geom);
 
 -- ---------------------------------------------------------------------------
--- Assessment regime zones
--- ---------------------------------------------------------------------------
-
-create table if not exists assessmentregime_zones
-(
-    id                                 serial primary key,
-    zone_id                            varchar(100) not null
-        references zones
-            on update cascade on delete cascade,
-    environmental_objective_id         integer      not null
-        references eea_environmentalobjective
-            on update cascade on delete cascade,
-    classification_year                integer      not null,
-    document_id                        varchar(255) not null
-        references documents
-            on update cascade on delete cascade,
-    assessment_threshold_exceedance_id varchar(100) not null
-        references eea_assessmentthresholdexceedances
-            on update cascade,
-    constraint assessmentregime_zones_unique
-        unique (zone_id, environmental_objective_id, classification_year)
-);
-
-comment on table assessmentregime_zones is 'v4.8.0 zone-level assessment regime classification';
-
-create index if not exists idx_assessmentregime_zones_zone_year
-    on assessmentregime_zones (zone_id, classification_year);
-
-create index if not exists idx_assessmentregime_zones_env_obj
-    on assessmentregime_zones (environmental_objective_id);
-
--- ---------------------------------------------------------------------------
 -- Assessment regimes
 -- ---------------------------------------------------------------------------
 
@@ -1910,5 +1878,8 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
        -- 019 moves vocabulary rows rather than DDL, and data.sql deliberately leaves
        -- aq/authorityinstance unseeded, so there is never anything here to move.
        ('4.502.19', 'baseline: no-op on a fresh install -- vocabularies.py loads '
-                    'aq/authorityinstance under id = the concept name (migration 019)')
+                    'aq/authorityinstance under id = the concept name (migration 019)'),
+       -- 020 drops a table this file no longer creates, so there is nothing to drop.
+       ('4.502.20', 'baseline: no-op on a fresh install -- schema.sql no longer creates '
+                    'assessmentregime_zones (migration 020)')
 on conflict (version) do nothing;

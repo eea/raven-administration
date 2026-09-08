@@ -120,7 +120,7 @@ const downloadAll = async () => {
 
 <template>
   <common-layout>
-    <tool-bar title="Dataflow Export" :show-filter="false" :show-add="false" :show-column-picker="false" :show-download="false" />
+    <tool-bar title="Dataflow Export" :show-filter="false" :show-add="false" :show-download="false" />
 
     <container>
       <!-- Year selector + Download All -->

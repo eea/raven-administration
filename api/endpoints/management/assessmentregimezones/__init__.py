@@ -1,1 +1,0 @@
-from endpoints.management.assessmentregimezones.routes import assessmentregimezones_endpoint

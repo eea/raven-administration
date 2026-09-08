@@ -228,7 +228,7 @@ const onDownload = () => {
       @close="showLog = false"
     />
 
-    <tool-bar title="Verify" v-model:q="q" :show-filter="true" :show-add="false" :show-column-picker="false" @download-click="onDownload" />
+    <tool-bar title="Verify" v-model:q="q" :show-filter="true" :show-add="false" @download-click="onDownload" />
 
     <container>
       <div class="flex gap-3">

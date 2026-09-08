@@ -28,6 +28,12 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  // Derived row sets -- AQR3 CAM is rebuilt by Recalculate compliance -- have no
+  // delete: the spec retracts a row with a flag, not by removing it.
+  showDeleteButton: {
+    type: Boolean,
+    default: true
+  },
   showDuplicate: {
     type: Boolean,
     default: false
@@ -101,12 +107,29 @@ const onContextMenuAction = ({ action, data }) => {
   }
 };
 
+// Entities whose primary key is a single `id` column post a flat object and are
+// deleted by `{ids: [...]}`; that is the shape `core/query.py::Q.delete` speaks and
+// what every page predating AQR3 v5.02 uses. Declare `keyProps` in pageOptions when
+// the key spans several columns -- the AQR3 tables all do -- and update/delete switch
+// to the `{key, values}` shape those blueprints expect.
+const cmp_keyProps = computed(() => props.options?.keyProps ?? ["id"]);
+const isCompositeKey = computed(() => cmp_keyProps.value.length > 1);
+
+const keyOf = (row) => Object.fromEntries(cmp_keyProps.value.map((k) => [k, row?.[k]]));
+
 const saveEdit = async (o) => {
   Eventy.showMessage("Updating data, Please wait!", "loading");
   for (const key in o) {
     o[key] = o[key]?.length == 0 ? null : o[key];
   }
-  await props.service.update(o);
+  if (isCompositeKey.value) {
+    // selected[0] is the row as loaded -- Crud edits its own copy -- so the original
+    // key survives even when the user changes a key column. An UPDATE keyed on the
+    // new values would match nothing and leave the original row in place.
+    await props.service.update(keyOf(selected.value[0]), o);
+  } else {
+    await props.service.update(o);
+  }
   await loadData();
   Eventy.showHideMessage(`${props.name} saved`, "success", 5000);
   close();
@@ -128,7 +151,12 @@ const saveDelete = async (o) => {
 
   Eventy.showMessage("Deleting data, Please wait!", "loading");
   showConfirm.value = false;
-  await props.service.delete({ ids: selected.value.map((p) => p.id) });
+  if (isCompositeKey.value) {
+    // `where id in (...)` cannot address a composite key, so these delete one row.
+    for (const row of selected.value) await props.service.delete(keyOf(row));
+  } else {
+    await props.service.delete({ ids: selected.value.map((p) => p.id) });
+  }
   await loadData();
   Eventy.showHideMessage(`${props.name} deleted`, "success", 5000);
   close();
@@ -157,12 +185,15 @@ const cmp_properties = computed(() => {
 
     <CmdK v-model="q" :result-count="filteredList.length" />
 
-    <tool-bar :title="name" v-model:q="q" :show-add="showAddButton" :show-download="showDownloadButton" :show-upload="showUpload" @add-click="showAdd = true" @download-click="onDownload" @upload-click="onUpload" />
+    <tool-bar :title="name" v-model:q="q" :show-add="showAddButton" :show-download="showDownloadButton" :show-upload="showUpload" @add-click="showAdd = true" @download-click="onDownload" @upload-click="onUpload">
+      <!-- Page-specific toolbar controls: a year selector, a bulk action. -->
+      <slot name="toolbar" v-bind="{ reload: loadData }" />
+    </tool-bar>
     <input ref="fileInput" type="file" accept=".csv,.gpkg" class="hidden" @change="onFileChange" />
 
     <grid-data-table v-model:selected="selected" :properties="cmp_properties" :values="filteredList" :get-row-style="options.getRowStyle" @context-menu-action="onContextMenuAction" @on-dbl-click="onDoubleClick">
       <template #context-menu-items="{ handleAction, contextData }">
-        <CMenuItems :show-duplicate="showDuplicate" @edit="handleAction('edit')" @delete="handleAction('delete')" @duplicate="handleAction('duplicate')" />
+        <CMenuItems :show-duplicate="showDuplicate" :show-delete="showDeleteButton" @edit="handleAction('edit')" @delete="handleAction('delete')" @duplicate="handleAction('duplicate')" />
         <slot name="extra-context-menu-items" v-bind="{ handleAction, contextData }" />
       </template>
     </grid-data-table>

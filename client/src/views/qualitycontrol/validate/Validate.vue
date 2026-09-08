@@ -451,7 +451,7 @@ const getRowId = (params) => String(params.data.id);
       :to-dt="logRow?.totime"
       @close="showLog = false"
     />
-    <tool-bar title="Validate" :show-filter="false" :show-add="false" :show-column-picker="false" @download-click="onDownload" />
+    <tool-bar title="Validate" :show-filter="false" :show-add="false" @download-click="onDownload" />
 
     <container>
       <div class="flex gap-2">

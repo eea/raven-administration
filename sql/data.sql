@@ -687,7 +687,8 @@ INSERT INTO public.eea_observationverification (id, label, notation, uri) VALUES
 --   eea_objectivetypes            ARZ_11 ObjectiveType
 --   eea_datatable                 DOC_02 DataTable
 --   eea_documentobject            DOC_03 DocumentType
---   eea_environmentalobjective    used by assessmentregime_zones
+--   eea_environmentalobjective    enumerated by the assessment regime bulk fill
+--                                 (/api/management/assessmentregimes/candidates)
 --
 -- Populate with sql/populate_vocabularies.py (fetches from dd.eionet.europa.eu
 -- and follows the id convention in sql/vocabularies.py), then set

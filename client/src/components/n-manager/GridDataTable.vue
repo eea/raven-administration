@@ -65,7 +65,12 @@ const columns = computed(() => {
           const checked = params.value ? "checked" : "";
           return `<input type="checkbox" ${checked} disabled />`;
         };
-      } else if (prop.type === "gridOnly" && prop.val_func) {
+      }
+
+      // Any property may render through val_func, not just gridOnly: a lookup whose
+      // stored value is not what the grid should show -- a tri-state boolean, an id
+      // with no display column beside it -- needs the same hook.
+      if (prop.val_func) {
         col.valueGetter = (params) => prop.val_func(klona(params.data));
       }
 

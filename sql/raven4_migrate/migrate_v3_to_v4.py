@@ -498,7 +498,7 @@ class Migration:
             'notifications_samplingpoints', 'notifications_runs', 'notifications',
             'aqi', 'statistics', 'directives',
             'exceedingmethods', 'exceedancedescriptions', 'attainments',
-            'assessmentdata', 'assessment_regimes', 'assessmentregime_zones', 'zones',
+            'assessmentdata', 'assessment_regimes', 'zones',
             'autovalidated_series', 'converted_series', 'calculated_series', 'scaling_points',
             'observations', 'processes', 'sampling_points',
             'stations', 'groupnetwork', 'networks', 'authorities',

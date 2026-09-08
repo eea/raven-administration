@@ -166,7 +166,7 @@ const exportToCSV = () => {
 
 <template>
   <common-layout>
-    <tool-bar title="Statistics" :show-column-picker="false" :show-add="false" :show-download="false" :show-filter="false" />
+    <tool-bar title="Statistics" :show-add="false" :show-download="false" :show-filter="false" />
 
     <container>
       <div class="flex gap-2">

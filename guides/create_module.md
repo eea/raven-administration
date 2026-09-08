@@ -86,13 +86,21 @@ onMounted(async () => {
 
 <template>
   <common-layout>
-    <tool-bar title="Map" :show-column-picker="false" :show-add="false" :show-download="false" :show-filter="false" />
+    <tool-bar title="Map" :show-add="false" :show-download="false" :show-filter="false" />
     <div class="border border-nord4 h-full w-full flex-1" id="map"></div>
   </common-layout>
 </template>
 
 <style></style>
 ```
+
+`ToolBar` accepts `title`, `show-add`, `show-download`, `show-upload`, `show-filter`,
+`filter-text` and `q` — nothing else. It has no column picker: that lives in
+`components/n-manager/GridDataTable.vue` and comes with `Manager`, so a page built
+around the raw `DataTable` has none. For a CRUD page prefer `Manager` and a
+`pageOptions.js` (see `views/management/samplingpoints/`) over assembling `ToolBar` and
+`DataTable` by hand — you get the picker, the edit popup, delete confirmation and the
+cmd-K filter with it.
 
 ### Register route
 

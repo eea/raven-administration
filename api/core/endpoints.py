@@ -39,9 +39,6 @@ class Endpoints:
         from endpoints.management.assessmentregimes.routes import assessmentregimes_endpoint
         app.register_blueprint(assessmentregimes_endpoint)
 
-        from endpoints.management.assessmentregimezones.routes import assessmentregimezones_endpoint
-        app.register_blueprint(assessmentregimezones_endpoint)
-
         from endpoints.management.pollutionleveladjustment.routes import adjustments_endpoint
         app.register_blueprint(adjustments_endpoint)
 

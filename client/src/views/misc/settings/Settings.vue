@@ -49,7 +49,7 @@ const onSave = async () => {
 
 <template>
   <common-layout>
-    <tool-bar title="Settings" :show-column-picker="false" :show-add="false" :show-download="false" :show-filter="false" />
+    <tool-bar title="Settings" :show-add="false" :show-download="false" :show-filter="false" />
 
     <container class="p-4!">
       <div class="flex gap-4 items-end">

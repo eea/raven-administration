@@ -5,12 +5,17 @@ so a country installing raven v4 fresh could not create one at all — and since
 core/reporting/aqr3/compliance.py derives ComplianceAssessmentMethod from the
 regimes, both ARZ and CAM exported empty.
 
-Note this is a different table from `assessmentregime_zones`, which
-endpoints/management/assessmentregimezones manages: that one is the zone x
-environmental-objective threshold grid, and it covers only the classification
-document and threshold exceedance.
+This is the table the ARZ export reads (core/reporting/aqr3/spec.py). A second table,
+`assessmentregime_zones`, used to shadow it behind a menu entry of its own: a
+zone x environmental-objective grid carrying only the classification document and the
+threshold exceedance. It could not express ARZ — no AssessmentRegimeId, and pollutant,
+protection target, objective type and reporting metric collapsed into a single
+environmental objective — and nothing exported it, so migration 020 dropped it. Its one
+useful trick, filling the zone x objective grid for a year, survives here as
+/candidates and /generate, which write real regimes with derived ARZ_02 ids.
 """
 from flask import Blueprint, jsonify, request
+from pydantic import ValidationError
 from werkzeug.exceptions import BadRequest
 
 from core.database import CursorFromPool
@@ -140,10 +145,15 @@ def assessmentregimes_lookups():
             """)
             result[key] = cursor.fetchall()
 
+        # Filtered by DOC_02 DataTable, the way the retired assessmentregimezones grid
+        # did it: an unfiltered list offers documents belonging to other tables as a
+        # ClassificationDocumentId, which fails Reportnet3 QC rather than the form.
         cursor.execute("""
-            SELECT d.id AS value, d.id || ' - ' || COALESCE(dobj.label, '') AS label
+            SELECT d.id AS value,
+                   d.id || ' - ' || COALESCE(NULLIF(dobj.notation, ''), dobj.label, '') AS label
             FROM documents d
             LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
+            WHERE d.datatable_id = 'assessmentregimezone'
             ORDER BY d.id
         """)
         result['documents'] = cursor.fetchall()
@@ -192,3 +202,158 @@ def assessmentregimes_delete():
     if rows == 0:
         raise BadRequest('Could not delete for ids ' + ','.join(model.ids))
     return jsonify({'msg': 'Assessment regime deleted successfully'})
+
+
+# ---------------------------------------------------------------------------
+# Bulk fill, inherited from the retired assessmentregimezones grid.
+#
+# That grid listed `zones CROSS JOIN eea_environmentalobjective` for a year and let an
+# operator annotate combinations in bulk. The annotations went to a table nothing
+# exported. The same enumeration is genuinely useful here, where the rows it produces
+# are real regimes: a country declares a regime per zone per objective, and typing a
+# few hundred of them one popup at a time is the reason the grid existed.
+#
+# An environmental objective bundles what ARZ keeps as four separate attributes, so
+# each candidate is decomposed on the way in — that translation is what the old table
+# never did, and why its rows could not become ARZ rows.
+# ---------------------------------------------------------------------------
+
+# eea_environmentalobjective.protection_target and .reporting_metric hold URIs, not
+# ids — migration 016 step 5 says so explicitly and exempts them from the id
+# normalisation. objective_type is not in that exemption and the retired grid rendered
+# it verbatim, so it is matched against all three candidate columns rather than
+# guessed at; a vocabulary reload that changes the convention then still resolves.
+_CANDIDATE_SQL = """
+    SELECT * FROM (
+        SELECT DISTINCT ON (z.id, eo.related_pollutant, ot.id, pt.id, rm.id)
+               z.id                                    AS zone_id,
+               z.name                                  AS zone_name,
+               z.zone_national_code,
+               eo.id                                   AS environmental_objective_id,
+               eo.related_pollutant                    AS pollutant_id,
+               COALESCE(NULLIF(p.notation, ''), p.label)   AS pollutant,
+               ot.id                                   AS objective_type_id,
+               ot.notation                             AS objective_type,
+               pt.id                                   AS protection_target_id,
+               pt.notation                             AS protection_target,
+               rm.id                                   AS reporting_metric_id,
+               rm.notation                             AS reporting_metric
+        FROM zones z
+        CROSS JOIN eea_environmentalobjective eo
+        LEFT JOIN eea_pollutants p         ON p.id  = eo.related_pollutant
+        LEFT JOIN eea_protectiontargets pt ON pt.uri = eo.protection_target
+        LEFT JOIN eea_reportingmetrics rm  ON rm.uri = eo.reporting_metric
+        LEFT JOIN eea_objectivetypes ot    ON eo.objective_type IN (ot.id, ot.uri, ot.notation)
+        -- Only the objectives that carry a threshold, as the retired grid filtered them.
+        WHERE (eo.assessment_threshold LIKE '%%UAT%%'
+            OR eo.assessment_threshold LIKE '%%LAT%%'
+            OR eo.assessment_threshold LIKE '%%LTO%%')
+          -- ARZ_09 PollutantId is NOT NULL on assessment_regimes and is part of ARZ_02,
+          -- so an objective with no related pollutant cannot become a regime at all.
+          -- Excluded here rather than offered and then skipped.
+          AND eo.related_pollutant IS NOT NULL
+          -- A regime already covering this combination for the year is not a candidate.
+          -- Matched on the five attributes ARZ_02 is derived from rather than on the id,
+          -- so a regime whose id was entered by hand still counts as covering it.
+          AND NOT EXISTS (
+                SELECT 1 FROM assessment_regimes ar
+                 WHERE ar.zone_id             = z.id
+                   AND ar.classification_year = %(year)s
+                   AND ar.pollutant_id        IS NOT DISTINCT FROM eo.related_pollutant
+                   AND ar.objective_type_id   IS NOT DISTINCT FROM ot.id
+                   AND ar.protection_target_id IS NOT DISTINCT FROM pt.id
+                   AND ar.reporting_metric_id IS NOT DISTINCT FROM rm.id)
+        -- DISTINCT ON, because several environmental objectives can decompose to one
+        -- regime: an objective carries an assessment threshold, and ARZ does not, so the
+        -- UAT/LAT objective and the LTO objective for the same pollutant, protection
+        -- target, objective type and reporting metric are the same regime. Listing both
+        -- would promise more rows than generating can create -- their derived ARZ_02 is
+        -- byte-identical -- and the second would silently be reported as skipped.
+        -- eo.id last makes the surviving representative deterministic.
+        ORDER BY z.id, eo.related_pollutant, ot.id, pt.id, rm.id, eo.id
+    ) c
+    ORDER BY c.zone_national_code, c.pollutant, c.objective_type
+"""
+
+
+@assessmentregimes_endpoint.route('/api/management/assessmentregimes/candidates',
+                                  methods=['GET'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def assessmentregimes_candidates():
+    """Zone x environmental-objective combinations with no regime yet for a year."""
+    year = request.args.get('year', type=int)
+    if year is None:
+        raise BadRequest('A "year" query parameter is required')
+
+    with CursorFromPool() as cursor:
+        cursor.execute(_CANDIDATE_SQL, {'year': year})
+        return jsonify(cursor.fetchall())
+
+
+@assessmentregimes_endpoint.route('/api/management/assessmentregimes/generate',
+                                  methods=['POST'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def assessmentregimes_generate():
+    """Create regimes for the chosen combinations, deriving each ARZ_02.
+
+    The candidates are re-read here rather than trusted from the request: the ids are
+    what the derived AssessmentRegimeId is built from, and a client that sent a
+    zone/objective pair it never saw would produce a conformant-looking identifier for
+    a combination that does not exist.
+    """
+    body = request.json or {}
+    year = body.get('year')
+    wanted = body.get('combinations') or []
+    if not isinstance(year, int):
+        raise BadRequest('"year" is required and must be a whole year')
+    if not wanted:
+        raise BadRequest('Select at least one combination to generate')
+
+    # The two optional annotations the retired grid existed to set.
+    threshold = body.get('assessment_threshold_exceedance_id') or None
+    document = body.get('classification_document_id') or None
+
+    keys = {(str(c.get('zone_id')), c.get('environmental_objective_id')) for c in wanted}
+
+    created, skipped = [], 0
+    with CursorFromPool() as cursor:
+        cursor.execute(_CANDIDATE_SQL, {'year': year})
+        candidates = [row for row in cursor.fetchall()
+                      if (str(row['zone_id']), row['environmental_objective_id']) in keys]
+
+        for row in candidates:
+            try:
+                model = AssessmentRegimeModel(
+                    id=None,
+                    zone_id=row['zone_id'],
+                    pollutant_id=row['pollutant_id'],
+                    protection_target_id=row['protection_target_id'],
+                    objective_type_id=row['objective_type_id'],
+                    reporting_metric_id=row['reporting_metric_id'],
+                    assessment_threshold_exceedance_id=threshold,
+                    classification_year=year,
+                    classification_document_id=document,
+                )
+                model = model.model_copy(update={'id': _derive_id(cursor, model)})
+            except (BadRequest, ValidationError):
+                # An objective missing a pollutant or a vocabulary term cannot yield a
+                # conformant ARZ_02. Skipping keeps the rest of the batch, and the
+                # count says how many were left out.
+                skipped += 1
+                continue
+
+            columns = ', '.join(('id',) + COLUMNS)
+            values = ', '.join(f'%({c})s' for c in ('id',) + COLUMNS)
+            cursor.execute(
+                f'INSERT INTO assessment_regimes ({columns}) VALUES ({values}) '
+                f'ON CONFLICT (id) DO NOTHING', model)
+            if cursor.rowcount:
+                created.append(model.id)
+            else:
+                skipped += 1
+
+    return jsonify({'msg': f'Created {len(created)} assessment regimes'
+                           + (f', skipped {skipped}' if skipped else ''),
+                    'created': created, 'skipped': skipped})

@@ -102,7 +102,7 @@ const onOpenErrorPopup = (msg) => {
     <popup :show="showErrorPopup" title="Notifications error" @on-close="onCloseErrorPopup">{{ errorMessage }}</popup>
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete the notification?" @close="onCloseCrud" @ok="onSaveDelete" />
     <Crud :data="selectedRow" :sampling-points="samplingPoints" :show="showCrud" @on-close="onCloseCrud" />
-    <tool-bar title="Notifications" :show-column-picker="false" :show-add="true" :show-download="false" :show-filter="false" @add-click="onOpenCrud" />
+    <tool-bar title="Notifications" :show-add="true" :show-download="false" :show-filter="false" @add-click="onOpenCrud" />
 
     <div class="min-h-36">
       <DataTable :data="notifications" :columns="notificationsColumns" :filter="false" :floating-filter="false" @on-double-click="onOpenCrud" @context-menu-action="onContextMenuAction">

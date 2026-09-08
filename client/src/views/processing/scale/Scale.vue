@@ -214,7 +214,7 @@ const cmp_scalingpoints = computed(() => [...scalingpoints.value].reverse());
 <template>
   <common-layout>
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete the scaling point?" @close="close" @ok="onSaveDelete" />
-    <tool-bar title="Scale" :show-filter="false" @add-click="onShowAdd" :show-download="false" :show-column-picker="false" />
+    <tool-bar title="Scale" :show-filter="false" @add-click="onShowAdd" :show-download="false" />
     <Crud :show="showCrud" :obj="selected" :is-edit="isEdit" :group-members="groupMembers" :primary-pollutant="primaryPollutant" :scaling-points="scalingpoints" @close="close" @save="onSaveCrud" />
 
     <container>

@@ -98,7 +98,7 @@ const evaluateExceedances = async () => {
 
 <template>
   <common-layout>
-    <tool-bar title="Exceedances" :show-column-picker="false" :show-add="false" :show-download="false" :show-filter="false" />
+    <tool-bar title="Exceedances" :show-add="false" :show-download="false" :show-filter="false" />
 
     <container>
       <div class="flex gap-2 flex-wrap">

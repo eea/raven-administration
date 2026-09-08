@@ -72,7 +72,7 @@ const rectByAqi = (color, hideNoData) => {
 
 <template>
   <common-layout>
-    <tool-bar title="Map" :show-column-picker="false" :show-add="false" :show-download="false" :show-filter="false" />
+    <tool-bar title="Map" :show-add="false" :show-download="false" :show-filter="false" />
     <div class="border border-nord4 h-full w-full flex-1">
       <LMap ref="map" :zoom="2" :center="[0, 0]" :options="{ zoomControl: false, attributionControl: false }" class="relative" @ready="onMapReady">
         <LTileLayer :url="url" attribution="" layer-type="base" />

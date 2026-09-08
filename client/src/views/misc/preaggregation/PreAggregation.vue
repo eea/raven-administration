@@ -53,7 +53,7 @@ const update = async () => {
 
 <template>
   <common-layout>
-    <tool-bar title="Pre aggregation" :show-column-picker="false" :show-add="false" :show-download="false" :show-filter="false" />
+    <tool-bar title="Pre aggregation" :show-add="false" :show-download="false" :show-filter="false" />
 
     <container>
       <div class="font-bold">Pre aggregating the data may take a while, depending on the amount of data stored in the database</div>

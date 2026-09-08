@@ -364,7 +364,7 @@ VOCABULARIES = (
     # AQR3 v5.02 is the AAQD 2024/2881 recast, so prefer the recast vocabulary and
     # fall back to the original. CSV because the RDF omits the threshold columns.
     Vocabulary('eea_environmentalobjective', 'aq/environmentalobjective',
-               aqr3='assessmentregime_zones.environmental_objective_id',
+               aqr3='assessment regime bulk fill (not an AQR3 attribute)',
                fmt='csv', id_from='numeric_uri_suffix',
                prefer=('aq/environmentalobjective2024recast',)),
 
