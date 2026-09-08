@@ -316,7 +316,9 @@ def assessmentregimes():
 @jwt_required_with_management_claim()
 def processes():
     with CursorFromPool() as cursor:
-        cursor.execute("select r.id as label, r.id as value from processes r order by r.id")
+        # distinct: since migration 021 a ProcessId is re-used across sampling points,
+        # so the bare id is no longer unique in this table.
+        cursor.execute("select distinct r.id as label, r.id as value from processes r order by r.id")
         processes = cursor.fetchall()
         return jsonify(processes)
 

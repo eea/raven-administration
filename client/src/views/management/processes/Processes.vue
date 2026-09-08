@@ -12,5 +12,5 @@ onMounted(async () => {
 });
 </script>
 <template>
-  <manager name="Processes" :options="options" :service="Service" />
+  <manager name="Sampling processes" :options="options" :service="Service" />
 </template>

@@ -1,15 +1,81 @@
+"""AQR3 SPP SamplingProcess CRUD.
+
+Composite primary key (id, sampling_point_id, process_activity_begin) — the AQR3 key
+minus CountryCode, which is instance-wide. So this does not use the generic Manager
+delete: `Q.delete`'s `where id in (...)` cannot address it, and an UPDATE keyed on `id`
+alone would rewrite every process sharing that ProcessId. Sharing one is the point —
+SPP_02 says the same ProcessId is re-used for the same equipment configuration under
+different sampling points.
+
+Both timestamps are rendered with to_char so the string that identifies a row is the
+same one the date picker round-trips, the way samplingpoints does for from_time/to_time.
+"""
 from flask import jsonify, Blueprint, request
-from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import BadRequest
 from core.database import CursorFromPool
 from core.query_access import Access
-from endpoints.management.processes.models import ProcessModel
-from core.query import Q, DeleteModel
+from endpoints.management.processes.models import ProcessKey, ProcessModel
+from core.query import Q
 from core.jwt_ext_custom import jwt_required_with_management_claim, jwt_required_with_allnetworks_claim
 from core import series_metadata as smeta
 
 
 processes_endpoint = Blueprint('processes', __name__)
+
+# Written by both insert and update, in one place so the two cannot drift.
+VALUES = ('process_activity_end', 'data_quality_document_id',
+          'equivalence_demonstration_document_id', 'process_document_id',
+          'measurement_type_id', 'method_id', 'equipment_id',
+          'analytical_technique_id', 'equivalence_demonstrated_id',
+          'equipment_identifier')
+KEY = ('id', 'sampling_point_id', 'process_activity_begin')
+
+
+def _assert_no_overlap(cursor, model, replacing=None):
+    """Reject an activity period that overlaps another process on the same sampling point.
+
+    AQR3 SPP_04: "If there is more than one ProcessId within the same AssessmentMethodId,
+    then [ProcessActivityBegin] - [ProcessActivityEnd] should not overlap within the same
+    AssessmentMethodId." Nothing in the schema enforces it, and two overlapping periods
+    would report two different equipment configurations for the same instant with no way
+    to tell which measured the data. A NULL end means "still running", so it overlaps
+    everything after its start.
+
+    Rejected rather than silently closing the earlier period: for reporting data an
+    implicit edit to a row the user did not name is worse than being told to close it.
+    """
+    cursor.execute("""
+        SELECT id,
+               to_char(process_activity_begin, 'YYYY-MM-DD HH24:MI') AS begins,
+               to_char(process_activity_end,   'YYYY-MM-DD HH24:MI') AS ends
+        FROM processes
+        WHERE sampling_point_id = %(sampling_point_id)s
+          -- Skip the row being edited, identified by the key it had before this save.
+          -- The IS NULL escape is load-bearing: on insert there is nothing to replace,
+          -- and `NOT (id = NULL AND ...)` is NULL rather than true, which would filter
+          -- out every candidate and make the guard silently pass.
+          AND (%(replacing_id)s::varchar IS NULL
+               OR NOT (id = %(replacing_id)s
+                       AND process_activity_begin = %(replacing_begin)s::timestamp))
+          AND %(process_activity_begin)s::timestamp
+              < COALESCE(process_activity_end, 'infinity'::timestamp)
+          AND process_activity_begin
+              < COALESCE(%(process_activity_end)s::timestamp, 'infinity'::timestamp)
+        ORDER BY process_activity_begin
+        LIMIT 1
+    """, {'sampling_point_id': model.sampling_point_id,
+          'process_activity_begin': model.process_activity_begin,
+          'process_activity_end': model.process_activity_end,
+          'replacing_id': replacing.id if replacing else None,
+          'replacing_begin': replacing.process_activity_begin if replacing else None})
+    clash = cursor.fetchone()
+    if clash:
+        raise BadRequest(
+            f'This period overlaps process {clash["id"]} on the same sampling point, '
+            f'which starts {clash["begins"]} and ends '
+            f'{clash["ends"] or "(still running)"}. AQR3 SPP_04 requires the periods of '
+            f'two processes on one sampling point not to overlap. Close that period '
+            f'first, or move this one.')
 
 
 @processes_endpoint.route('/api/management/processes', methods=['GET'])
@@ -21,8 +87,12 @@ def processes():
           {with_samplingpoints_sql}
           SELECT
               pr.id,
-              pr.process_activity_begin,
-              pr.process_activity_end,
+              -- to_char, not the raw timestamp: process_activity_begin is part of the
+              -- primary key, so the string the grid holds is the one posted back to
+              -- address the row. Same shape samplingpoints uses for from_time/to_time,
+              -- which is also what Crud.vue's date picker emits.
+              to_char(pr.process_activity_begin, 'YYYY-MM-DD HH24:MI') as process_activity_begin,
+              to_char(pr.process_activity_end,   'YYYY-MM-DD HH24:MI') as process_activity_end,
               pr.data_quality_document_id, dqr.id || ' - ' || COALESCE(dqr_obj.label, '') as data_quality_document,
               pr.equivalence_demonstration_document_id, edr.id || ' - ' || COALESCE(edr_obj.label, '') as equivalence_demonstration_document,
               pr.process_document_id, pd.id || ' - ' || COALESCE(pd_obj.label, '') as process_document,
@@ -32,6 +102,13 @@ def processes():
               pr.analytical_technique_id, COALESCE(NULLIF(at.notation, ''), at.label) as analytical_technique,
               pr.equivalence_demonstrated_id, COALESCE(NULLIF(ed.notation, ''), ed.label) as equivalence_demonstrated,
               pr.sampling_point_id, sp.id as sampling_point,
+              -- The sampling point's own context, so the grid can lead with something
+              -- readable. AQR3 reaches SPP_06 PollutantId the same way -- through the
+              -- sampling point -- because `processes` has no pollutant of its own.
+              s.name as station,
+              COALESCE(NULLIF(po.notation, ''), po.label) as pollutant,
+              t.notation as time_resolution,
+              u.notation as unit,
               pr.equipment_identifier
           FROM processes pr
               LEFT JOIN eea_measurementtypes mt ON pr.measurement_type_id = mt.id
@@ -46,6 +123,13 @@ def processes():
               LEFT JOIN documents pd ON pr.process_document_id = pd.id
               LEFT JOIN eea_documentobject pd_obj ON pd.documentobject_id = pd_obj.id
               INNER JOIN sampling_points sp ON pr.sampling_point_id = sp.id
+              -- stations is inner: sampling_points.station_id is not null. The other
+              -- three are nullable since migrations 012/013, so they must be LEFT or a
+              -- sub-hourly or non-concentration series would drop out of the grid.
+              INNER JOIN stations s ON sp.station_id = s.id
+              LEFT JOIN eea_pollutants po ON sp.pollutant_id = po.id
+              LEFT JOIN eea_times t ON sp.time_resolution_id = t.id
+              LEFT JOIN eea_concentrations u ON sp.unit_id = u.id
               INNER JOIN sampling_point_access spa ON sp.id = spa.id
           ORDER BY pr.id
         """, n_param)
@@ -139,76 +223,87 @@ def processes_lookups():
 @processes_endpoint.route('/api/management/processes/update', methods=['POST'])
 @jwt_required_with_management_claim()
 def processes_update():
+    """Update one process, identified by `key`, with the values in `values`.
+
+    All three key parts are editable, so the key travels separately: the SET clause
+    writes the new key while the WHERE clause still matches the old one.
+    """
+    body = request.json or {}
+    if 'key' not in body or 'values' not in body:
+        raise BadRequest('Body must be {key: {id, sampling_point_id, '
+                         'process_activity_begin}, values: {...}}')
+
+    key = ProcessKey(**body['key'])
+    model = ProcessModel(**body['values'])
+
+    # Both the row being moved and the row it is moving to must be reachable.
+    for sampling_point_id in {key.sampling_point_id, model.sampling_point_id}:
+        if not Access.to_sampling_point(sampling_point_id):
+            raise BadRequest(f'Access denied for sampling point {sampling_point_id}')
+
+    assignments = ', '.join(
+        ['id = %(new_id)s',
+         'sampling_point_id = %(new_sampling_point_id)s',
+         'process_activity_begin = %(new_process_activity_begin)s::timestamp',
+         'process_activity_end = %(process_activity_end)s::timestamp'] +
+        [f'{c} = %({c})s' for c in VALUES if c != 'process_activity_end'])
+    params = {c: model[c] for c in VALUES}
+    params.update({f'new_{c}': model[c] for c in KEY})
+    params.update({c: key[c] for c in KEY})
+
     with CursorFromPool() as cursor:
-        model = ProcessModel(**request.json)
-        
-        if not Access.to_sampling_point(model.sampling_point_id):
-            raise BadRequest("Access denied for sampling point")
-        
-        sql = """        
+        _assert_no_overlap(cursor, model, replacing=key)
+        cursor.execute(f"""
             UPDATE processes
-            SET 
-              process_activity_begin = %(process_activity_begin)s,
-              process_activity_end = %(process_activity_end)s,
-              data_quality_document_id = %(data_quality_document_id)s,
-              equivalence_demonstration_document_id = %(equivalence_demonstration_document_id)s,
-              process_document_id = %(process_document_id)s,
-              measurement_type_id = %(measurement_type_id)s,
-              method_id = %(method_id)s,
-              equipment_id = %(equipment_id)s,
-              analytical_technique_id = %(analytical_technique_id)s,
-              equivalence_demonstrated_id = %(equivalence_demonstrated_id)s,
-              sampling_point_id = %(sampling_point_id)s,
-              equipment_identifier = %(equipment_identifier)s
+            SET {assignments}
             WHERE id = %(id)s
-        """
-
-        cursor.execute(sql, model)
+              AND sampling_point_id = %(sampling_point_id)s
+              AND process_activity_begin = %(process_activity_begin)s::timestamp
+        """, params)
         if cursor.rowcount == 0:
-            raise BadRequest("Could not update for id " + model.id)
+            raise BadRequest(f'No process {key.id} on {key.sampling_point_id} starting '
+                             f'{key.process_activity_begin}')
 
-        return jsonify({"msg": "Process updated successfully"})
+    return jsonify({"msg": "Process updated successfully"})
 
 
 @processes_endpoint.route('/api/management/processes/insert', methods=['POST'])
 @jwt_required_with_management_claim()
 def processes_insert():
-    with CursorFromPool() as cursor:
-        model = ProcessModel(**request.json)
-        
-        if not Access.to_sampling_point(model.sampling_point_id):
-            raise BadRequest("Access denied for sampling point")
-        
-        sql = """
-          INSERT INTO processes (
-            id, process_activity_begin, process_activity_end, data_quality_document_id,
-            equivalence_demonstration_document_id, process_document_id,
-            measurement_type_id, method_id, equipment_id,
-            analytical_technique_id, equivalence_demonstrated_id, sampling_point_id,
-            equipment_identifier
-          )
-          VALUES (
-            %(id)s, %(process_activity_begin)s, %(process_activity_end)s, %(data_quality_document_id)s,
-            %(equivalence_demonstration_document_id)s, %(process_document_id)s,
-            %(measurement_type_id)s, %(method_id)s, %(equipment_id)s,
-            %(analytical_technique_id)s, %(equivalence_demonstrated_id)s, %(sampling_point_id)s,
-            %(equipment_identifier)s
-          )
-        """
-        cursor.execute(sql, model)
-        if cursor.rowcount == 0:
-            raise BadRequest("Could not insert for id " + model.id)
+    model = ProcessModel(**(request.json or {}))
 
-        return jsonify({"msg": "Process created successfully"})
+    if not Access.to_sampling_point(model.sampling_point_id):
+        raise BadRequest("Access denied for sampling point")
+
+    columns = ', '.join(KEY + VALUES)
+    placeholders = ', '.join(
+        ['%(id)s', '%(sampling_point_id)s', '%(process_activity_begin)s::timestamp'] +
+        [f'%({c})s::timestamp' if c == 'process_activity_end' else f'%({c})s'
+         for c in VALUES])
+
+    with CursorFromPool() as cursor:
+        _assert_no_overlap(cursor, model)
+        cursor.execute(
+            f'INSERT INTO processes ({columns}) VALUES ({placeholders})', model)
+
+    return jsonify({"msg": "Process created successfully"}), 201
 
 
 @processes_endpoint.route('/api/management/processes/delete', methods=['POST'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def processes_delete():
-    model = DeleteModel(**request.json)
-    rows = Q.delete("processes", model)
-    if rows == 0:
-        raise BadRequest("Could not delete for ids " + {','.join(model.ids)})
+    key = ProcessKey(**(request.json or {}))
+
+    with CursorFromPool() as cursor:
+        cursor.execute("""
+            DELETE FROM processes
+            WHERE id = %(id)s
+              AND sampling_point_id = %(sampling_point_id)s
+              AND process_activity_begin = %(process_activity_begin)s::timestamp
+        """, key)
+        if cursor.rowcount == 0:
+            raise BadRequest(f'No process {key.id} on {key.sampling_point_id} starting '
+                             f'{key.process_activity_begin}')
 
     return jsonify({"msg": "Process deleted successfully"})

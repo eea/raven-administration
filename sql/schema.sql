@@ -781,7 +781,7 @@ create index if not exists idx_spl_sp_begin
 
 create table if not exists processes
 (
-    id                                    varchar(100) not null primary key,
+    id                                    varchar(100) not null,
     process_activity_begin                timestamp    not null,
     process_activity_end                  timestamp,
     measurement_type_id                   varchar(100)
@@ -811,12 +811,28 @@ create table if not exists processes
     process_document_id                   varchar(255)
         references documents
             on update cascade,
-    equipment_identifier                  varchar(255)
+    equipment_identifier                  varchar(255),
+    -- AQR3 marks ProcessId, AssessmentMethodId and ProcessActivityBegin all as primary
+    -- key, so one equipment configuration serves several sampling points and several
+    -- operating periods. CountryCode is the fourth key attribute and is instance-wide
+    -- (settings.country_code_id), not a column here. `id` leads so a lookup by
+    -- ProcessId alone still uses this index.
+    primary key (id, sampling_point_id, process_activity_begin)
 );
 
-comment on table processes is 'v4.502 AQR3 SamplingProcess (SPP)';
-comment on column processes.id is 'AQR3 SPP_02 ProcessId';
-comment on column processes.process_activity_begin is 'AQR3 SPP_04';
+comment on table processes is
+    'v4.502 AQR3 SamplingProcess (SPP). Keyed on (ProcessId, AssessmentMethodId, '
+    'ProcessActivityBegin) as AQR3 specifies; CountryCode, the fourth key attribute, '
+    'is instance-wide and comes from settings.country_code_id';
+comment on column processes.id is
+    'AQR3 SPP_02 ProcessId. One third of the primary key: the same ProcessId is '
+    're-used for the same equipment configuration under different sampling points';
+comment on column processes.sampling_point_id is
+    'AQR3 SPP_03 AssessmentMethodId -> sampling_points. Part of the primary key, and '
+    'the SPP export inner joins it -- a process without one is not reported at all';
+comment on column processes.process_activity_begin is
+    'AQR3 SPP_04 ProcessActivityBegin. Part of the primary key: one sampling point may '
+    'carry the same ProcessId over several distinct operating periods';
 comment on column processes.process_activity_end is 'AQR3 SPP_05';
 comment on column processes.equipment_identifier is 'Raven-internal: serial/asset tag of the physical analyser. No AQR3 equivalent.';
 
@@ -1881,5 +1897,8 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
                     'aq/authorityinstance under id = the concept name (migration 019)'),
        -- 020 drops a table this file no longer creates, so there is nothing to drop.
        ('4.502.20', 'baseline: no-op on a fresh install -- schema.sql no longer creates '
-                    'assessmentregime_zones (migration 020)')
+                    'assessmentregime_zones (migration 020)'),
+       ('4.502.21', 'baseline: schema.sql embodies migration 021 '
+                    '(processes keys on id, sampling_point_id and '
+                    'process_activity_begin)')
 on conflict (version) do nothing;
