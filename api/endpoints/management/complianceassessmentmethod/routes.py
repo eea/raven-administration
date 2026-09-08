@@ -63,6 +63,11 @@ def compliance_rows():
                    c.assessment_regime_id,
                    c.data_aggregation_process_id,
                    c.assessment_method_id,
+                   -- CAM_05 is either a sampling_points.id or a models.id (schema.sql:1646),
+                   -- so it is resolved against both. Each join is on a primary key, so
+                   -- neither can fan out; an id in neither table stays NULL and the grid
+                   -- falls back to showing the id itself.
+                   COALESCE(m.assessment_method_name, st.name)  as assessment_method,
                    c.pollutant_id,
                    COALESCE(NULLIF(p.notation, ''), p.label)   as pollutant,
                    c.assessment_type_id,
@@ -94,6 +99,9 @@ def compliance_rows():
             LEFT JOIN zones z                   ON z.id  = ar.zone_id
             LEFT JOIN eea_objectivetypes ot     ON ot.id = ar.objective_type_id
             LEFT JOIN eea_reportingmetrics rm   ON rm.id = ar.reporting_metric_id
+            LEFT JOIN models m                  ON m.id  = c.assessment_method_id
+            LEFT JOIN sampling_points sp        ON sp.id = c.assessment_method_id
+            LEFT JOIN stations st               ON st.id = sp.station_id
             WHERE c.reporting_year = %(year)s
             ORDER BY c.assessment_regime_id, c.assessment_method_id,
                      c.data_aggregation_process_id
