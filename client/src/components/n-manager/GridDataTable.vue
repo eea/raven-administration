@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { klona } from "klona";
 import DataTable from "../DataTable.vue";
 
@@ -22,17 +22,45 @@ const toggleableProps = computed(() =>
 
 const colStorageKey = `raven-cols-${window.location.pathname}`;
 
-function loadHiddenCols() {
+function savedHiddenCols() {
   try {
     const saved = localStorage.getItem(colStorageKey);
     if (saved) return new Set(JSON.parse(saved));
   } catch {}
-  // Default: hide props that declare defaultHidden: true
-  return new Set(props.properties.filter((p) => p.defaultHidden).map((p) => p.prop));
+  return null;
+}
+
+// Default: hide props that declare defaultHidden: true
+const defaultHiddenCols = (properties) =>
+  new Set((properties ?? []).filter((p) => p.defaultHidden).map((p) => p.prop));
+
+function loadHiddenCols() {
+  return savedHiddenCols() ?? defaultHiddenCols(props.properties);
 }
 
 const hiddenCols = ref(loadHiddenCols());
 const showColumnToggle = ref(false);
+
+// Manager renders this component before the page's onMounted has fetched its lookups
+// and assigned `options`, so `properties` is [] on the first pass and the seed above
+// has nothing to read -- which is why every defaultHidden declaration used to be
+// inert. Seed again the first time a real list arrives.
+//
+// Once only, and never over a stored choice: a plugin can contribute columns later
+// via usePluginPageExtension, and re-seeding then would un-show a column the viewer
+// had ticked. A defaultHidden column added after a viewer already has a preference
+// stored does show for them, being absent from their hidden set -- that is how the
+// picker has always treated a new column, and hiding it on their behalf would
+// silently overrule a choice they made.
+let seeded = (props.properties?.length ?? 0) > 0;
+watch(
+  () => props.properties,
+  (properties) => {
+    if (seeded || !properties?.length) return;
+    seeded = true;
+    if (!savedHiddenCols()) hiddenCols.value = defaultHiddenCols(properties);
+  }
+);
 
 function toggleCol(prop) {
   const next = new Set(hiddenCols.value);
