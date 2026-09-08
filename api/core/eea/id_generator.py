@@ -12,6 +12,15 @@ place and validated before write rather than discovered by the EEA's QC.
     AssessmentMethodId  MOD_<specific> | OBE_<specific>          (models only)
     PlanId              PLA_<ZoneId>[_<PollutantId>_<ObjectiveType>_<ProtectionTarget>_<ReportingMetric>]
 
+One more is generated here without being mandated at all:
+
+    ProcessId           SPP_<MeasurementType>[_<Method>[_<Equipment>]]   (SPP_02)
+
+AQR3 leaves SPP_02's format to the data provider, so it is built in one place for
+consistency between the loader and the Sampling Processes screen but deliberately has
+no `PATTERNS` entry -- `validate_identifier` must keep accepting an operator's own
+choice of name.
+
 The separator must be an underscore for the fully mandatory ones. Everything is
 derived from its inputs, so regenerating always yields the same identifier.
 
@@ -26,7 +35,10 @@ SEP = '_'
 
 # Reportnet3 identifier column widths (varchar(50) for the regime/attainment ids,
 # varchar(32) for SamplingPointReferenceId).
-MAX_LEN = {'ARE': 50, 'ATT': 50, 'SCE': 50, 'PLA': 50, 'SPOref': 32, 'MOD': 50, 'OBE': 50}
+# SPP_02 ProcessId is varchar(150) in the guide, but processes.id is varchar(100), so
+# the column is the binding limit.
+MAX_LEN = {'ARE': 50, 'ATT': 50, 'SCE': 50, 'PLA': 50, 'SPOref': 32, 'MOD': 50, 'OBE': 50,
+           'SPP': 100}
 
 
 class IdentifierError(ValueError):
@@ -42,6 +54,18 @@ def _part(value, what):
         raise IdentifierError(
             f'{what} ({text!r}) contains "{SEP}", which is the mandatory AQR3 separator')
     return text
+
+
+def _slug(value):
+    """Make one identifier segment out of a vocabulary notation or an instrument name.
+
+    EEA notations are mostly already safe (`UV-FL`, `TEOM1405DF-FDMS`, `API200`), but a
+    few carry spaces, a slash or a plus -- `Thermo-optical EC/OC measurement`,
+    `nephelometry+beta`, `GRIMM EDM 180` -- and instrument names are free text. Anything
+    outside the identifier alphabet collapses to a single hyphen so the underscore stays
+    the separator and nothing else in the segment can be mistaken for one.
+    """
+    return re.sub(r'[^A-Za-z0-9.+-]+', '-', str(value).strip()).strip('-')
 
 
 class EEAIDGenerator:
@@ -149,6 +173,65 @@ class EEAIDGenerator:
         if not str(specific).strip():
             raise IdentifierError('A specific identifier is required after the MOD/OBE prefix')
         return f'{prefix}{SEP}{str(specific).strip()}'
+
+    @staticmethod
+    def generate_process_id(measurement_type=None, method=None, equipment=None,
+                            equipment_identifier=None) -> str:
+        """AQR3 SPP_02 ProcessId: a name for one equipment configuration.
+
+        SPP_02 is the only identifier here whose format AQR3 does **not** mandate --
+        the guide says "given by data provider" and adds the remark that decides the
+        shape:
+
+            "The same ProcessId can be re-used for the same equipment configurations
+             under different sampling points (AssessmentMethodId)."
+
+        So the identifier names the configuration, not the sampling point, and every
+        sampling point running that configuration shares it. That is what migration
+        021 widened the primary key to allow. Reportnet3's own sample data uses the
+        same shape (SPP-MT_A_UV-FL_thermo43i).
+
+        Only the parts that are known are included, because SPP_07-SPP_09 are all
+        optional -- a series with a measurement type and nothing else must still get
+        an identifier, and padding the gaps with a placeholder would make two
+        different configurations look like variants of one.
+
+        Pass each concept's **stable code**, that is its vocabulary URI's last segment,
+        not its skos:notation. For eight concepts across the SPP vocabularies the EEA
+        Data Dictionary's published notation is not its URI segment -- `GRIMM EDM 180`
+        with spaces against `.../GRIMM-EDM180`, next to siblings `GRIMM-EDM180C` and
+        `GRIMM-EDM180D` that do match. The export must emit the notation, because that
+        is the codelist value; an identifier is permanent (a third of the primary key)
+        and wants the machine-stable form.
+
+        >>> EEAIDGenerator.generate_process_id('automatic', 'chemi', 'API200')
+        'SPP_automatic_chemi_API200'
+        >>> EEAIDGenerator.generate_process_id('automatic', 'light-scat', 'GRIMM-EDM180')
+        'SPP_automatic_light-scat_GRIMM-EDM180'
+        >>> EEAIDGenerator.generate_process_id('automatic')
+        'SPP_automatic'
+        >>> EEAIDGenerator.generate_process_id(equipment_identifier='Vaisala WXT MET')
+        'SPP_Vaisala-WXT-MET'
+        """
+        parts = [_slug(value) for value in (measurement_type, method, equipment)
+                 if value is not None and str(value).strip() != '']
+        if not parts:
+            # Nothing from the vocabularies. The instrument name is not an EEA concept,
+            # but it does distinguish one configuration from another, which is the whole
+            # job of SPP_02.
+            fallback = _slug(equipment_identifier) if equipment_identifier else ''
+            if not fallback:
+                raise IdentifierError(
+                    'ProcessId needs at least a measurement type, method, equipment or '
+                    'equipment identifier; there is nothing to name the configuration by')
+            parts = [fallback]
+
+        identifier = SEP.join(['SPP'] + parts)
+        if len(identifier) > MAX_LEN['SPP']:
+            raise IdentifierError(
+                f'ProcessId {identifier!r} exceeds {MAX_LEN["SPP"]} characters '
+                f'(processes.id is varchar(100); SPP_02 itself allows 150)')
+        return identifier
 
 
 # ---------------------------------------------------------------------------
