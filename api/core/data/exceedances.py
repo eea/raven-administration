@@ -25,7 +25,15 @@ logger = logging.getLogger(__name__)
 
 # ============================================================================
 # DIRECTIVE THRESHOLDS
-# Parsed from docs-nilu/aggregations and statistics/Exceedances_Raven.csv
+#
+# The source is docs-nilu/aggregations and statistics/DIRECTIVE_COMPLIANCE_MATRIX.md,
+# and tests/unit/test_directive_thresholds.py asserts the two agree in both directions.
+#
+# NOT Exceedances_Raven.csv beside it, which this table was originally parsed from. That
+# CSV is the earlier export and the two have since diverged: it types As, Cd, Ni and BaP
+# as Limit Values where they are Target Values (2004/107/EC -- only Pb and C6H6 are limit
+# values), and it lacks SO2 CL P1Y 20 µg/m³, the vegetation-protection value the EEA
+# review asked for. It also carries Norwegian decimal commas.
 # ============================================================================
 
 DIRECTIVE_THRESHOLDS = {
@@ -106,9 +114,43 @@ DIRECTIVE_THRESHOLDS = {
                 "unit": "events",
                 "2024/2881": {"value": 0, "operator": ">"}
             }
+        },
+
+        # The three objective types below are the only entries here that
+        # DIRECTIVE_COMPLIANCE_MATRIX.md does not describe -- it covers exceedance
+        # thresholds, and these are exposure objectives whose statistic is a
+        # three-year running mean. Sourced from
+        # generate_attainment/directives/limitvalues.py, where they have always
+        # lived; tests/unit/test_directive_thresholds.py names them in
+        # NOT_IN_THE_MATRIX so the two-way check still holds everywhere else.
+        "TV": {  # Target Value (2008/50 Annex XIV, superseded by the recast)
+            "Annual TV": {
+                "statistic": "P1Y",
+                "unit": "µg/m³",
+                "2008/50": {"value": 25, "operator": ">"},
+                "comment": "2008/50 Annex XIV target value; the recast replaced it "
+                           "with the average exposure reduction obligation"
+            }
+        },
+        "ECO": {  # Exposure Concentration Obligation
+            "AEI obligation": {
+                "statistic": "P3Y",
+                "unit": "µg/m³",
+                "2008/50": {"value": 20, "operator": ">"},
+                "comment": "Average Exposure Indicator ceiling, a 3-calendar-year "
+                           "running mean over urban background points"
+            }
+        },
+        "ERT": {  # Exposure Reduction Target
+            "AEI target": {
+                "statistic": "P3Y",
+                "unit": "µg/m³",
+                "2008/50": {"value": 9.3, "operator": ">"},
+                "comment": "Average exposure reduction target. 9.3, not 9 -- the "
+                           "int() cast in get_limitvalue used to make it 9"
+            }
         }
     },
-    
     # NO2 Thresholds
     "NO2": {
         "LV": {
@@ -314,6 +356,8 @@ DIRECTIVE_THRESHOLDS = {
                 "statistic": "P1Y",
                 "unit": "µg/m³",
                 "2008/50": {"value": 5, "operator": ">"},
+                "2024/2881": {"value": 3.4, "operator": ">"},
+                "WHO": {"value": 1.7, "operator": ">"},
                 "comment": "Annual mean limit value: 5 µg/m³"
             }
         }
@@ -326,6 +370,8 @@ DIRECTIVE_THRESHOLDS = {
                 "statistic": "P1Y",
                 "unit": "µg/m³",
                 "2008/50": {"value": 0.5, "operator": ">"},
+                "2024/2881": {"value": 0.5, "operator": ">"},
+                "WHO": {"value": 0.5, "operator": ">"},
                 "comment": "Annual mean limit value: 0.5 µg/m³"
             }
         }
@@ -338,6 +384,8 @@ DIRECTIVE_THRESHOLDS = {
                 "statistic": "P1Y",
                 "unit": "ng/m³",
                 "2008/50": {"value": 6, "operator": ">"},
+                "2024/2881": {"value": 6, "operator": ">"},
+                "WHO": {"value": 6.6, "operator": ">"},
                 "comment": "Annual mean target value: 6 ng/m³ (PM10 fraction)"
             }
         }
@@ -350,6 +398,8 @@ DIRECTIVE_THRESHOLDS = {
                 "statistic": "P1Y",
                 "unit": "ng/m³",
                 "2008/50": {"value": 5, "operator": ">"},
+                "2024/2881": {"value": 5, "operator": ">"},
+                "WHO": {"value": 5, "operator": ">"},
                 "comment": "Annual mean target value: 5 ng/m³ (PM10 fraction)"
             }
         }
@@ -362,6 +412,8 @@ DIRECTIVE_THRESHOLDS = {
                 "statistic": "P1Y",
                 "unit": "ng/m³",
                 "2008/50": {"value": 20, "operator": ">"},
+                "2024/2881": {"value": 20, "operator": ">"},
+                "WHO": {"value": 25, "operator": ">"},
                 "comment": "Annual mean target value: 20 ng/m³ (PM10 fraction)"
             }
         }
@@ -373,8 +425,27 @@ DIRECTIVE_THRESHOLDS = {
             "Annual TV": {
                 "statistic": "P1Y",
                 "unit": "ng/m³",
-                "2008/50": {"value": 1, "operator": ">"},
+                "2008/50": {"value": 1.0, "operator": ">"},
+                "2024/2881": {"value": 1.0, "operator": ">"},
+                "WHO": {"value": 0.12, "operator": ">"},
                 "comment": "Annual mean target value: 1 ng/m³ (PM10 fraction)"
+            }
+        }
+    },
+
+    # NOx critical level for the protection of vegetation. The only entry here that
+    # limitvalues.py had and this table did not -- and the last item on EEA's list.
+    # The vocabulary spells the pollutant "NOX as NO2", which _threshold_pollutant
+    # resolves to this key.
+    "NOx": {
+        "CL": {  # Critical Level (vegetation)
+            "Annual CL": {
+                "statistic": "P1Y",
+                "unit": "µg/m³",
+                "2008/50": {"value": 30, "operator": ">"},
+                "2024/2881": {"value": 30, "operator": ">"},
+                "comment": "Critical level for the protection of vegetation: 30 µg/m³ "
+                           "annual mean, unchanged between the two directives"
             }
         }
     }
@@ -520,20 +591,71 @@ _METRIC_AGGREGATION = {
 }
 
 
-def _threshold_pollutant(notation: str) -> Optional[str]:
-    """The DIRECTIVE_THRESHOLDS key for a pollutant notation.
+# The threshold table keys pollutants by their short EEA notation. Three other
+# spellings reach it, and each needs stripping down to that key:
+#
+#   'As in PM10'                the fraction the metal was measured in -- the target
+#   'Lead in PM10 (aerosol)'    value applies to the element however it is sampled
+#   'NOX as NO2'                a mass-equivalence statement, not a different pollutant
+#
+# `Pb`/`Lead` and `BaP`/`Benzo(a)pyrene` also differ between the vocabulary's notation
+# and its label, so the name aliases are needed as well as the qualifier stripping.
+# Built once at import; the test asserts the lowercased key set stays collision-free.
+_QUALIFIER = re.compile(r'\s+(?:in|as)\s+.*$|\s*\([^)]*\)\s*$', re.IGNORECASE)
 
-    The vocabulary names the metals by the fraction they are measured in -- 'As in
-    PM10' -- while the threshold table keys them by the element, because the target
-    value applies to the element however it is sampled.
+_POLLUTANT_ALIASES = {
+    'lead': 'Pb',
+    'arsenic': 'As',
+    'cadmium': 'Cd',
+    'nickel': 'Ni',
+    'benzo(a)pyrene': 'BaP',
+    'benzoapyrene': 'BaP',
+    'benzene': 'C6H6',
+    'nox as no2': 'NOx',
+    'nitrogen oxides': 'NOx',
+    'nitrogen dioxide': 'NO2',
+    'sulphur dioxide': 'SO2',
+    'carbon monoxide': 'CO',
+    'ozone': 'O3',
+}
+
+
+def _threshold_pollutant(notation: str) -> Optional[str]:
+    """The DIRECTIVE_THRESHOLDS key for a pollutant notation, or None.
+
+    Resolves in order: the notation as given, then with a trailing parenthetical and any
+    ' in ' / ' as ' qualifier stripped, then through the alias table, case-insensitively
+    throughout. Returns None rather than guessing -- resolve_aggregation_process treats
+    that as "no threshold to consult", which is a visible skip.
+
+    >>> _threshold_pollutant('PM10')
+    'PM10'
+    >>> _threshold_pollutant('As in PM10')
+    'As'
+    >>> _threshold_pollutant('Lead in PM10 (aerosol)')
+    'Pb'
+    >>> _threshold_pollutant('NOX as NO2')
+    'NOx'
+    >>> _threshold_pollutant('Benzo(a)pyrene in PM10 (air+aerosol)')
+    'BaP'
+    >>> _threshold_pollutant('Radon in air') is None
+    True
     """
     if not notation:
         return None
+    lower = {key.lower(): key for key in DIRECTIVE_THRESHOLDS}
+
     text = str(notation).strip()
-    if text in DIRECTIVE_THRESHOLDS:
-        return text
-    element = text.split(' in ')[0].strip()
-    return element if element in DIRECTIVE_THRESHOLDS else None
+    for candidate in (text, _QUALIFIER.sub('', text).strip(),
+                      _QUALIFIER.sub('', _QUALIFIER.sub('', text)).strip()):
+        if not candidate:
+            continue
+        if candidate in DIRECTIVE_THRESHOLDS:
+            return candidate
+        hit = lower.get(candidate.lower()) or _POLLUTANT_ALIASES.get(candidate.lower())
+        if hit in DIRECTIVE_THRESHOLDS:
+            return hit
+    return None
 
 
 def resolve_aggregation_process(pollutant: str, objective_type: str,

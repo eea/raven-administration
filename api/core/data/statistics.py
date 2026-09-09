@@ -231,7 +231,10 @@ class Statistics:
             "aggregation_process": "P1Y-dmaxAbove120",
             "year": year,
             "pollutant": pollutant,
-            "threshold": 120.5,
+            # 120, not 120.5: the rounding lives in _get_count_observation_data's
+            # ROUND(...) and a half-unit here is a second, competing mechanism. For an
+            # integer count `n > 120` and `n > 120.5` are the same predicate anyway.
+            "threshold": 120,
             "coverage": 75
         })
         return self.cursor.fetchall()
@@ -639,7 +642,7 @@ class Statistics:
             SELECT 
                 asp.spo,
                 EXTRACT(YEAR FROM o.time)::INTEGER as year,
-                COUNT(CASE WHEN o.val > 120 THEN 1 END) as count_above_120
+                COUNT(CASE WHEN ROUND(o.val::numeric, 0) > %(threshold)s THEN 1 END) as count_above_120
             FROM all_sampling_points asp
             JOIN observations_day_8hmax o ON o.sampling_point_id = asp.spo
                 AND EXTRACT(YEAR FROM o.time) BETWEEN %(year)s - 2 AND %(year)s
@@ -676,7 +679,10 @@ class Statistics:
         self.cursor.execute(sql, {
             "aggregation_process": "P3Y-dmaxAbove120",
             "year": year,
-            "pollutant": pollutant
+            "pollutant": pollutant,
+            # Was inline in the SQL as `o.val > 120`, the only threshold in this file
+            # that was not a parameter -- which is how it escaped the rounding fix.
+            "threshold": 120
         })
         return self.cursor.fetchall()
 
@@ -1124,7 +1130,7 @@ class Statistics:
             SELECT 
                 asp.spo,
                 o.time,
-                CASE WHEN o.val > %(threshold)s AND o.cov >= %(coverage)s THEN 1 ELSE 0 END as above_threshold,
+                CASE WHEN ROUND(o.val::numeric, 0) > %(threshold)s AND o.cov >= %(coverage)s THEN 1 ELSE 0 END as above_threshold,
                 CASE WHEN o.cov >= %(coverage)s THEN 1 ELSE 0 END as valid_day
             FROM all_sampling_points asp
             JOIN {table_name} o ON o.sampling_point_id = asp.spo 
@@ -1221,9 +1227,9 @@ class Statistics:
                 spo,
                 pollutant,
                 CASE 
-                    WHEN val > %(threshold)s
-                        AND prev_val_1 > %(threshold)s
-                        AND prev_val_2 > %(threshold)s
+                    WHEN ROUND(val::numeric, 0) > %(threshold)s
+                        AND ROUND(prev_val_1::numeric, 0) > %(threshold)s
+                        AND ROUND(prev_val_2::numeric, 0) > %(threshold)s
                         AND prev_time_1 IS NOT NULL
                         AND prev_time_2 IS NOT NULL
                         AND time = prev_time_1 + INTERVAL '1 hour'  -- Match production: 'time' column

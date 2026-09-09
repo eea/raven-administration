@@ -1,7 +1,7 @@
 from core.database import CursorFromPool
 from core.data.mean import Mean, MeanType
 import pandas as pd
-from core.eea.generate_attainment.directives.common import get_annual_coverage, get_limitvalue
+from core.eea.generate_attainment.directives.common import get_annual_coverage, get_limitvalue, exceeds, count_exceedances
 
 
 def get_eco(directive, regime, year):
@@ -30,7 +30,7 @@ def get_eco(directive, regime, year):
 
             cnt = df_with_coverage_or_count["count"].max()
             mx = df_with_coverage["max_value"].max()
-            has_exceedances = mx > limitvalue
+            has_exceedances = exceeds(mx, limitvalue, comparingFraction)
 
             value = mx
 
@@ -48,7 +48,7 @@ def get_coverages_and_count_and_max(cursor,  year, df, limitvalue, factor):
     # Counts how many non-NaN values exceed limitvalue (after rounding) for each (sampling_point_id, year) group.
     counts = (
         df.groupby('sampling_point_id')['value']
-        .apply(lambda x: (x.fillna(float('-inf')).round(factor) > limitvalue).sum())
+        .apply(lambda x: count_exceedances(x, limitvalue, factor))
         .reset_index(name='count')
     )
     values = df.groupby("sampling_point_id")["value"].max().reset_index(name='max_value')
