@@ -3,6 +3,7 @@ import { computed, ref, watch } from "vue";
 import { format } from "date-fns";
 import Popup from "../Popup.vue";
 import DatetimePicker from "../DatetimePicker.vue";
+import FieldLabel from "./FieldLabel.vue";
 
 const props = defineProps({
   show: Boolean,
@@ -102,21 +103,22 @@ const isFormValid = computed(() => {
 
           <div class="mb-2" v-for="p in cmp_required_properties">
             <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
-              <div class="font-bold">{{ p.label }}:</div>
+              <FieldLabel class="font-bold" :label="p.label" :help="p.help" :help-href="p.helpHref" />
               <input class="input w-full" v-model="obj[p.prop]" :disabled="true" />
             </div>
 
             <div v-else>
               <div v-if="p.type == 'text' || p.type == 'number'">
-                <div class="font-bold">{{ p.label }}:</div>
+                <FieldLabel class="font-bold" :label="p.label" :help="p.help" :help-href="p.helpHref" />
                 <input :type="p.type" class="input w-full" v-model="obj[p.prop]" :placeholder="p.placeholder" />
               </div>
               <div v-else-if="p.type == 'checkbox'" class="mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
-                <div class="font-bold self-center flex-1" @click="obj[p.prop] = !obj[p.prop]">{{ p.label }}:</div>
+                <FieldLabel class="font-bold self-center flex-1" @click="obj[p.prop] = !obj[p.prop]"
+                            :label="p.label" :help="p.help" :help-href="p.helpHref" />
                 <input type="checkbox" v-model="obj[p.prop]" class="self-center" />
               </div>
               <div v-else-if="p.type == 'lookup'">
-                <div class="font-bold">{{ p.label }}:</div>
+                <FieldLabel class="font-bold" :label="p.label" :help="p.help" :help-href="p.helpHref" />
                 <select v-model="obj[p.prop_id]" class="select w-full">
                   <!-- ?? []: a plugin-contributed lookup can resolve to nothing when the
                        plugin owning the data is absent or refused by permission. -->
@@ -124,11 +126,11 @@ const isFormValid = computed(() => {
                 </select>
               </div>
               <div v-else-if="p.type == 'eeaDatetime'">
-                <div class="font-bold">{{ p.label }}:</div>
+                <FieldLabel class="font-bold" :label="p.label" :help="p.help" :help-href="p.helpHref" />
                 <DatetimePicker v-model="obj[p.prop]" />
               </div>
               <div v-else-if="p.type == 'textarea'">
-                <div class="font-bold">{{ p.label }}:</div>
+                <FieldLabel class="font-bold" :label="p.label" :help="p.help" :help-href="p.helpHref" />
                 <textarea class="input w-full" v-model="obj[p.prop]" :placeholder="p.placeholder" rows="3"></textarea>
               </div>
             </div>
@@ -140,21 +142,22 @@ const isFormValid = computed(() => {
 
           <div class="mb-2" v-for="p in cmp_optional_properties">
             <div v-if="!p.enableInEdit && p.type != 'gridOnly' && isEdit">
-              <div class="font-bold">{{ p.label }}:</div>
+              <FieldLabel class="font-bold" :label="p.label" :help="p.help" :help-href="p.helpHref" />
               <input class="input w-full" v-model="obj[p.prop]" :disabled="true" />
             </div>
 
             <div v-else>
               <div v-if="p.type == 'text' || p.type == 'number'">
-                <div class="font-bold">{{ p.label }}:</div>
+                <FieldLabel class="font-bold" :label="p.label" :help="p.help" :help-href="p.helpHref" />
                 <input :type="p.type" class="input w-full" v-model="obj[p.prop]" :placeholder="p.placeholder" />
               </div>
               <div v-else-if="p.type == 'checkbox'" class="mb-2 flex cursor-pointer hover:bg-gray-50 p-1">
-                <div class="font-bold self-center flex-1" @click="obj[p.prop] = !obj[p.prop]">{{ p.label }}:</div>
+                <FieldLabel class="font-bold self-center flex-1" @click="obj[p.prop] = !obj[p.prop]"
+                            :label="p.label" :help="p.help" :help-href="p.helpHref" />
                 <input type="checkbox" v-model="obj[p.prop]" class="self-center" />
               </div>
               <div v-else-if="p.type == 'lookup'">
-                <div class="font-bold">{{ p.label }}:</div>
+                <FieldLabel class="font-bold" :label="p.label" :help="p.help" :help-href="p.helpHref" />
                 <select v-model="obj[p.prop_id]" class="select w-full">
                   <!-- ?? []: a plugin-contributed lookup can resolve to nothing when the
                        plugin owning the data is absent or refused by permission. -->
@@ -162,11 +165,11 @@ const isFormValid = computed(() => {
                 </select>
               </div>
               <div v-else-if="p.type == 'eeaDatetime'">
-                <div class="font-bold">{{ p.label }}:</div>
+                <FieldLabel class="font-bold" :label="p.label" :help="p.help" :help-href="p.helpHref" />
                 <DatetimePicker v-model="obj[p.prop]" />
               </div>
               <div v-else-if="p.type == 'textarea'">
-                <div class="font-bold">{{ p.label }}:</div>
+                <FieldLabel class="font-bold" :label="p.label" :help="p.help" :help-href="p.helpHref" />
                 <textarea class="input w-full" v-model="obj[p.prop]" :placeholder="p.placeholder" rows="3"></textarea>
               </div>
             </div>

@@ -3,6 +3,8 @@ import { computed, ref, watch } from "vue";
 import Popup from "../../../components/Popup.vue";
 import Eventy from "../../../helpers/eventy";
 import Service from "./service";
+import HelpTip from "../../../components/HelpTip.vue";
+import { HELP } from "./help.js";
 import IconAdd from "~icons/material-symbols/add";
 import IconEdit from "~icons/material-symbols/edit-outline";
 import IconDelete from "~icons/material-symbols/delete-outline";
@@ -157,21 +159,21 @@ watch(() => props.show, (visible) => {
           <p class="text-[11px] text-nord3 mt-0.5">Empty means still current</p>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-nord3 mb-1">Station area</label>
+          <label class="block text-xs font-semibold text-nord3 mb-1">Station area <HelpTip :href="HELP.station_area.helpHref">{{ HELP.station_area.help }}</HelpTip></label>
           <select v-model="form.station_area_id" class="input w-full text-sm">
             <option :value="null">— {{ fallback('station_area') }} —</option>
             <option v-for="o in lookups.station_areas" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-nord3 mb-1">Category</label>
+          <label class="block text-xs font-semibold text-nord3 mb-1">Category <HelpTip :href="HELP.sampling_point_category.helpHref">{{ HELP.sampling_point_category.help }}</HelpTip></label>
           <select v-model="form.sampling_point_category_id" class="input w-full text-sm">
             <option :value="null">— {{ fallback('sampling_point_category') }} —</option>
             <option v-for="o in lookups.categories" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-nord3 mb-1">Hotspot</label>
+          <label class="block text-xs font-semibold text-nord3 mb-1">Hotspot <HelpTip :href="HELP.hotspot.helpHref">{{ HELP.hotspot.help }}</HelpTip></label>
           <select v-model="form.hotspot" class="input w-full text-sm">
             <option :value="null">— {{ fallback('hotspot') }} —</option>
             <option :value="true">true</option>
@@ -179,7 +181,7 @@ watch(() => props.show, (visible) => {
           </select>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-nord3 mb-1">Supersite</label>
+          <label class="block text-xs font-semibold text-nord3 mb-1">Supersite <HelpTip :href="HELP.supersite.helpHref">{{ HELP.supersite.help }}</HelpTip></label>
           <select v-model="form.supersite" class="input w-full text-sm">
             <option :value="null">— {{ fallback('supersite') }} —</option>
             <option :value="true">true</option>
@@ -192,7 +194,7 @@ watch(() => props.show, (visible) => {
               { k: 'building_distance', l: 'Building distance (m)' },
               { k: 'kerb_distance', l: 'Kerb distance (m)' },
               { k: 'emission_source_distance', l: 'Emission source distance (m)' }]" :key="f.k">
-          <label class="block text-xs font-semibold text-nord3 mb-1">{{ f.l }}</label>
+          <label class="block text-xs font-semibold text-nord3 mb-1">{{ f.l }} <HelpTip v-if="HELP[f.k]">{{ HELP[f.k].help }}</HelpTip></label>
           <input type="number" step="any" v-model.number="form[f.k]" class="input w-full text-sm"
                  :placeholder="fallback(f.k)" />
         </div>

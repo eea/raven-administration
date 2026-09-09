@@ -16,12 +16,16 @@ const pageOptions = (lookups) => ({
     // Left empty, the API derives it from the required fields above, so the
     // seven-segment string does not have to be typed correctly by hand.
     { type: "text", label: "Id", prop: "id", placeholder: "str: leave empty to derive from the fields opposite", required: false, default: null, enableInEdit: false, showInGrid: true },
-    { type: "lookup", label: "Threshold Exceedance", prop_id: "assessment_threshold_exceedance_id", prop: "assessment_threshold_exceedance", lookup: "threshold_exceedances", required: false, default: null, enableInEdit: true, showInGrid: false },
-    { type: "number", label: "Postponement Year", prop: "postponement_year", placeholder: "num: e.g. 2027", required: false, default: null, enableInEdit: true, showInGrid: false },
-    { type: "checkbox", label: "Fixed Measurement Reduction", prop: "fixed_measurement_reduction", required: false, default: false, enableInEdit: true, showInGrid: false },
-    { type: "number", label: "Resident Population", prop: "zone_resident_population", placeholder: "num: people in the zone", required: false, default: null, enableInEdit: true, showInGrid: false },
-    { type: "number", label: "Resident Population Year", prop: "zone_resident_population_year", placeholder: "num: year the population refers to", required: false, default: null, enableInEdit: true, showInGrid: false },
-    { type: "lookup", label: "Classification Document", prop_id: "classification_document_id", prop: "classification_document_id", lookup: "documents", required: false, default: null, enableInEdit: true, showInGrid: false }
+    // defaultHidden, not showInGrid: false. showInGrid: false leaves a column out of
+    // the column picker altogether, so a value typed here could never be read back
+    // without reopening the row; defaultHidden lists it there unticked. ARZ_13 to
+    // ARZ_17 and ARZ_19 are all exported, so all of them must be inspectable.
+    { type: "lookup", label: "Threshold Exceedance", prop_id: "assessment_threshold_exceedance_id", prop: "assessment_threshold_exceedance", lookup: "threshold_exceedances", required: false, default: null, enableInEdit: true, defaultHidden: true },
+    { type: "number", label: "Postponement Year", prop: "postponement_year", placeholder: "num: e.g. 2027", required: false, default: null, enableInEdit: true, defaultHidden: true },
+    { type: "checkbox", label: "Fixed Measurement Reduction", prop: "fixed_measurement_reduction", required: false, default: false, enableInEdit: true, defaultHidden: true },
+    { type: "number", label: "Resident Population", prop: "zone_resident_population", placeholder: "num: people in the zone", required: false, default: null, enableInEdit: true, defaultHidden: true },
+    { type: "number", label: "Resident Population Year", prop: "zone_resident_population_year", placeholder: "num: year the population refers to", required: false, default: null, enableInEdit: true, defaultHidden: true },
+    { type: "lookup", label: "Classification Document", prop_id: "classification_document_id", prop: "classification_document_id", lookup: "documents", required: false, default: null, enableInEdit: true, defaultHidden: true }
   ],
   lookups: lookups
 });

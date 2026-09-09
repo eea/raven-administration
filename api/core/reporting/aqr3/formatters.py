@@ -41,7 +41,35 @@ def decimals(dp):
 
 
 def boolean(value):
-    """AQR3 bit/boolean as lowercase true/false."""
+    """AQR3 `bit`/`boolean` as lowercase true/false.
+
+    v5.02 does not state the literal, and contradicts itself where it shows one.
+    The normative `Attributes` sheet gives the remark "Y/N" for all seven `bit`
+    attributes (SPL_07, SPL_08, ARZ_15, CAM_14, CAM_18, CPL_12, MEA_16) and
+    attaches no code list or vocabulary to any of them, while its own example
+    sheets write three different encodings for that one declared type: text
+    `Y`/`N` for Hotspot, Supersite, FixedMeasurementReduction and CorrectionFlag,
+    numeric `0` for every Deletion, and Excel `TRUE`/`FALSE` for IsExceedance.
+
+    The receiving system is the tie-breaker, and it accepts both. EEA's QC
+    ruleset (github.com/eea/AirQualityInReportNet3, AQR3QCRules) contains exactly
+    one value-domain rule for any boolean, `Airquality_R3.qc.[SPL_07_A].sql`:
+
+        UPPER(Hotspot_str) NOT IN ('Y','N','YES','NO','TRUE','FALSE')
+
+    carrying EEA's own note that "the official set of accepted boolean
+    representations has not yet been defined in the specification". There is no
+    ARZ_15 rule at all -- the ARZ rules run 01-14, 16, 17, 18 -- so nothing
+    validates FixedMeasurementReduction today, and `SPL_07_B` contradicts
+    `SPL_07_A` by admitting only YES/NO. So `true`/`false` is conformant, `Y`/`N`
+    would be too, and no literal the guide shows is endorsed throughout.
+
+    When EEA settles it, the change is two places, not one: here, and
+    `_EXCEEDANCE_TRUE`/`_EXCEEDANCE_FALSE` in reporting/aqr3/compliance.py, whose
+    `_as_bool` reads `yes`/`no`, `true`/`false` and `1`/`0` but not `Y`/`N` -- a
+    guide-conformant `N` would parse to None rather than False.
+    tests/unit/test_aqr3_boolean_literal.py fails if the two halves drift apart.
+    """
     if value is None:
         return ''
     return 'true' if value else 'false'
