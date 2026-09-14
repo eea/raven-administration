@@ -76,6 +76,7 @@ const getmodules = () => {
         { name: "Sampling Points", comp: "SamplingPoints", show: jwt.management },
         { name: "Sampling Processes", comp: "Processes", show: jwt.management },
         { name: "Assessment Regime Zones", comp: "AssessmentRegimes", show: jwt.management && jwt.allnetworks },
+        { name: "Assessment Data", comp: "AssessmentData", show: jwt.management && jwt.allnetworks },
         { name: "Spatial Representativeness", comp: "SpatialRepresentativeness", show: jwt.management },
         { name: "Models / OBE", comp: "Models", show: jwt.management && jwt.allnetworks },
         { name: "Pollution Level Adjustments", comp: "PollutionLevelAdjustment", show: jwt.management && jwt.allnetworks },

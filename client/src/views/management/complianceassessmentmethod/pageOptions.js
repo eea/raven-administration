@@ -16,6 +16,16 @@
 // describe a different compliance situation rather than correct this one -- so they
 // are enableInEdit: false. keyProps still lists them: Manager addresses the row by
 // them on update.
+//
+// Attainment Id is derived and read-only, but its trailing ordering index is not.
+// AQR3 gives one attainment per assessment regime per reporting year, shared by every
+// assessment method assessing it -- more only when an exceedance covers part of a zone,
+// or exceedances in one zone have different causes. Nothing can compute that, so
+// Attainment Index is typed here and a recalculation never touches it.
+//
+// SRS Id is typed too. It used to be filled in with the assessment method id, which is
+// not what CAM_16 means: it names an area uploaded on Management -> Spatial
+// Representativeness, so the lookup is empty until one exists.
 const YES_NO_UNKNOWN = [
   { value: null, label: "— unknown —" },
   { value: true, label: "Yes" },
@@ -48,7 +58,7 @@ const pageOptions = (lookups) => ({
     { type: "gridOnly", label: "Attainment Id", prop: "attainment_id", showInGrid: true, val_func: (r) => r.attainment_id ?? "—" },
     { type: "gridOnly", label: "Objective Type", prop: "objective_type", defaultHidden: true, val_func: (r) => r.objective_type ?? "—" },
     { type: "gridOnly", label: "Reporting Metric", prop: "reporting_metric", defaultHidden: true, val_func: (r) => r.reporting_metric ?? "—" },
-    { type: "gridOnly", label: "SRS Id", prop: "srs_id", defaultHidden: true, val_func: (r) => r.srs_id ?? "—" },
+
     { type: "gridOnly", label: "Calculated At", prop: "calculated_at", defaultHidden: true, val_func: (r) => r.calculated_at ?? "—" },
 
     // -- Entered here. All optional: a row starts empty and is filled in as the
@@ -61,6 +71,8 @@ const pageOptions = (lookups) => ({
     { type: "number", label: "Assessment MQI", prop: "assessment_mqi", placeholder: "num: CAM_13 - modelling quality indicator, models only", required: false, default: null, enableInEdit: true, defaultHidden: true },
     { type: "checkbox", label: "Correction Flag", prop: "correction_flag", placeholder: "CAM_14", required: false, default: false, enableInEdit: true, defaultHidden: true },
     { type: "lookup", label: "Preliminary Reason", prop_id: "preliminary_reason_id", prop: "preliminary_reason", lookup: "reasons", placeholder: "CAM_17", required: false, default: null, enableInEdit: true, showInGrid: true },
+    { type: "lookup", label: "SRS Id", prop_id: "srs_id", prop: "srs", lookup: "srs", placeholder: "CAM_16 - the spatial representativeness area this row links to", required: false, default: null, enableInEdit: true, defaultHidden: true },
+    { type: "number", label: "Attainment Index", prop: "attainment_index", placeholder: "CAM_15 ordering index (1-99) - raise only to split this regime into more than one compliance situation", required: false, default: 1, enableInEdit: true, defaultHidden: true },
     { type: "checkbox", label: "Deletion", prop: "deletion", placeholder: "CAM_18 - retract this row", required: false, default: false, enableInEdit: true, showInGrid: true }
   ],
   lookups: { ...lookups, yes_no: YES_NO_UNKNOWN }

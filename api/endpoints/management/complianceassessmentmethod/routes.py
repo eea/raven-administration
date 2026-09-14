@@ -40,7 +40,7 @@ KEY = ('reporting_year', 'assessment_regime_id', 'data_aggregation_process_id',
 # recalculation restates those, so an edit would be silently reverted.
 VALUES = ('is_exceedance', 'data_coverage', 'pollution_level', 'pollution_level_adjusted',
           'relative_uncertainty_limit', 'assessment_mqi', 'correction_flag',
-          'preliminary_reason_id', 'deletion')
+          'preliminary_reason_id', 'srs_id', 'attainment_index', 'deletion')
 
 
 @compliance_endpoint.route(BASE, methods=['GET'])
@@ -74,7 +74,9 @@ def compliance_rows():
                    COALESCE(NULLIF(t.notation, ''), t.label)   as assessment_type,
                    COALESCE(NULLIF(ap.notation, ''), ap.label) as data_aggregation_process,
                    c.attainment_id,
+                   c.attainment_index,
                    c.srs_id,
+                   COALESCE(NULLIF(sr.srs_application, ''), sr.srs_application_id) as srs,
                    c.calculated_at,
                    z.id                                        as zone_id,
                    z.name                                      as zone_name,
@@ -101,6 +103,7 @@ def compliance_rows():
             LEFT JOIN eea_reportingmetrics rm   ON rm.id = ar.reporting_metric_id
             LEFT JOIN models m                  ON m.id  = c.assessment_method_id
             LEFT JOIN sampling_points sp        ON sp.id = c.assessment_method_id
+            LEFT JOIN spatial_representativeness sr ON sr.id = c.srs_id
             LEFT JOIN stations st               ON st.id = sp.station_id
             WHERE c.reporting_year = %(year)s
             ORDER BY c.assessment_regime_id, c.assessment_method_id,
@@ -134,7 +137,18 @@ def compliance_lookups():
         """)
         years = [row['value'] for row in cursor.fetchall()]
 
-        return jsonify({'reasons': reasons, 'years': years})
+        # CAM_16. Nothing derives it, so the areas an operator has uploaded on
+        # Management -> Spatial Representativeness are the only candidates; the list is
+        # empty until one exists.
+        cursor.execute("""
+            SELECT id as value,
+                   id || COALESCE(' - ' || NULLIF(srs_application, ''), '') as label
+            FROM spatial_representativeness
+            ORDER BY id
+        """)
+        srs = cursor.fetchall()
+
+        return jsonify({'reasons': reasons, 'years': years, 'srs': srs})
 
 
 @compliance_endpoint.route(f'{BASE}/update', methods=['POST'])
@@ -158,9 +172,18 @@ def compliance_update():
 
     assignments = ', '.join(f'{c} = %({c})s' for c in VALUES)
     params = {c: model[c] for c in VALUES}
-    # `deletion` is NOT NULL with a false default, unlike the other eight, so an
-    # omitted checkbox has to become false rather than NULL.
+    # `deletion` and `attainment_index` are NOT NULL with a default, unlike the rest, so
+    # an omitted checkbox or a cleared number has to become the default rather than NULL.
     params['deletion'] = bool(model.deletion)
+    params['attainment_index'] = int(model.attainment_index or 1)
+
+    # AttainmentId is derived and not editable -- but its trailing ordering index is
+    # exactly what an operator changes here, so the identifier is recomposed in the same
+    # statement. regexp_replace reads the OLD attainment_id, which still carries the OLD
+    # index; that is what makes the substitution well defined. Appended to `assignments`
+    # rather than added to VALUES so the key and the derived columns stay untouchable.
+    assignments += (", attainment_id = regexp_replace(attainment_id, '_[0-9]{1,2}$', "
+                    "'_' || %(attainment_index)s::text)")
     params.update({c: key[c] for c in KEY})
 
     with CursorFromPool() as cursor:

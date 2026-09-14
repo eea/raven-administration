@@ -56,20 +56,36 @@ def export_exceedances_plans_programs():
                     "assessmentmethodid": "SPO-AD0940A-0008",
                     "reportingyear": 2024,
                     "pollutantid": 8,
+                    # The regime id with the classification year swapped for the
+                    # reporting year: one attainment per regime per year, shared by every
+                    # assessment method assessing it. The trailing index is the stored
+                    # AttainmentIndex, and over HTTP there is no stored row to read, so
+                    # this is always the index-1 form. `attainmentbase` is the same
+                    # identifier without it.
                     "attainmentid": "ATT_ZON_AD000A_0008_LV_H_aMean_2024_1",
+                    "attainmentbase": "ATT_ZON_AD000A_0008_LV_H_aMean_2024",
+                    # CAM_16 is entered on the Compliance Assessment Method screen, not
+                    # derived, so it is null here.
+                    "srsid": None,
                     "assessmenttype": "fixed",
                     "isexceedance": "yes",
                     "airpollutionlevel": 45.2,
                     ...
-                    "_context": {
-                        "zone": {...},
-                        "station": {...},
-                        "pollutant": {...},
-                        "threshold": {...},
-                        "measurement": {...}
-                    }
+                    # The context blocks are flat siblings, not nested under a wrapper.
+                    "zone": {...},
+                    "station": {...},
+                    "pollutant": {...},
+                    "threshold": {...},
+                    "measurement": {...}
                 }
             ],
+            # Sampling points the derivation deliberately did not produce a row for --
+            # today, one whose pollutant contradicts the regime it is linked to. Each
+            # carries a `code` and a `reason`.
+            "skipped": [...],
+            # How many sampling points were left out as not part of the EEA reporting
+            # obligation (report_to_eea, migration 022).
+            "out_of_scope": 0,
             "zone_summaries": [...]
         }
     

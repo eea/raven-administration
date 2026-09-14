@@ -11,6 +11,7 @@ const Stations = () => import("./views/management/stations/Stations.vue");
 const SamplingPoints = () => import("./views/management/samplingpoints/Samplingpoints.vue");
 const Processes = () => import("./views/management/processes/Processes.vue");
 const AssessmentRegimes = () => import("./views/management/assessmentregimes/AssessmentRegimes.vue");
+const AssessmentData = () => import("./views/management/assessmentdata/AssessmentData.vue");
 const PollutionLevelAdjustment = () => import("./views/management/pollutionleveladjustment/PollutionLevelAdjustment.vue");
 const ComplianceAssessmentMethod = () => import("./views/management/complianceassessmentmethod/ComplianceAssessmentMethod.vue");
 const Documents = () => import("./views/management/documents/Documents.vue");
@@ -70,6 +71,7 @@ const routes = [
   // AQR3 names the table AssessmentRegimeZone, so the route and the menu say that.
   // The module keeps the shorter `assessmentregimes` name -- see its routes.py.
   { path: "/management/assessmentregimezones", component: AssessmentRegimes, name: "AssessmentRegimes" },
+  { path: "/management/assessmentdata", component: AssessmentData, name: "AssessmentData" },
   { path: "/management/pollutionleveladjustment", component: PollutionLevelAdjustment, name: "PollutionLevelAdjustment" },
   { path: "/management/complianceassessmentmethod", component: ComplianceAssessmentMethod, name: "ComplianceAssessmentMethod" },
   { path: "/management/documents", component: Documents, name: "Documents" },

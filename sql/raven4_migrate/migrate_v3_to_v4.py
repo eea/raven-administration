@@ -1256,15 +1256,24 @@ class Migration:
             row_dict = dict(zip(cols, row))
             assesstype = extract_notation_from_uri(row_dict.get('assessmenttype'))
             
+            # Since 4.502.24 assessmentlocal_id is generated from sampling_point_id
+            # and model_id, so it cannot be written directly -- and the v3 column held
+            # either kind. The MOD_/OBE_ prefix is mandatory on models.id (AQR3 MOE_02,
+            # enforced by models_id_prefix), so it is what tells the two apart.
+            local_id = row_dict['assessmentlocal_id']
+            is_model = str(local_id or '').startswith(('MOD_', 'OBE_'))
+
             tgt.execute("""
-                INSERT INTO assessmentdata 
-                (id, assessment_regime_id, assessmentlocal_id, assessmenttype, assessmentmethodedescription)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO assessmentdata
+                (id, assessment_regime_id, sampling_point_id, model_id, assessmenttype,
+                 assessmentmethodedescription)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (
                 row_dict['id'],
                 row_dict['assessmentregime_id'],
-                row_dict['assessmentlocal_id'],
+                None if is_model else local_id,
+                local_id if is_model else None,
                 assesstype,
                 row_dict.get('assessmentmethodedescription'),
             ))

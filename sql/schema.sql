@@ -1275,16 +1275,40 @@ create table if not exists assessmentdata
     assessment_regime_id         varchar(100) not null
         references assessment_regimes
             on update cascade on delete cascade,
-    assessmentlocal_id           varchar(100) not null
-        references sampling_points
+    -- AQR3 CAM_05 spans two tables, so it is stored as two nullable foreign keys and
+    -- read through one generated column. Both still cascade on delete, which is what a
+    -- validating trigger over a single free-text column could not do.
+    sampling_point_id            varchar(100)
+        constraint assessmentdata_sampling_point_fkey references sampling_points
             on update cascade on delete cascade,
+    -- The foreign key to `models` is added after that table is created, further down
+    -- this file; it cannot be inline because assessmentdata is declared first.
+    model_id                     varchar(100),
+    assessmentlocal_id           varchar(100)
+        generated always as (coalesce(sampling_point_id, model_id)) stored,
     assessmenttype               varchar(100) not null
         references eea_assessmenttypes
             on update cascade on delete cascade,
-    assessmentmethodedescription varchar(500)
+    assessmentmethodedescription varchar(500),
+    from_time                    timestamp,
+    to_time                      timestamp,
+    constraint assessmentdata_one_method
+        check (num_nonnulls(sampling_point_id, model_id) = 1),
+    constraint assessmentdata_period_ordered
+        check (to_time is null or from_time is null or to_time > from_time)
 );
 
-comment on column assessmentdata.assessmentlocal_id is 'Sampling point ID or model ID';
+comment on column assessmentdata.sampling_point_id is 'AQR3 CAM_05 when the regime is assessed by measurement. Exactly one of this and model_id is set; assessmentlocal_id is generated from the pair.';
+comment on column assessmentdata.model_id is 'AQR3 CAM_05 when the regime is assessed by a model or objective estimation (models.id, MOD_ or OBE_). Exactly one of this and sampling_point_id is set.';
+comment on column assessmentdata.assessmentlocal_id is 'AQR3 CAM_05 AssessmentMethodId, generated from sampling_point_id / model_id so every reader sees one column regardless of which kind of method it is.';
+comment on column assessmentdata.from_time is 'When this method started assessing this regime. NULL means unbounded. Deliberately NOT derived from assessment_regimes.classification_year, which is when the zone classification was made rather than a validity window.';
+comment on column assessmentdata.to_time is 'When this method stopped assessing this regime. NULL means still current. Close a link rather than deleting it, so recalculating an earlier reporting year still reproduces what was submitted for it.';
+
+-- One link per regime, method and period. Coalesced because NULLs are distinct in a
+-- plain unique index and UNIQUE NULLS NOT DISTINCT needs PG15.
+create unique index if not exists assessmentdata_regime_method_period_uq
+    on assessmentdata (assessment_regime_id, assessmentlocal_id,
+                       coalesce(from_time, '-infinity'::timestamp));
 
 -- ---------------------------------------------------------------------------
 -- Attainments
@@ -1517,6 +1541,19 @@ comment on column models.result_encoding_id is 'AQR3 MOE_06 ResultEncoding — i
 comment on column models.method_application_id is 'AQR3 MOE_07 MethodApplication';
 comment on column models.generic_mqi is 'AQR3 MOE_08 GenericMQI (modelling quality indicator)';
 
+-- assessmentdata.model_id is declared above, before this table exists, so its foreign
+-- key is attached here. AQR3 CAM_05 spans sampling points and models, and a regime
+-- assessed by modelling has no compliance row without it.
+do $$
+begin
+    if not exists (select 1 from pg_constraint where conname = 'assessmentdata_model_fkey') then
+        alter table assessmentdata
+            add constraint assessmentdata_model_fkey
+            foreign key (model_id) references models
+            on update cascade on delete cascade;
+    end if;
+end $$;
+
 -- Gridded model results. Highest-volume table in the schema: a national 100 m
 -- grid at hourly resolution runs to billions of rows, so it is range-partitioned
 -- by year and carries no per-row FKs (integrity is enforced at ingest).
@@ -1639,7 +1676,11 @@ create table if not exists compliance_assessment_method
     assessment_mqi              numeric(5, 2),
     correction_flag             boolean,
     attainment_id               varchar(100),
-    srs_id                      varchar(255),
+    attainment_index            integer default 1 not null
+        constraint cam_attainment_index_range check (attainment_index between 1 and 99),
+    srs_id                      varchar(255)
+        constraint cam_srs_id_fkey references spatial_representativeness
+            on update cascade,
     preliminary_reason_id       varchar(100)
         references eea_exceedancereason
             on update cascade,
@@ -1650,7 +1691,9 @@ create table if not exists compliance_assessment_method
 
 comment on table compliance_assessment_method is 'AQR3 CAM. Persisted yearly compliance results, regenerated by the exceedance/attainment calculation.';
 comment on column compliance_assessment_method.assessment_method_id is 'AQR3 CAM_05. Either a sampling_points.id (measurement) or a models.id (model/OBE) — deliberately not a FK, since it spans both.';
-comment on column compliance_assessment_method.attainment_id is 'AQR3 CAM_15 AttainmentId. Mandatory format: ATT_<ZoneId>_<PollutantId>_<ObjectiveType>_<ProtectionTarget>_<ReportingMetric>_<ReportingYear>_<idx>';
+comment on column compliance_assessment_method.attainment_id is 'AQR3 CAM_15 AttainmentId. Mandatory format: ATT_<ZoneId>_<PollutantId>_<ObjectiveType>_<ProtectionTarget>_<ReportingMetric>_<ReportingYear>_<idx>. Derived from this row''s assessment_regime_id, which carries the same five components: one attainment per regime per reporting year, shared by every assessment method assessing it, with attainment_index as the trailing <idx>.';
+comment on column compliance_assessment_method.attainment_index is 'AQR3 CAM_15 ordering index (1-99). The operator''s, never restated by a recalculation: the guide gives one attainment per zone/assessment regime unless an exceedance covers only part of the zone, or different exceedances have different causes. Raise it to split a regime into more than one compliance situation.';
+comment on column compliance_assessment_method.srs_id is 'AQR3 CAM_16 SRSId. Entered, not derived — SRS_02 names a spatial area an operator uploads and SRS_06 points from that area at the model which assessed it, so nothing here can infer the link. Was set to the assessment method id until 4.502.23, which pointed every value at a SpatialRepresentativeness table with no matching row.';
 comment on column compliance_assessment_method.deletion is 'AQR3 CAM_18 Deletion — flags a previously reported row for withdrawal.';
 
 create index if not exists idx_cam_year
@@ -1910,5 +1953,17 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
        -- 022 backfills report_to_eea from station_eoi_code. A fresh install has no
        -- stations to backfill, and the column default is already what 022 would set.
        ('4.502.22', 'baseline: schema.sql declares stations.report_to_eea and '
-                    'sampling_points.report_to_eea (migration 022)')
+                    'sampling_points.report_to_eea (migration 022)'),
+       -- 023 restates stored AttainmentIds and remaps PollutionLevelAdjustment onto
+       -- them. A fresh install has no compliance rows to restate, so only the DDL --
+       -- attainment_index and the srs_id foreign key -- matters here.
+       ('4.502.23', 'baseline: schema.sql declares '
+                    'compliance_assessment_method.attainment_index and the srs_id '
+                    'foreign key to spatial_representativeness (migration 023)'),
+       -- 024 backfills sampling_point_id from the old assessmentlocal_id. A fresh
+       -- install has no links to backfill, and the column is generated here from the
+       -- start, so only the DDL matters.
+       ('4.502.24', 'baseline: schema.sql declares assessmentdata.sampling_point_id, '
+                    'model_id, the generated assessmentlocal_id and the link validity '
+                    'period (migration 024)')
 on conflict (version) do nothing;

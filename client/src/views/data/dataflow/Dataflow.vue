@@ -21,6 +21,11 @@ const emptyFiles = ref(new Set());
 // resolution is a discrepancy rather than an ordinary omission -- and a submission
 // missing something you meant to report is the expensive kind of mistake.
 const scope = ref(null);
+// The outcome of the last Recalculate compliance. A toast cannot carry it: a run can
+// skip rows for four different reasons, and one of them -- an assessment regime every
+// one of whose rows was skipped -- means a regime is declared in AssessmentRegimeZone
+// and reports no compliance at all, which nobody spots from a number.
+const recalc = ref(null);
 
 onMounted(async () => {
   try {
@@ -49,6 +54,8 @@ onMounted(async () => {
 // change of year — they would then describe a different export than the one shown.
 watch(selectedYear, () => {
   emptyFiles.value = new Set();
+  // A summary for another year describes a different run.
+  recalc.value = null;
 });
 
 const download = async (table) => {
@@ -75,17 +82,16 @@ const recalculate = async () => {
   Eventy.showMessage(`Recalculating compliance for ${selectedYear.value}...`, "loading");
   try {
     const summary = await Service.recalculateCompliance(selectedYear.value);
+    recalc.value = summary;
     // Nothing stored is not success — the backend explains why in `message`.
     if (summary.message) {
       Eventy.showMessage(summary.message, "warning");
       return;
     }
-    const skipped = summary.skipped_total
-      ? ` ${summary.skipped_total} skipped (incomplete assessment regime).`
-      : "";
+    const skipped = summary.skipped_total ? ` ${summary.skipped_total} skipped — see below.` : "";
     Eventy.showMessage(
       `ComplianceAssessmentMethod: ${summary.written} row(s) stored for ${summary.reporting_year}.${skipped}`,
-      "success"
+      summary.skipped_total || summary.regimes_without_rows?.length ? "warning" : "success"
     );
   } catch {
     // error shown by request helper
@@ -172,6 +178,50 @@ const downloadAll = async () => {
           Either give them what they are missing, or switch EEA Reporting off for them on the
           Stations and Sampling Points pages.
         </div>
+      </div>
+
+      <!-- What the last recalculation did. Only rendered after one has run. -->
+      <div v-if="recalc" class="mb-6 p-3 rounded border border-nord8 bg-nord8/10 text-sm">
+        <div class="flex items-start">
+          <div class="font-bold mb-1 flex-1">
+            ComplianceAssessmentMethod: {{ recalc.written }} row(s) stored for {{ recalc.reporting_year }}
+          </div>
+          <button class="text-nord3 text-xs hover:underline" @click="recalc = null">Dismiss</button>
+        </div>
+
+        <div v-for="(count, code) in recalc.skipped_by_reason" :key="code" class="text-nord3">
+          {{ count }} skipped — {{ recalc.skipped_labels?.[code] ?? code }}.
+        </div>
+
+        <div v-if="recalc.out_of_scope" class="text-nord3">
+          {{ recalc.out_of_scope }} sampling point(s) left out as not part of the EEA
+          reporting obligation. These are the same rows SamplingPoint.csv omits.
+        </div>
+
+        <!-- The one outcome a count cannot convey: a regime that reports nothing at all
+             while still being declared in AssessmentRegimeZone. -->
+        <div v-if="recalc.regimes_without_rows?.length"
+          class="mt-2 p-2 rounded border border-nord13 bg-nord13/20">
+          <div class="font-bold">
+            {{ recalc.regimes_without_rows.length }} assessment regime(s) produced no
+            compliance row at all
+          </div>
+          <div class="text-nord3 font-mono text-xs mt-1">
+            {{ recalc.regimes_without_rows.join(", ") }}
+          </div>
+          <div class="text-nord3 text-xs mt-1">
+            They are still declared in AssessmentRegimeZone, so the submission claims the
+            regime exists and says nothing about whether it was met. Link a sampling point
+            measuring the regime's own pollutant to each of them.
+          </div>
+        </div>
+
+        <ul v-if="recalc.skipped?.length" class="mt-2 text-nord3 text-xs list-disc pl-5">
+          <li v-for="(entry, i) in recalc.skipped" :key="i">
+            <span class="font-mono">{{ entry.assessment_method_id ?? "—" }}</span>
+            — {{ entry.reason }}
+          </li>
+        </ul>
       </div>
 
       <!-- Exports table, driven by the AQR3 registry -->

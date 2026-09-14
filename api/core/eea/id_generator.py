@@ -68,6 +68,39 @@ def _slug(value):
     return re.sub(r'[^A-Za-z0-9.+-]+', '-', str(value).strip()).strip('-')
 
 
+# The guide gives CAM_15's ordering index "max length 2 - numeric", and
+# PATTERNS['AttainmentId'] enforces it. Kept as a constant because the generator, the
+# validator and the compliance_assessment_method.attainment_index check all mean the
+# same range.
+ATTAINMENT_INDEX_MAX = 99
+
+
+def _join_attainment(base, index):
+    """Append the ordering index to an AttainmentId, and validate the result.
+
+    Deliberately unlike `generate_assessment_regime_id` and
+    `generate_sampling_point_reference_id`, which truncate an over-long index: this one
+    raises. Truncating an identity merges two things that are not the same -- an index of
+    147 sliced to 14 names a different attainment situation -- and silent truncation is
+    how 444 of the 543 rows in the 2026-09-09 export came to carry a three-digit index
+    that PATTERNS['AttainmentId'] itself rejects. Nothing validated what this module
+    emitted, so the defect reached Reportnet3 rather than the caller.
+    """
+    try:
+        idx = int(index)
+    except (TypeError, ValueError):
+        raise IdentifierError(
+            f'AttainmentId ordering index {index!r} is not a number. CAM_15 gives it '
+            f'"max length 2 - numeric".')
+    if not 1 <= idx <= ATTAINMENT_INDEX_MAX:
+        raise IdentifierError(
+            f'AttainmentId ordering index {idx} is outside 1-{ATTAINMENT_INDEX_MAX}. '
+            f'CAM_15 gives the ordering index max length 2 (numeric); it numbers the '
+            f'compliance situations within one assessment regime, and is not a row '
+            f'counter.')
+    return validate_identifier('AttainmentId', SEP.join([base, str(idx)]))
+
+
 class EEAIDGenerator:
     """Build the AQR3 v5.02 mandatory-format identifiers."""
 
@@ -96,22 +129,82 @@ class EEAIDGenerator:
     def generate_attainment_id(zone_id, pollutant_id, objective_type,
                                protection_target, reporting_metric,
                                reporting_year, index=1) -> str:
-        """AQR3 CAM_15 AttainmentId.
+        """AQR3 CAM_15 AttainmentId, composed from the regime's own attributes.
+
+        Prefer `attainment_id_from_regime` for a row that already has an
+        AssessmentRegimeId: the regime id is the authoritative rendering of these six
+        components, and rebuilding them here can disagree with it. This form documents
+        the format and is what the guide's own examples are checked against.
 
         >>> EEAIDGenerator.generate_attainment_id(
         ...     'ZON_DU000A', 5, 'LV', 'H', 'daysAbove', 2024, 1)
         'ATT_ZON_DU000A_0005_LV_H_daysAbove_2024_1'
         """
-        return SEP.join([
-            'ATT',
-            str(zone_id).strip(),
-            f'{int(pollutant_id):04d}',
-            _part(objective_type, 'ObjectiveType'),
-            _part(protection_target, 'ProtectionTarget'),
-            _part(reporting_metric, 'ReportingMetric'),
-            str(int(reporting_year)),
-            str(int(index)),                # guide: max length 2, numeric
-        ])
+        return _join_attainment(
+            SEP.join([
+                'ATT',
+                str(zone_id).strip(),
+                f'{int(pollutant_id):04d}',
+                _part(objective_type, 'ObjectiveType'),
+                _part(protection_target, 'ProtectionTarget'),
+                _part(reporting_metric, 'ReportingMetric'),
+                str(int(reporting_year)),
+            ]),
+            index)
+
+    @staticmethod
+    def attainment_base(assessment_regime_id, reporting_year) -> str:
+        """The AttainmentId up to and including the reporting year, with no index.
+
+        CAM_15 carries the same zone, pollutant, objective type, protection target and
+        reporting metric as the row's own AssessmentRegimeId (ARZ_02) -- so those are
+        read off the regime rather than rebuilt. The regime's classification year is
+        replaced by the reporting year, which is the only difference between the two
+        identifiers.
+
+        Rebuilding from the regime's component columns instead looks equivalent and is
+        not: `_derive_id` in endpoints/management/assessmentregimes/routes.py reads
+        `notation` bare, while the CAM source query COALESCEs notation to the id
+        (core/data/plans_programs_export.py) because sql/data.sql leaves those three
+        vocabularies' notation NULL on a fresh install. On such a database the two
+        renderings differ, and CAM_15 would not match its own CAM_03.
+
+        >>> EEAIDGenerator.attainment_base('ARE_ZON_DU000A_0005_LV_H_aMean_2021_1', 2024)
+        'ATT_ZON_DU000A_0005_LV_H_aMean_2024'
+        """
+        regime = str(assessment_regime_id or '').strip()
+        if not regime.startswith('ARE' + SEP):
+            raise IdentifierError(
+                f'AttainmentId is built from the AssessmentRegimeId, and '
+                f'{assessment_regime_id!r} does not start with "ARE{SEP}". A regime that '
+                f'predates ARZ_02 validation cannot yield a conformant AttainmentId.')
+        # The trailing two segments are the classification year and the ordering index;
+        # everything between them and the prefix is what CAM_15 shares with ARZ_02.
+        middle = regime[len('ARE' + SEP):].rsplit(SEP, 2)
+        if len(middle) != 3:
+            raise IdentifierError(
+                f'AssessmentRegimeId {assessment_regime_id!r} has too few segments to '
+                f'carry a classification year and an ordering index, so the attainment '
+                f'situation it describes cannot be identified.')
+        return SEP.join(['ATT', middle[0], str(int(reporting_year))])
+
+    @staticmethod
+    def attainment_id_from_regime(assessment_regime_id, reporting_year, index=1) -> str:
+        """AQR3 CAM_15 AttainmentId for one assessment regime in one reporting year.
+
+        One attainment per regime per year, shared by every assessment method assessing
+        it -- which is what the guide describes: "If there is no exceedance in the
+        zone/assessment regime, there will be only one AttainmentId." The index is how an
+        operator splits that into more than one compliance situation; it is not a row
+        number. The 2026-09-09 export gave all 543 rows their own AttainmentId for only
+        166 regimes, 444 of them with an index too long for the guide.
+
+        >>> EEAIDGenerator.attainment_id_from_regime(
+        ...     'ARE_NO0001_0001_LV_H_aMean_2026_1', 2025)
+        'ATT_NO0001_0001_LV_H_aMean_2025_1'
+        """
+        return _join_attainment(
+            EEAIDGenerator.attainment_base(assessment_regime_id, reporting_year), index)
 
     @staticmethod
     def generate_scenario_id(zone_id, pollutant_id, objective_type,
