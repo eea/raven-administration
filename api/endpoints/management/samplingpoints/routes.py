@@ -35,7 +35,8 @@ def samplingpoints():
               sp.time_resolution_id, COALESCE(NULLIF(tr.notation, ''), tr.label) as time_resolution,
               sp.unit_id, u.notation as unit,
               sp.station_id, st.name as station,
-              sp.sampling_point_category_id, sc.label as sampling_point_category
+              sp.sampling_point_category_id, sc.label as sampling_point_category,
+              sp.report_to_eea
           FROM
               sampling_points sp
               LEFT JOIN eea_pollutants p ON sp.pollutant_id = p.id
@@ -119,7 +120,8 @@ def samplingpoints_update():
             time_resolution_id=%(time_resolution_id)s,
             unit_id=%(unit_id)s,
             station_id=%(station_id)s,
-            sampling_point_category_id=%(sampling_point_category_id)s
+            sampling_point_category_id=%(sampling_point_category_id)s,
+            report_to_eea=%(report_to_eea)s
           WHERE id = %(id)s
         """
 
@@ -144,13 +146,15 @@ def samplingpoints_insert():
             id, sampling_point_reference_id, from_time, to_time,
             inlet_height, building_distance, kerb_distance,
             emission_source_distance, hotspot, logger_id, private, use_in_public_api, daily_check,
-            pollutant_id, time_resolution_id, unit_id, station_id, sampling_point_category_id
+            pollutant_id, time_resolution_id, unit_id, station_id, sampling_point_category_id,
+            report_to_eea
           )
           VALUES (
             %(id)s, %(sampling_point_reference_id)s, %(from_time)s::timestamp, %(to_time)s::timestamp,
             %(inlet_height)s, %(building_distance)s, %(kerb_distance)s,
             %(emission_source_distance)s, %(hotspot)s, %(logger_id)s, %(private)s, %(use_in_public_api)s, %(daily_check)s,
-            %(pollutant_id)s, %(time_resolution_id)s, %(unit_id)s, %(station_id)s, %(sampling_point_category_id)s
+            %(pollutant_id)s, %(time_resolution_id)s, %(unit_id)s, %(station_id)s, %(sampling_point_category_id)s,
+            %(report_to_eea)s
           )
         """
 

@@ -7,7 +7,6 @@ const pageOptions = (lookups) => ({
     // REQUIRED
     { type: "text", label: "Id", prop: "id", placeholder: "str: A unique id", ...HELP.id, required: true, default: null, enableInEdit: false, showInGrid: true },
     { type: "lookup", label: "Station", prop_id: "station_id", prop: "station", lookup: "stations", ...HELP.station, required: true, default: null, enableInEdit: true, showInGrid: true },
-    { type: "lookup", label: "Pollutant", prop_id: "pollutant_id", prop: "pollutant", ...HELP.pollutant, required: true, lookup: "pollutants", default: null, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Time Resolution", prop_id: "time_resolution_id", prop: "time_resolution", required: true, lookup: "time_resolutions", default: null, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Unit", prop_id: "unit_id", prop: "unit", required: true, lookup: "units", default: null, enableInEdit: true, showInGrid: true },
     { type: "lookup", label: "Category", prop_id: "sampling_point_category_id", prop: "sampling_point_category", lookup: "sampling_point_categories", ...HELP.sampling_point_category, required: true, default: null, enableInEdit: true, showInGrid: true },
@@ -27,7 +26,12 @@ const pageOptions = (lookups) => ({
     { type: "eeaDatetime", label: "Active To", prop: "to_time", ...HELP.to_time, required: false, default: null, enableInEdit: true, showInGrid: false },
     { type: "checkbox", label: "Hotspot", prop: "hotspot", ...HELP.hotspot, required: false, default: false, enableInEdit: true, showInGrid: false },
     { type: "text", label: "Logger Id", prop: "logger_id", placeholder: "str: Logger id for push functionality", required: false, default: null, enableInEdit: true, showInGrid: false },
-    { type: "checkbox", label: "Daily Check", prop: "daily_check", required: false, default: false, enableInEdit: true, showInGrid: false }
+    { type: "checkbox", label: "Daily Check", prop: "daily_check", required: false, default: false, enableInEdit: true, showInGrid: false },
+    // Both of these were required until 4.502.22. A series whose component has no
+    // EEA term keeps pollutant_id NULL and is identified by the sp_extended plugin
+    // instead; demanding a value here meant borrowing someone else's code.
+    { type: "checkbox", label: "EEA Reporting", prop: "report_to_eea", ...HELP.report_to_eea, required: false, default: true, enableInEdit: true, showInGrid: true },
+    { type: "lookup", label: "Pollutant", prop_id: "pollutant_id", prop: "pollutant", ...HELP.pollutant, required: false, lookup: "pollutants", default: null, enableInEdit: true, showInGrid: true }
   ],
   lookups: lookups
 });

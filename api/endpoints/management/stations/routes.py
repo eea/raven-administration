@@ -20,7 +20,8 @@ def stations():
                  st.latitude, st.longitude, st.altitude, st.supersite,
                  st.station_area_id, COALESCE(NULLIF(ac.notation, ''), ac.label) as station_area,
                  st.network_id, n.name as network,
-                 st.document_id, d.id || ' - ' || COALESCE(dobj.label, '') as document
+                 st.document_id, d.id || ' - ' || COALESCE(dobj.label, '') as document,
+                 st.report_to_eea
           FROM stations st
           LEFT JOIN eea_areaclassifications ac ON st.station_area_id = ac.id
           INNER JOIN networks n ON st.network_id = n.id
@@ -87,7 +88,8 @@ def stations_update():
                 supersite = %(supersite)s,
                 station_area_id = %(station_area_id)s,
                 network_id = %(network_id)s,
-                document_id = %(document_id)s
+                document_id = %(document_id)s,
+                report_to_eea = %(report_to_eea)s
             WHERE id = %(id)s
         """
         cursor.execute(sql, model)
@@ -108,9 +110,9 @@ def stations_insert():
 
         sql = """ 
             INSERT INTO stations (id, station_eoi_code, name, station_national_code, latitude, longitude, 
-                                 altitude, supersite, station_area_id, network_id, document_id)
+                                 altitude, supersite, station_area_id, network_id, document_id, report_to_eea)
             VALUES (%(id)s, %(station_eoi_code)s, %(name)s, %(station_national_code)s, %(latitude)s, %(longitude)s,
-                   %(altitude)s, %(supersite)s, %(station_area_id)s, %(network_id)s, %(document_id)s)
+                   %(altitude)s, %(supersite)s, %(station_area_id)s, %(network_id)s, %(document_id)s, %(report_to_eea)s)
         """
         cursor.execute(sql, model)
         if cursor.rowcount == 0:

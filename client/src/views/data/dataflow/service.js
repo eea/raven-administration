@@ -6,6 +6,10 @@ const Service = {
   tables: async () => Get("/api/dataflow/csv/tables"),
   getAvailableYears: async () => Get("/api/dataflow/csv/available_years"),
 
+  // What is marked for EEA reporting, what will actually export, and what cannot.
+  // Year-independent: it is about metadata being present, not about a year's data.
+  scope: async () => Get("/api/dataflow/scope"),
+
   downloadTable: async (code, year) =>
     Download(`/api/dataflow/csv/${code}`, year ? { year } : {}),
 

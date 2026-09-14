@@ -63,6 +63,77 @@ def get_available_years():
         return jsonify([row['year'] for row in cursor.fetchall()])
 
 
+# --------------------------------------------------------------------------
+# What the export leaves out.
+#
+# Since 4.502.22 reporting scope is a decision (stations.report_to_eea,
+# sampling_points.report_to_eea) rather than an inference from whether an
+# identifier happens to be present. That makes a new kind of row possible: one
+# somebody marked for reporting that AQR3 still cannot express, because it has no
+# EoI code, no EEA pollutant, no unit or no time resolution.
+#
+# Before the flag, such a row was indistinguishable from a site nobody intended to
+# report, so dropping it quietly was the only sensible thing to do. Now it is a
+# discrepancy, and a submission silently missing a station somebody meant to
+# report is the expensive kind of mistake. So the export says what it is leaving
+# out and why, and the Dataflow page shows it beside the download buttons.
+#
+# Read-only and year-independent: this is about metadata that is either present or
+# not, not about a particular reporting year's data.
+# --------------------------------------------------------------------------
+_SCOPE_SQL = """
+    WITH in_scope_station AS (
+        SELECT id, name, station_eoi_code
+          FROM stations
+         WHERE report_to_eea
+    ),
+    in_scope_point AS (
+        SELECT sp.id, sp.pollutant_id, sp.unit_id, sp.time_resolution_id,
+               s.name AS station, s.station_eoi_code
+          FROM sampling_points sp
+          JOIN in_scope_station s ON s.id = sp.station_id
+         WHERE sp.report_to_eea
+    )
+    SELECT
+      (SELECT count(*) FROM in_scope_station)                                  AS stations_in_scope,
+      (SELECT count(*) FROM in_scope_station WHERE station_eoi_code IS NOT NULL)
+                                                                               AS stations_exported,
+      (SELECT count(*) FROM in_scope_point)                                    AS points_in_scope,
+      (SELECT count(*) FROM in_scope_point
+        WHERE station_eoi_code IS NOT NULL AND pollutant_id > 0)               AS points_exported,
+      (SELECT coalesce(json_agg(x), '[]'::json) FROM (
+          SELECT id, name FROM in_scope_station
+           WHERE station_eoi_code IS NULL ORDER BY name LIMIT 20) x)           AS stations_without_eoi,
+      (SELECT coalesce(json_agg(x), '[]'::json) FROM (
+          SELECT id, station,
+                 (pollutant_id IS NULL OR pollutant_id <= 0) AS no_pollutant,
+                 unit_id IS NULL            AS no_unit,
+                 time_resolution_id IS NULL AS no_time_resolution
+            FROM in_scope_point
+           WHERE station_eoi_code IS NOT NULL
+             AND (pollutant_id IS NULL OR pollutant_id <= 0
+                  OR unit_id IS NULL OR time_resolution_id IS NULL)
+           ORDER BY station, id LIMIT 20) x)                                   AS points_not_reportable
+"""
+
+
+@dataflow_endpoint.route('/api/dataflow/scope', methods=['GET'])
+@jwt_required_with_exporting_claim()
+def export_scope():
+    """Counts of what is in scope, what will export, and what cannot."""
+    with CursorFromPool() as cursor:
+        cursor.execute(_SCOPE_SQL)
+        row = cursor.fetchone()
+    return jsonify({
+        'stations': {'in_scope': row['stations_in_scope'],
+                     'exported': row['stations_exported'],
+                     'without_eoi_code': row['stations_without_eoi']},
+        'sampling_points': {'in_scope': row['points_in_scope'],
+                            'exported': row['points_exported'],
+                            'not_reportable': row['points_not_reportable']},
+    })
+
+
 @dataflow_endpoint.route('/api/dataflow/csv/download_all', methods=['POST'])
 @jwt_required_with_exporting_claim()
 def export_all_csv():

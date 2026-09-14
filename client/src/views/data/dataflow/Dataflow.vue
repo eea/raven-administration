@@ -15,14 +15,23 @@ const yearOptions = ref([]);
 const tables = ref([]);
 // Filenames the last ZIP exported with a header row and no data.
 const emptyFiles = ref(new Set());
+// What is marked for EEA reporting versus what can actually be expressed in AQR3.
+// Since reporting scope became an explicit decision, a station or series that is
+// marked for reporting but has no EoI code, no EEA pollutant, no unit or no time
+// resolution is a discrepancy rather than an ordinary omission -- and a submission
+// missing something you meant to report is the expensive kind of mistake.
+const scope = ref(null);
 
 onMounted(async () => {
   try {
     isLoading.value = true;
-    const [years, registry] = await Promise.all([
+    const [years, registry, reportingScope] = await Promise.all([
       Service.getAvailableYears(),
-      Service.tables()
+      Service.tables(),
+      // Informational, so a failure here must not stop the export list rendering.
+      Service.scope().catch(() => null)
     ]);
+    scope.value = reportingScope;
     yearOptions.value = years;
     const lastYear = new Date().getFullYear() - 1;
     selectedYear.value = years.includes(lastYear) ? lastYear : years[0] ?? null;
@@ -139,6 +148,30 @@ const downloadAll = async () => {
           <IconDownload class="text-base" />
           {{ downloadingKey === "all" ? "Creating ZIP..." : "Download all (ZIP)" }}
         </button>
+      </div>
+
+      <!-- Marked for reporting but not expressible in AQR3. Only rendered when
+           there is something to say; a clean instance sees nothing. -->
+      <div v-if="scope && (scope.stations.in_scope !== scope.stations.exported
+                           || scope.sampling_points.in_scope !== scope.sampling_points.exported)"
+        class="mb-6 p-3 rounded border border-nord13 bg-nord13/10 text-sm">
+        <div class="font-bold mb-1">Marked for EEA reporting, but not exported</div>
+        <div v-if="scope.stations.in_scope !== scope.stations.exported" class="text-nord3">
+          {{ scope.stations.in_scope - scope.stations.exported }} of
+          {{ scope.stations.in_scope }} stations have no EoI code, so AQR3 cannot name them.
+          <span v-if="scope.stations.without_eoi_code.length" class="text-nord3">
+            {{ scope.stations.without_eoi_code.map((s) => s.name).join(", ") }}
+          </span>
+        </div>
+        <div v-if="scope.sampling_points.in_scope !== scope.sampling_points.exported" class="text-nord3">
+          {{ scope.sampling_points.in_scope - scope.sampling_points.exported }} of
+          {{ scope.sampling_points.in_scope }} sampling points are missing an EEA pollutant,
+          unit or time resolution.
+        </div>
+        <div class="text-nord3 mt-1 text-xs">
+          Either give them what they are missing, or switch EEA Reporting off for them on the
+          Stations and Sampling Points pages.
+        </div>
       </div>
 
       <!-- Exports table, driven by the AQR3 registry -->

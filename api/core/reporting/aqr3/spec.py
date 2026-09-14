@@ -68,13 +68,46 @@ DATETIME = object()
 # needing a predicate here. That is now the normal path for local series, not a
 # data error — do not "fix" those joins to LEFT JOIN.
 #
-# tests/unit/test_aqr3_registry.py asserts that every spec emitting a PollutantId
-# column carries this predicate, so a newly added table cannot silently
-# reintroduce the leak.
+# tests/unit/test_aqr3_registry.py asserts that every spec carrying its own
+# pollutant_id applies this predicate, so a newly added table cannot silently
+# reintroduce the leak. For a table whose rows ARE sampling points, use
+# _reportable_sampling_point() instead -- see the note on it.
+#
+# This one is capability only. `models`, `moe_result_inline`, `moe_result_external`,
+# `assessment_regimes` and `compliance_assessment_method` each carry their own
+# pollutant_id and have no report_to_eea column, so they use it as it stands;
+# adding the scope flag here would break all five with a missing-column error.
 # --------------------------------------------------------------------------
 def _reportable(alias):
     """SQL predicate keeping only rows with a real (positive, non-NULL) EEA pollutant."""
     return f'{alias}.pollutant_id > 0'
+
+
+# --------------------------------------------------------------------------
+# Scope: is this row part of the EEA reporting obligation at all?
+#
+# Raven is a general air quality system and most of what it holds is not
+# reported. Until 4.502.22 that was inferred from the identifier columns -- a
+# station with no EoI code, a series with no EEA pollutant -- which conflated two
+# different facts: "we do not report this" and "nobody has filled this in yet".
+# Worse, the write path required both identifiers, so an operator who wanted to
+# store an internal site had to invent an EoI code, and an invented code passes
+# every test for reportability. 66 of 174 stations on the development database
+# carry one.
+#
+# So intent is its own column now, and the export is intent AND capability. Both
+# are still needed: a station marked for reporting with no EoI code still cannot
+# appear in a submission keyed on it -- but it is now a discrepancy that
+# /api/dataflow/scope reports, rather than a silent omission.
+# --------------------------------------------------------------------------
+def _in_scope(alias):
+    """SQL predicate keeping only rows an operator has marked for EEA reporting."""
+    return f'{alias}.report_to_eea'
+
+
+def _reportable_series(alias):
+    """A sampling point's own half: in scope, and with an EEA pollutant code."""
+    return f'{_in_scope(alias)} AND {_reportable(alias)}'
 
 
 # --------------------------------------------------------------------------
@@ -86,12 +119,44 @@ def _reportable(alias):
 # StationEoICode is mandatory in the guide and is the key STA is organised by, so
 # a station without one cannot appear in a report keyed on it.
 #
-# Same shape as _reportable(): the two tables that emit StationEoICode filter it,
-# and tests/unit/test_aqr3_registry.py asserts they keep doing so.
+# Same shape as _reportable(). The rule is about what a table's rows ARE, not what
+# its columns say: every table whose rows are stations, or are sampling points that
+# hang off one, filters on this -- whether or not it emits StationEoICode.
+# tests/unit/test_aqr3_registry.py asserts that, keyed on the tables the SQL reads.
+#
+# Both halves since 4.502.22: report_to_eea is the operator's decision, the EoI
+# code is what AQR3 needs to be able to name the station. Neither implies the
+# other.
 # --------------------------------------------------------------------------
 def _reportable_station(alias):
-    """SQL predicate keeping only stations that have an EEA identifier."""
-    return f'{alias}.station_eoi_code IS NOT NULL'
+    """SQL predicate keeping only stations in scope that have an EEA identifier."""
+    return f'{_in_scope(alias)} AND {alias}.station_eoi_code IS NOT NULL'
+
+
+# --------------------------------------------------------------------------
+# A sampling point is reportable when SPO would export it, and that is both of the
+# above at once.
+#
+# The two predicates exist separately because two different tables own them, but a
+# table whose rows are sampling points needs them together, and applying one of the
+# two is worse than applying neither: it looks filtered. That is the shape this
+# defect took. Before 2026-09, SPL applied nothing, SPP and OMR applied
+# _reportable() and not _reportable_station(), and only SPO applied both. The
+# 2026-09-09 export therefore described 2834 locations, 222 processes and 72104
+# measurements for sampling points SamplingPoint.csv never declared -- 79% of
+# SamplingPointLocation.csv.
+#
+# So SPO, SPL, SPP and OMR all call this one function. Half of it cannot be called.
+#
+# Since 4.502.22 it also carries scope, on both sides, and that is where the
+# inheritance rule lives: a sampling point is exported when its own flag and its
+# station's are both set. Conjunction rather than a cascade on write, so nothing
+# has to be kept in step -- switching a station off takes its sampling points with
+# it, and a single series can still be taken out on its own.
+# --------------------------------------------------------------------------
+def _reportable_sampling_point(sampling_point, station):
+    """SQL predicate keeping only the sampling points SPO exports."""
+    return f'{_reportable_series(sampling_point)} AND {_reportable_station(station)}'
 
 
 @dataclass(frozen=True)
@@ -212,8 +277,7 @@ SPO = TableSpec(
                st.station_eoi_code
         FROM sampling_points sp
         JOIN stations st ON sp.station_id = st.id
-        WHERE {_reportable('sp')}
-          AND {_reportable_station('st')}
+        WHERE {_reportable_sampling_point('sp', 'st')}
         ORDER BY sp.id
     """,
     columns=(
@@ -232,12 +296,17 @@ SPO = TableSpec(
 # COALESCE down to the operational values on sampling_points/stations. With no
 # override rows every sampling point still reports one complete location row,
 # using sampling_points.from_time as LocationBegin.
+#
+# The row set is SPO's, via _reportable_sampling_point(): a location for a sampling
+# point SPO does not declare has nothing to attach to. Note `sql=f"""` -- this spec
+# was a plain string until the predicate was added, and an unformatted one would
+# have put the literal text `{...}` into the query.
 # --------------------------------------------------------------------------
 SPL = TableSpec(
     code='SPL', name='SamplingPointLocation',
     description='Where each sampling point is: coordinates, area and location characteristics, with the period each set of values applies to.',
     params=('country_code',),
-    sql="""
+    sql=f"""
         SELECT %(country_code)s AS country_code,
                sp.id            AS assessment_method_id,
                COALESCE(spl.location_begin, sp.from_time) AS location_begin,
@@ -260,6 +329,7 @@ SPL = TableSpec(
         LEFT JOIN eea_areaclassifications spl_ac ON spl.station_area_id = spl_ac.id
         LEFT JOIN eea_spocategory sp_sc  ON sp.sampling_point_category_id  = sp_sc.id
         LEFT JOIN eea_spocategory spl_sc ON spl.sampling_point_category_id = spl_sc.id
+        WHERE {_reportable_sampling_point('sp', 'st')}
         ORDER BY sp.id, COALESCE(spl.location_begin, sp.from_time)
     """,
     columns=(
@@ -305,12 +375,13 @@ SPP = TableSpec(
                p.process_document_id
         FROM processes p
         JOIN sampling_points sp ON p.sampling_point_id = sp.id
+        JOIN stations st ON sp.station_id = st.id
         LEFT JOIN eea_measurementtypes        mt ON p.measurement_type_id          = mt.id
         LEFT JOIN eea_measurementmethods      mm ON p.method_id                    = mm.id
         LEFT JOIN eea_measurementequipments   me ON p.equipment_id                 = me.id
         LEFT JOIN eea_analyticaltechnique     at ON p.analytical_technique_id      = at.id
         LEFT JOIN eea_equivalencedemonstrated ed ON p.equivalence_demonstrated_id  = ed.id
-        WHERE {_reportable('sp')}
+        WHERE {_reportable_sampling_point('sp', 'st')}
         ORDER BY p.id, p.process_activity_begin
     """,
     columns=(
@@ -392,11 +463,12 @@ OMR = TableSpec(
                o.touched        AS result_time
         FROM observations o
         JOIN sampling_points sp   ON o.sampling_point_id  = sp.id
+        JOIN stations st          ON sp.station_id        = st.id
         JOIN eea_concentrations co ON sp.unit_id           = co.id
         JOIN eea_times tr          ON sp.time_resolution_id = tr.id
         WHERE o.from_time >= make_timestamp(%(year)s, 1, 1, 0, 0, 0)
           AND o.from_time <  make_timestamp(%(year)s + 1, 1, 1, 0, 0, 0)
-          AND {_reportable('sp')}
+          AND {_reportable_sampling_point('sp', 'st')}
         ORDER BY sp.id, o.from_time
     """,
     columns=(

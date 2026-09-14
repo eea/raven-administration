@@ -665,10 +665,13 @@ create table if not exists stations
             on update cascade,
     network_id             varchar(100)   not null
         references networks
-            on update cascade on delete cascade
+            on update cascade on delete cascade,
+    -- Intent, where station_eoi_code above is capability. See migration 022.
+    report_to_eea          boolean        not null default true
 );
 
 comment on table stations is 'v4.502 stations. Reports as MeasurementStation (STA) plus the default location values for SamplingPointLocation (SPL).';
+comment on column stations.report_to_eea is 'Intent, not capability: true when this site is part of the EEA reporting obligation. Distinct from station_eoi_code, which is the identifier EIONET assigned and which AQR3 additionally requires -- a station is exported only when both hold. Backfilled by migration 022 from station_eoi_code IS NOT NULL.';
 comment on column stations.station_eoi_code is 'AQR3 STA_02 StationEoICode, assigned by EIONET. NULL for sites with no EEA identifier (industrial and internal monitoring points), which are not reportable: core/reporting/aqr3/spec.py excludes them from STA and SPO, and their sampling points get no sampling_point_reference_id.';
 comment on column stations.name is 'AQR3 STA_08 StationName';
 comment on column stations.station_national_code is 'AQR3 STA_07 StationNationalCode';
@@ -711,7 +714,9 @@ create table if not exists sampling_points
     station_id                  varchar(100)          not null
         references stations
             on update cascade on delete cascade,
-    daily_check                 boolean default false not null
+    daily_check                 boolean default false not null,
+    -- Intent, where pollutant_id above is capability. See migration 022.
+    report_to_eea               boolean default true  not null
 );
 
 comment on table sampling_points is 'v4.502 AQR3 v5.02: operational store for a sampling point. Reports as SamplingPoint (SPO) plus the current row of SamplingPointLocation (SPL).';
@@ -727,6 +732,7 @@ comment on column sampling_points.logger_id is 'Raven-internal: logger push iden
 comment on column sampling_points.private is 'Raven-internal: hides the series from non-owning networks. No AQR3 equivalent.';
 comment on column sampling_points.use_in_public_api is 'Raven-internal: exposes the series via the public API. No AQR3 equivalent.';
 comment on column sampling_points.daily_check is 'Raven-internal: when true, the daily check feature is enabled (shows checkbox in dashboard). No AQR3 equivalent.';
+comment on column sampling_points.report_to_eea is 'Intent, not capability: true when this series is part of the EEA reporting obligation. ANDed with the station''s own flag, so a station switched off takes its sampling points with it; set false on its own for a series that is not reported from a station that is -- a colocated research instrument, a meteorological parameter.';
 
 create index if not exists idx_sp_station_pollutant
     on sampling_points (station_id, pollutant_id);
@@ -1900,5 +1906,9 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
                     'assessmentregime_zones (migration 020)'),
        ('4.502.21', 'baseline: schema.sql embodies migration 021 '
                     '(processes keys on id, sampling_point_id and '
-                    'process_activity_begin)')
+                    'process_activity_begin)'),
+       -- 022 backfills report_to_eea from station_eoi_code. A fresh install has no
+       -- stations to backfill, and the column default is already what 022 would set.
+       ('4.502.22', 'baseline: schema.sql declares stations.report_to_eea and '
+                    'sampling_points.report_to_eea (migration 022)')
 on conflict (version) do nothing;

@@ -15,7 +15,10 @@
 //
 // Fields with no AQR3 attribute (Private, Public API, Time Resolution, Unit, Logger
 // Id, Daily Check) have no entry: an info icon that only restates the label is worse
-// than no icon.
+// than no icon. `report_to_eea` is the one exception -- it has no AQR3 attribute
+// because it is a decision rather than a reported value, and it is exactly the kind
+// of field nobody can guess the meaning of. unit/test_samplingpoints_help.py exempts
+// it from the citation rule by name.
 //
 // One entry per line, spread into a property declaration as `...HELP.hotspot`.
 
@@ -25,8 +28,9 @@ const AAQD = "https://eur-lex.europa.eu/eli/dir/2024/2881/oj/eng";
 export const HELP = {
   // SPO -- the sampling point itself
   id: { help: "AQR3 SPO_02 AssessmentMethodId. The sampling point's identifier, chosen here. Everything else in the submission references it — SamplingPointLocation, SamplingProcess and ComplianceAssessmentMethod all key on it — so it cannot be changed once reported. A point is closed by ending its process, and reopened by adding a new one." },
-  station: { help: "AQR3 SPO_05 StationEoICode. The station this point belongs to. The EoI code must always be present and cannot be modified; a station goes inactive when all of its sampling points are." },
-  pollutant: { help: "AQR3 SPO_04 PollutantId. The pollutant measured, from the EEA pollutant vocabulary. One pollutant per sampling point — a second pollutant needs a second point." },
+  station: { help: "AQR3 SPO_05 StationEoICode. The station this point belongs to. A station reported to the EEA keeps its EoI code unchanged for good, even after a significant relocation; a station outside the obligation has none, and then none of its sampling points are reportable either. A station goes inactive when all of its sampling points are." },
+  pollutant: { help: "AQR3 SPO_04 PollutantId. The pollutant measured, from the EEA pollutant vocabulary. One pollutant per sampling point — a second pollutant needs a second point.\nLeave it empty when the component has no EEA term at all: the local component is then recorded by the sampling-point-extended plugin, and the series is not reportable. That is different from switching EEA Reporting off, which is a decision about a series that could be reported." },
+  report_to_eea: { help: "Whether this series is part of the EEA reporting obligation. Combined with the station's own setting — a station switched off takes all of its sampling points with it, whatever they say.\nSwitch a single series off for something measured at a reporting station that is not part of the obligation: a colocated research instrument, a meteorological parameter." },
   sampling_point_reference_id: { help: "AQR3 SPO_03 SamplingPointReferenceId. Reference code following the SPO reference rules, unique within the reporting country. It can serve as a code list of its own." },
 
   // SPL -- the location characteristics, which are per period
