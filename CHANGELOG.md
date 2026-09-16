@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.5.6] - 2026-09-16
+
+### Fixes
+
+- Replaced Carto basemap tiles with ESRI World Light Gray Canvas tiles (Carto now requires an API key for `basemaps.cartocdn.com` requests, causing "API KEY REQUIRED" watermarks on the map)
+
 ## [3.5.5] - 2026-08-12
 
 ### Fixes

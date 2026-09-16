@@ -7,7 +7,7 @@ import { onMounted, ref, watch } from "vue";
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
 
-let url = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+let url = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}";
 const map = ref(null);
 const markerRefs = ref([]);
 const stations = ref([]);
