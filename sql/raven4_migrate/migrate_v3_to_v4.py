@@ -35,6 +35,31 @@ source data, and they are filled through the admin UI after the migration:
     documents.documentattachment    DOC_05 / DOC_06. Reportnet3 attachment filename and
     documents.document_original_url published URL; no v3 equivalent.
 
+V3 DEPLOYMENTS DIFFER, and this script probes rather than assumes. v3 was deployed per
+country over several years and the schemas drifted; the Andorra database has no
+`directives` table at all and its `settings` predates country_code. Because the whole
+migration is one transaction, a missing relation aborts everything at whatever point it
+is reached, so:
+
+    settings.country_code   probed; falls back to the common prefix of
+                            stations.eoi_code, overridable with --country-code XX.
+    settings.timezone_id    has no v3 column at all. Taken from the shared value of
+                            networks.aggregation_timezone, because the AQR3 export
+                            resolves its UTC offset from it -- left NULL, every datetime
+                            in every exported table is emitted without an offset.
+    directives / statistics / aqi
+                            each probed; skipped with a warning when absent.
+    sampling_points.from_time
+                            falls back to begin_position, since it is AQR3 SPL_03
+                            LocationBegin and part of SamplingPointLocation's unique key.
+    responsible_authorities.is_responsible_reporter
+                            probed; decides AUT_03 reporting vs assessment.
+
+METEOPARAMETERS keep their pollutant_id -- aq/pollutant and aq/meteoparameter share one
+id space (migration 017), so 51 is "Wind velocity" and the FK is valid -- but are given
+report_to_eea = false, which is what that column exists for. They stay in Raven and out
+of every AQR3 table.
+
 KNOWN DEFECT, not introduced by the fold-in: clear_migration_tables() TRUNCATEs
 exceedancedescriptions, attainments and exceedingmethods, but no migrate_* function
 repopulates them -- nothing here reads those tables from v3. So re-running this script
@@ -48,6 +73,7 @@ import sys
 import argparse
 import psycopg2
 from psycopg2 import sql
+from psycopg2.extras import execute_values
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
@@ -99,11 +125,19 @@ CASE_MAPPINGS = {
     'demanddriven': 'demandDriven',
     'onceoff': 'onceOff',
     'periodicdatacollection': 'periodicDataCollection',
-    # measurement methods (URI suffix uses underscore, notation uses plus)
-    'nephelometry_beta': 'nephelometry+beta',
     # media - already lowercase in v4
     # processtype - already lowercase in v4
     # resultnature - already lowercase in v4
+}
+
+# v3's aq/organisationallevel carried six terms; v4's replacement aq/administrativelevel
+# carries three (local, national, regional). These are the retired ones, mapped to the
+# nearest surviving level. `international` has no equivalent and is dropped to NULL --
+# STA_05 is nullable, and inventing a level would misreport the network.
+RETIRED_ADMINISTRATIVE_LEVELS = {
+    'municipality': 'local',
+    'localauthority': 'local',
+    'international': None,
 }
 
 # Time unit mappings: v3 → v4
@@ -200,7 +234,10 @@ class Migration:
     """Handle Raven v3 → v4 migration with transaction support"""
     
     def __init__(self, dry_run=False, batch_size=10000, recreate_schema=False, init_only=False,
-                 remediate_only=False):
+                 remediate_only=False, country_code=None):
+        self.country_code = country_code
+        self._vocab_cache = {}
+        self._admin_level_ids = None
         self.dry_run = dry_run
         self.batch_size = batch_size
         self.recreate_schema = recreate_schema
@@ -209,6 +246,75 @@ class Migration:
         self.source_conn = None
         self.target_conn = None
         self.stats = {}
+
+    def resolve_vocabulary_id(self, table, uri):
+        """Look an EEA vocabulary id up by URI, falling back to the URI's last segment.
+
+        The eea_* tables are keyed by the concept's *notation*, and EEA does not always
+        write the notation the way it writes the URI: aq/measurementequipment/GRIMM-EDM180
+        has notation "GRIMM EDM 180", with spaces. Deriving the id from the URI suffix
+        therefore produces a value no row holds, and the foreign key rejects it -- which
+        is a migration abort, since this all runs in one transaction. Five of 380
+        equipment terms and three of 50 method terms diverge this way.
+
+        v3 stores the full URI and every eea_* table keeps a `uri` column, so matching on
+        URI is both the correct join and immune to the next such divergence. The suffix
+        stays as the fallback for a concept the target vocabulary simply does not have --
+        the caller decides whether that is fatal.
+        """
+        if not uri:
+            return None
+        cache = self._vocab_cache.setdefault(table, None)
+        if cache is None:
+            cur = self.target_conn.cursor()
+            cur.execute(sql.SQL('SELECT uri, id FROM {} WHERE uri IS NOT NULL').format(
+                sql.Identifier(table)))
+            cache = {u: str(i) for u, i in cur.fetchall()}
+            cur.close()
+            self._vocab_cache[table] = cache
+        found = cache.get(uri.rstrip('/')) or cache.get(uri)
+        if found is not None:
+            return found
+        return extract_notation_from_uri(uri)
+
+    def _admin_levels(self):
+        """The ids aq/administrativelevel actually offers, cached."""
+        if getattr(self, '_admin_level_ids', None) is None:
+            cur = self.target_conn.cursor()
+            cur.execute('SELECT id FROM eea_administrativelevels')
+            self._admin_level_ids = {r[0] for r in cur.fetchall()}
+            cur.close()
+        return self._admin_level_ids
+
+    def source_has_table(self, table):
+        """True when the v3 source actually has this table.
+
+        v3 was deployed per country over several years and the deployments drifted:
+        the Andorra database has no `directives` table at all, and its `settings`
+        predates country_code. Probing beats assuming, because this migration runs in
+        one transaction -- a missing relation aborts the whole run at whatever point
+        it is reached, after everything before it has already been done.
+        """
+        cur = self.source_conn.cursor()
+        cur.execute("""
+            SELECT EXISTS (SELECT 1 FROM information_schema.tables
+                            WHERE table_schema = 'public' AND table_name = %s)
+        """, (table,))
+        found = cur.fetchone()[0]
+        cur.close()
+        return found
+
+    def source_has_column(self, table, column):
+        """True when the v3 source has this column. See source_has_table()."""
+        cur = self.source_conn.cursor()
+        cur.execute("""
+            SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                            WHERE table_schema = 'public'
+                              AND table_name = %s AND column_name = %s)
+        """, (table, column))
+        found = cur.fetchone()[0]
+        cur.close()
+        return found
 
     def target_uri(self):
         """The target as a libpq URI, for subprocesses that take --db-uri."""
@@ -611,17 +717,73 @@ class Migration:
         src = self.source_conn.cursor()
         tgt = self.target_conn.cursor()
         
-        src.execute("SELECT country_code FROM settings LIMIT 1")
-        row = src.fetchone()
-        if row:
-            # v4.4.0 settings: just country_code_id, timezone_id
-            country_code = row[0]
-            tgt.execute("""
-                INSERT INTO settings (country_code_id, timezone_id)
-                VALUES (%s, %s)
-            """, (country_code, None))
-            self.stats['settings'] = 1
-            log(f"   ✓ 1 row")
+        # CountryCode is the first column of every AQR3 table, so the migration cannot
+        # proceed without one. Three sources, in descending order of authority.
+        country_code = None
+        if self.country_code:
+            country_code = self.country_code
+            source = '--country-code'
+        elif self.source_has_column('settings', 'country_code'):
+            src.execute("SELECT country_code FROM settings LIMIT 1")
+            row = src.fetchone()
+            country_code = row[0] if row else None
+            source = 'v3 settings.country_code'
+        else:
+            # Older v3 deployments have no country_code: Andorra's settings is
+            # (id, namespace, uom_m, observation_prefix, language_code). The EoI code
+            # EIONET assigned each station opens with the country, so derive it from
+            # there -- but only when every station agrees, because a disagreement means
+            # the assumption does not hold and guessing would poison every AQR3 table.
+            src.execute("""
+                SELECT DISTINCT upper(left(eoi_code, 2))
+                  FROM stations
+                 WHERE eoi_code IS NOT NULL AND length(eoi_code) >= 2
+            """)
+            prefixes = [r[0] for r in src.fetchall()]
+            if len(prefixes) == 1:
+                country_code = prefixes[0]
+                source = 'stations.eoi_code prefix'
+            else:
+                raise RuntimeError(
+                    "v3 settings has no country_code and the station EoI codes do not "
+                    f"agree on one country (found {prefixes or 'none'}). "
+                    "Re-run with --country-code XX.")
+
+        if not country_code:
+            raise RuntimeError("Could not determine the country code. Use --country-code XX.")
+
+        # settings.timezone_id is what the AQR3 export resolves its UTC offset from
+        # (core/reporting/aqr3/context.py). Left NULL, the offset resolves to '' and
+        # every datetime in every exported table is emitted naive -- "2005-01-01
+        # 00:00:00" rather than "2005-01-01 00:00:00+01:00" -- which AQR3 rejects.
+        # v3 held the same fact per network, as networks.aggregation_timezone, so take
+        # it from there when the networks agree.
+        timezone_id = None
+        if self.source_has_column('networks', 'aggregation_timezone'):
+            src.execute("""
+                SELECT DISTINCT aggregation_timezone
+                  FROM networks
+                 WHERE aggregation_timezone IS NOT NULL
+            """)
+            zones = [extract_notation_from_uri(r[0]) for r in src.fetchall()]
+            zones = sorted({z for z in zones if z})
+            if len(zones) == 1:
+                timezone_id = zones[0]
+                log(f"   timezone_id  = {timezone_id}  (from networks.aggregation_timezone)")
+            elif zones:
+                log(f"   ⚠ networks disagree on a timezone ({zones}); settings.timezone_id "
+                    f"left NULL - set it in the admin UI before exporting to Reportnet3")
+        if timezone_id is None:
+            log("   ⚠ settings.timezone_id is NULL - AQR3 datetimes will carry no UTC "
+                "offset until it is set")
+
+        log(f"   country_code = {country_code}  (from {source})")
+        tgt.execute("""
+            INSERT INTO settings (country_code_id, timezone_id)
+            VALUES (%s, %s)
+        """, (country_code, timezone_id))
+        self.stats['settings'] = 1
+        log(f"   ✓ 1 row")
         
         src.close()
         tgt.close()
@@ -707,19 +869,34 @@ class Migration:
         # v3: id, name, organisation, locator, postcode, email, address, phone, website, is_responsible_reporter
         # v4: id, person_name, email, authority_name, authority_url, authority_address, authority_instance_id, authority_role_id, authority_status_id
         # DEFAULTS: authority_instance_id='network', authority_role_id='AQD', authority_status_id='active' (for RN3 required fields)
-        src.execute("SELECT id, name, organisation, email, website, address FROM responsible_authorities")
+        # is_responsible_reporter carries the one piece of role information v3 held, so
+        # read it where it exists rather than sending every authority to the same role.
+        has_reporter_flag = self.source_has_column('responsible_authorities',
+                                                   'is_responsible_reporter')
+        reporter_col = 'is_responsible_reporter' if has_reporter_flag else 'false'
+        src.execute(f"""
+            SELECT id, name, organisation, email, website, address, {reporter_col}
+              FROM responsible_authorities
+        """)
         rows = src.fetchall()
-        
+
         for row in rows:
-            id_val, name, organisation, email, website, address = row
+            id_val, name, organisation, email, website, address, is_reporter = row
             tgt.execute("""
                 INSERT INTO authorities 
                 (id, person_name, email, authority_name, authority_url, authority_address,
                  authority_instance_id, authority_role_id, authority_status_id)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (id) DO NOTHING
+                ON CONFLICT (id, authority_role_id, email) DO NOTHING
             """, (id_val, name, email, organisation, website, address,
-                  'network', 'AQD', 'active'))  # RN3 required field defaults
+                  # AUT_05 AuthorityInstance is keyed by concept name since migration 019:
+                  # 'Network', not the old lowercase 'network'. v3 attaches an authority to
+                  # a network (networks.responsible_authority_id), so that is the instance.
+                  # AUT_03 AuthorityRole is eea_authorityobject, whose terms are
+                  # 'reporting' and 'assessment' -- 'AQD' was never one of them.
+                  'Network',
+                  'reporting' if is_reporter else 'assessment',
+                  'active'))
         
         self.stats['authorities'] = len(rows)
         log(f"   ✓ {len(rows)} rows")
@@ -735,19 +912,34 @@ class Migration:
         tgt = self.target_conn.cursor()
         
         # v3: id, name, media_monitored, responsible_authority_id, organisational, begin_position, end_position, aggregation_timezone
-        # v4.8.0: id, name, administration_level_id, timezone_id (report_id moved to stations.document_id)
+        # v4.502: id, name, network_organisational_level_id (AQR3 STA_05), timezone_id.
+        # network_document_id (STA_09) has no v3 source and is filled through the admin UI.
         src.execute("SELECT id, name, organisational, aggregation_timezone FROM networks")
         rows = src.fetchall()
         
         for row in rows:
             id_val, name, organisational, aggregation_timezone = row
             # Transform URI FK to notation
-            admin_level = extract_notation_from_uri(organisational)
+            # The URI lookup fails for a term v4's vocabulary retired, so fall back to
+            # the documented remapping before giving up; anything still unrecognised is
+            # left NULL with a warning rather than aborting the whole migration.
+            admin_level = self.resolve_vocabulary_id('eea_administrativelevels', organisational)
+            if admin_level and admin_level not in self._admin_levels():
+                suffix = extract_notation_from_uri(organisational)
+                if suffix in RETIRED_ADMINISTRATIVE_LEVELS:
+                    mapped = RETIRED_ADMINISTRATIVE_LEVELS[suffix]
+                    log(f"   ℹ {id_val}: organisational level '{suffix}' is retired in v4 -> "
+                        f"{mapped or 'NULL'}")
+                    admin_level = mapped
+                else:
+                    log(f"   ⚠ {id_val}: organisational level '{suffix}' is not a term of "
+                        f"aq/administrativelevel and has no mapping - left NULL")
+                    admin_level = None
             # Extract timezone notation from URI (e.g., 'http://.../timezone/UTC+02' -> 'UTC+02')
-            timezone_id = extract_notation_from_uri(aggregation_timezone) if aggregation_timezone else None
+            timezone_id = self.resolve_vocabulary_id('eea_timezones', aggregation_timezone)
             
             tgt.execute("""
-                INSERT INTO networks (id, name, administration_level_id, timezone_id)
+                INSERT INTO networks (id, name, network_organisational_level_id, timezone_id)
                 VALUES (%s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (id_val, name, admin_level, timezone_id))
@@ -811,7 +1003,7 @@ class Migration:
         for row in rows:
             id_val, eoi, name, station_national_code, lat, lon, alt, area_class_uri, network_id = row
             # Transform URI FK to notation
-            station_area_id = extract_notation_from_uri(area_class_uri)
+            station_area_id = self.resolve_vocabulary_id('eea_areaclassifications', area_class_uri)
             
             tgt.execute("""
                 INSERT INTO stations (id, station_eoi_code, name, station_national_code, latitude, longitude, altitude, 
@@ -848,8 +1040,19 @@ class Migration:
                 sp.logger_id,
                 sp.private,
                 sp.use_in_public_api,
-                sp.from_time,
-                sp.to_time,
+                -- from_time is v3's observation-data window and is what v4 uses for
+                -- SPL_03 LocationBegin, which AQR3 makes part of SamplingPointLocation's
+                -- unique key. It is NULL for a sampling point that never collected data,
+                -- and an empty mandatory key column fails validation -- so fall back to
+                -- begin_position, v3's declared AQD validity period, which is the only
+                -- other date it holds. The two are different facts (they disagree on 17
+                -- of Andorra's 44 populated rows), hence a fallback and not a COALESCE
+                -- of preference. The offset is dropped to match from_time, which v3
+                -- already stores as naive local time.
+                COALESCE(sp.from_time,
+                         substring(sp.begin_position from 1 for 19)::timestamp) as from_time,
+                COALESCE(sp.to_time,
+                         substring(sp.end_position from 1 for 19)::timestamp) as to_time,
                 sp.pollutant,
                 sp.timestep,
                 sp.concentration,
@@ -865,6 +1068,7 @@ class Migration:
         
         # Track SPOref counters per station+pollutant combination
         spo_ref_counters = {}
+        meteo_count = [0]
         
         for row in rows:
             (id_val, inlet_height, building_distance, kerb_distance, logger_id, 
@@ -873,10 +1077,15 @@ class Migration:
             
             # Transform URIs
             pollutant_id = extract_pollutant_id_from_uri(pollutant_uri)
-            time_resolution_id = extract_notation_from_uri(timestep_uri)
-            unit_id = extract_concentration_from_uri(concentration_uri)
+            time_resolution_id = self.resolve_vocabulary_id('eea_times', timestep_uri)
+            unit_id = self.resolve_vocabulary_id('eea_concentrations', concentration_uri)
             # station_classification URI -> sampling_point_category_id (extract last part, lowercase)
-            sampling_point_category_id = extract_notation_from_uri(station_classification_uri).lower() if station_classification_uri else None
+            # eea_spocategory is keyed lowercase; v3 writes the URI in the stationclassification
+            # vocabulary, so try the URI first and lowercase whatever comes back.
+            sampling_point_category_id = self.resolve_vocabulary_id(
+                'eea_spocategory', station_classification_uri)
+            if sampling_point_category_id:
+                sampling_point_category_id = sampling_point_category_id.lower()
 
             # Generate sampling_point_reference_id (AQR3 SPO_03): SPOref_[EOI]_[POLLUTANT_ID]_[N]
             # e.g., SPOref_NO0042A_00005_1
@@ -889,21 +1098,37 @@ class Migration:
             else:
                 sampling_point_reference_id = None
 
+            # aq/pollutant and aq/meteoparameter share one id space (see migration 017),
+            # so a meteoparameter keeps a perfectly valid pollutant_id and its EEA
+            # identity -- 51 is "Wind velocity". What it is not is part of the reporting
+            # obligation: AQR3 SPO/SPL/SPP/OMR describe pollutant measurements. Intent
+            # and capability are separate columns since 4.502.22, and this is exactly the
+            # case report_to_eea exists for, so the flag carries it rather than a NULL
+            # pollutant_id that would also throw away which parameter it is.
+            is_meteo = bool(pollutant_uri) and '/meteoparameter/' in pollutant_uri
+            if is_meteo:
+                meteo_count[0] += 1
+
             tgt.execute("""
                 INSERT INTO sampling_points
                 (id, sampling_point_reference_id, inlet_height, building_distance, kerb_distance, emission_source_distance,
                  logger_id, private, use_in_public_api, from_time, to_time,
-                 pollutant_id, time_resolution_id, unit_id, sampling_point_category_id, station_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 pollutant_id, time_resolution_id, unit_id, sampling_point_category_id, station_id,
+                 report_to_eea)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (
                 id_val, sampling_point_reference_id, inlet_height, building_distance, kerb_distance, None,
                 logger_id, private or False, use_in_public_api or False, from_time, to_time,
-                pollutant_id, time_resolution_id, unit_id, sampling_point_category_id, station_id
+                pollutant_id, time_resolution_id, unit_id, sampling_point_category_id, station_id,
+                not is_meteo
             ))
         
         self.stats['sampling_points'] = len(rows)
         log(f"   ✓ {len(rows)} rows")
+        if meteo_count[0]:
+            log(f"   ℹ {meteo_count[0]} meteoparameter series set report_to_eea = false "
+                f"(kept, but out of AQR3 scope)")
         
         src.close()
         tgt.close()
@@ -920,8 +1145,14 @@ class Migration:
         #         measurement_type_id, method_id, equipment_id, analytical_technique_id,
         #         equivalence_demonstrated_id, sampling_point_id
         # Note: document_ids will be NULL - needs to be populated separately via documents table
+        # One row per observing capability, not per process. v4's primary key is
+        # (id, sampling_point_id, process_activity_begin) precisely because one
+        # equipment configuration serves several sampling points and several operating
+        # periods; the DISTINCT ON (p.id) this replaces collapsed all of them into one
+        # row. On the Andorra database SPP-METEO alone covers 21 sampling points, so 20
+        # of its 21 capabilities were being dropped.
         src.execute("""
-            SELECT DISTINCT ON (p.id)
+            SELECT
                 p.id,
                 oc.begin_position as process_activity_begin,
                 oc.end_position as process_activity_end,
@@ -942,10 +1173,11 @@ class Migration:
              meas_equip_uri, analytical_tech, equiv_demo_uri, sampling_point_id) = row
             
             # Transform URI FKs to notation
-            measurement_type_id = extract_notation_from_uri(meas_type_uri)
-            method_id = extract_notation_from_uri(meas_method_uri)
-            equipment_id = extract_notation_from_uri(meas_equip_uri)
-            equivalence_demonstrated_id = extract_notation_from_uri(equiv_demo_uri)
+            measurement_type_id = self.resolve_vocabulary_id('eea_measurementtypes', meas_type_uri)
+            method_id = self.resolve_vocabulary_id('eea_measurementmethods', meas_method_uri)
+            equipment_id = self.resolve_vocabulary_id('eea_measurementequipments', meas_equip_uri)
+            equivalence_demonstrated_id = self.resolve_vocabulary_id(
+                'eea_equivalencedemonstrated', equiv_demo_uri)
             # analytical_technique_id - keep as-is for now (text field in v3)
             
             tgt.execute("""
@@ -955,7 +1187,7 @@ class Migration:
                  measurement_type_id, method_id, equipment_id, analytical_technique_id,
                  equivalence_demonstrated_id, sampling_point_id)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (id) DO NOTHING
+                ON CONFLICT (id, sampling_point_id, process_activity_begin) DO NOTHING
             """, (
                 id_val, process_activity_begin, process_activity_end, 
                 None, None, None,  # 3 document_ids = NULL
@@ -968,6 +1200,39 @@ class Migration:
         
         src.close()
         tgt.close()
+    def duplicate_observation_ids(self):
+        """Ids of the v3 observations that lose a (sampling_point, from_time, to_time) tie.
+
+        v4 declares that triple unique; v3 did not, so a v3 database can hold several rows
+        for one sampling point and hour. Ranking, in order:
+
+          1. a valid reading beats an invalid one (validation_flag >= 1), so a real
+             measurement is never dropped in favour of a -999 placeholder;
+          2. otherwise the higher id wins -- the later import, which on a database with
+             overlapping imports is the stream the instance is still writing to.
+
+        Returns the losers, so the caller skips them. Empty on a source with no duplicates,
+        which is the normal case and costs one scan to establish.
+        """
+        cur = self.source_conn.cursor()
+        cur.execute("""
+            SELECT id FROM (
+                SELECT id,
+                       row_number() OVER (
+                           PARTITION BY sampling_point_id, from_time, to_time
+                           ORDER BY (validation_flag >= 1) DESC, id DESC
+                       ) AS rn
+                  FROM observations
+            ) ranked
+            WHERE rn > 1
+        """)
+        losers = {r[0] for r in cur.fetchall()}
+        cur.close()
+        if losers:
+            log(f"   ⚠ {len(losers):,} duplicate (sampling_point, from_time, to_time) row(s) "
+                f"in the v3 source - keeping the valid/later row of each")
+        return losers
+
     def migrate_observations(self):
         """Migrate observations table (v4.5.0 - batched for 4M+ rows, v3-compatible columns)"""
         log("\n📋 Migrating observations (batched)...")
@@ -986,53 +1251,95 @@ class Migration:
         # Map: 0 -> 3, 1 -> 1
         #
         # validation_flag values are same in both systems: -99, -1, 1, 2, 3, 4
-        offset = 0
+        # Keyset paging, not LIMIT/OFFSET: OFFSET makes the server walk and discard
+        # every earlier row, so paging 6.5M rows this way is quadratic and spends most
+        # of its time re-reading the start of the table. `id` is the primary key, so
+        # `id > last_id ORDER BY id` seeks straight to each page.
+        #
+        # And one execute_values() per page instead of one execute() per row: the
+        # round trip dominated everything else at this volume.
+        # v4 has a unique constraint on (sampling_point_id, from_time, to_time) that v3
+        # never had, so a v3 database may hold rows v4 cannot accept. Serbia does: two
+        # overlapping imports, one legacy and one still running, wrote the same local hour
+        # twice with different UTC offsets -- 145,842 collisions across 2014-2020.
+        #
+        # Resolved here rather than by ON CONFLICT DO NOTHING, because which row survives
+        # must be a decision and not an accident of insertion order: keep a valid reading
+        # over an invalid one, and otherwise keep the later import, which is the stream the
+        # instance is still running on. The losers are collected up front -- a few hundred
+        # thousand integers at worst -- so the paging below stays a plain keyset scan.
+        skip_ids = self.duplicate_observation_ids()
+        skipped = 0
+
+        last_id = None
         migrated = 0
-        
-        while offset < total:
-            src.execute(f"""
-                SELECT id, sampling_point_id, value,
-                       verification_flag, validation_flag, touched, from_time, to_time,
-                       import_value, scaled_value
-                FROM observations
-                ORDER BY id
-                LIMIT {self.batch_size} OFFSET {offset}
-            """)
+
+        while True:
+            if last_id is None:
+                src.execute("""
+                    SELECT id, sampling_point_id, value,
+                           verification_flag, validation_flag, touched, from_time, to_time,
+                           import_value, scaled_value
+                    FROM observations
+                    ORDER BY id
+                    LIMIT %s
+                """, (self.batch_size,))
+            else:
+                src.execute("""
+                    SELECT id, sampling_point_id, value,
+                           verification_flag, validation_flag, touched, from_time, to_time,
+                           import_value, scaled_value
+                    FROM observations
+                    WHERE id > %s
+                    ORDER BY id
+                    LIMIT %s
+                """, (last_id, self.batch_size))
             rows = src.fetchall()
             if not rows:
                 break
-            
+
+            values = []
             for row in rows:
                 (id_val, sp_id, value,
                  verification_flag, validation_flag, touched, from_time, to_time,
                  import_value, scaled_value) = row
-                
+
+                if id_val in skip_ids:
+                    skipped += 1
+                    continue
+
                 # Map old verification_flag to EEA observationverification_id
                 # 0 -> 3 (not verified), 1 -> 1 (verified)
                 observationverification_id = 1 if verification_flag == 1 else 3
-                
-                tgt.execute("""
-                    INSERT INTO observations 
-                    (id, sampling_point_id, value,
-                     observationverification_id, observationvalidity_id, touched, from_time, to_time,
-                     import_value, scaled_value, meta)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (id) DO NOTHING
-                """, (
+
+                values.append((
                     id_val, sp_id, value,
                     observationverification_id, validation_flag, touched, from_time, to_time,
                     import_value, scaled_value, None
                 ))
-            
-            migrated += len(rows)
-            offset += self.batch_size
+
+            if values:
+                execute_values(tgt, """
+                    INSERT INTO observations
+                    (id, sampling_point_id, value,
+                     observationverification_id, observationvalidity_id, touched, from_time, to_time,
+                     import_value, scaled_value, meta)
+                    VALUES %s
+                    ON CONFLICT (id) DO NOTHING
+                """, values, page_size=len(values))
+
+            last_id = rows[-1][0]
+            migrated += len(values)
             log(f"   ... {migrated:,} / {total:,} ({100*migrated/total:.1f}%)")
         
         # Reset sequence
         tgt.execute("SELECT setval('observations_id_seq', (SELECT MAX(id) FROM observations))")
         
         self.stats['observations'] = migrated
-        log(f"   ✓ {migrated:,} rows")
+        if skipped:
+            log(f"   ✓ {migrated:,} rows ({skipped:,} duplicate row(s) dropped)")
+        else:
+            log(f"   ✓ {migrated:,} rows")
         
         src.close()
         tgt.close()
@@ -1291,7 +1598,20 @@ class Migration:
         src = self.source_conn.cursor()
         tgt = self.target_conn.cursor()
         
-        # directives
+        # directives -- absent entirely from older v3 deployments (Andorra has none)
+        if not self.source_has_table('directives'):
+            log("   ⚠ directives: no such table in the v3 source - skipped")
+            self.stats['directives'] = 0
+        else:
+            self._migrate_directives(src, tgt)
+
+        self._migrate_statistics(src, tgt)
+        self._migrate_aqi(src, tgt)
+
+        src.close()
+        tgt.close()
+
+    def _migrate_directives(self, src, tgt):
         src.execute("SELECT * FROM directives")
         rows = src.fetchall()
         cols = [desc[0] for desc in src.description]
@@ -1322,8 +1642,12 @@ class Migration:
         
         self.stats['directives'] = len(rows)
         log(f"   ✓ directives: {len(rows)} rows")
-        
-        # statistics
+
+    def _migrate_statistics(self, src, tgt):
+        if not self.source_has_table('statistics'):
+            log("   ⚠ statistics: no such table in the v3 source - skipped")
+            self.stats['statistics'] = 0
+            return
         src.execute("SELECT * FROM statistics")
         rows = src.fetchall()
         cols = [desc[0] for desc in src.description]
@@ -1347,8 +1671,12 @@ class Migration:
         
         self.stats['statistics'] = len(rows)
         log(f"   ✓ statistics: {len(rows)} rows")
-        
-        # aqi
+
+    def _migrate_aqi(self, src, tgt):
+        if not self.source_has_table('aqi'):
+            log("   ⚠ aqi: no such table in the v3 source - skipped")
+            self.stats['aqi'] = 0
+            return
         src.execute("SELECT * FROM aqi")
         rows = src.fetchall()
         cols = [desc[0] for desc in src.description]
@@ -1376,10 +1704,7 @@ class Migration:
         
         self.stats['aqi'] = len(rows)
         log(f"   ✓ aqi: {len(rows)} rows")
-        
-        src.close()
-        tgt.close()
-    
+
     def migrate_notifications(self):
         """Migrate notification tables"""
         log("\n📋 Migrating notifications...")
@@ -1466,6 +1791,10 @@ def main():
     parser = argparse.ArgumentParser(description='Migrate Raven v3 to v4')
     parser.add_argument('--dry-run', action='store_true', help='Run without committing changes')
     parser.add_argument('--batch-size', type=int, default=10000, help='Batch size for observations')
+    parser.add_argument('--country-code', metavar='XX',
+                        help='ISO country code for settings.country_code_id. Only needed when '
+                             'the v3 source has no settings.country_code and its station EoI '
+                             'codes do not agree on one country.')
     parser.add_argument('--recreate-schema', action='store_true', help='Drop and recreate schema')
     parser.add_argument('--init-only', action='store_true',
                         help='Create schema and populate EEA lookup tables only (no v3 source needed)')
@@ -1482,7 +1811,7 @@ def main():
 
     migration = Migration(dry_run=args.dry_run, batch_size=args.batch_size,
                           recreate_schema=args.recreate_schema, init_only=args.init_only,
-                          remediate_only=args.remediate_only)
+                          remediate_only=args.remediate_only, country_code=args.country_code)
     migration.run()
 
 
