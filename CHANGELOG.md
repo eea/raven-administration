@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.5.7] - 2026-09-23
+
+### Added
+
+- Notifications can be sent through Microsoft Graph API (Microsoft 365 / Exchange Online) as an alternative to SMTP. Set `MAIL_METHOD=graph` and the `GRAPH_*` variables (See readme or .env.example). SMTP remains the default.
+- `requests` added to `cron/requirements.txt`. Rebuild the cron container.
+
+### Fixes
+
+- Notification runs where every email failed were logged as `SUCCESS` with no error message. They are now logged as `ERROR`, and runs where only some notifications failed are logged as `PARTIAL_SUCCESS`, both with the failure details.
+
 ## [3.5.6] - 2026-09-16
 
 ### Fixes

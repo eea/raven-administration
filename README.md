@@ -93,12 +93,36 @@ CRON_NOTIFICATIONS_ENABLED=true
 CRON_NOTIFICATIONS_SCHEDULE=10 * * * *
 CRON_NOTIFICATIONS_MIN_INTERVAL_HOURS=3
 
+MAIL_METHOD=smtp # smtp or graph
+```
+
+**Sending with SMTP (default):**
+
+```
 SMTP_SERVER=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your.email@gmail.com
 SMTP_PASSWORD=your-app-password
 SMTP_FROM=noreply@yourorg.com
 ```
+
+**Sending with Microsoft Graph API (`MAIL_METHOD=graph`):**
+
+```
+GRAPH_TENANT_ID=your-tenant-id
+GRAPH_CLIENT_ID=your-client-id
+GRAPH_CLIENT_SECRET=your-client-secret
+GRAPH_SENDER=raven@yourorg.com
+```
+
+Requirements in Microsoft Entra ID (Azure AD):
+
+1. Register an app and create a client secret. The Tenant ID and Client ID are on the app's overview page.
+2. Add the **application** permission `Mail.Send` for Microsoft Graph (not delegated), and click **Grant admin consent**.
+3. `GRAPH_SENDER` must be an existing mailbox (user or shared mailbox) in the tenant. All notifications are sent from this address.
+4. Recommended: `Mail.Send` lets the app send as any mailbox in the tenant. Limit it to the sender mailbox with [RBAC for Applications in Exchange Online](https://learn.microsoft.com/en-us/exchange/permissions-exo/application-rbac).
+
+Errors from Microsoft (for example an invalid secret or missing consent) are logged in the `notifications_runs` table.
 
 **Cron schedule format:** `minute hour day month weekday` ([crontab.guru](https://crontab.guru) for examples)
 

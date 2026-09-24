@@ -8,6 +8,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 import json
+import requests
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -28,27 +29,68 @@ def get_min_interval_hours():
         return 3  # Default to 3 hours if invalid
 
 
+def get_mail_method():
+    """Get the mail sending method: 'smtp' (default) or 'graph'"""
+    return os.environ.get('MAIL_METHOD', 'smtp').lower()
+
+
+def get_graph_access_token():
+    """Acquire an app-only access token via the client credentials flow"""
+    tenant_id = os.environ.get('GRAPH_TENANT_ID')
+    client_id = os.environ.get('GRAPH_CLIENT_ID')
+    client_secret = os.environ.get('GRAPH_CLIENT_SECRET')
+    url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
+    data = {
+        'grant_type': 'client_credentials',
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'scope': 'https://graph.microsoft.com/.default',
+    }
+    resp = requests.post(url, data=data, timeout=10)
+    if resp.status_code != 200:
+        raise Exception(f"Token request failed {resp.status_code}: {resp.text}")
+    return resp.json()['access_token']
+
+
+def send_via_graph(access_token, sender, to_address, subject, body):
+    """Send a plaintext email via Microsoft Graph as `sender`"""
+    url = f"https://graph.microsoft.com/v1.0/users/{sender}/sendMail"
+    payload = {
+        "message": {
+            "subject": subject,
+            "body": {"contentType": "Text", "content": body},
+            "toRecipients": [{"emailAddress": {"address": to_address}}],
+        },
+        "saveToSentItems": "false",
+    }
+    resp = requests.post(
+        url, json=payload,
+        headers={"Authorization": f"Bearer {access_token}"},
+        timeout=10,
+    )
+    if resp.status_code != 202:
+        raise Exception(f"Graph API error {resp.status_code}: {resp.text}")
+
+
 def log_cycle_summary(curs, run_datetime, cycle_logger, smtp_server=None, execution_time_ms=None):
     """Log a single consolidated summary for the entire cycle to notifications_runs table"""
     try:
-        # Determine overall status
+        send_failures = [event for event in cycle_logger.events if 'Failed to send email to' in event]
+        error_message = None
+
         if cycle_logger.has_error:
             status = "ERROR"
-        elif cycle_logger.has_partial_delivery:
-            status = "PARTIAL_SUCCESS"
-        else:
-            status = "SUCCESS"
-
-        # Prepare error message if any
-        error_message = None
-        if cycle_logger.has_error:
             error_events = [event for event in cycle_logger.events if event.startswith('ERROR:')]
             error_message = '; '.join(error_events) if error_events else "Unknown error occurred"
-        elif cycle_logger.has_partial_delivery:
-            # For partial delivery, put the failure details in error_message
-            partial_events = [event for event in cycle_logger.events if 'Failed to send email to' in event]
-            if partial_events:
-                error_message = '; '.join(partial_events)
+        elif cycle_logger.emails_failed and not cycle_logger.emails_sent:
+            # Nothing was delivered this cycle
+            status = "ERROR"
+            error_message = '; '.join(send_failures) or None
+        elif cycle_logger.emails_failed or cycle_logger.has_partial_delivery:
+            status = "PARTIAL_SUCCESS"
+            error_message = '; '.join(send_failures) or None
+        else:
+            status = "SUCCESS"
 
         # Prepare details JSON
         details = {
@@ -139,7 +181,7 @@ class CycleLogger:
         if self.notifications_skipped > 0:
             summary_parts.append(f"Skipped {self.notifications_skipped} notifications (no relevant data)")
 
-        if self.has_error:
+        if self.has_error or self.emails_failed or self.has_partial_delivery:
             summary_parts.append("Completed with errors")
         else:
             summary_parts.append("Completed successfully")
@@ -221,6 +263,21 @@ with conn.cursor() as curs:
             log_cycle_summary(curs, run_start_time, cycle_logger, None, execution_time_ms)
             sys.exit(0)
 
+        mail_method = get_mail_method()
+        graph_token = None
+        graph_sender = None
+        if mail_method == 'graph':
+            graph_sender = os.environ.get('GRAPH_SENDER')
+            try:
+                graph_token = get_graph_access_token()
+                cycle_logger.smtp_server = f"graph:{graph_sender}"
+            except Exception as e:
+                cycle_logger.add_event(f"Failed to acquire Graph API access token: {e}", True)
+                print(f"Failed to acquire Graph API access token: {e}")
+                execution_time_ms = int((datetime.now() - run_start_time).total_seconds() * 1000)
+                log_cycle_summary(curs, run_start_time, cycle_logger, cycle_logger.smtp_server, execution_time_ms)
+                sys.exit(1)
+
         for note in notifications:
             email_list = note[1].split(';')
             # find sampling points relevant to this notification
@@ -243,17 +300,18 @@ with conn.cursor() as curs:
             for row in filtered_data:
                 body += f"{row[0]} | {row[1]} | {row[2]} | {row[3]} | {row[4]} | {row[5]}\n"
 
-            # Get SMTP configuration
-            smtp_server = os.environ.get('SMTP_SERVER', 'localhost')
-            smtp_port = int(os.environ.get('SMTP_PORT', '587'))
-            smtp_user = os.environ.get('SMTP_USER')
-            smtp_password = os.environ.get('SMTP_PASSWORD')
+            if mail_method != 'graph':
+                # Get SMTP configuration
+                smtp_server = os.environ.get('SMTP_SERVER', 'localhost')
+                smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+                smtp_user = os.environ.get('SMTP_USER')
+                smtp_password = os.environ.get('SMTP_PASSWORD')
 
-            # Log SMTP server info (only once per cycle)
-            if cycle_logger.smtp_server is None:
-                cycle_logger.set_smtp_server(smtp_server, smtp_port)
+                # Log SMTP server info (only once per cycle)
+                if cycle_logger.smtp_server is None:
+                    cycle_logger.set_smtp_server(smtp_server, smtp_port)
 
-            print(f"Connecting to SMTP server at {smtp_server}:{smtp_port}")
+                print(f"Connecting to SMTP server at {smtp_server}:{smtp_port}")
 
             # Send email individually to each recipient
             successful_emails = []
@@ -265,19 +323,22 @@ with conn.cursor() as curs:
                     continue
 
                 try:
-                    # Create individual message for this recipient
-                    msg = MIMEMultipart()
-                    msg['From'] = os.environ.get('SMTP_FROM', 'raven@example.com')
-                    msg['To'] = email_address
-                    msg['Subject'] = subject
-                    msg.attach(MIMEText(body, 'plain'))
+                    if mail_method == 'graph':
+                        send_via_graph(graph_token, graph_sender, email_address, subject, body)
+                    else:
+                        # Create individual message for this recipient
+                        msg = MIMEMultipart()
+                        msg['From'] = os.environ.get('SMTP_FROM', 'raven@example.com')
+                        msg['To'] = email_address
+                        msg['Subject'] = subject
+                        msg.attach(MIMEText(body, 'plain'))
 
-                    # Send to this individual recipient
-                    with smtplib.SMTP(smtp_server, smtp_port) as server:
-                        if smtp_user and smtp_password:
-                            server.starttls()  # Enable encryption
-                            server.login(smtp_user, smtp_password)
-                        server.send_message(msg)
+                        # Send to this individual recipient
+                        with smtplib.SMTP(smtp_server, smtp_port) as server:
+                            if smtp_user and smtp_password:
+                                server.starttls()  # Enable encryption
+                                server.login(smtp_user, smtp_password)
+                            server.send_message(msg)
 
                     successful_emails.append(email_address)
                     print(f"Email sent successfully to {email_address}")
