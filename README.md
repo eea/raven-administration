@@ -31,7 +31,8 @@ git clone https://git.nilu.no/raven/raven-administration
 2. Install Postgis (https://postgis.net/install/) and enable it on the database `CREATE EXTENSION postgis;`
 3. Run the `sql\schema.sql` script
 4. Run the `sql\data.sql` script
-5. Run the `sql\pre_aggregates.sql` script
+5. ~~Run the `sql\pre_aggregates.sql` script~~ — `schema.sql` creates the pre-aggregate
+   views since 4.502.25 (migration 025). Run it only to drop and rebuild them from scratch.
 6. Run the `sql\use_in_public_api.sql` script
 7. Run the `sql\meteo.sql` script
 8. Run the `sql\aqi.sql` script
