@@ -27,16 +27,24 @@ const scope = ref(null);
 // and reports no compliance at all, which nobody spots from a number.
 const recalc = ref(null);
 
+// Outstanding upgrade tasks, shown above the export. A migrated database can be
+// perfectly healthy as a database and still produce a submission Reportnet 3
+// rejects, and this is the page where that submission gets built.
+const upgrade = ref(null);
+
 onMounted(async () => {
   try {
     isLoading.value = true;
-    const [years, registry, reportingScope] = await Promise.all([
+    const [years, registry, reportingScope, upgradeTasks] = await Promise.all([
       Service.getAvailableYears(),
       Service.tables(),
       // Informational, so a failure here must not stop the export list rendering.
-      Service.scope().catch(() => null)
+      Service.scope().catch(() => null),
+      // Needs the management claim, which an exporting-only user may not have.
+      Service.upgradeTasks().catch(() => null)
     ]);
     scope.value = reportingScope;
+    upgrade.value = upgradeTasks;
     yearOptions.value = years;
     const lastYear = new Date().getFullYear() - 1;
     selectedYear.value = years.includes(lastYear) ? lastYear : years[0] ?? null;
@@ -158,6 +166,26 @@ const downloadAll = async () => {
 
       <!-- Marked for reporting but not expressible in AQR3. Only rendered when
            there is something to say; a clean instance sees nothing. -->
+      <!-- Things that will have the submission rejected, found before it is sent
+           rather than after. Silent when there is nothing to say. -->
+      <div v-if="upgrade && upgrade.blockers"
+        class="mb-6 p-3 rounded border border-nord11 bg-nord11/5 text-sm">
+        <div class="font-bold mb-1">
+          {{ upgrade.blockers }} thing{{ upgrade.blockers === 1 ? "" : "s" }} will have this
+          submission rejected
+        </div>
+        <div v-for="t in upgrade.tasks.filter((x) => x.severity === 'blocker')" :key="t.id"
+          class="text-nord3 mt-1">
+          {{ t.title }} &mdash; fix in <strong>{{ t.where }}</strong>.
+        </div>
+        <div class="text-nord3 text-xs mt-2">
+          <span class="hover:underline cursor-pointer" @click="$router.push({ name: 'FinishTheUpgrade' })">
+            Misc &rarr; Finish the upgrade
+          </span>
+          explains each one and what to do about it.
+        </div>
+      </div>
+
       <div v-if="scope && (scope.stations.in_scope !== scope.stations.exported
                            || scope.sampling_points.in_scope !== scope.sampling_points.exported)"
         class="mb-6 p-3 rounded border border-nord13 bg-nord13/10 text-sm">

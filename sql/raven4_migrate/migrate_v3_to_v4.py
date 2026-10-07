@@ -247,7 +247,7 @@ class Migration:
         self.target_conn = None
         self.stats = {}
 
-    def resolve_vocabulary_id(self, table, uri):
+    def resolve_vocabulary_id(self, table, uri, strict=False):
         """Look an EEA vocabulary id up by URI, falling back to the URI's last segment.
 
         The eea_* tables are keyed by the concept's *notation*, and EEA does not always
@@ -261,6 +261,10 @@ class Migration:
         URI is both the correct join and immune to the next such divergence. The suffix
         stays as the fallback for a concept the target vocabulary simply does not have --
         the caller decides whether that is fatal.
+
+        `strict=True` is how a caller says "this feeds a foreign key and I have no
+        better guess": it returns None instead of the suffix, so the column goes NULL
+        rather than carrying a value no row holds.
         """
         if not uri:
             return None
@@ -275,7 +279,7 @@ class Migration:
         found = cache.get(uri.rstrip('/')) or cache.get(uri)
         if found is not None:
             return found
-        return extract_notation_from_uri(uri)
+        return None if strict else extract_notation_from_uri(uri)
 
     def _admin_levels(self):
         """The ids aq/administrativelevel actually offers, cached."""
@@ -1069,6 +1073,7 @@ class Migration:
         # Track SPOref counters per station+pollutant combination
         spo_ref_counters = {}
         meteo_count = [0]
+        unresolved_units = {}
         
         for row in rows:
             (id_val, inlet_height, building_distance, kerb_distance, logger_id, 
@@ -1078,7 +1083,26 @@ class Migration:
             # Transform URIs
             pollutant_id = extract_pollutant_id_from_uri(pollutant_uri)
             time_resolution_id = self.resolve_vocabulary_id('eea_times', timestep_uri)
-            unit_id = self.resolve_vocabulary_id('eea_concentrations', concentration_uri)
+            # Resolved strictly: a unit that is not in eea_concentrations becomes NULL.
+            #
+            # eea_concentrations reports uom/concentration (AQR3 OMR_07). The uom/meteo
+            # units a v3 deployment also uses -- Cel, hPa, m.s-1, deg, percent -- are
+            # deliberately absent: migration 016 deleted them because uom/meteo/mm and
+            # uom/concentration/mm both want the short id 'mm'. Its comment gives the
+            # intended v4 spelling for exactly this case: "a series with no vocabulary
+            # unit carries unit_id = NULL and the true unit as text in
+            # plugin_sp_extended.unit".
+            #
+            # Without strict=True the suffix fallback hands the FK 'Cel', which no row
+            # holds, and the whole single-transaction migration aborts on the first
+            # meteorological sampling point. Malta is the first country migrated that
+            # has any (25 of 222); Andorra and Serbia had none, which is why this
+            # survived both earlier runs.
+            unit_id = self.resolve_vocabulary_id(
+                'eea_concentrations', concentration_uri, strict=True)
+            if concentration_uri and unit_id is None:
+                missing = extract_notation_from_uri(concentration_uri)
+                unresolved_units[missing] = unresolved_units.get(missing, 0) + 1
             # station_classification URI -> sampling_point_category_id (extract last part, lowercase)
             # eea_spocategory is keyed lowercase; v3 writes the URI in the stationclassification
             # vocabulary, so try the URI first and lowercase whatever comes back.
@@ -1126,6 +1150,10 @@ class Migration:
         
         self.stats['sampling_points'] = len(rows)
         log(f"   ✓ {len(rows)} rows")
+        if unresolved_units:
+            detail = ', '.join(f'{u} ({n})' for u, n in sorted(unresolved_units.items()))
+            log(f"   ℹ {sum(unresolved_units.values())} sampling point(s) use a unit that is "
+                f"not an EEA concentration term; unit_id left NULL: {detail}")
         if meteo_count[0]:
             log(f"   ℹ {meteo_count[0]} meteoparameter series set report_to_eea = false "
                 f"(kept, but out of AQR3 scope)")

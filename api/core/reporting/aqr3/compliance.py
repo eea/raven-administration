@@ -202,7 +202,11 @@ def persist_compliance(cursor, reporting_year, directive=None, pollutants=None, 
                 %(assessment_method_id)s, %(pollutant_id)s, %(assessment_type_id)s,
                 %(is_exceedance)s, %(data_coverage)s, %(pollution_level)s, %(pollution_level_adjusted)s,
                 %(relative_uncertainty_limit)s,
-                COALESCE(%(assessment_mqi)s, %(assessment_mqi_seed)s), %(correction_flag)s,
+                -- Cast both: when the evaluation produced no MQI and none is stored,
+                -- psycopg2 sends two untyped NULLs, Postgres infers text for the
+                -- COALESCE, and the insert fails against the numeric column.
+                COALESCE(%(assessment_mqi)s::numeric, %(assessment_mqi_seed)s::numeric),
+                %(correction_flag)s,
                 %(attainment_id)s, %(srs_id)s, %(preliminary_reason_id)s
             )
             ON CONFLICT (reporting_year, assessment_regime_id,

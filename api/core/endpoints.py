@@ -42,6 +42,9 @@ class Endpoints:
         from endpoints.management.assessmentdata.routes import assessmentdata_endpoint
         app.register_blueprint(assessmentdata_endpoint)
 
+        from endpoints.management.upgrade.routes import upgrade_endpoint
+        app.register_blueprint(upgrade_endpoint)
+
         from endpoints.management.pollutionleveladjustment.routes import adjustments_endpoint
         app.register_blueprint(adjustments_endpoint)
 

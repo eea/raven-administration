@@ -46,6 +46,7 @@ const Users = () => import("./views/access/users/Users.vue");
 const Groups = () => import("./views/access/groups/Groups.vue");
 
 const PluginManager = () => import("./views/misc/plugins/Plugins.vue");
+const FinishTheUpgrade = () => import("./views/misc/upgrade/FinishTheUpgrade.vue");
 
 const Forbidden = () => import("./views/forbidden/Forbidden.vue");
 const Notfound = () => import("./views/notfound/Notfound.vue");
@@ -102,6 +103,7 @@ const routes = [
   { path: "/misc/aqi", component: Aqi, name: "Aqi" },
   { path: "/misc/notifications", component: Notifications, name: "Notifications" },
   { path: "/misc/plugins", component: PluginManager, name: "PluginManager" },
+  { path: "/misc/upgrade", component: FinishTheUpgrade, name: "FinishTheUpgrade" },
 
   { path: "/acess/users", component: Users, name: "Users" },
   { path: "/acess/groups", component: Groups, name: "Groups" },

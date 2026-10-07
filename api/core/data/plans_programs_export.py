@@ -381,7 +381,12 @@ class PlansAndProgramsExport:
             p.uri as pollutant_uri,
 
             NULL::varchar as network_name,
-            NULL::integer as network_id,
+            -- varchar, not integer: networks.id is varchar(100) in v4, and the
+            -- measurement branch above selects n.id directly. An integer cast here
+            -- makes the whole UNION fail with "types character varying and integer
+            -- cannot be matched", which takes compliance recalculation -- and so
+            -- the entire CAM table -- down with it.
+            NULL::varchar as network_id,
 
             eat.notation as assessment_type_notation,
             eat.label as assessment_type_label,

@@ -20,7 +20,13 @@ const Service = {
 
   // CAM is derived rather than entered, so it has to be refreshed before export.
   recalculateCompliance: async (year) =>
-    Post("/api/dataflow/compliance/recalculate", { year })
+    Post("/api/dataflow/compliance/recalculate", { year }),
+
+  // Everything still outstanding before this database can be submitted. The same
+  // list as Misc -> Finish the upgrade; shown here because this is the page where
+  // a submission is actually built, and a problem found after sending is the
+  // expensive kind.
+  upgradeTasks: async () => Get("/api/management/upgrade/tasks")
 };
 
 export default Service;

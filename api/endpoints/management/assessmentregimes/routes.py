@@ -153,7 +153,10 @@ def assessmentregimes_lookups():
                    d.id || ' - ' || COALESCE(NULLIF(dobj.notation, ''), dobj.label, '') AS label
             FROM documents d
             LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
-            WHERE d.datatable_id = 'assessmentregimezone'
+            -- eea_datatable.id is 'AssessmentRegimeZone'; comparing against the
+            -- lower-case spelling matched nothing, so this dropdown was always
+            -- empty and no regime could be pointed at a document at all.
+            WHERE lower(d.datatable_id) = 'assessmentregimezone'
             ORDER BY d.id
         """)
         result['documents'] = cursor.fetchall()
@@ -182,15 +185,110 @@ def assessmentregimes_insert():
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def assessmentregimes_update():
-    model = _validated(AssessmentRegimeModel(**request.json))
-    assignments = ', '.join(f'{c} = %({c})s' for c in COLUMNS)
+    model = AssessmentRegimeModel(**request.json)
+    if not model.id:
+        raise BadRequest('id is required')
+
     with CursorFromPool() as cursor:
+        # A migrated regime can carry an identifier that predates ARZ_02
+        # validation. Validating it here as well as on insert froze those rows
+        # solid: the row was refused whatever you were trying to change, so the
+        # zone a regime needs before its identifier can be rebuilt could never be
+        # filled in. The id is not editable in this form and this route does not
+        # write it, so an existing row is allowed through unchanged -- which is
+        # what makes it repairable. New ids are still validated on insert.
+        cursor.execute('SELECT 1 FROM assessment_regimes WHERE id = %s', (model.id,))
+        existing = cursor.fetchone() is not None
+        if not existing:
+            _validated(model)
+
+        assignments = ', '.join(f'{c} = %({c})s' for c in COLUMNS)
         cursor.execute(f"""
             UPDATE assessment_regimes SET {assignments} WHERE id = %(id)s
         """, model)
         if cursor.rowcount == 0:
             raise BadRequest('Could not update assessment regime ' + model.id)
     return jsonify({'msg': 'Assessment regime updated successfully'})
+
+
+@assessmentregimes_endpoint.route('/api/management/assessmentregimes/repair-id',
+                                  methods=['POST'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def assessmentregimes_repair_id():
+    """Rebuild a regime's AssessmentRegimeId from its own fields.
+
+    A regime migrated from v3 can carry an identifier that predates ARZ_02
+    validation. That is not a cosmetic problem: `_validated()` runs on every
+    update, so the whole row is refused and the regime cannot be edited at all --
+    not even to fix an unrelated field. The id itself is not editable in the UI
+    either, by design, because it is derived rather than typed. Without this
+    route the only way out is delete and recreate, which cascades away the
+    regime's assessment data and compliance rows.
+
+    The id is rebuilt, never patched: the mandatory format has seven segments and
+    a four-digit pollutant, so no amount of string surgery on an old id produces
+    a valid one. A regime missing any component is refused rather than guessed --
+    choosing a zone is a decision for a person.
+
+    `assessmentdata`, `attainments` and `compliance_assessment_method` all
+    declare `on update cascade`, so their rows follow.
+    """
+    body = request.json or {}
+    current = (body.get('id') or '').strip()
+    if not current:
+        raise BadRequest('id is required')
+
+    with CursorFromPool() as cursor:
+        cursor.execute("""
+            SELECT id, zone_id, pollutant_id, objective_type_id, protection_target_id,
+                   reporting_metric_id, classification_year
+              FROM assessment_regimes WHERE id = %s
+        """, (current,))
+        row = cursor.fetchone()
+        if row is None:
+            raise BadRequest(f'No assessment regime with id {current}')
+
+        parts = ('zone_id', 'pollutant_id', 'objective_type_id', 'protection_target_id',
+                 'reporting_metric_id', 'classification_year')
+        missing = [c for c in parts if row[c] in (None, '')]
+        if missing:
+            raise BadRequest(
+                'The identifier is built from the zone, pollutant, objective type, '
+                'protection target, reporting metric and classification year. '
+                'Fill in ' + ', '.join(m.replace('_id', '').replace('_', ' ')
+                                       for m in missing) + ' first.')
+
+        # The trailing index distinguishes regimes that agree on all six, so it has
+        # to be chosen against the ids that already exist rather than assumed to be 1.
+        index, new_id = 0, None
+        while index < 9:
+            index += 1
+            candidate = EEAIDGenerator.generate_assessment_regime_id(
+                *(row[c] for c in parts), index)
+            cursor.execute('SELECT 1 FROM assessment_regimes WHERE id = %s', (candidate,))
+            if cursor.fetchone() is None or candidate == current:
+                new_id = candidate
+                break
+        if new_id is None:
+            raise BadRequest('Could not find a free index for this identifier.')
+
+        try:
+            validate_identifier('AssessmentRegimeId', new_id)
+        except IdentifierError as e:
+            raise BadRequest(f'The rebuilt identifier is still not valid: {e}')
+
+        if new_id == current:
+            return jsonify({'msg': 'This identifier is already correct', 'id': current,
+                            'changed': False})
+
+        cursor.execute('UPDATE assessment_regimes SET id = %s WHERE id = %s',
+                       (new_id, current))
+        if cursor.rowcount == 0:
+            raise BadRequest(f'Could not update assessment regime {current}')
+
+    return jsonify({'msg': f'Identifier rebuilt as {new_id}', 'id': new_id,
+                    'previous': current, 'changed': True})
 
 
 @assessmentregimes_endpoint.route('/api/management/assessmentregimes/delete', methods=['POST'])

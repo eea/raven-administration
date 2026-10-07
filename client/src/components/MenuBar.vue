@@ -125,7 +125,8 @@ const getmodules = () => {
         { name: "Pre aggregation", comp: "PreAggregation", show: jwt.management && jwt.allnetworks },
         { name: "Local AQI", comp: "Aqi", show: jwt.management && jwt.allnetworks },
         { name: "Notifications", comp: "Notifications", show: jwt.management && jwt.allnetworks },
-        { name: "Plugins", comp: "PluginManager", show: jwt.management && jwt.allnetworks }
+        { name: "Plugins", comp: "PluginManager", show: jwt.management && jwt.allnetworks },
+        { name: "Finish the upgrade", comp: "FinishTheUpgrade", show: jwt.management && jwt.allnetworks }
       ]
     },
     {
