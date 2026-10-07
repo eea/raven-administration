@@ -134,6 +134,9 @@ watch(() => props.show, (visible) => {
       AQR3 reports one location per period (SPL). A relocation closes the current period and
       opens a new one, so a measurement can be traced to where it was taken. Fields left empty
       fall back to the sampling point and its station — the fallback is shown beside each.
+      Periods record small moves of a fixed sampling point and changes to its surroundings or
+      category; they are not meant for mobile sensors. Time no period covers is reported with
+      the sampling point's own values.
     </p>
 
     <div v-if="!editing" class="flex justify-end mb-3 shrink-0">

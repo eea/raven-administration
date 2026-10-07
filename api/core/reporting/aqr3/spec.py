@@ -297,6 +297,16 @@ SPO = TableSpec(
 # override rows every sampling point still reports one complete location row,
 # using sampling_points.from_time as LocationBegin.
 #
+# The periods record small relocations of a fixed sampling point and changes to
+# its surroundings or category -- not mobile sensors (4sFera, 2026-10-07). They
+# need not cover the point's whole life, and until 4.502.26 a point with any
+# period reported only those, so its location before the first period, between
+# two periods and after a closed last one vanished from the submission.
+# `periods` now tiles [from_time, to_time): each override clamped to the point's
+# lifetime, plus a fallback row (spl_key NULL, so the LEFT JOIN finds nothing and
+# every column falls back) for each stretch no override covers. An open last
+# period ends with the point: LEAST ignores NULLs, so it takes sp.to_time.
+#
 # The row set is SPO's, via _reportable_sampling_point(): a location for a sampling
 # point SPO does not declare has nothing to attach to. Note `sql=f"""` -- this spec
 # was a plain string until the predicate was added, and an unformatted one would
@@ -307,10 +317,39 @@ SPL = TableSpec(
     description='Where each sampling point is: coordinates, area and location characteristics, with the period each set of values applies to.',
     params=('country_code',),
     sql=f"""
+        WITH o AS (
+            SELECT spl.sampling_point_id AS sp_id,
+                   spl.location_begin    AS spl_key,
+                   GREATEST(spl.location_begin, sp.from_time) AS b,
+                   LEAST(spl.location_end, sp.to_time)        AS e,
+                   sp.from_time, sp.to_time
+            FROM sampling_point_locations spl
+            JOIN sampling_points sp ON sp.id = spl.sampling_point_id
+            WHERE (sp.to_time IS NULL OR spl.location_begin < sp.to_time)
+              AND (spl.location_end IS NULL OR sp.from_time IS NULL
+                   OR spl.location_end > sp.from_time)
+        ), w AS (
+            SELECT o.*,
+                   row_number() OVER (PARTITION BY sp_id ORDER BY b) AS n,
+                   lead(b)      OVER (PARTITION BY sp_id ORDER BY b) AS next_b
+            FROM o
+        ), periods AS (
+            SELECT sp_id, spl_key, b, e FROM o
+            UNION ALL  -- before the first period
+            SELECT sp_id, NULL, from_time, b FROM w WHERE n = 1 AND from_time < b
+            UNION ALL  -- between two periods
+            SELECT sp_id, NULL, e, next_b FROM w WHERE e < next_b
+            UNION ALL  -- after a closed last period
+            SELECT sp_id, NULL, e, to_time FROM w
+            WHERE next_b IS NULL AND e IS NOT NULL AND (to_time IS NULL OR e < to_time)
+            UNION ALL  -- no periods: the whole life, as before
+            SELECT sp.id, NULL, sp.from_time, sp.to_time FROM sampling_points sp
+            WHERE NOT EXISTS (SELECT 1 FROM o WHERE o.sp_id = sp.id)
+        )
         SELECT %(country_code)s AS country_code,
                sp.id            AS assessment_method_id,
-               COALESCE(spl.location_begin, sp.from_time) AS location_begin,
-               COALESCE(spl.location_end,   sp.to_time)   AS location_end,
+               p.b              AS location_begin,
+               p.e              AS location_end,
                COALESCE(spl_ac.notation, st_ac.notation)  AS station_area,
                COALESCE(spl_sc.notation, sp_sc.notation)  AS sampling_point_category,
                COALESCE(spl.hotspot,   sp.hotspot)        AS hotspot,
@@ -322,15 +361,17 @@ SPL = TableSpec(
                COALESCE(spl.building_distance,        sp.building_distance)        AS building_distance,
                COALESCE(spl.kerb_distance,            sp.kerb_distance)            AS kerb_distance,
                COALESCE(spl.emission_source_distance, sp.emission_source_distance) AS emission_source_distance
-        FROM sampling_points sp
+        FROM periods p
+        JOIN sampling_points sp ON sp.id = p.sp_id
         JOIN stations st ON sp.station_id = st.id
-        LEFT JOIN sampling_point_locations spl ON spl.sampling_point_id = sp.id
+        LEFT JOIN sampling_point_locations spl
+               ON spl.sampling_point_id = p.sp_id AND spl.location_begin = p.spl_key
         LEFT JOIN eea_areaclassifications st_ac  ON st.station_area_id  = st_ac.id
         LEFT JOIN eea_areaclassifications spl_ac ON spl.station_area_id = spl_ac.id
         LEFT JOIN eea_spocategory sp_sc  ON sp.sampling_point_category_id  = sp_sc.id
         LEFT JOIN eea_spocategory spl_sc ON spl.sampling_point_category_id = spl_sc.id
         WHERE {_reportable_sampling_point('sp', 'st')}
-        ORDER BY sp.id, COALESCE(spl.location_begin, sp.from_time)
+        ORDER BY sp.id, p.b NULLS FIRST
     """,
     columns=(
         Column('CountryCode', 'country_code'),

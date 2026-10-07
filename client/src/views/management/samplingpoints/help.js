@@ -34,7 +34,7 @@ export const HELP = {
   sampling_point_reference_id: { help: "AQR3 SPO_03 SamplingPointReferenceId. Reference code following the SPO reference rules, unique within the reporting country. It can serve as a code list of its own." },
 
   // SPL -- the location characteristics, which are per period
-  from_time: { help: "AQR3 SPL_03 LocationBegin. Start of this location's characteristics, and part of the AQR3 key. Left empty, SamplingPointLocation.csv reports a blank mandatory column. Per-period overrides live in the Locations dialog." },
+  from_time: { help: "AQR3 SPL_03 LocationBegin. Start of this location's characteristics, and part of the AQR3 key. Left empty, SamplingPointLocation.csv reports a blank mandatory column. Per-period overrides live in the Locations dialog: they record small moves and changed surroundings or category of a fixed point, not mobile sensors." },
   to_time: { help: "AQR3 SPL_04 LocationEnd. End of this location's characteristics. Empty means the location is still current." },
   station_area: { help: "AQR3 SPL_05 StationArea. Classification of the station's surroundings — urban, suburban, rural and so on. The guide warns that changing it means closing the sampling points and declaring a new station." },
   sampling_point_category: { help: "AQR3 SPL_06 SamplingPointCategory. Why the sampling point was placed. The guide lists traffic, background, industrial, port, airport, residential heating and multisource.\nEEA's provisional QC pairs this with Hotspot: a background site is expected not to be a hotspot." },
