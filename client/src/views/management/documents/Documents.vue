@@ -4,9 +4,26 @@ import Manager from "../../../components/n-manager/Manager.vue";
 import Service from "./service";
 import pageOptions from "./pageOptions";
 import DocumentFile from "./DocumentFile.vue";
+import DocumentCrud from "./DocumentCrud.vue";
 import IconUpload from "~icons/material-symbols/upload-file-outline";
 
 const options = ref({});
+
+// DocumentCrud hands over a chosen PDF as `_file`. The row is saved first --
+// the file needs a document to belong to -- and the PDF uploaded after it. If
+// the upload fails the document stays, without the file; Request() shows the
+// API's message and "Upload PDF" in the row menu can retry.
+const withFile = (save) => async (o) => {
+  const { _file, ...row } = o;
+  const result = await save(row);
+  if (_file) {
+    const data = new FormData();
+    data.append("file", _file);
+    await Service.uploadFile(row.id, data);
+  }
+  return result;
+};
+const service = { ...Service, insert: withFile(Service.insert), update: withFile(Service.update) };
 
 const showFile = ref(false);
 const fileDocument = ref(null);
@@ -30,7 +47,8 @@ onMounted(async () => {
 <template>
   <document-file :show="showFile" :document="fileDocument" @close="showFile = false" @uploaded="managerKey++" />
 
-  <Manager :key="managerKey" name="Documents" :options="options" :service="Service" @context-menu-action="onContextMenuAction">
+  <Manager :key="managerKey" name="Documents" :options="options" :service="service"
+           :crud-component="DocumentCrud" @context-menu-action="onContextMenuAction">
     <template #extra-context-menu-items="{ handleAction }">
       <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('upload_file')">
         <icon-upload class="text-nord10 text-base self-center" />

@@ -19,6 +19,7 @@ from core.query import DeleteModel
 from core.jwt_ext_custom import jwt_required_with_management_claim
 from core.database import CursorFromPool
 from core.reporting.aqr3.attachments import AttachmentReferenceError, MAX_LENGTH, validate_reference
+from core.reporting.aqr3.document_ids import data_table_code, document_type_code
 
 documents_endpoint = Blueprint("documents", __name__)
 
@@ -52,23 +53,27 @@ def _validated(doc):
 @documents_endpoint.route("/api/management/documents/lookups", methods=["GET"])
 @jwt_required_with_management_claim()
 def get_lookups():
-    """Get lookup data for documents form dropdowns"""
+    """Get lookup data for documents form dropdowns.
+
+    Each item also carries `short`, its code in the DocumentId prefix the
+    dialog suggests (DOC_<type>_<table>_), so the codes live in one place.
+    """
     with CursorFromPool() as cursor:
         # Get datatables
         cursor.execute("""
-            SELECT id as value, label
+            SELECT id as value, label, COALESCE(NULLIF(notation, ''), id) as notation
             FROM eea_datatable
             ORDER BY LOWER(label)
         """)
-        datatables = cursor.fetchall()
+        datatables = [{**r, "short": data_table_code(r["notation"])} for r in cursor.fetchall()]
 
         # Get document objects
         cursor.execute("""
-            SELECT id as value, label
+            SELECT id as value, label, COALESCE(NULLIF(notation, ''), id) as notation
             FROM eea_documentobject
             ORDER BY LOWER(label)
         """)
-        documentobjects = cursor.fetchall()
+        documentobjects = [{**r, "short": document_type_code(r["notation"])} for r in cursor.fetchall()]
 
         return {
             "datatables": datatables,

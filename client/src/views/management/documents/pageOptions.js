@@ -1,3 +1,10 @@
+// AQR3 DOC_04. Shared with DocumentCrud.vue, which builds the Id's first part.
+export const ID_HELP =
+  "AQR3 DOC_04 DocumentId. The guide leaves the format free but recommends DOC + document type + data table; " +
+  "the first part is built from Data Table and Type, and you type the rest. Must be unique and cannot be changed later. " +
+  "Reference it from the station, process, model, regime, adjustment or plan the document belongs to: " +
+  "EEA flags documents nothing references for deletion.";
+
 const pageOptions = (lookups) => {
   return {
     entityName: "Document",
@@ -6,6 +13,7 @@ const pageOptions = (lookups) => {
         type: "text",
         label: "Id",
         prop: "id",
+        help: ID_HELP,
         required: true,
         default: null,
         enableInEdit: false,
