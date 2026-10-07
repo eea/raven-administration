@@ -327,40 +327,44 @@ def evaluate_regime():
 @jwt_required_with_data_claim()
 def get_years():
     """
-    Get available years from assessment_regimes data.
-    Falls back to sampling_points data if no assessment regimes exist.
-    
+    Get the years that have observations, newest first.
+
+    Evaluation computes statistics from observations, so these are the years
+    that can be evaluated. assessment_regimes.classification_year is not: it is
+    the year the zones were classified, which stays valid for several reporting
+    years (Malta's 60 regimes all say 2022, while data covers 2021-2026).
+    Sampling point from_time/to_time is not either: it spans years with no data.
+
     Returns:
         JSON array of unique years
-    
+
     Example:
         GET /api/data/exceedances/years
     """
     with CursorFromPool() as cursor:
-        # First try to get years from assessment_regimes classification_year
+        # First and last observation per sampling point, each one probe of
+        # idx_observations_spid_ft, so cost follows the number of sampling
+        # points rather than the number of observations.
         cursor.execute("""
-            SELECT DISTINCT classification_year as year
-            FROM assessment_regimes
-            WHERE classification_year IS NOT NULL
-            ORDER BY classification_year DESC
+            SELECT
+                EXTRACT(YEAR FROM MIN(first_obs.from_time))::integer AS min_year,
+                EXTRACT(YEAR FROM MAX(last_obs.from_time))::integer AS max_year
+            FROM sampling_points sp
+            CROSS JOIN LATERAL (
+                SELECT o.from_time FROM observations o
+                WHERE o.sampling_point_id = sp.id
+                ORDER BY o.from_time LIMIT 1
+            ) first_obs
+            CROSS JOIN LATERAL (
+                SELECT o.from_time FROM observations o
+                WHERE o.sampling_point_id = sp.id
+                ORDER BY o.from_time DESC LIMIT 1
+            ) last_obs
         """)
-        
-        years = [row['year'] for row in cursor.fetchall()]
-        
-        # If no assessment regimes exist, fall back to years from sampling points
-        if not years:
-            cursor.execute("""
-                SELECT 
-                    EXTRACT(YEAR FROM MIN(from_time))::integer as min_year,
-                    EXTRACT(YEAR FROM MAX(to_time))::integer as max_year
-                FROM sampling_points
-                WHERE from_time IS NOT NULL 
-                AND to_time IS NOT NULL
-            """)
-            result = cursor.fetchone()
-            
-            if result and result['min_year'] and result['max_year']:
-                # Generate list of years between min and max
-                years = list(range(result['max_year'], result['min_year'] - 1, -1))
-    
+        result = cursor.fetchone()
+
+    years = []
+    if result and result['min_year'] and result['max_year']:
+        years = list(range(result['max_year'], result['min_year'] - 1, -1))
+
     return jsonify(years), 200
