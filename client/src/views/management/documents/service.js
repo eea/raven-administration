@@ -7,6 +7,7 @@ const Service = {
   insert: async (data) => Post("/api/management/documents/insert", data),
   delete: async (data) => Post("/api/management/documents/delete", data),
   upload: async (data) => Upload("/api/imports/documents", data),
+  uploadFile: async (id, data) => Upload(`/api/management/documents/${encodeURIComponent(id)}/file`, data),
   download: async () => DownloadGet("/api/exports/documents")
 };
 

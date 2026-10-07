@@ -15,6 +15,7 @@ class DocumentModel(BaseModel):
     # on the way in: a silently shortened URL points somewhere else.
     document_original_url: Optional[str] = Field(None, max_length=100)
     # AQR3 DOC_05 — the filename of the PDF uploaded to Reportnet3 alongside the
-    # CSVs. Raven records the reference, not the file. The route validates the
-    # extension via core.reporting.aqr3.attachments.
+    # CSVs, or a URL to the PDF: one the user pasted, or the public URL Raven gives
+    # a file uploaded to it (POST /api/management/documents/<id>/file). The route
+    # validates it via core.reporting.aqr3.attachments.
     documentattachment: Optional[str] = Field(None, max_length=100)

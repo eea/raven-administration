@@ -3,8 +3,23 @@ import { onMounted, ref } from "vue";
 import Manager from "../../../components/n-manager/Manager.vue";
 import Service from "./service";
 import pageOptions from "./pageOptions";
+import DocumentFile from "./DocumentFile.vue";
+import IconUpload from "~icons/material-symbols/upload-file-outline";
 
 const options = ref({});
+
+const showFile = ref(false);
+const fileDocument = ref(null);
+// Bumped after an upload: remounting the manager reloads the grid, which shows
+// the new Attachment URL.
+const managerKey = ref(0);
+
+const onContextMenuAction = ({ action, data }) => {
+  if (action === "upload_file") {
+    fileDocument.value = data?.row ?? null;
+    showFile.value = true;
+  }
+};
 
 onMounted(async () => {
   const lookups = await Service.lookups();
@@ -13,5 +28,14 @@ onMounted(async () => {
 </script>
 
 <template>
-  <Manager name="Documents" :options="options" :service="Service" />
+  <document-file :show="showFile" :document="fileDocument" @close="showFile = false" @uploaded="managerKey++" />
+
+  <Manager :key="managerKey" name="Documents" :options="options" :service="Service" @context-menu-action="onContextMenuAction">
+    <template #extra-context-menu-items="{ handleAction }">
+      <div class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="handleAction('upload_file')">
+        <icon-upload class="text-nord10 text-base self-center" />
+        <div class="self-center ml-1">Upload PDF</div>
+      </div>
+    </template>
+  </Manager>
 </template>

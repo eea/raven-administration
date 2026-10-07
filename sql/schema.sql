@@ -478,7 +478,7 @@ create table if not exists documents
 );
 
 comment on table documents is 'v4.8.0 centralized document references for RN3 reporting';
-comment on column documents.documentattachment is 'AQR3 DOC_05 DocumentAttachment. The filename of the PDF uploaded to Reportnet3 alongside the CSVs; varchar(100) per the guide. Raven stores the reference, not the file.';
+comment on column documents.documentattachment is 'AQR3 DOC_05 DocumentAttachment. Either the filename of a PDF uploaded to Reportnet3 alongside the CSVs, or a URL to the PDF -- one the user pasted, or Raven''s own for a file in document_files. varchar(100) per the guide.';
 comment on column documents.document_original_url is 'AQR3 DOC_06 DocumentOriginalURL. Where the document is published, for a document not attached to the Reportnet3 envelope. varchar(100) per the guide; the API refuses longer values rather than truncating.';
 
 create index if not exists idx_documents_datatable
@@ -486,6 +486,28 @@ create index if not exists idx_documents_datatable
 
 create index if not exists idx_documents_documentobject
     on documents (documentobject_id);
+
+-- Uploaded PDFs, served by public URL (migration 026)
+create table if not exists document_files
+(
+    token       varchar(32)  not null primary key,
+    document_id varchar(255) not null
+        references documents (id) on update cascade on delete cascade,
+    filename    varchar(255) not null,
+    mime_type   varchar(100) not null default 'application/pdf',
+    file_size   integer      not null,
+    sha256      char(64)     not null,
+    content     bytea        not null,
+    uploaded_by varchar(255),
+    uploaded_at timestamp    not null default current_timestamp
+);
+
+comment on table document_files is 'PDFs uploaded for documents. Served without login at /api/public/documents/<token>.pdf, the URL Raven writes to documents.documentattachment (DOC_05). One row per upload; a token is never reused.';
+comment on column document_files.token is 'Random hex; the key of the public URL. Unguessable, so the URL is the only way to the file.';
+comment on column document_files.filename is 'The name the file was uploaded with, used as the download name.';
+
+create index if not exists idx_document_files_document
+    on document_files (document_id);
 
 -- ---------------------------------------------------------------------------
 -- Users and groups
@@ -2586,5 +2608,6 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
                     'period (migration 024)'),
        ('4.502.25', 'baseline: schema.sql declares the pre-aggregate materialized views, '
                     'raven_coverage(), raven_refresh_aggregates() and sampling_point_groups '
-                    '(migration 025)')
+                    '(migration 025)'),
+       ('4.502.26', 'baseline: schema.sql declares document_files (migration 026)')
 on conflict (version) do nothing;
