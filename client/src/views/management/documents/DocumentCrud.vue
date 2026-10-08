@@ -121,20 +121,21 @@ const title = computed(() => (props.isEdit ? "Edit Document" : "Create Document"
         <FieldLabel class="font-bold" label="PDF" />
         <input ref="fileInput" type="file" accept=".pdf,application/pdf" class="input w-full text-sm" @change="onFile" />
         <div class="text-xs text-nord3 mt-1">
-          Uploaded to Raven after saving; its permanent public URL replaces the Attachment.
+          Uploaded to Raven after saving: its permanent public URL becomes the Original URL,
+          and its filename the Attachment.
         </div>
       </div>
 
       <div class="mb-2">
         <FieldLabel class="font-bold" label="Attachment" />
         <input class="input w-full" v-model="obj.documentattachment" :disabled="!!file"
-               placeholder="str: PDF filename or URL (max 100 chars)" />
+               :placeholder="file ? file.name : 'str: PDF filename, e.g. plan_2024.pdf (max 100 chars)'" />
       </div>
 
       <div class="mb-2">
         <FieldLabel class="font-bold" label="Original URL" />
-        <input class="input w-full" v-model="obj.document_original_url"
-               placeholder="str: where the document is published (max 100 chars)" />
+        <input class="input w-full" v-model="obj.document_original_url" :disabled="!!file"
+               :placeholder="file ? 'set to the public URL Raven gives the PDF' : 'str: where the document is published (max 100 chars)'" />
       </div>
     </div>
 

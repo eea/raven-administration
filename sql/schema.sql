@@ -478,8 +478,8 @@ create table if not exists documents
 );
 
 comment on table documents is 'v4.8.0 centralized document references for RN3 reporting';
-comment on column documents.documentattachment is 'AQR3 DOC_05 DocumentAttachment. Either the filename of a PDF uploaded to Reportnet3 alongside the CSVs, or a URL to the PDF -- one the user pasted, or Raven''s own for a file in document_files. varchar(100) per the guide.';
-comment on column documents.document_original_url is 'AQR3 DOC_06 DocumentOriginalURL. Where the document is published, for a document not attached to the Reportnet3 envelope. varchar(100) per the guide; the API refuses longer values rather than truncating.';
+comment on column documents.documentattachment is 'AQR3 DOC_05 DocumentAttachment. The filename of the PDF; for a file uploaded to Raven (document_files), the name it was uploaded with. varchar(100) per the guide.';
+comment on column documents.document_original_url is 'AQR3 DOC_06 DocumentOriginalURL. Where the document is published: a URL the user gives, or the permanent public URL Raven serves an uploaded PDF at (/api/public/documents/<token>.pdf). varchar(100) per the guide; the API refuses longer values rather than truncating.';
 
 create index if not exists idx_documents_datatable
     on documents (datatable_id);
@@ -502,7 +502,7 @@ create table if not exists document_files
     uploaded_at timestamp    not null default current_timestamp
 );
 
-comment on table document_files is 'PDFs uploaded for documents. Served without login at /api/public/documents/<token>.pdf, the URL Raven writes to documents.documentattachment (DOC_05). One row per upload; a token is never reused.';
+comment on table document_files is 'PDFs uploaded for documents. Served without login at /api/public/documents/<token>.pdf, the URL Raven writes to documents.document_original_url (DOC_06). One row per upload; a token is never reused.';
 comment on column document_files.token is 'Random hex; the key of the public URL. Unguessable, so the URL is the only way to the file.';
 comment on column document_files.filename is 'The name the file was uploaded with, used as the download name.';
 
@@ -2609,5 +2609,8 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
        ('4.502.25', 'baseline: schema.sql declares the pre-aggregate materialized views, '
                     'raven_coverage(), raven_refresh_aggregates() and sampling_point_groups '
                     '(migration 025)'),
-       ('4.502.26', 'baseline: schema.sql declares document_files (migration 026)')
+       ('4.502.26', 'baseline: schema.sql declares document_files (migration 026)'),
+       -- 027 also moves URLs uploads wrote to documentattachment; a fresh install has none.
+       ('4.502.27', 'baseline: schema.sql comments document_original_url as where an '
+                    'uploaded PDF is served (migration 027)')
 on conflict (version) do nothing;

@@ -28,7 +28,7 @@ const service = { ...Service, insert: withFile(Service.insert), update: withFile
 const showFile = ref(false);
 const fileDocument = ref(null);
 // Bumped after an upload: remounting the manager reloads the grid, which shows
-// the new Attachment URL.
+// the new Original URL and Attachment.
 const managerKey = ref(0);
 
 const onContextMenuAction = ({ action, data }) => {

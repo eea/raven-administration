@@ -14,12 +14,12 @@ const emit = defineEmits(["close", "uploaded"]);
 
 const input = ref(null);
 const uploading = ref(false);
-// The URL of the file just uploaded, else the document's current attachment.
+// The URL of the file just uploaded, else the document's current Original URL.
 const url = ref(null);
 
 watch(() => props.show, (visible) => {
   if (visible) {
-    const current = props.document?.documentattachment ?? "";
+    const current = props.document?.document_original_url ?? "";
     url.value = /^https?:\/\//i.test(current) ? current : null;
     if (input.value) input.value.value = "";
   }
@@ -55,7 +55,7 @@ const copy = async () => {
   <popup :show="show" :title="`Upload PDF — ${document?.id ?? ''}`" @on-close="emit('close')" class="max-w-2xl w-full">
     <p class="text-xs text-nord3 mb-3">
       Raven keeps the PDF and gives it a permanent public URL, which becomes the document's
-      Attachment (AQR3 DOC_05) — Reportnet3 takes the document from there. Uploading again
+      Original URL (AQR3 DOC_06); the file's name becomes its Attachment (DOC_05). Uploading again
       makes a new URL; the old one keeps serving the old file. Deleting the document deletes
       its files, and their URLs stop working.
     </p>

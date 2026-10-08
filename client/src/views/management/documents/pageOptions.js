@@ -43,21 +43,20 @@ const pageOptions = (lookups) => {
       },
       // OPTIONAL
       {
-        // AQR3 DOC_05. The filename of the PDF uploaded to Reportnet3 alongside
-        // the CSVs, or a URL to it: pasted here, or set by "Upload PDF" in the
-        // row menu, which stores the file in Raven and gives it a public URL.
+        // AQR3 DOC_05. The filename of the PDF. Uploading the PDF to Raven sets
+        // it to the file's name, and puts the public URL in Original URL.
         type: "text",
         label: "Attachment",
         prop: "documentattachment",
-        placeholder: "str: PDF filename or URL (max 100 chars) — or use Upload PDF in the row menu",
+        placeholder: "str: PDF filename, e.g. plan_2024.pdf (max 100 chars)",
         required: false,
         default: null,
         enableInEdit: true,
         showInGrid: true
       },
       {
-        // AQR3 DOC_06. The alternative to attaching the PDF to the Reportnet3
-        // envelope: where the document is already published.
+        // AQR3 DOC_06. Where the document is published: a URL the user has, or
+        // the permanent public URL Raven gives a PDF uploaded to it.
         type: "text",
         label: "Original URL",
         prop: "document_original_url",

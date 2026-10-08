@@ -18,10 +18,10 @@ rejects reaches a submission:
 A bare filename is expected rather than a path: it has to match what was uploaded
 to Reportnet3, and a directory component would not.
 
-DOC_05 may also be an http(s) URL. Reportnet 3.0 will take a document attachment
-by URL (4sFera, 2026-10-07): either one the document already has, or the one Raven
-gives a PDF uploaded to it (document_files, /api/public/documents/<token>.pdf).
-The GeoTIFF attachments stay filenames.
+A URL is not an attachment. Where a document is published -- a URL the user has,
+or the one Raven gives a PDF uploaded to it (/api/public/documents/<token>.pdf) --
+goes in DOC_06 DocumentOriginalURL, a plain string column. DOC_05 carries the
+filename only.
 """
 import re
 
@@ -35,10 +35,6 @@ KINDS = {
 }
 
 _PATH_SEPARATOR = re.compile(r'[\\/]')
-_URL = re.compile(r'https?://[^\s/]+/\S*', re.IGNORECASE)
-
-# attribute codes whose reference may be a URL instead of a filename
-URL_KINDS = {'DOC_05'}
 
 
 class AttachmentReferenceError(ValueError):
@@ -46,7 +42,7 @@ class AttachmentReferenceError(ValueError):
 
 
 def validate_reference(kind, value):
-    """Check an attachment filename (or, for DOC_05, URL), returning it unchanged so it can be used inline.
+    """Check an attachment filename, returning it unchanged so it can be used inline.
 
     None and '' pass: an attachment is optional for every one of the three
     attributes, and a document may instead be referenced by DOC_06
@@ -62,14 +58,11 @@ def validate_reference(kind, value):
             f'{kind}: the attachment reference is {len(value)} characters; Reportnet3 allows '
             f'at most {MAX_LENGTH}. Rename the file before uploading it.')
 
-    if kind in URL_KINDS and _URL.fullmatch(value):
-        return value
-
     if _PATH_SEPARATOR.search(value):
         raise AttachmentReferenceError(
             f'{kind}: give the file name only ({value.split("/")[-1].split(chr(92))[-1]}), not a '
             f'path — it has to match the name of the file uploaded to Reportnet3.'
-            + (' A URL must start with http:// or https://.' if kind in URL_KINDS else ''))
+            + (' A URL belongs in Original URL (DOC_06).' if kind == 'DOC_05' else ''))
 
     if not value.lower().endswith(extensions):
         raise AttachmentReferenceError(

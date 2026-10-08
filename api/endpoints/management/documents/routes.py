@@ -3,8 +3,8 @@ Routes for Documents management
 CRUD operations for document metadata, plus PDF upload and its public download.
 
 An uploaded PDF is kept in document_files and served without login at
-/api/public/documents/<token>.pdf. That URL is written to documentattachment
-(AQR3 DOC_05), which Reportnet 3.0 takes by URL.
+/api/public/documents/<token>.pdf. That URL is written to document_original_url
+(AQR3 DOC_06), and the file's name to documentattachment (DOC_05).
 """
 import hashlib
 import io
@@ -193,7 +193,8 @@ def delete():
 @documents_endpoint.route("/api/management/documents/<path:document_id>/file", methods=["POST"])
 @jwt_required_with_management_claim()
 def upload_file(document_id):
-    """Store a PDF for a document and point its DOC_05 attachment at the file's public URL.
+    """Store a PDF for a document: its public URL becomes DOC_06 DocumentOriginalURL
+    and its filename DOC_05 DocumentAttachment.
 
     Every upload gets a new token, so a URL that has been submitted keeps
     serving what it served then.
@@ -215,7 +216,7 @@ def upload_file(document_id):
     url = f"{_public_base_url()}{PUBLIC_PATH}{token}.pdf"
     if len(url) > MAX_LENGTH:
         raise BadRequest(
-            f"The public URL would be {len(url)} characters; DOC_05 allows {MAX_LENGTH}. "
+            f"The public URL would be {len(url)} characters; DOC_06 allows {MAX_LENGTH}. "
             f"Set PUBLIC_BASE_URL to a shorter address.")
 
     with CursorFromPool() as cursor:
@@ -237,17 +238,27 @@ def upload_file(document_id):
             "content": content,
             "user": get_jwt_identity(),
         })
-        cursor.execute(
-            "UPDATE documents SET documentattachment = %s WHERE id = %s",
-            (url, document_id))
+        cursor.execute("""
+            UPDATE documents
+            SET document_original_url = %(url)s, documentattachment = %(attachment)s
+            WHERE id = %(id)s
+        """, {"url": url, "attachment": _attachment_name(filename), "id": document_id})
 
     return {"message": "File uploaded", "id": document_id, "url": url,
             "file_name": filename, "file_size": len(content)}, 201
 
 
+def _attachment_name(filename):
+    """The filename as DOC_05 takes it: at most 100 characters, still ending in .pdf."""
+    if len(filename) <= MAX_LENGTH:
+        return filename
+    stem, ext = os.path.splitext(filename)
+    return stem[:MAX_LENGTH - len(ext)] + ext
+
+
 @documents_endpoint.route(PUBLIC_PATH + "<token>.pdf", methods=["GET"])
 def public_file(token):
-    """Serve an uploaded document without login: the permanent URL in DOC_05."""
+    """Serve an uploaded document without login: the permanent URL in DOC_06."""
     if len(token) != 32 or any(c not in "0123456789abcdef" for c in token):
         raise NotFound()
     with CursorFromPool() as cursor:
