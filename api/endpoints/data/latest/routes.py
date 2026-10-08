@@ -48,8 +48,20 @@ def latest():
                 a_eea.description    AS eea_aqi_desc,
                 a_eea.color          AS eea_aqi_color
             FROM
-                observations             o
-                JOIN sampling_points     sp ON o.sampling_point_id = sp.id
+                sampling_points          sp
+                -- The series' newest observation, found through the
+                -- (sampling_point_id, from_time, to_time) index. A plain join on
+                -- o.to_time = sp.to_time has no usable index and scans every
+                -- observation (8 s at 110M rows).
+                CROSS JOIN LATERAL (
+                    SELECT o.value, o.observationvalidity_id, o.observationverification_id
+                    FROM observations o
+                    WHERE o.sampling_point_id = sp.id
+                      AND o.from_time <= sp.to_time
+                      AND o.to_time    = sp.to_time
+                    ORDER BY o.from_time DESC
+                    LIMIT 1
+                ) o
                 -- LEFT: nullable measurement config since migration 012. Access is
                 -- enforced by network_access below, not by the vocabulary joins.
                 LEFT JOIN eea_pollutants p  ON sp.pollutant_id    = p.id
@@ -79,15 +91,16 @@ def latest():
                   AND a_eea.timestep           = sp.time_resolution_id
                   AND a_eea.calculation_type   = 'EEA'
                   AND a_eea.range @> ROUND(NULLIF(o.value, 'NaN')::numeric)
-            WHERE
-                1 = 1
-                AND o.to_time = sp.to_time
             ORDER BY
-                o.to_time  DESC,
+                sp.to_time DESC,
                 station,
                 pollutant,
                 timestep;
         """
+        # The planner over-estimates the per-series lookup, which pushes the query past
+        # the JIT threshold: compiling then costs ~750 ms against <100 ms of execution.
+        # SET LOCAL ends with this transaction, so the pooled connection is unaffected.
+        cursor.execute("SET LOCAL jit = off")
         cursor.execute(sql, n_param)
         values = cursor.fetchall()
 
