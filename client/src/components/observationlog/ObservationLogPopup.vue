@@ -132,12 +132,16 @@ const isEmptyByFilter = computed(() => isEmpty.value && activeRuleCount.value > 
     The cap is in px on purpose. `html, body` set text-[14px], so 1rem = 14px here and
     rem-based widths come out ~12.5% smaller than they read — max-w-5xl (64rem) was
     896px, not 1024px. 1680px comfortably clears the ~1554px the full column set needs.
+
+    Width and height are % of Popup's overlay, not vw/vh: the overlay is absolute inside
+    CommonLayout, so it covers only the content area beside the menu. 95vw ignored the
+    open menu and pushed the panel under it and off the right edge.
   -->
   <popup
     :show="show"
     title="Observation Change History"
     @on-close="emit('close')"
-    class="w-[95vw] max-w-[1680px] h-[85vh]"
+    class="w-[95%] max-w-[1680px] h-[90%]"
     body-class="flex-1 min-h-0 flex flex-col"
   >
     <template #actions>

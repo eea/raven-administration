@@ -317,7 +317,7 @@ const onPreview = async () => {
 </script>
 
 <template>
-  <popup :show="show" :title="isEdit ? 'Edit Scaling Point' : 'Add Scaling Point'" @on-close="$emit('close')" class="w-[90vw] max-w-3xl">
+  <popup :show="show" :title="isEdit ? 'Edit Scaling Point' : 'Add Scaling Point'" @on-close="$emit('close')" class="w-[90%] max-w-3xl">
     <div class="mb-4">
       <div class="font-bold">Timestamp:</div>
       <DatetimePicker v-model="_obj.timestamp" class="w-full" />

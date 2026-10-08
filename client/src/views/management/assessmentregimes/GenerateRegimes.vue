@@ -104,7 +104,7 @@ const onGenerate = async () => {
 </script>
 
 <template>
-  <popup :show="show" title="Generate assessment regimes" class="w-[70rem] max-w-[95vw] h-[80vh]"
+  <popup :show="show" title="Generate assessment regimes" class="w-[70rem] max-w-[95%] h-[80vh]"
          body-class="flex-1 min-h-0 flex flex-col" @on-close="emit('close')">
     <p class="text-xs text-nord3 mb-3 shrink-0">
       Every zone x environmental objective combination that has <strong>no regime yet</strong> for
