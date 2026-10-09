@@ -17,6 +17,7 @@ def latest():
                 sp.id AS id,
                 to_char(sp.from_time, 'yyyy-mm-dd HH24:mi') AS from_time,
                 to_char(sp.to_time,   'yyyy-mm-dd HH24:mi') AS to_time,
+                substring(o.end_position from '([+-]\d{{2}}:?\d{{2}}|Z)$') AS timezone,
                 o.validation_flag,
                 o.verification_flag,
                 p.notation           AS pollutant,

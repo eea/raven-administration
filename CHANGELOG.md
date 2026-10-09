@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.5.8] - 2026-10-09
+
+### Changed
+
+- The latest data view now shows the timezone offset (e.g. `+01:00`) next to the from and to times. The offset is taken from the observation's `end_position`.
+
 ## [3.5.7] - 2026-09-23
 
 ### Added

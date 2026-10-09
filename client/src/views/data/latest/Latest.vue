@@ -130,8 +130,8 @@ const onContextMenu = (row, e) => {
           <td>{{ row.station }}</td>
           <td>{{ row.pollutant }}</td>
           <td>{{ row.timestep }}</td>
-          <td>{{ row.from_time }}</td>
-          <td :class="cls_cellClass(row)">{{ row.to_time }}</td>
+          <td>{{ row.from_time }} {{ row.timezone }}</td>
+          <td :class="cls_cellClass(row)">{{ row.to_time }} {{ row.timezone }}</td>
           <td v-if="aqi_type === 'eea'">
             <div v-if="row.eea_aqi_level > 0" class="w-4 h-4 rounded-full flex items-center justify-center" v-tooltip="row.eea_aqi_desc" :style="{ backgroundColor: row.eea_aqi_color + 'BB', borderColor: row.eea_aqi_color, borderStyle: 'solid', borderWidth: '1px' }"></div>
           </td>
