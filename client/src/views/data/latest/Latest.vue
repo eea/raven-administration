@@ -21,7 +21,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { format, sub, add } from "date-fns";
 import Service from "./service";
 import { filterList, downloadCsv } from "../../../helpers/utils";
-import { datetimeCellRenderer, granularityFromTimestep } from "../../../helpers/datetimeHighlight";
+import { highlightDatetime, granularityFromTimestep } from "../../../helpers/datetimeHighlight";
 
 import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
@@ -38,17 +38,26 @@ const router = useRouter();
 
 const columns = ref([]);
 
+// Both dates are endDates in the station network's time zone, which the API sends as
+// `timezone` (e.g. UTC+01); null when the network has none.
+const endDateRenderer = (params) => {
+  const html = highlightDatetime(params.value, granularityFromTimestep(params.data?.timestep));
+  const tz = params.data?.timezone;
+  return html && tz ? `${html} <span style="color:var(--color-nord3)">${tz}</span>` : html;
+};
+
 const createColumns = () => {
   columns.value = [
     { field: "station", headerName: "Station", flex: 1 },
     { field: "pollutant", headerName: "Pollutant/Meteo", flex: 1 },
     { field: "timestep", headerName: "Timestep", flex: 0.8 },
-    { field: "from_time", headerName: "First date", flex: 1, cellRenderer: datetimeCellRenderer((row) => granularityFromTimestep(row?.timestep)) },
+    { field: "from_time", headerName: "First endDate", headerTooltip: "End of the first observation period, in the station network's time zone", flex: 1, cellRenderer: endDateRenderer },
     {
       field: "to_time",
-      headerName: "Latest date",
+      headerName: "Latest endDate",
+      headerTooltip: "End of the newest observation period, in the station network's time zone",
       flex: 1,
-      cellRenderer: datetimeCellRenderer((row) => granularityFromTimestep(row?.timestep)),
+      cellRenderer: endDateRenderer,
       cellStyle: (params) => {
         if (params.data.status == 1) return { color: "#d08770" };
         if (params.data.status == 2) return { color: "#bf616a" };
@@ -124,7 +133,7 @@ const onContextMenuAction = ({ action, data }) => {
 };
 
 const onDownload = () => {
-  downloadCsv(cmp_data.value, columns.value, "latest_data");
+  downloadCsv(cmp_data.value, [...columns.value, { field: "timezone", headerName: "Time zone" }], "latest_data");
 };
 
 const onGoto = (name) => {

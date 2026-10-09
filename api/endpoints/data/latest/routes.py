@@ -21,8 +21,12 @@ def latest():
             {with_network_sql}
             SELECT
                 sp.id AS id,
-                to_char(sp.from_time, 'yyyy-mm-dd HH24:mi') AS from_time,
-                to_char(sp.to_time,   'yyyy-mm-dd HH24:mi') AS to_time,
+                -- Both are endDates, in the network's time zone (observations are
+                -- stored without one). sp.from_time is the first observation's
+                -- *start*, so the first endDate comes from the observation itself.
+                to_char(f.to_time,  'yyyy-mm-dd HH24:mi') AS from_time,
+                to_char(sp.to_time, 'yyyy-mm-dd HH24:mi') AS to_time,
+                tz.notation          AS timezone,
                 o.observationvalidity_id,
                 o.observationverification_id,
                 {pollutant} AS pollutant,
@@ -62,12 +66,22 @@ def latest():
                     ORDER BY o.from_time DESC
                     LIMIT 1
                 ) o
+                -- The series' first observation, through the same index.
+                CROSS JOIN LATERAL (
+                    SELECT o1.to_time
+                    FROM observations o1
+                    WHERE o1.sampling_point_id = sp.id
+                      AND o1.from_time >= sp.from_time
+                    ORDER BY o1.from_time, o1.to_time
+                    LIMIT 1
+                ) f
                 -- LEFT: nullable measurement config since migration 012. Access is
                 -- enforced by network_access below, not by the vocabulary joins.
                 LEFT JOIN eea_pollutants p  ON sp.pollutant_id    = p.id
                 LEFT JOIN eea_times      t  ON sp.time_resolution_id = t.id
                 JOIN stations            s  ON sp.station_id       = s.id
                 JOIN network_access      n  ON s.network_id        = n.id
+                LEFT JOIN eea_timezones  tz ON tz.id               = n.timezone_id
                 LEFT JOIN eea_concentrations u ON sp.unit_id       = u.id
                 {smeta.joins('sp')}
                 LEFT JOIN (
