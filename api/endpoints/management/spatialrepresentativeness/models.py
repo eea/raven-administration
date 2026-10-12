@@ -26,12 +26,19 @@ class SpatialRepresentativenessModel(BaseModel):
     # is 1:1 with this row, so it is carried here rather than in its own model;
     # the routes upsert or delete that row from result_encoding_id.
     geotiff_attachment: Optional[str] = Field(None, max_length=100)
+    # Where the area comes from, besides `points`: a file staged by /parse (what the
+    # form sends), or another record's cells (Duplicate). See routes._store_area.
+    upload_token: Optional[str] = Field(None, max_length=32)
+    copy_cells_from: Optional[str] = Field(None, max_length=255)
 
 
 class SrImportModel(SpatialRepresentativenessModel):
-    """A CSV row: an SR without its area. `points` is excluded rather than left at
-    its default, so a file cannot name it and the template does not show it."""
+    """A CSV row: an SR without its area. The area fields are excluded rather than
+    left at their defaults, so a file cannot name them and the template does not
+    show them."""
     points: List[PointModel] = Field(default=[], exclude=True)
+    upload_token: Optional[str] = Field(None, exclude=True)
+    copy_cells_from: Optional[str] = Field(None, exclude=True)
 
 
 class DeleteModel(BaseModel):

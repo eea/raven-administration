@@ -7,12 +7,20 @@ from core.reporting.aqr3.attachments import AttachmentReferenceError, validate_r
 from core.reporting.aqr3.grid import GridError, points_to_inspire_grid, validate_resolution
 from .models import SpatialRepresentativenessModel, SrImportModel, DeleteModel
 import io
+import secrets
 import tempfile
 import os
 
 sr_endpoint = Blueprint("spatialrepresentativeness", __name__)
 
-MAX_POINTS = 50_000
+# How many points the form is sent to draw. The area itself is never cut to this:
+# parse stages every point in srs_upload_points and the save reads them from there.
+PREVIEW_POINTS = 2_000
+
+# Guards against a file too large to hold in a worker, before and after reading it.
+# A whole country at 10 m is billions of cells.
+MAX_CANDIDATE_CELLS = 5_000_000
+MAX_UPLOAD_POINTS = 5_000_000
 
 # What SrCrud.vue's file picker offers (its ACCEPT). Anything else used to fall
 # through to geopandas and fail as a 500 with a GDAL message.
@@ -24,14 +32,17 @@ class SpatialFileError(ValueError):
     """The uploaded file is the user's to fix: reported as a 400 with this message."""
 
 
-def _parse_to_wgs84(file, source_epsg=4326, spatial_resolution=None):
-    """Parse any supported spatial file; return list of (x, y) tuples in EPSG:4326.
+def _parse_area(file, source_epsg=4326, spatial_resolution=None):
+    """Read any supported spatial file into points in EPSG:3035, unsnapped.
 
-    Points are kept as they are and a raster gives its pixel centres; polygons and
-    lines are filled with grid cells of `spatial_resolution` (see _cells_covering).
+    Returns (xs, ys, filled): numpy arrays, and whether polygons or lines were filled
+    with cells of `spatial_resolution` (see _cells_covering). Points are kept as they
+    are and a raster gives its pixel centres, whatever the resolution. Arrays rather
+    than lists of tuples: a raster can have millions of pixels.
     """
     import geopandas as gpd
     import numpy as np
+    import shapely
     from pyproj import Transformer
 
     filename = file.filename.lower()
@@ -49,12 +60,16 @@ def _parse_to_wgs84(file, source_epsg=4326, spatial_resolution=None):
             with rasterio.open(filepath) as src:
                 data = src.read(1)
                 mask = (data != src.nodata) if src.nodata is not None else np.ones(data.shape, bool)
+                if int(mask.sum()) > MAX_UPLOAD_POINTS:
+                    raise SpatialFileError(
+                        f'{file.filename} has {int(mask.sum()):,} data pixels; the limit is '
+                        f'{MAX_UPLOAD_POINTS:,}. Resample it to coarser pixels first.')
                 rows_arr, cols_arr = np.where(mask)
                 xs, ys = raster_xy(src.transform, rows_arr, cols_arr)
                 raster_epsg = src.crs.to_epsg() if src.crs else source_epsg
-            t = Transformer.from_crs(f"EPSG:{raster_epsg}", "EPSG:4326", always_xy=True)
-            x_out, y_out = t.transform(xs, ys)
-            return [(float(x), float(y)) for x, y in zip(x_out, y_out)]
+            t = Transformer.from_crs(f"EPSG:{raster_epsg}", "EPSG:3035", always_xy=True)
+            x_out, y_out = t.transform(np.asarray(xs, dtype=float), np.asarray(ys, dtype=float))
+            return np.asarray(x_out), np.asarray(y_out), False
 
         if filename.endswith(".zip"):
             import zipfile
@@ -73,51 +88,42 @@ def _parse_to_wgs84(file, source_epsg=4326, spatial_resolution=None):
         elif filename.endswith(".parquet") or filename.endswith(".geoparquet"):
             gdf = gpd.read_parquet(filepath)
         elif filename.endswith(".shp"):
-            import os as _os
-            _os.environ["SHAPE_RESTORE_SHX"] = "YES"
+            os.environ["SHAPE_RESTORE_SHX"] = "YES"
             gdf = gpd.read_file(filepath)
         else:
             gdf = gpd.read_file(filepath)
 
-        if gdf.crs is None:
-            gdf = gdf.set_crs(f"EPSG:{source_epsg}")
-        if str(gdf.crs.to_epsg()) != "4326":
-            gdf = gdf.to_crs("EPSG:4326")
+    if gdf.crs is None:
+        gdf = gdf.set_crs(f"EPSG:{source_epsg}")
+    geoms = gdf.geometry.to_crs("EPSG:3035")
+    geoms = geoms[geoms.notna() & ~geoms.is_empty]
 
-        points, shapes = [], []
-        for geom in gdf.geometry:
-            if geom is None or geom.is_empty:
-                continue
-            if geom.geom_type in ("Point", "MultiPoint"):
-                for pt in getattr(geom, "geoms", [geom]):
-                    points.append((float(pt.x), float(pt.y)))
-            else:
-                shapes.append(geom)
+    is_point = geoms.geom_type.isin(["Point", "MultiPoint"])
+    coords = shapely.get_coordinates(geoms[is_point].values)
+    xs, ys = coords[:, 0], coords[:, 1]
 
-        if shapes:
-            points.extend(_cells_covering(shapes, spatial_resolution))
-        return points
-
-
-# A guard on the candidate grid of an area, before any cell is tested: a whole
-# country at 10 m is billions of cells, which is not something to build in memory.
-MAX_CANDIDATE_CELLS = 5_000_000
+    filled = bool((~is_point).any())
+    if filled:
+        cx, cy = _cells_covering(geoms[~is_point], spatial_resolution)
+        xs, ys = np.concatenate([xs, cx]), np.concatenate([ys, cy])
+    if len(xs) > MAX_UPLOAD_POINTS:
+        raise SpatialFileError(f'{file.filename} gives {len(xs):,} points; the limit is '
+                               f'{MAX_UPLOAD_POINTS:,}.')
+    return xs, ys, filled
 
 
-def _cells_covering(shapes_4326, spatial_resolution):
-    """The INSPIRE grid cells an area covers, as their centres in EPSG:4326.
+def _cells_covering(shapes, spatial_resolution):
+    """The INSPIRE grid cells an area covers, as their centres in EPSG:3035.
 
     An SR area is very often drawn as polygons, and it used to be reduced to each
     polygon's centroid -- a whole area saved as one cell. A polygon now takes every
     cell whose centre lies inside it (the usual rasterisation rule, so neighbouring
     polygons never both claim a cell), and a polygon too small to contain any centre
     still takes the cell holding a point inside it. A line takes every cell it
-    crosses. Centres rather than corners, so the insert snaps each back to its cell.
+    crosses. Centres rather than corners, so the save snaps each back to its cell.
     """
-    import geopandas as gpd
     import numpy as np
     import shapely
-    from pyproj import Transformer
 
     if spatial_resolution in (None, ""):
         raise SpatialFileError(
@@ -128,7 +134,6 @@ def _cells_covering(shapes_4326, spatial_resolution):
     except GridError as e:
         raise SpatialFileError(str(e))
 
-    shapes = gpd.GeoSeries(shapes_4326, crs="EPSG:4326").to_crs("EPSG:3035")
     polygonal = shapely.union_all([g for g in shapes if g.geom_type.endswith("Polygon")])
     linear = shapely.union_all([g for g in shapes if "LineString" in g.geom_type
                                 or g.geom_type == "LinearRing"])
@@ -155,9 +160,15 @@ def _cells_covering(shapes_4326, spatial_resolution):
         boxes = shapely.box(xs, ys, xs + res, ys + res)
         keep |= shapely.intersects(boxes, linear)
 
+    return xs[keep] + res / 2, ys[keep] + res / 2
+
+
+def _to_wgs84(xs, ys):
+    """EPSG:3035 arrays -> [{x, y}] in EPSG:4326, the shape the form draws."""
+    from pyproj import Transformer
     t = Transformer.from_crs("EPSG:3035", "EPSG:4326", always_xy=True)
-    lng, lat = t.transform(xs[keep] + res / 2, ys[keep] + res / 2)
-    return [(float(x), float(y)) for x, y in zip(lng, lat)]
+    lng, lat = t.transform(xs, ys)
+    return [{"x": float(x), "y": float(y)} for x, y in zip(lng, lat)]
 
 
 @sr_endpoint.route("/api/management/spatialrepresentativeness/lookups", methods=["GET"])
@@ -260,13 +271,13 @@ def _sync_external(cursor, obj):
 
 
 def _insert_points(cursor, sr_id, points_4326, spatial_resolution):
-    """Store an SR area as AQR3 SRI grid cells.
+    """Store points sent as JSON (the API's original shape) as AQR3 SRI grid cells.
 
     Reprojects to EPSG:3035 *and snaps to the resolution* — a cell reference that
     is merely reprojected does not line up with the EEA's own gridding, and
     AQR3 keys SRI on (CountryCode, SRSApplicationId, X, Y). Snapping collapses
     several source points onto one cell, so the returned count is cells written,
-    not points supplied.
+    not points supplied. The form no longer sends points; it sends an upload token.
     """
     cursor.execute("DELETE FROM srs_inline WHERE spatial_representativeness_id = %s", (sr_id,))
     if not points_4326:
@@ -282,9 +293,109 @@ def _insert_points(cursor, sr_id, points_4326, spatial_resolution):
     return len(cells)
 
 
+def _insert_upload(cursor, sr_id, token, res):
+    """Replace an SR's cells with every point of a parsed upload, snapped in SQL.
+
+    The same floor as core.reporting.aqr3.grid.snap, on points parse already put in
+    EPSG:3035, so a file of any size is saved whole without passing through Python.
+    """
+    cursor.execute("SELECT filename, fill_resolution FROM srs_uploads WHERE token = %s",
+                   (token,))
+    upload = cursor.fetchone()
+    if not upload:
+        raise BadRequest("The uploaded file is no longer available (uploads are kept for "
+                         "a day, and each is used once). Upload it again.")
+    if upload["fill_resolution"] and upload["fill_resolution"] != res:
+        raise BadRequest(
+            f'{upload["filename"]} was filled with {upload["fill_resolution"]} m cells, but '
+            f'the Spatial Resolution is {res} m. Upload the file again.')
+
+    cursor.execute("DELETE FROM srs_inline WHERE spatial_representativeness_id = %s", (sr_id,))
+    cursor.execute("""
+        INSERT INTO srs_inline (spatial_representativeness_id, x, y, spatial_resolution)
+        SELECT DISTINCT %(sr)s,
+               (floor(x / %(res)s) * %(res)s)::bigint,
+               (floor(y / %(res)s) * %(res)s)::bigint,
+               %(res)s
+        FROM srs_upload_points WHERE token = %(token)s
+    """, {"sr": sr_id, "res": res, "token": token})
+    count = cursor.rowcount
+    cursor.execute("DELETE FROM srs_uploads WHERE token = %s", (token,))
+    return count
+
+
+def _resnap_cells(cursor, source_id, target_id, res):
+    """Give `target_id` the cells of `source_id`, at resolution `res`.
+
+    For Duplicate (a new record taking another's area) and for an edit that changes
+    only the resolution. Coarser works -- each cell's centre lands in exactly one
+    bigger cell. Finer cannot be derived from coarse cells, so the file is needed.
+    """
+    cursor.execute("""
+        SELECT MAX(spatial_resolution) AS res FROM srs_inline
+        WHERE spatial_representativeness_id = %s
+    """, (source_id,))
+    current = cursor.fetchone()["res"]
+    if current is None:
+        return 0
+    if res < current:
+        raise BadRequest(
+            f'The area is stored as {current} m cells; {res} m cells cannot be made from '
+            f'them. Upload the spatial file again to use a finer resolution.')
+    # Every reference to srs_inline in one statement sees the same snapshot, so
+    # source and target may be the same record.
+    cursor.execute("""
+        WITH source AS (
+            SELECT x, y, spatial_resolution AS r FROM srs_inline
+            WHERE spatial_representativeness_id = %(source)s
+        ), cleared AS (
+            DELETE FROM srs_inline WHERE spatial_representativeness_id = %(target)s
+        )
+        INSERT INTO srs_inline (spatial_representativeness_id, x, y, spatial_resolution)
+        SELECT DISTINCT %(target)s,
+               (floor((x + r / 2.0) / %(res)s) * %(res)s)::bigint,
+               (floor((y + r / 2.0) / %(res)s) * %(res)s)::bigint,
+               %(res)s
+        FROM source
+    """, {"source": source_id, "target": target_id, "res": res})
+    return cursor.rowcount
+
+
+def _store_area(cursor, obj, editing=False):
+    """Write the record's grid cells from whichever source the request names.
+
+    In order: a parsed upload (the form), points as JSON (the original API shape),
+    another record's cells (Duplicate). An edit naming none of them keeps its cells,
+    re-snapped if only the resolution changed. Returns the record's cell count.
+    """
+    def resolution():
+        try:
+            return validate_resolution(obj.spatial_resolution)
+        except GridError as e:
+            raise BadRequest(str(e))
+
+    if obj.upload_token:
+        return _insert_upload(cursor, obj.id, obj.upload_token, resolution())
+    if obj.points:
+        return _insert_points(cursor, obj.id, obj.points, resolution())
+    if obj.copy_cells_from:
+        return _resnap_cells(cursor, obj.copy_cells_from, obj.id, resolution())
+    if editing and obj.spatial_resolution:
+        cursor.execute("""
+            SELECT COUNT(*) AS n, MIN(spatial_resolution) AS lo, MAX(spatial_resolution) AS hi
+            FROM srs_inline WHERE spatial_representativeness_id = %s
+        """, (obj.id,))
+        stored = cursor.fetchone()
+        res = resolution()
+        if stored["n"] and (stored["lo"] != res or stored["hi"] != res):
+            return _resnap_cells(cursor, obj.id, obj.id, res)
+        return stored["n"]
+    return 0
+
+
 def _save(cursor, obj):
     """Insert one SR with its area. The form's insert and the CSV import both write
-    through here; an import carries no points, so its area is added in the form."""
+    through here; an import carries no area, so it is added in the form."""
     cursor.execute("""
         INSERT INTO spatial_representativeness
             (id, srs_application_id, srs_application, result_encoding_id,
@@ -297,7 +408,7 @@ def _save(cursor, obj):
           "representativeness_assessment_method_id":
               obj.representativeness_assessment_method_id})
     _sync_external(cursor, obj)
-    return _insert_points(cursor, obj.id, obj.points, obj.spatial_resolution)
+    return _store_area(cursor, obj)
 
 
 @sr_endpoint.route("/api/management/spatialrepresentativeness/insert", methods=["POST"])
@@ -364,9 +475,8 @@ def update():
         if cursor.rowcount == 0:
             return {"error": "Not found"}, 404
         _sync_external(cursor, obj)
-        if obj.points:
-            _insert_points(cursor, obj.id, obj.points, obj.spatial_resolution)
-    return {"message": "Updated"}, 200
+        count = _store_area(cursor, obj, editing=True)
+    return {"message": "Updated", "point_count": count}, 200
 
 
 @sr_endpoint.route("/api/management/spatialrepresentativeness/delete", methods=["POST"])
@@ -385,62 +495,74 @@ def delete():
 @sr_endpoint.route("/api/management/spatialrepresentativeness/<sr_id>", methods=["GET"])
 @jwt_required_with_management_claim()
 def get_by_id(sr_id):
-    """Return SR record with points in EPSG:4326 — same shape as insert/update."""
-    from pyproj import Transformer
-    t = Transformer.from_crs("EPSG:3035", "EPSG:4326", always_xy=True)
+    """The record, its cell count, and up to PREVIEW_POINTS of its cells to draw.
+
+    Only a sample: an area can have millions of cells, and the form no longer sends
+    them back -- an edit keeps the stored cells, a Duplicate copies them server-side.
+    """
+    import numpy as np
     with CursorFromPool() as cursor:
         cursor.execute("""
             SELECT sr.id, sr.srs_application_id, sr.srs_application, sr.created_at,
                    sr.result_encoding_id, sr.representativeness_assessment_method_id,
-                   ext.geotiff_attachment,
-                   COALESCE(a.spatial_resolution, ext.spatial_resolution) AS spatial_resolution,
-                   a.x, a.y
+                   ext.geotiff_attachment, ext.spatial_resolution AS external_resolution,
+                   (SELECT COUNT(*) FROM srs_inline a
+                     WHERE a.spatial_representativeness_id = sr.id) AS point_count,
+                   (SELECT MIN(a.spatial_resolution) FROM srs_inline a
+                     WHERE a.spatial_representativeness_id = sr.id) AS cell_resolution
             FROM spatial_representativeness sr
             LEFT JOIN srs_external ext ON ext.spatial_representativeness_id = sr.id
-            LEFT JOIN srs_inline a ON a.spatial_representativeness_id = sr.id
             WHERE sr.id = %s
-            ORDER BY a.id
         """, (sr_id,))
-        rows = cursor.fetchall()
+        record = cursor.fetchone()
+        if not record:
+            return {"error": "Not found"}, 404
 
-    if not rows:
-        return {"error": "Not found"}, 404
+        # Every n-th cell, so the sample covers the whole area.
+        step = max(1, -(-record["point_count"] // PREVIEW_POINTS))
+        cursor.execute("""
+            SELECT x, y, spatial_resolution FROM (
+                SELECT x, y, spatial_resolution, row_number() OVER (ORDER BY id) AS n
+                FROM srs_inline WHERE spatial_representativeness_id = %s
+            ) cells WHERE (n - 1) %% %s = 0
+        """, (sr_id, step))
+        cells = cursor.fetchall()
 
-    first = rows[0]
+    # Cell centres, not the stored lower-left corners: a corner sits on four cells.
     points = []
-    spatial_resolution = None
-    for row in rows:
-        if row["x"] is not None:
-            # The cell's centre, not its stored lower-left corner. The form sends these
-            # points back on every save, and the insert snaps them again: a corner
-            # that comes back from EPSG:4326 a hair below or left of the grid line
-            # snaps into the neighbouring cell, so each save shifted the area by a row.
-            half = (row["spatial_resolution"] or 0) / 2
-            lng, lat = t.transform(row["x"] + half, row["y"] + half)
-            points.append({"x": float(lng), "y": float(lat)})
-            if spatial_resolution is None:
-                spatial_resolution = row["spatial_resolution"]
+    if cells:
+        half = np.array([(c["spatial_resolution"] or 0) / 2 for c in cells], dtype=float)
+        points = _to_wgs84(np.array([c["x"] for c in cells], dtype=float) + half,
+                           np.array([c["y"] for c in cells], dtype=float) + half)
 
     return jsonify({
-        "id":                 first["id"],
-        "srs_application_id": first["srs_application_id"],
-        "srs_application":    first["srs_application"],
-        "result_encoding_id": first["result_encoding_id"],
+        "id":                 record["id"],
+        "srs_application_id": record["srs_application_id"],
+        "srs_application":    record["srs_application"],
+        "result_encoding_id": record["result_encoding_id"],
         "representativeness_assessment_method_id":
-            first["representativeness_assessment_method_id"],
-        "geotiff_attachment": first["geotiff_attachment"],
-        "created_at":         str(first["created_at"]) if first["created_at"] else None,
-        # With no inline points there is no per-cell resolution to read, so fall
-        # back to the external row's — the SELECT already COALESCEs them.
-        "spatial_resolution": spatial_resolution or first["spatial_resolution"],
-        "points":             points
+            record["representativeness_assessment_method_id"],
+        "geotiff_attachment": record["geotiff_attachment"],
+        "created_at":         str(record["created_at"]) if record["created_at"] else None,
+        # With no cells there is no per-cell resolution to read; fall back to the
+        # external GeoTIFF's.
+        "spatial_resolution": record["cell_resolution"] or record["external_resolution"],
+        "point_count":        record["point_count"],
+        "points":             points,
+        "sampled":            len(points) < record["point_count"],
     })
 
 
 @sr_endpoint.route("/api/management/spatialrepresentativeness/parse", methods=["POST"])
 @jwt_required_with_management_claim()
 def parse_file():
-    """Parse a spatial file and return points in EPSG:4326 for preview (no DB write)."""
+    """Read a spatial file, stage all its points, and return a token and a preview.
+
+    The save sends the token (upload_token) rather than the points, so the area is
+    saved whole however large it is. This used to return at most 50,000 points, and
+    the form saved exactly those.
+    """
+    import numpy as np
     if "file" not in request.files:
         return {"error": "No file provided"}, 400
     file = request.files["file"]
@@ -448,16 +570,9 @@ def parse_file():
         source_epsg = int(request.form.get("source_epsg", 4326))
     except ValueError:
         return {"error": f'source_epsg must be an EPSG code, got {request.form.get("source_epsg")!r}'}, 400
+    resolution = request.form.get("spatial_resolution") or None
     try:
-        points = _parse_to_wgs84(file, source_epsg,
-                                 request.form.get("spatial_resolution") or None)
-        truncated = len(points) > MAX_POINTS
-        preview = points[:MAX_POINTS]
-        return jsonify({
-            "points": [{"x": x, "y": y} for x, y in preview],
-            "total": len(points),
-            "truncated": truncated
-        })
+        xs, ys, filled = _parse_area(file, source_epsg, resolution)
     except SpatialFileError as e:
         return {"error": str(e)}, 400
     except Exception as e:
@@ -465,3 +580,30 @@ def parse_file():
         # cannot read, and an unreadable upload is the user's to fix, not a server
         # fault. Say which file, and keep the reader's reason.
         return {"error": f"Could not read {file.filename} as a spatial file: {e}"}, 400
+
+    token = secrets.token_hex(16)
+    with CursorFromPool() as cursor:
+        # Files picked and never saved.
+        cursor.execute("DELETE FROM srs_uploads WHERE uploaded_at < now() - interval '1 day'")
+        cursor.execute("""
+            INSERT INTO srs_uploads (token, filename, point_count, fill_resolution)
+            VALUES (%s, %s, %s, %s)
+        """, (token, file.filename[:255], len(xs),
+              validate_resolution(resolution) if filled else None))
+        # COPY in chunks: millions of rows, without one string holding them all.
+        for start in range(0, len(xs), 500_000):
+            buf = io.StringIO()
+            np.savetxt(buf, np.column_stack([xs[start:start + 500_000],
+                                             ys[start:start + 500_000]]),
+                       fmt=token + "\t%.3f\t%.3f")
+            buf.seek(0)
+            cursor.copy_expert("COPY srs_upload_points (token, x, y) FROM STDIN", buf)
+
+    pick = np.unique(np.linspace(0, len(xs) - 1, min(len(xs), PREVIEW_POINTS)).astype(int))
+    return jsonify({
+        "upload_token": token,
+        "points": _to_wgs84(xs[pick], ys[pick]) if len(xs) else [],
+        "total": int(len(xs)),
+        # The preview is a sample; the saved area is not.
+        "truncated": len(pick) < len(xs),
+    })

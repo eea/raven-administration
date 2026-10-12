@@ -1287,6 +1287,31 @@ create table if not exists srs_external
 comment on table srs_external is 'AQR3 SRE. SR area supplied as an attached GEOTIFF instead of inline grid cells.';
 comment on column srs_external.geotiff_attachment is 'AQR3 SRE_04 GeoTiffAttachment. The filename of the GeoTIFF uploaded to Reportnet3; varchar(100) per the guide.';
 
+create table if not exists srs_uploads
+(
+    token              varchar(32)  not null primary key,
+    filename           varchar(255) not null,
+    point_count        integer      not null,
+    fill_resolution    integer,
+    uploaded_at        timestamp    not null default current_timestamp
+);
+
+comment on table srs_uploads is 'A spatial file parsed for a Spatial representativeness area and not yet saved. Its points are in srs_upload_points; a save consumes it, and parse deletes those older than a day.';
+comment on column srs_uploads.fill_resolution is 'The cell size, in metres, that the file''s polygons and lines were filled with; NULL when it held only points or a raster. A save at another resolution must parse the file again.';
+
+create table if not exists srs_upload_points
+(
+    token varchar(32)       not null
+        references srs_uploads (token) on delete cascade,
+    x     double precision  not null,
+    y     double precision  not null
+);
+
+comment on table srs_upload_points is 'The points of an srs_uploads file, in EPSG:3035 and not yet snapped: the resolution is the record''s, chosen when it is saved.';
+
+create index if not exists idx_srs_upload_points_token
+    on srs_upload_points (token);
+
 -- ---------------------------------------------------------------------------
 -- Assessment data
 -- ---------------------------------------------------------------------------
@@ -2612,5 +2637,7 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
        ('4.502.26', 'baseline: schema.sql declares document_files (migration 026)'),
        -- 027 also moves URLs uploads wrote to documentattachment; a fresh install has none.
        ('4.502.27', 'baseline: schema.sql comments document_original_url as where an '
-                    'uploaded PDF is served (migration 027)')
+                    'uploaded PDF is served (migration 027)'),
+       ('4.502.28', 'baseline: schema.sql declares srs_uploads and srs_upload_points '
+                    '(migration 028)')
 on conflict (version) do nothing;

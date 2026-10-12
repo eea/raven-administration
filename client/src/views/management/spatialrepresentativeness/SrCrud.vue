@@ -25,12 +25,15 @@ const fileInputRef  = ref(null);
 const mapRef        = ref(null);
 const geoJsonRef    = ref(null);
 const parsing       = ref(false);
-const previewPoints = ref([]);   // [{x, y}] in WGS84
+const previewPoints = ref([]);   // [{x, y}] in WGS84: a sample to draw, not the area
 const totalPoints   = ref(0);
 const truncated     = ref(false);
 // The last file picked, kept so a change of Spatial Resolution can parse it again:
 // polygons and lines are filled with cells of that size.
 const lastFile      = ref(null);
+// The parsed file, staged on the server with every point. The save sends this, not
+// the preview, so an area is saved whole however large.
+const uploadToken   = ref(null);
 
 // GeoJSON FeatureCollection for Leaflet — limit to MAX_PREVIEW points
 const previewGeoJson = computed(() => {
@@ -60,6 +63,7 @@ watch(() => props.show, async () => {
   totalPoints.value   = 0;
   truncated.value     = false;
   lastFile.value      = null;
+  uploadToken.value   = null;
   if (fileInputRef.value) fileInputRef.value.value = "";
 
   // Load existing record (with points) in edit mode or duplicate
@@ -69,7 +73,8 @@ watch(() => props.show, async () => {
       const record = await Service.getById(loadId);
       if (record.points?.length) {
         previewPoints.value = record.points;
-        totalPoints.value   = record.points.length;
+        totalPoints.value   = record.point_count ?? record.points.length;
+        truncated.value     = !!record.sampled;
         if (record.spatial_resolution) obj.value.spatial_resolution = record.spatial_resolution;
         fitBoundsAfterRender();
       }
@@ -128,6 +133,7 @@ const parse = async (file) => {
     form.append("spatial_resolution", obj.value.spatial_resolution ?? "");
     const result = await Service.parseFile(form);
     previewPoints.value = result.points;
+    uploadToken.value   = result.upload_token;
     totalPoints.value   = result.total;
     truncated.value     = result.truncated;
   } catch {
@@ -162,11 +168,13 @@ const isFormValid = computed(() => {
   return metaValid && pointsValid && !parsing.value;
 });
 
+// The area travels by reference: a new file by its upload token, a Duplicate by the
+// record it copies. With neither, an edit keeps its stored cells.
 const handleSave = () => {
-  emit("save", {
-    ...obj.value,
-    points: previewPoints.value
-  });
+  const { points, ...values } = obj.value;
+  if (uploadToken.value) values.upload_token = uploadToken.value;
+  else if (props.duplicateSource) values.copy_cells_from = props.duplicateSource.id;
+  emit("save", values);
 };
 
 const geoJsonStyle = { color: "#5e81ac", weight: 0, fillColor: "#5e81ac", fillOpacity: 0.8, radius: 3 };
@@ -223,7 +231,7 @@ const pointToLayer = (_, latlng) => {
           </button>
           <span v-if="previewPoints.length" class="text-nord14 text-sm">
             ✓ {{ totalPoints.toLocaleString() }} points
-            <span v-if="truncated" class="text-nord3 text-xs">(preview capped at {{ previewPoints.length.toLocaleString() }})</span>
+            <span v-if="truncated" class="text-nord3 text-xs">(the map shows {{ previewPoints.length.toLocaleString() }} of them; all are saved)</span>
           </span>
           <span v-else-if="!parsing && !isEdit" class="text-nord11 text-sm">No file selected</span>
         </div>
