@@ -4,7 +4,7 @@ from core.jwt_ext_custom import jwt_required_with_management_claim
 from core.data.csv_import import csv_response, import_rows, read_csv_rows
 from core.database import CursorFromPool
 from core.reporting.aqr3.attachments import AttachmentReferenceError, validate_reference
-from core.reporting.aqr3.grid import points_to_inspire_grid, validate_resolution
+from core.reporting.aqr3.grid import GridError, points_to_inspire_grid, validate_resolution
 from .models import SpatialRepresentativenessModel, SrImportModel, DeleteModel
 import io
 import tempfile
@@ -24,8 +24,12 @@ class SpatialFileError(ValueError):
     """The uploaded file is the user's to fix: reported as a 400 with this message."""
 
 
-def _parse_to_wgs84(file, source_epsg=4326):
-    """Parse any supported spatial file; return list of (x, y) tuples in EPSG:4326."""
+def _parse_to_wgs84(file, source_epsg=4326, spatial_resolution=None):
+    """Parse any supported spatial file; return list of (x, y) tuples in EPSG:4326.
+
+    Points are kept as they are and a raster gives its pixel centres; polygons and
+    lines are filled with grid cells of `spatial_resolution` (see _cells_covering).
+    """
     import geopandas as gpd
     import numpy as np
     from pyproj import Transformer
@@ -80,14 +84,80 @@ def _parse_to_wgs84(file, source_epsg=4326):
         if str(gdf.crs.to_epsg()) != "4326":
             gdf = gdf.to_crs("EPSG:4326")
 
-        points = []
+        points, shapes = [], []
         for geom in gdf.geometry:
-            if geom is None:
+            if geom is None or geom.is_empty:
                 continue
-            pt = geom if geom.geom_type == "Point" else geom.centroid
-            points.append((float(pt.x), float(pt.y)))
+            if geom.geom_type in ("Point", "MultiPoint"):
+                for pt in getattr(geom, "geoms", [geom]):
+                    points.append((float(pt.x), float(pt.y)))
+            else:
+                shapes.append(geom)
 
+        if shapes:
+            points.extend(_cells_covering(shapes, spatial_resolution))
         return points
+
+
+# A guard on the candidate grid of an area, before any cell is tested: a whole
+# country at 10 m is billions of cells, which is not something to build in memory.
+MAX_CANDIDATE_CELLS = 5_000_000
+
+
+def _cells_covering(shapes_4326, spatial_resolution):
+    """The INSPIRE grid cells an area covers, as their centres in EPSG:4326.
+
+    An SR area is very often drawn as polygons, and it used to be reduced to each
+    polygon's centroid -- a whole area saved as one cell. A polygon now takes every
+    cell whose centre lies inside it (the usual rasterisation rule, so neighbouring
+    polygons never both claim a cell), and a polygon too small to contain any centre
+    still takes the cell holding a point inside it. A line takes every cell it
+    crosses. Centres rather than corners, so the insert snaps each back to its cell.
+    """
+    import geopandas as gpd
+    import numpy as np
+    import shapely
+    from pyproj import Transformer
+
+    if spatial_resolution in (None, ""):
+        raise SpatialFileError(
+            "This file holds areas (polygons or lines), which are filled with grid cells "
+            "of the record's size. Choose the Spatial Resolution first, then upload it.")
+    try:
+        res = validate_resolution(spatial_resolution)
+    except GridError as e:
+        raise SpatialFileError(str(e))
+
+    shapes = gpd.GeoSeries(shapes_4326, crs="EPSG:4326").to_crs("EPSG:3035")
+    polygonal = shapely.union_all([g for g in shapes if g.geom_type.endswith("Polygon")])
+    linear = shapely.union_all([g for g in shapes if "LineString" in g.geom_type
+                                or g.geom_type == "LinearRing"])
+
+    minx, miny, maxx, maxy = shapes.total_bounds
+    x0, y0 = np.floor(minx / res) * res, np.floor(miny / res) * res
+    ncols = int(np.floor(maxx / res) * res - x0) // res + 1
+    nrows = int(np.floor(maxy / res) * res - y0) // res + 1
+    if ncols * nrows > MAX_CANDIDATE_CELLS:
+        raise SpatialFileError(
+            f"The area spans about {ncols * nrows:,} cells of {res} m; the limit is "
+            f"{MAX_CANDIDATE_CELLS:,}. Choose a coarser Spatial Resolution.")
+
+    xs, ys = np.meshgrid(x0 + res * np.arange(ncols), y0 + res * np.arange(nrows))
+    xs, ys = xs.ravel(), ys.ravel()
+    keep = np.zeros(xs.shape, dtype=bool)
+
+    if not polygonal.is_empty:
+        keep |= shapely.contains_xy(polygonal, xs + res / 2, ys + res / 2)
+        for part in getattr(polygonal, "geoms", [polygonal]):
+            p = part.representative_point()
+            keep |= (xs == np.floor(p.x / res) * res) & (ys == np.floor(p.y / res) * res)
+    if not linear.is_empty:
+        boxes = shapely.box(xs, ys, xs + res, ys + res)
+        keep |= shapely.intersects(boxes, linear)
+
+    t = Transformer.from_crs("EPSG:3035", "EPSG:4326", always_xy=True)
+    lng, lat = t.transform(xs[keep] + res / 2, ys[keep] + res / 2)
+    return [(float(x), float(y)) for x, y in zip(lng, lat)]
 
 
 @sr_endpoint.route("/api/management/spatialrepresentativeness/lookups", methods=["GET"])
@@ -379,7 +449,8 @@ def parse_file():
     except ValueError:
         return {"error": f'source_epsg must be an EPSG code, got {request.form.get("source_epsg")!r}'}, 400
     try:
-        points = _parse_to_wgs84(file, source_epsg)
+        points = _parse_to_wgs84(file, source_epsg,
+                                 request.form.get("spatial_resolution") or None)
         truncated = len(points) > MAX_POINTS
         preview = points[:MAX_POINTS]
         return jsonify({

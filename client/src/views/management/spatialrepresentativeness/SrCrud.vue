@@ -4,7 +4,6 @@ import Popup from "../../../components/Popup.vue";
 import { LMap, LTileLayer, LGeoJson } from "@vue-leaflet/vue-leaflet";
 import "leaflet/dist/leaflet.css";
 import Service from "./service";
-import Eventy from "../../../helpers/eventy";
 
 const props = defineProps({
   show:            { type: Boolean },
@@ -29,6 +28,9 @@ const parsing       = ref(false);
 const previewPoints = ref([]);   // [{x, y}] in WGS84
 const totalPoints   = ref(0);
 const truncated     = ref(false);
+// The last file picked, kept so a change of Spatial Resolution can parse it again:
+// polygons and lines are filled with cells of that size.
+const lastFile      = ref(null);
 
 // GeoJSON FeatureCollection for Leaflet — limit to MAX_PREVIEW points
 const previewGeoJson = computed(() => {
@@ -57,6 +59,7 @@ watch(() => props.show, async () => {
   previewPoints.value = [];
   totalPoints.value   = 0;
   truncated.value     = false;
+  lastFile.value      = null;
   if (fileInputRef.value) fileInputRef.value.value = "";
 
   // Load existing record (with points) in edit mode or duplicate
@@ -109,6 +112,11 @@ const triggerFileInput = () => fileInputRef.value?.click();
 const onFileChange = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  lastFile.value = file;
+  await parse(file);
+};
+
+const parse = async (file) => {
   parsing.value       = true;
   previewPoints.value = [];
   totalPoints.value   = 0;
@@ -117,17 +125,24 @@ const onFileChange = async (e) => {
     const form = new FormData();
     form.append("file", file);
     form.append("source_epsg", sourceEpsg.value);
+    form.append("spatial_resolution", obj.value.spatial_resolution ?? "");
     const result = await Service.parseFile(form);
     previewPoints.value = result.points;
     totalPoints.value   = result.total;
     truncated.value     = result.truncated;
   } catch {
-    Eventy.showHideMessage("Failed to parse spatial file.", "error", 5000);
+    // Request() has already shown the API's reason, e.g. "choose the resolution first".
     if (fileInputRef.value) fileInputRef.value.value = "";
   } finally {
     parsing.value = false;
   }
 };
+
+// The cells an area covers depend on their size, so a new resolution re-reads the
+// file. Points and rasters come back the same; the insert snaps them either way.
+watch(() => obj.value.spatial_resolution, (now, before) => {
+  if (lastFile.value && now && now !== before && !parsing.value) parse(lastFile.value);
+});
 
 const title = computed(() => props.isEdit ? "Edit Spatial Representativeness" : "Add Spatial Representativeness");
 
@@ -212,7 +227,8 @@ const pointToLayer = (_, latlng) => {
           </span>
           <span v-else-if="!parsing && !isEdit" class="text-nord11 text-sm">No file selected</span>
         </div>
-        <div class="text-xs text-nord3 mb-3">GeoJSON · GeoPackage · Shapefile (.shp or .zip) · GeoParquet · GeoTIFF → stored as EPSG:3035</div>
+        <div class="text-xs text-nord3 mb-3">GeoJSON · GeoPackage · Shapefile (.shp or .zip) · GeoParquet · GeoTIFF → stored as EPSG:3035.
+          Polygons and lines are filled with grid cells of the chosen Spatial Resolution, so choose it first.</div>
 
         <!-- Map preview -->
         <div v-if="previewGeoJson" class="flex flex-col h-64 border border-nord4">
