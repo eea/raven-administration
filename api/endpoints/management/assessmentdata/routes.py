@@ -15,11 +15,18 @@ relation is also many-to-many in both directions -- a regime has many methods, a
 sampling point belongs to one regime per environmental objective -- so neither parent
 owns it.
 
+The regime page does show a regime's links again (LinkedMethods.vue, opened from a
+regime's context menu), with a v3-style multi-add -- but through `candidates` and
+`insert-many` below plus the per-row update and delete here, never by replacing the
+regime's link set wholesale.
+
 CAM_05 spans two tables. `assessmentlocal_id` is generated in the database from
 `sampling_point_id` and `model_id`, so it is selected but never written.
 """
+import psycopg2
 from flask import Blueprint, jsonify, request
-from werkzeug.exceptions import BadRequest
+from pydantic import ValidationError
+from werkzeug.exceptions import BadRequest, HTTPException
 
 from core.data.csv_import import csv_response, import_rows, read_csv_rows
 from core.database import CursorFromPool
@@ -192,6 +199,100 @@ def assessmentdata_insert():
     with CursorFromPool() as cursor:
         id = _save(cursor, AssessmentDataModel(**request.json))
     return jsonify({'msg': 'Assessment data created successfully', 'id': id})
+
+
+@assessmentdata_endpoint.route(f'{BASE}/candidates', methods=['GET'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def assessmentdata_candidates():
+    """The methods that could still be linked to one regime, for the multi-add dialog.
+
+    Sampling points and models measuring the regime's pollutant -- a link to anything
+    else is skipped by the compliance derivation as a pollutant mismatch, so offering it
+    would only invite a row that never reports. A method already linked with an
+    open-ended period (no Valid To) is left out; one whose earlier link was closed is
+    offered again, because re-linking it from a new date is a legitimate second period.
+    """
+    regime = request.args.get('regime')
+    if not regime:
+        raise BadRequest('regime is required')
+
+    with CursorFromPool() as cursor:
+        cursor.execute("""
+            SELECT ar.id, ar.pollutant_id,
+                   COALESCE(NULLIF(p.notation, ''), p.label) AS pollutant
+            FROM assessment_regimes ar
+            LEFT JOIN eea_pollutants p ON p.id = ar.pollutant_id
+            WHERE ar.id = %s
+        """, (regime,))
+        found = cursor.fetchone()
+        if found is None:
+            raise BadRequest(f'Assessment regime {regime} does not exist.')
+
+        # Same reporting filter as the lookups, so the dialog offers nothing the Assessment
+        # data page would not.
+        cursor.execute("""
+            SELECT sp.id, st.name AS station_name, sp.sampling_point_reference_id,
+                   sp.from_time, sp.to_time
+            FROM sampling_points sp
+            LEFT JOIN stations st ON st.id = sp.station_id
+            WHERE sp.pollutant_id = %(pollutant)s
+              AND sp.report_to_eea AND st.report_to_eea
+              AND NOT EXISTS (SELECT 1 FROM assessmentdata ad
+                              WHERE ad.assessment_regime_id = %(regime)s
+                                AND ad.sampling_point_id = sp.id
+                                AND ad.to_time IS NULL)
+            ORDER BY LOWER(st.name), sp.id
+        """, {'pollutant': found['pollutant_id'], 'regime': regime})
+        sampling_points = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT m.id, m.assessment_method_name
+            FROM models m
+            WHERE m.pollutant_id = %(pollutant)s
+              AND NOT EXISTS (SELECT 1 FROM assessmentdata ad
+                              WHERE ad.assessment_regime_id = %(regime)s
+                                AND ad.model_id = m.id
+                                AND ad.to_time IS NULL)
+            ORDER BY m.id
+        """, {'pollutant': found['pollutant_id'], 'regime': regime})
+        models = cursor.fetchall()
+
+        return jsonify({'regime': found, 'sampling_points': sampling_points,
+                        'models': models})
+
+
+@assessmentdata_endpoint.route(f'{BASE}/insert-many', methods=['POST'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def assessmentdata_insert_many():
+    """Several links in one go -- the regime page's multi-add. All or nothing.
+
+    Only ever INSERTs. The v3 popup this replaces saved a regime's whole selection by
+    deleting its links and re-inserting the ticked ones, which cascaded away every
+    `exceedingmethods` row hanging off them; here an existing link is never touched,
+    and one that would duplicate is refused with the method named.
+    """
+    rows = (request.json or {}).get('rows')
+    if not isinstance(rows, list) or not rows:
+        raise BadRequest('rows must be a non-empty list of assessment data links')
+
+    ids = []
+    with CursorFromPool() as cursor:
+        for row in rows:
+            method = (row or {}).get('sampling_point_id') or (row or {}).get('model_id') or '?'
+            try:
+                ids.append(_save(cursor, AssessmentDataModel(**row)))
+            except ValidationError as e:
+                raise BadRequest(f'{method}: {e.errors()[0].get("msg")}') from e
+            except HTTPException as e:
+                raise BadRequest(f'{method}: {e.description}') from e
+            except psycopg2.Error as e:
+                # A broken reference, or the (regime, method, period) unique index.
+                detail = (e.diag.message_detail or e.diag.message_primary
+                          if e.diag else None) or str(e).strip()
+                raise BadRequest(f'{method}: {detail}') from e
+    return jsonify({'msg': f'{len(ids)} assessment method(s) linked', 'ids': ids})
 
 
 @assessmentdata_endpoint.route(f'{BASE}/import', methods=['POST'])

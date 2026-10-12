@@ -81,7 +81,7 @@ def get_regimes():
         JSON array of assessment regimes
     
     Example:
-        GET /api/data/exceedances/regimes?zone_id=NO_ZONE_OSLO_2023&pollutant=NO2
+        GET /api/data/exceedances/regimes?zone_id=ZON_NO0001A&pollutant=NO2
     """
     zone_id = request.args.get('zone_id')
     pollutant = request.args.get('pollutant')
@@ -281,7 +281,7 @@ def evaluate_regime():
     
     Request Body:
         {
-            "regime_id": "NO_OSLO_NO2_LV_ANNUAL",
+            "regime_id": "ARE_ZON_NO0001A_0008_LV_H_hrsAbove_2026_1",
             "year": 2023,
             "directive": "2024/2881"
         }
@@ -292,7 +292,7 @@ def evaluate_regime():
     Example:
         POST /api/data/exceedances/evaluate/regime
         {
-            "regime_id": "NO_OSLO_NO2_LV_ANNUAL",
+            "regime_id": "ARE_ZON_NO0001A_0008_LV_H_hrsAbove_2026_1",
             "year": 2023,
             "directive": "2024/2881"
         }

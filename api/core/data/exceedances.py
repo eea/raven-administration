@@ -776,83 +776,95 @@ class Exceedances:
         self.cursor = cursor
         self.statistics = Statistics(cursor)
     
-    def get_zones(self, year: int) -> List[Dict[str, Any]]:
-        """
-        Get all zones for a specific year.
-        
-        Args:
-            year: Year to filter zones
-            
-        Returns:
-            List of zone dictionaries with id, name, code, population
-        """
-        self.cursor.execute("""
-            SELECT id, name, code, population, area
-            FROM zones
-            WHERE year = %s
-            ORDER BY LOWER(name)
-        """, (year,))
-        
-        return self.cursor.fetchall()
-    
+    # The regime columns every caller gets, under their v4 names. The notations are
+    # COALESCEd to the id for the same reason plans_programs_export does it: data.sql
+    # seeds these vocabularies as (id, label, uri), so notation is NULL on a fresh
+    # install, and under the v4 convention the id is the short EEA code anyway.
+    _REGIME_SELECT = """
+        SELECT ar.id,
+               ar.zone_id,
+               z.name AS zone_name,
+               ar.pollutant_id,
+               COALESCE(NULLIF(p.notation, ''), p.label) AS pollutant_notation,
+               COALESCE(NULLIF(ot.notation, ''), ot.id) AS objective_type,
+               COALESCE(NULLIF(pt.notation, ''), pt.id) AS protection_target,
+               COALESCE(NULLIF(rm.notation, ''), rm.id) AS reporting_metric,
+               ar.assessment_threshold_exceedance_id AS assessment_threshold_exceedance,
+               ar.classification_year
+          FROM assessment_regimes ar
+          JOIN eea_pollutants p ON p.id = ar.pollutant_id
+          LEFT JOIN zones z ON z.id = ar.zone_id
+          LEFT JOIN eea_objectivetypes ot ON ot.id = ar.objective_type_id
+          LEFT JOIN eea_protectiontargets pt ON pt.id = ar.protection_target_id
+          LEFT JOIN eea_reportingmetrics rm ON rm.id = ar.reporting_metric_id
+    """
+
     def get_assessment_regimes(self, zone_id: str, pollutant_notation: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Get assessment regimes for a zone, optionally filtered by pollutant.
-        
+
+        v4 keeps one regime per zone, pollutant, objective type, protection target and
+        reporting metric (AQR3 ARZ). There is no `include` flag any more: a regime that
+        should not be reported is deleted, or left without assessment methods, which
+        the EEA flags for deletion itself.
+
         Args:
             zone_id: Zone identifier
             pollutant_notation: Optional pollutant notation (e.g., 'NO2', 'PM10')
-            
+
         Returns:
             List of assessment regime dictionaries
         """
+        params = {'zone_id': zone_id}
+        pollutant_sql = ''
         if pollutant_notation:
-            pollutant_uri = POLLUTANT_URIS.get(pollutant_notation)
-            if not pollutant_uri:
-                raise ValueError(f"Unknown pollutant: {pollutant_notation}")
-            
-            self.cursor.execute("""
-                SELECT ar.id, ar.name, ar.zoneid, ar.pollutant, ar.objecttype,
-                       ar.reportingmetric, ar.protectiontarget, 
-                       ar.assessmentthresholdexceedance,
-                       p.notation as pollutant_notation
-                FROM assessmentregimes ar
-                JOIN eea_pollutants p ON p.uri = ar.pollutant
-                WHERE ar.zoneid = %s AND ar.pollutant = %s AND ar.include = true
-                ORDER BY ar.objecttype, ar.reportingmetric
-            """, (zone_id, pollutant_uri))
-        else:
-            self.cursor.execute("""
-                SELECT ar.id, ar.name, ar.zoneid, ar.pollutant, ar.objecttype,
-                       ar.reportingmetric, ar.protectiontarget,
-                       ar.assessmentthresholdexceedance,
-                       p.notation as pollutant_notation
-                FROM assessmentregimes ar
-                JOIN eea_pollutants p ON p.uri = ar.pollutant
-                WHERE ar.zoneid = %s AND ar.include = true
-                ORDER BY LOWER(p.notation), ar.objecttype, ar.reportingmetric
-            """, (zone_id,))
-        
+            pollutant_sql = 'AND LOWER(p.notation) = LOWER(%(pollutant)s)'
+            params['pollutant'] = pollutant_notation
+
+        self.cursor.execute(f"""
+            {self._REGIME_SELECT}
+             WHERE ar.zone_id = %(zone_id)s
+               {pollutant_sql}
+             ORDER BY LOWER(p.notation), objective_type, reporting_metric, ar.id
+        """, params)
+
         return self.cursor.fetchall()
-    
-    def get_regime_sampling_points(self, regime_id: str) -> List[str]:
+
+    def get_regime_sampling_points(self, regime_id: str, year: Optional[int] = None) -> List[str]:
         """
-        Get sampling point IDs linked to an assessment regime.
-        
+        Get the sampling point IDs that assess a regime.
+
+        A regime is assessed by any number of sampling points and models, one
+        `assessmentdata` row each. Only sampling points are returned: a model has no
+        observations for Statistics to aggregate. With `year`, a link whose validity
+        period does not touch that year is left out, the same rule CAM applies.
+
         Args:
             regime_id: Assessment regime ID
-            
+            year: Optional year the link must be valid in
+
         Returns:
             List of sampling point IDs
         """
-        self.cursor.execute("""
-            SELECT assessmentlocal_id
-            FROM assessmentdata
-            WHERE assessment_regime_id = %s
-        """, (regime_id,))
-        
-        return [row['assessmentlocal_id'] for row in self.cursor.fetchall()]
-    
+        params = {'regime_id': regime_id}
+        period_sql = ''
+        if year is not None:
+            period_sql = """
+               AND (from_time IS NULL OR from_time < make_date(%(year)s + 1, 1, 1))
+               AND (to_time IS NULL OR to_time >= make_date(%(year)s, 1, 1))"""
+            params['year'] = int(year)
+
+        self.cursor.execute(f"""
+            SELECT DISTINCT sampling_point_id
+              FROM assessmentdata
+             WHERE assessment_regime_id = %(regime_id)s
+               AND sampling_point_id IS NOT NULL
+               {period_sql}
+             ORDER BY sampling_point_id
+        """, params)
+
+        return [row['sampling_point_id'] for row in self.cursor.fetchall()]
+
     def get_threshold(self, pollutant_notation: str, objecttype: str, 
                      reportingmetric: str, directive: str) -> Optional[Dict[str, Any]]:
         """
@@ -910,97 +922,95 @@ class Exceedances:
     def evaluate_regime(self, regime_id: str, year: int, directive: str) -> Dict[str, Any]:
         """
         Evaluate exceedances for a specific assessment regime.
-        
+
+        The regime's reporting metric (aMean, hrsAbove, ...) says what kind of statistic
+        is assessed but not against which level; the aggregation process
+        (P1Y-hrsAbove200) says both, and the level is directive-specific. It is resolved
+        with resolve_aggregation_process, the same rule CAM_04 uses, so this endpoint
+        and the compliance table cannot disagree about which statistic a regime means.
+
         Args:
             regime_id: Assessment regime ID
             year: Year to evaluate
             directive: Directive identifier ('2008/50', '2024/2881', 'WHO')
-            
+
         Returns:
             Dict with exceedance evaluation results
         """
-        # Get regime metadata
-        self.cursor.execute("""
-            SELECT ar.id, ar.name, ar.zoneid, ar.pollutant, ar.objecttype,
-                   ar.reportingmetric, ar.protectiontarget,
-                   p.notation as pollutant_notation,
-                   z.name as zone_name
-            FROM assessmentregimes ar
-            JOIN eea_pollutants p ON p.uri = ar.pollutant
-            JOIN zones z ON z.id = ar.zoneid
-            WHERE ar.id = %s
-        """, (regime_id,))
-        
+        self.cursor.execute(f"""
+            {self._REGIME_SELECT}
+             WHERE ar.id = %(regime_id)s
+        """, {'regime_id': regime_id})
+
         regime = self.cursor.fetchone()
         if not regime:
             raise ValueError(f"Assessment regime not found: {regime_id}")
-        
-        # Get threshold for this regime/directive
-        threshold_data = self.get_threshold(
-            regime['pollutant_notation'],
-            regime['objecttype'],
-            regime['reportingmetric'],
-            directive
-        )
-        
+
+        pollutant = regime['pollutant_notation']
+        aggregation_process = resolve_aggregation_process(
+            pollutant, regime['objective_type'], regime['reporting_metric'], directive)
+        threshold_key = _threshold_pollutant(pollutant)
+
+        result = {
+            'regime_id': regime_id,
+            'zone_id': regime['zone_id'],
+            'zone_name': regime['zone_name'],
+            'pollutant': pollutant,
+            'objective_type': regime['objective_type'],
+            'protection_target': regime['protection_target'],
+            'reporting_metric': regime['reporting_metric'],
+            'aggregation_process': aggregation_process,
+            'year': year,
+            'directive': directive,
+        }
+
+        threshold_data = None
+        if aggregation_process and threshold_key:
+            threshold_data = self.get_threshold(
+                threshold_key, regime['objective_type'], aggregation_process, directive)
+
         if not threshold_data:
             return {
-                'regime_id': regime_id,
-                'regime_name': regime['name'],
-                'zone_name': regime['zone_name'],
-                'pollutant': regime['pollutant_notation'],
-                'objecttype': regime['objecttype'],
-                'reportingmetric': regime['reportingmetric'],
-                'year': year,
-                'directive': directive,
+                **result,
                 'threshold_applicable': False,
                 'message': f"No threshold defined for {directive}"
             }
-        
+
+        result.update({
+            'threshold_applicable': True,
+            'threshold_value': threshold_data['value'],
+            'threshold_operator': threshold_data['operator'],
+        })
+
         # Calculate aggregation using Statistics class
-        aggregation_results = self.statistics.generate(
-            regime['reportingmetric'],
-            regime['pollutant_notation'],
-            year
-        )
-        
-        # Get sampling points for this regime
-        regime_sampling_points = self.get_regime_sampling_points(regime_id)
-        
-        # Filter results to only sampling points in this regime
+        aggregation_results = self.statistics.generate(aggregation_process, pollutant, year)
+
+        # Only the sampling points linked to this regime for this year
+        regime_sampling_points = set(self.get_regime_sampling_points(regime_id, year))
         relevant_results = [
-            r for r in aggregation_results 
-            if r['spo'] in regime_sampling_points
+            r for r in aggregation_results
+            if r['spo'] in regime_sampling_points and r.get('value') is not None
         ]
-        
+
         if not relevant_results:
             return {
-                'regime_id': regime_id,
-                'regime_name': regime['name'],
-                'zone_name': regime['zone_name'],
-                'pollutant': regime['pollutant_notation'],
-                'objecttype': regime['objecttype'],
-                'reportingmetric': regime['reportingmetric'],
-                'year': year,
-                'directive': directive,
-                'threshold_applicable': True,
-                'threshold_value': threshold_data['value'],
-                'threshold_operator': threshold_data['operator'],
+                **result,
                 'has_data': False,
+                'sampling_points_count': 0,
                 'message': "No data available for assessment"
             }
-        
+
         # Find maximum value across all sampling points in regime
         max_result = max(relevant_results, key=lambda x: x['value'])
         max_value = max_result['value']
-        
+
         # Check if threshold is exceeded
         has_exceedance = self.check_threshold(
             max_value,
             threshold_data['value'],
             threshold_data['operator']
         )
-        
+
         # Find all sampling points that exceed threshold
         exceeding_sampling_points = [
             {
@@ -1012,19 +1022,9 @@ class Exceedances:
             for r in relevant_results
             if self.check_threshold(r['value'], threshold_data['value'], threshold_data['operator'])
         ]
-        
+
         return {
-            'regime_id': regime_id,
-            'regime_name': regime['name'],
-            'zone_name': regime['zone_name'],
-            'pollutant': regime['pollutant_notation'],
-            'objecttype': regime['objecttype'],
-            'reportingmetric': regime['reportingmetric'],
-            'year': year,
-            'directive': directive,
-            'threshold_applicable': True,
-            'threshold_value': threshold_data['value'],
-            'threshold_operator': threshold_data['operator'],
+            **result,
             'has_data': True,
             'has_exceedance': has_exceedance,
             'max_value': max_value,
@@ -1033,7 +1033,7 @@ class Exceedances:
             'exceeding_sampling_points_count': len(exceeding_sampling_points),
             'exceeding_sampling_points': exceeding_sampling_points
         }
-    
+
     def evaluate_zone(self, zone_id: str, year: int, directive: str, 
                      pollutant_notation: Optional[str] = None) -> List[Dict[str, Any]]:
         """
@@ -1058,7 +1058,6 @@ class Exceedances:
             except Exception as e:
                 results.append({
                     'regime_id': regime['id'],
-                    'regime_name': regime['name'],
                     'error': str(e)
                 })
         

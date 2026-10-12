@@ -29,8 +29,10 @@ source data, and they are filled through the admin UI after the migration:
                                     sampling_points.from_time/to_time when absent.
     moe_result_external / srs_external / moe_result_inline / models
                                     MOE/MRI/MRE/SRE modelling results.
-    pollution_level_adjustment      ADJ. Partly seeded by remediate_legacy_data() where
-                                    exceedancedescriptions.adjustment_source exists.
+    pollution_level_adjustment      ADJ. Seeded by --remediate-only where
+                                    exceedancedescriptions.adjustment_source exists, but
+                                    not in a v3 run (v3 attainment ids match no CAM row);
+                                    migrate_attainments names the v3 deductions instead.
     compliance_assessment_method    CAM. Derived by POST /api/dataflow/compliance/recalculate.
     documents.documentattachment    DOC_05 / DOC_06. Reportnet3 attachment filename and
     documents.document_original_url published URL; no v3 equivalent.
@@ -60,15 +62,15 @@ id space (migration 017), so 51 is "Wind velocity" and the FK is valid -- but ar
 report_to_eea = false, which is what that column exists for. They stay in Raven and out
 of every AQR3 table.
 
-KNOWN DEFECT, not introduced by the fold-in: clear_migration_tables() TRUNCATEs
-exceedancedescriptions, attainments and exceedingmethods, but no migrate_* function
-repopulates them -- nothing here reads those tables from v3. So re-running this script
-against a database whose exceedance data was entered through the UI DESTROYS it, and
-that is the source of AQR3 dataflow G. Take a dump first, or remove those three from
-the list if the target already holds exceedance data.
+ATTAINMENTS. clear_migration_tables() TRUNCATEs exceedancedescriptions, attainments and
+exceedingmethods, and migrate_attainments() refills them from v3 (it used to be a known
+defect that nothing did). Re-running this script still REPLACES whatever was entered in
+those three tables on the v4 side with the v3 contents, so take a dump first if the
+target already holds exceedance data entered after the migration.
 """
 
 import os
+import re
 import sys
 import argparse
 import psycopg2
@@ -208,6 +210,33 @@ POLLUTANT_ID_MAPPINGS = {
 METEOPARAMETER_MAPPINGS = {
     # No mappings needed - IDs 55 and 58 are not used by pollutants
 }
+
+
+# v3 assessmentdata.assessmentlocal_id was foreign-keyed to sampling_points alone, so a
+# country with models stored them as fake sampling points -- Malta's are
+# MOD-SD_LV_Correction and friends, hyphen and all. v4 keeps models in `models`, whose
+# id must start MOD_ or OBE_ (AQR3 MOE_02, models_id_prefix).
+_MODEL_ID_PREFIX = re.compile(r'^(MOD|OBE)[-_]', re.IGNORECASE)
+_MODEL_ASSESSMENT_TYPES = {'model': 'MOD_', 'objective': 'OBE_'}
+
+
+def classify_assessment_method(local_id, assessment_type):
+    """Tell a v3 assessment link's method apart: ('sampling_point' | 'model', v4 id).
+
+    A link is to a model when its id carries the MOD/OBE prefix with either separator,
+    or when the link's own assessment type says model or objective estimation -- the
+    operator recorded that on the link, so it is believed even without the prefix. The
+    model id is normalised to the mandatory MOD_/OBE_ form; the prefix is prepended
+    only when the id has none.
+    """
+    local_id = str(local_id or '')
+    match = _MODEL_ID_PREFIX.match(local_id)
+    if match:
+        return 'model', f'{match.group(1).upper()}_{local_id[match.end():]}'
+    prefix = _MODEL_ASSESSMENT_TYPES.get((assessment_type or '').strip().lower())
+    if prefix:
+        return 'model', prefix + local_id
+    return 'sampling_point', local_id
 
 
 def extract_pollutant_id_from_uri(uri):
@@ -478,8 +507,11 @@ class Migration:
         log("   ✓ Lookup tables populated")
         cur.close()
     
-    def remediate_legacy_data(self):
+    def remediate_legacy_data(self, seed_adjustments=True):
         """Derive AQR3 v5.02 columns from data an older Raven already holds.
+
+        `seed_adjustments=False` skips the 003 step. A v3 -> v4 run passes it, because
+        exceedancedescriptions there carry v3 attainment ids, which no CAM row produces.
 
         This is the DML half of migrations 002, 003 and 004. Their DDL is in
         sql/schema.sql; these three statements are not expressible there because they
@@ -488,8 +520,9 @@ class Migration:
 
         Be clear about when this does work. A plain v3 -> v4 run populates none of the
         three inputs: observations.meta is written as NULL below (it is an ADACS-only
-        field), and exceedancedescriptions / srs_inline are never migrated at all. So
-        during a v3 -> v4 run this is a no-op by construction, and that is fine -- it
+        field), srs_inline is never migrated, and the ADJ seed from
+        exceedancedescriptions is switched off (seed_adjustments=False). So during a
+        v3 -> v4 run this is a no-op by construction, and that is fine -- it
         earns its place because --remediate-only makes it runnable against a database
         that DOES hold such rows: one fed by ADACS or AirQUIS, or populated through the
         admin UI. Each statement is idempotent and reports what it changed.
@@ -546,7 +579,10 @@ class Migration:
                              and table_name = 'exceedancedescriptions'
                              and column_name = 'adjustment_source')
         """)
-        if cur.fetchone()[0]:
+        has_sources = cur.fetchone()[0]
+        if has_sources and not seed_adjustments:
+            log("   - ADJ seeding skipped: exceedancedescriptions holds v3 attainment ids")
+        elif has_sources:
             cur.execute("""
                 insert into pollution_level_adjustment (attainment_id, adjustment_source_id)
                 select distinct ed.attainment_id, ed.adjustment_source
@@ -687,12 +723,15 @@ class Migration:
             self.migrate_autovalidated_series()
             self.migrate_zones()
             self.migrate_assessment_tables()
+            self.migrate_attainments()
             self.migrate_supporting_tables()
             self.migrate_notifications()
 
-            # Last, so it sees everything the migration wrote. A no-op on a pure v3
-            # source -- see remediate_legacy_data's docstring for why it runs anyway.
-            self.remediate_legacy_data()
+            # Last, so it sees everything the migration wrote. Without the ADJ seed:
+            # migrate_attainments now fills exceedancedescriptions, whose attainment
+            # ids are v3's, and ADJ_02 must match a CAM AttainmentId -- see
+            # migrate_attainments for what is logged instead.
+            self.remediate_legacy_data(seed_adjustments=False)
 
 
             # Commit or rollback
@@ -1532,30 +1571,42 @@ class Migration:
     def migrate_assessment_tables(self):
         """Migrate assessment-related tables (v4.4.0)"""
         log("\n📋 Migrating assessment tables...")
-        
+
         src = self.source_conn.cursor()
         tgt = self.target_conn.cursor()
-        
+
         # assessment_regimes (renamed from assessmentregimes)
         src.execute("SELECT * FROM assessmentregimes")
         rows = src.fetchall()
         cols = [desc[0] for desc in src.description]
-        
+        regime_pollutants = {}
+        not_included = []
+
         for row in rows:
             row_dict = dict(zip(cols, row))
-            
+
             pollutant_id = extract_pollutant_id_from_uri(row_dict.get('pollutant'))
             protection_target_id = extract_notation_from_uri(row_dict.get('protectiontarget'))
             reporting_metric_id = extract_notation_from_uri(row_dict.get('reportingmetric'))
             threshold_id = extract_notation_from_uri(row_dict.get('assessmentthresholdexceedance'))
             # objecttype -> objective_type_id (v4.4.0)
             objective_type_id = extract_notation_from_uri(row_dict.get('objecttype'))
-            
+
             if pollutant_id:
-                # Migration 002 renamed four of these: fixed_spo_reduction ->
-                # fixed_measurement_reduction (ARZ_14), resident_population[_year] ->
-                # zone_resident_population[_year] (ARZ_12/13), classification_report_id ->
-                # classification_document_id (ARZ_19).
+                regime_pollutants[row_dict['id']] = pollutant_id
+                # v3 `include` meant "put this regime in the XML export". It used to be
+                # written into fixed_measurement_reduction, which is AQR3 ARZ_15 -- the
+                # Directive 2024/2881 art. 9(3) exemption -- so every exported regime
+                # claimed an exemption nobody had asked for. v3 records nothing that
+                # means ARZ_15, hence false. v4 has no "do not export" flag, so an
+                # excluded regime is still migrated and named in the log below.
+                if row_dict.get('include') is False:
+                    not_included.append(row_dict['id'])
+                # thresholdclassificationyear is the classification year (ARZ_18) and
+                # nothing else: it used to fill ARZ_16 ZoneResidentPopulationYear too,
+                # stating a population year for a population v3 never held. Both
+                # population columns stay NULL for the operator to fill. v3 `name` has
+                # no ARZ counterpart and is not carried over.
                 tgt.execute("""
                     INSERT INTO assessment_regimes
                     (id, fixed_measurement_reduction, zone_resident_population_year,
@@ -1566,11 +1617,11 @@ class Migration:
                     ON CONFLICT (id) DO NOTHING
                 """, (
                     row_dict['id'],
-                    row_dict.get('include', True),  # Map include -> fixed_spo_reduction
-                    row_dict.get('thresholdclassificationyear'),  # resident_population_year
-                    None,  # resident_population
+                    False,  # fixed_measurement_reduction (ARZ_15): not recorded in v3
+                    None,  # zone_resident_population_year (ARZ_16)
+                    None,  # zone_resident_population (ARZ_17)
                     row_dict.get('thresholdclassificationyear'),  # classification_year
-                    row_dict.get('thresholdclassificationreport'),  # classification_report_id
+                    row_dict.get('thresholdclassificationreport'),  # classification_document_id
                     threshold_id,
                     pollutant_id,
                     protection_target_id,
@@ -1578,25 +1629,60 @@ class Migration:
                     reporting_metric_id,
                     row_dict.get('zoneid'),
                 ))
-        
+
         self.stats['assessment_regimes'] = len(rows)
         log(f"   ✓ assessment_regimes: {len(rows)} rows")
-        
+        if not_included:
+            log(f"   ⚠ {len(not_included)} regime(s) had include=false in v3 (left out of "
+                f"the v3 export). v4 has no such flag, so they were migrated and will be "
+                f"reported; delete them on Management -> Assessment Regime Zones if they "
+                f"should not be: {', '.join(sorted(not_included))}")
+
         # assessmentdata
         src.execute("SELECT * FROM assessmentdata")
         rows = src.fetchall()
         cols = [desc[0] for desc in src.description]
-        
+
+        # What a model needs that the link does not carry: the v3 fake sampling point's
+        # pollutant. v3 sampling_points has no name column, so the id doubles as the
+        # model's AssessmentMethodName.
+        src.execute("SELECT id, pollutant FROM sampling_points")
+        v3_point_pollutants = {sp_id: uri for sp_id, uri in src.fetchall()}
+
+        models_created = set()
+        model_sources = set()  # v3 ids that turned out to be models
+        default_aggregation = None
+
         for row in rows:
             row_dict = dict(zip(cols, row))
             assesstype = extract_notation_from_uri(row_dict.get('assessmenttype'))
-            
+
             # Since 4.502.24 assessmentlocal_id is generated from sampling_point_id
             # and model_id, so it cannot be written directly -- and the v3 column held
-            # either kind. The MOD_/OBE_ prefix is mandatory on models.id (AQR3 MOE_02,
-            # enforced by models_id_prefix), so it is what tells the two apart.
+            # either kind. See classify_assessment_method for how they are told apart.
             local_id = row_dict['assessmentlocal_id']
-            is_model = str(local_id or '').startswith(('MOD_', 'OBE_'))
+            kind, method_id = classify_assessment_method(local_id, assesstype)
+            is_model = kind == 'model'
+
+            if is_model:
+                model_sources.add(local_id)
+                if method_id not in models_created:
+                    if default_aggregation is None:
+                        default_aggregation = self._default_model_aggregation(tgt)
+                    pollutant_id = (extract_pollutant_id_from_uri(
+                        v3_point_pollutants.get(local_id))
+                        or regime_pollutants.get(row_dict['assessmentregime_id']))
+                    # data_aggregation_process_id is MOE_03, what the model outputs --
+                    # NOT CAM_04, which plans_programs_export derives from the regime.
+                    # v3 never recorded it, so this is only a NOT NULL placeholder for
+                    # the operator to correct on Management -> Models.
+                    tgt.execute("""
+                        INSERT INTO models
+                        (id, data_aggregation_process_id, assessment_method_name, pollutant_id)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (id) DO NOTHING
+                    """, (method_id, default_aggregation, local_id, pollutant_id))
+                    models_created.add(method_id)
 
             tgt.execute("""
                 INSERT INTO assessmentdata
@@ -1607,18 +1693,224 @@ class Migration:
             """, (
                 row_dict['id'],
                 row_dict['assessmentregime_id'],
-                None if is_model else local_id,
-                local_id if is_model else None,
+                None if is_model else method_id,
+                method_id if is_model else None,
                 assesstype,
                 row_dict.get('assessmentmethodedescription'),
             ))
-        
+
         self.stats['assessmentdata'] = len(rows)
+        self.stats['models_from_assessmentdata'] = len(models_created)
         log(f"   ✓ assessmentdata: {len(rows)} rows")
-        
+        if models_created:
+            log(f"   ✓ models: {len(models_created)} created from v3 model links "
+                f"({', '.join(sorted(models_created))}); data aggregation process "
+                f"defaulted to {default_aggregation!r} -- check it on Management -> Models")
+
+        self._retire_model_sampling_points(tgt, model_sources)
+
         src.close()
         tgt.close()
-    
+
+    @staticmethod
+    def _default_model_aggregation(tgt):
+        """A data_aggregation_process_id that exists, for models v3 never described."""
+        tgt.execute("SELECT id FROM eea_aggregationprocess WHERE id = 'P1Y'")
+        row = tgt.fetchone()
+        if row:
+            return row[0]
+        tgt.execute("SELECT id FROM eea_aggregationprocess ORDER BY id LIMIT 1")
+        row = tgt.fetchone()
+        if not row:
+            raise RuntimeError('eea_aggregationprocess is empty; cannot create models '
+                               'for the v3 model links -- populate vocabularies first')
+        return row[0]
+
+    def _retire_model_sampling_points(self, tgt, model_sources):
+        """Drop the v3 fake sampling points that are now models.
+
+        migrate_sampling_points_with_samples already copied them into v4
+        sampling_points, where they would be exported as AQR3 SamplingPoint rows. One
+        with no observations and no remaining sampling-point link is only a model in
+        disguise, and goes. One that holds data is kept and named, because deleting it
+        would cascade the observations away.
+        """
+        removed, kept = [], []
+        for sp_id in sorted(model_sources):
+            tgt.execute("SELECT 1 FROM sampling_points WHERE id = %s", (sp_id,))
+            if not tgt.fetchone():
+                continue
+            tgt.execute("SELECT EXISTS (SELECT 1 FROM observations WHERE sampling_point_id = %s)",
+                        (sp_id,))
+            has_observations = tgt.fetchone()[0]
+            tgt.execute("SELECT EXISTS (SELECT 1 FROM assessmentdata WHERE sampling_point_id = %s)",
+                        (sp_id,))
+            still_linked = tgt.fetchone()[0]
+            if has_observations or still_linked:
+                kept.append(sp_id)
+                continue
+            # The whole migration is one transaction, so a foreign key nobody foresaw
+            # (a process, a scaling point) must cost this one deletion, not the run.
+            tgt.execute("SAVEPOINT retire_model_sampling_point")
+            try:
+                tgt.execute("DELETE FROM sampling_points WHERE id = %s", (sp_id,))
+            except psycopg2.IntegrityError:
+                tgt.execute("ROLLBACK TO SAVEPOINT retire_model_sampling_point")
+                kept.append(sp_id)
+                continue
+            tgt.execute("RELEASE SAVEPOINT retire_model_sampling_point")
+            removed.append(sp_id)
+
+        self.stats['model_sampling_points_removed'] = len(removed)
+        if removed:
+            log(f"   ✓ removed {len(removed)} v3 sampling point(s) that were models: "
+                f"{', '.join(removed)}")
+        if kept:
+            log(f"   ⚠ {len(kept)} v3 sampling point(s) are linked as models but hold "
+                f"observations, sampling-point links or other references, so they were kept "
+                f"and will be "
+                f"exported as sampling points too: {', '.join(kept)}")
+
+    # The vocabulary columns of exceedancedescriptions. v3 holds most as the short code
+    # already and area_classification as the full URI; resolve_vocabulary_id passes a
+    # short code through unchanged (it is its own last segment) and maps a URI to the id.
+    _EXCEEDANCE_VOCABULARIES = {
+        'adjustment_type': 'eea_adjustmenttypes',
+        'area_classification': 'eea_areaclassifications',
+        'exceedance_reason': 'eea_exceedancereason',
+        'adjustment_source': 'eea_adjustmentsourcetype',
+    }
+
+    def migrate_attainments(self):
+        """Migrate attainments, exceedance descriptions and exceeding methods (dataflow G).
+
+        These used to be cleared by clear_migration_tables() and never refilled, so every
+        migration lost them -- Malta's 50 attainments and 54 exceedance descriptions
+        among them. The tables have the same shape in v3 and v4 apart from the regime
+        column's name and the vocabulary ids.
+
+        Each row goes in under its own savepoint. v4 adds check constraints v3 did not
+        enforce consistently (an exceedance needs its area, population and reason), and
+        the whole migration is one transaction: one such row must be named and skipped,
+        not abort the run.
+        """
+        log("\n📋 Migrating attainments and exceedance descriptions...")
+
+        src = self.source_conn.cursor()
+        tgt = self.target_conn.cursor()
+        skipped = []
+
+        def insert(table, row_id, statement, params):
+            tgt.execute("SAVEPOINT migrate_attainment_row")
+            try:
+                tgt.execute(statement, params)
+            except psycopg2.Error as e:
+                tgt.execute("ROLLBACK TO SAVEPOINT migrate_attainment_row")
+                reason = (e.diag.message_primary if e.diag else None) or str(e).strip()
+                skipped.append(f"{table} {row_id}: {reason}")
+                return False
+            tgt.execute("RELEASE SAVEPOINT migrate_attainment_row")
+            return True
+
+        src.execute("SELECT id, name, assessmentregime_id, comment FROM attainments")
+        attainments = 0
+        for att_id, name, regime_id, comment in src.fetchall():
+            if insert('attainments', att_id, """
+                    INSERT INTO attainments (id, name, assessment_regime_id, comment)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (id) DO NOTHING
+                    """, (att_id, name, regime_id, comment)):
+                attainments += 1
+
+        # Two fixed code lists only data.sql seeds: populate_vocabularies does not load
+        # them, so a target built from the live EEA vocabularies has them empty and
+        # every description fails its foreign key. v3 carries the same short lists.
+        for table in ('eea_exceedancetype', 'eea_exceedancedescription'):
+            tgt.execute(sql.SQL('SELECT EXISTS (SELECT 1 FROM {})').format(
+                sql.Identifier(table)))
+            if tgt.fetchone()[0]:
+                continue
+            src.execute("SELECT to_regclass(%s) IS NOT NULL", (table,))
+            if not src.fetchone()[0]:
+                continue
+            src.execute(sql.SQL('SELECT * FROM {}').format(sql.Identifier(table)))
+            for row in src.fetchall():
+                # (id, label) in v4; v3 names the second column label or name
+                tgt.execute(sql.SQL('INSERT INTO {} (id, label) VALUES (%s, %s) '
+                                    'ON CONFLICT (id) DO NOTHING').format(
+                    sql.Identifier(table)), (row[0], row[1]))
+            log(f"   ✓ {table}: seeded from v3 (data.sql had not been loaded)")
+
+        src.execute("SELECT * FROM exceedancedescriptions")
+        cols = [desc[0] for desc in src.description]
+        target_cols = ('id', 'attainment_id', 'exceedances', 'excedance_type', 'max_value',
+                       'adjustment_type', 'surface_area', 'exposed_population',
+                       'population_reference_year', 'vegetation_area', 'area_classification',
+                       'exceedance_reason', 'other_exceedance_reason',
+                       'exceedancedescription_element', 'adjustment_source')
+        descriptions = 0
+        for row in src.fetchall():
+            row_dict = dict(zip(cols, row))
+            for column, table in self._EXCEEDANCE_VOCABULARIES.items():
+                if row_dict.get(column):
+                    row_dict[column] = self.resolve_vocabulary_id(table, row_dict[column])
+            statement = sql.SQL("""
+                INSERT INTO exceedancedescriptions ({})
+                VALUES ({})
+                ON CONFLICT (id) DO NOTHING
+            """).format(sql.SQL(', ').join(map(sql.Identifier, target_cols)),
+                        sql.SQL(', ').join(sql.Placeholder() * len(target_cols)))
+            if insert('exceedancedescriptions', row_dict['id'], statement,
+                      [row_dict.get(c) for c in target_cols]):
+                descriptions += 1
+
+        # Only some v3 builds have exceedingmethods (Malta's does not).
+        methods = 0
+        src.execute("SELECT to_regclass('exceedingmethods') IS NOT NULL")
+        if src.fetchone()[0]:
+            src.execute("SELECT id, exceedancedescription_id, assessmentdata_id "
+                        "FROM exceedingmethods")
+            for row in src.fetchall():
+                if insert('exceedingmethods', row[0], """
+                        INSERT INTO exceedingmethods
+                        (id, exceedancedescription_id, assessmentdata_id)
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT DO NOTHING
+                        """, row):
+                    methods += 1
+
+        self.stats['attainments'] = attainments
+        self.stats['exceedancedescriptions'] = descriptions
+        self.stats['exceedingmethods'] = methods
+        log(f"   ✓ attainments: {attainments}, exceedancedescriptions: {descriptions}, "
+            f"exceedingmethods: {methods}")
+        if skipped:
+            self.stats['attainment_rows_skipped'] = len(skipped)
+            log(f"   ⚠ {len(skipped)} row(s) could not be migrated:")
+            for line in skipped:
+                log(f"      - {line}")
+
+        # Deliberately NOT copied into pollution_level_adjustment (AQR3 ADJ), as archived
+        # migration 003 once did. ADJ_02 must equal a CAM AttainmentId, which v4 derives
+        # from the regime and reporting year; keyed by v3's ATT- identifiers the rows would
+        # match nothing -- the orphaning migration 023 had to clean up. Named instead.
+        tgt.execute("""
+            SELECT DISTINCT a.assessment_regime_id, ed.adjustment_source
+              FROM exceedancedescriptions ed
+              JOIN attainments a ON a.id = ed.attainment_id
+             WHERE ed.adjustment_source IS NOT NULL
+             ORDER BY 1, 2
+        """)
+        sources = tgt.fetchall()
+        if sources:
+            log(f"   ⚠ {len(sources)} natural-source / winter-sanding deduction(s) were "
+                f"recorded in v3. Enter them on Management -> Pollution level adjustments "
+                f"once compliance is calculated: "
+                + ', '.join(f'{regime} ({source})' for regime, source in sources))
+
+        src.close()
+        tgt.close()
+
     def migrate_supporting_tables(self):
         """Migrate directives, statistics, aqi tables"""
         log("\n📋 Migrating supporting tables...")
