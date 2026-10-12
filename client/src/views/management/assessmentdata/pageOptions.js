@@ -9,6 +9,10 @@
 // CAM_05 AssessmentMethodId is either a sampling point or a model (MOD_/OBE_), so
 // exactly one of the two lookups is filled in. The database generates the single
 // assessmentlocal_id column from whichever it is, and the API rejects both or neither.
+// Which one is decided by CAM_07 AssessmentType (methodKind.js): a measurement type takes
+// a sampling point, Modelling a MOD_ model, Objective estimation an OBE_ one. The form is
+// AssessmentDataCrud.vue, which shows only the method field the type allows; these
+// properties still drive the grid and the CSV columns.
 //
 // Valid From / Valid To bound the period the method assessed the regime. Both blank
 // means unbounded, which is what every link written before 4.502.24 carries. When a
@@ -24,8 +28,8 @@ const pageOptions = (lookups) => ({
     { type: "lookup", label: "Assessment Type", prop_id: "assessmenttype", prop: "assessment_type", lookup: "assessment_types", placeholder: "AQR3 CAM_07 - how the air was assessed by this method", required: true, default: null, enableInEdit: true, showInGrid: true },
 
     // -- Exactly one of these two ------------------------------------------------
-    { type: "lookup", label: "Sampling Point", prop_id: "sampling_point_id", prop: "sampling_point_id", lookup: "sampling_points", placeholder: "AQR3 CAM_05 by measurement - leave empty if a model assesses this regime", required: false, default: null, enableInEdit: true, defaultHidden: true },
-    { type: "lookup", label: "Model / OBE", prop_id: "model_id", prop: "model_id", lookup: "models", placeholder: "AQR3 CAM_05 by modelling or objective estimation - leave empty if a sampling point assesses this regime", required: false, default: null, enableInEdit: true, defaultHidden: true },
+    { type: "lookup", label: "Sampling Point", prop_id: "sampling_point_id", prop: "sampling_point_id", lookup: "sampling_points", placeholder: "AQR3 CAM_05 when the assessment type is a measurement type (fixed, fixedrandom, indicative, other)", required: false, default: null, enableInEdit: true, defaultHidden: true },
+    { type: "lookup", label: "Model / OBE", prop_id: "model_id", prop: "model_id", lookup: "models", placeholder: "AQR3 CAM_05 when the assessment type is model (a MOD_ id) or objective (an OBE_ id)", required: false, default: null, enableInEdit: true, defaultHidden: true },
 
     // -- Optional ---------------------------------------------------------------
     { type: "eeaDatetime", label: "Valid From", prop: "from_time", placeholder: "when this method started assessing this regime - blank means always", required: false, default: null, enableInEdit: true, showInGrid: true },
@@ -38,6 +42,8 @@ const pageOptions = (lookups) => ({
     { type: "gridOnly", label: "Objective", prop: "objective_type", showInGrid: true, val_func: (r) => `${r.objective_type ?? "—"}/${r.reporting_metric ?? "—"}` },
     { type: "gridOnly", label: "Assessment Method", prop: "assessment_method", showInGrid: true, val_func: (r) => r.assessment_method ?? r.assessmentlocal_id ?? "—" },
     { type: "gridOnly", label: "Kind", prop: "assessment_method_kind", showInGrid: true, val_func: (r) => r.assessment_method_kind ?? "—" },
+    // Rows written before the type decided the method; the API refuses new ones.
+    { type: "gridOnly", label: "Check", prop: "method_mismatch", showInGrid: true, defaultHidden: true, val_func: (r) => (r.method_mismatch ? `⚠ ${r.method_mismatch}` : "") },
     { type: "text", label: "Id", prop: "id", required: false, default: null, enableInEdit: false, defaultHidden: true }
   ],
   lookups

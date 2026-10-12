@@ -6,6 +6,7 @@ import Confirm from "../../../components/Confirm.vue";
 import DatetimePicker from "../../../components/DatetimePicker.vue";
 import Eventy from "../../../helpers/eventy";
 import Service from "./service";
+import { methodKind, modelMatches, typesFor } from "../assessmentdata/methodKind";
 
 // The sampling points and models assessing one regime -- AQR3 CAM_05, one CAM row per
 // link per year. v3 edited these as a ticked list inside the regime popup; this brings
@@ -14,6 +15,10 @@ import Service from "./service";
 // ones, which cascaded away the exceedingmethods rows hanging off them.
 //
 // The same rows are on Management -> Assessment data, which lists every regime's links.
+//
+// The assessment type decides the kind of method (../assessmentdata/methodKind.js): the
+// multi-add picks the type first and lists only what it allows, and the inline edit
+// offers only the types the link's method can carry. The API refuses anything else.
 
 const props = defineProps({
   show: Boolean,
@@ -37,8 +42,7 @@ const adding = ref(false);
 const candidates = ref({ sampling_points: [], models: [] });
 const ticked = ref(new Set());
 const search = ref("");
-const spType = ref("fixed");
-const modelType = ref("model");
+const addType = ref("fixed");
 const addFrom = ref(null);
 const addTo = ref(null);
 const addDescription = ref("");
@@ -142,14 +146,21 @@ const doDelete = async () => {
 
 // -- Multi-add -------------------------------------------------------------------
 
+const addKind = computed(() => methodKind(addType.value));
+
+// Only the kind the chosen type allows: sampling points, MOD_ models or OBE_ models.
 const candidateRows = computed(() => {
+  const kind = addKind.value;
   const rows = [
-    ...(candidates.value.sampling_points ?? []).map((sp) => ({
+    ...(kind === "sampling_point" ? candidates.value.sampling_points ?? [] : []).map((sp) => ({
       key: `sp:${sp.id}`, id: sp.id, kind: "Sampling point",
       label: sp.station_name ?? "?", detail: sp.sampling_point_reference_id,
       to_time: sp.to_time
     })),
-    ...(candidates.value.models ?? []).map((m) => ({
+    ...(kind && kind !== "sampling_point"
+      ? (candidates.value.models ?? []).filter((m) => modelMatches(kind, m.id))
+      : []
+    ).map((m) => ({
       key: `mod:${m.id}`, id: m.id, kind: "Model / OBE",
       label: m.assessment_method_name ?? m.id, detail: null, to_time: null
     }))
@@ -159,8 +170,12 @@ const candidateRows = computed(() => {
   return rows.filter((r) => `${r.id} ${r.label} ${r.detail ?? ""}`.toLowerCase().includes(q));
 });
 
-const anySpTicked = computed(() => [...ticked.value].some((k) => k.startsWith("sp:")));
-const anyModelTicked = computed(() => [...ticked.value].some((k) => k.startsWith("mod:")));
+// A new type lists a different kind, so nothing ticked under the old one still applies.
+watch(addType, () => {
+  ticked.value = new Set();
+});
+
+const editTypes = computed(() => typesFor(assessmentTypes.value, draft.value));
 const allVisibleTicked = computed(
   () => candidateRows.value.length > 0 && candidateRows.value.every((r) => ticked.value.has(r.key))
 );
@@ -180,20 +195,20 @@ const toggleAll = () => {
 
 const openAdd = async () => {
   adding.value = true;
-  spType.value = "fixed";
-  modelType.value = "model";
+  addType.value = "fixed";
   await loadCandidates();
 };
 
 const linkTicked = async () => {
   if (ticked.value.size === 0) return;
   // Every ticked key, not only the visible ones: a search narrows the list, it does
-  // not untick what was ticked before it.
+  // not untick what was ticked before it. A change of type clears the ticks, so all of
+  // them are of the kind the type allows.
   const all = [
     ...(candidates.value.sampling_points ?? []).filter((sp) => ticked.value.has(`sp:${sp.id}`))
-      .map((sp) => ({ sampling_point_id: sp.id, assessmenttype: spType.value })),
+      .map((sp) => ({ sampling_point_id: sp.id, assessmenttype: addType.value })),
     ...(candidates.value.models ?? []).filter((m) => ticked.value.has(`mod:${m.id}`))
-      .map((m) => ({ model_id: m.id, assessmenttype: modelType.value }))
+      .map((m) => ({ model_id: m.id, assessmenttype: addType.value }))
   ];
   const rows = all.map((r) => ({
     ...r,
@@ -270,14 +285,15 @@ const linkTicked = async () => {
                 <td class="p-1.5">{{ link.assessment_method_kind }}</td>
                 <td class="p-1.5">
                   <select class="select w-full" v-model="draft.assessmenttype">
-                    <option v-for="t in assessmentTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
+                    <option v-for="t in editTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
                   </select>
                 </td>
                 <td class="p-1.5 w-44"><DatetimePicker v-model="draft.from_time" /></td>
                 <td class="p-1.5 w-44"><DatetimePicker v-model="draft.to_time" /></td>
                 <td class="p-1.5"><input class="input w-full" v-model="draft.assessmentmethodedescription" /></td>
                 <td class="p-1.5 whitespace-nowrap">
-                  <button class="button" @click="saveEdit" :disabled="!draft.assessmenttype">Save</button>
+                  <button class="button" @click="saveEdit"
+                          :disabled="!editTypes.some((t) => t.value === draft.assessmenttype)">Save</button>
                   <button class="button ml-1" @click="editingId = null">Cancel</button>
                 </td>
               </template>
@@ -285,6 +301,7 @@ const linkTicked = async () => {
                 <td class="p-1.5">
                   <div>{{ link.assessment_method }}</div>
                   <div class="font-mono text-nord3">{{ link.assessmentlocal_id }}</div>
+                  <div v-if="link.method_mismatch" class="text-yellow-800">⚠ {{ link.method_mismatch }} — edit to fix the type</div>
                 </td>
                 <td class="p-1.5">{{ link.assessment_method_kind }}</td>
                 <td class="p-1.5">{{ link.assessment_type ?? link.assessmenttype }}</td>
@@ -306,25 +323,21 @@ const linkTicked = async () => {
     <div v-else class="flex-1 min-h-0 flex flex-col">
       <div class="text-xs text-nord3 mb-2 shrink-0">
         Sampling points and models measuring <strong>{{ candidates.regime?.pollutant ?? "the regime's pollutant" }}</strong>
-        that are not already linked with an open-ended period. Tick as many as apply; one link is created for each.
+        that are not already linked with an open-ended period. The assessment type decides what is listed: a measurement
+        type lists sampling points, Modelling MOD_ models, Objective estimation OBE_ ones. Tick as many as apply; one link
+        is created for each.
       </div>
 
       <div class="flex gap-3 items-end mb-2 shrink-0 flex-wrap">
         <div>
+          <div class="font-bold text-sm">Assessment type</div>
+          <select class="select w-52" v-model="addType">
+            <option v-for="t in assessmentTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
+          </select>
+        </div>
+        <div>
           <div class="font-bold text-sm">Search</div>
           <input class="input w-56" v-model="search" placeholder="station, id or reference" />
-        </div>
-        <div v-if="anySpTicked">
-          <div class="font-bold text-sm">Type for sampling points</div>
-          <select class="select w-48" v-model="spType">
-            <option v-for="t in assessmentTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
-          </select>
-        </div>
-        <div v-if="anyModelTicked">
-          <div class="font-bold text-sm">Type for models</div>
-          <select class="select w-48" v-model="modelType">
-            <option v-for="t in assessmentTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
-          </select>
         </div>
         <div class="w-44">
           <div class="font-bold text-sm">Valid from</div>

@@ -239,6 +239,20 @@ def classify_assessment_method(local_id, assessment_type):
     return 'sampling_point', local_id
 
 
+def model_assessment_type(model_id):
+    """The AQR3 CAM_07 assessment type a MOD_/OBE_ model carries: 'model' or 'objective'.
+
+    v4 refuses a link whose type disagrees with its method (_method_mismatch in
+    api/endpoints/management/assessmentdata/routes.py): MOE_02's prefix says which of the
+    two a model is. v3 checked nothing, so a migrated model link takes its type from its
+    prefix and the migration logs every link where that changed what v3 said.
+    """
+    for kind, prefix in _MODEL_ASSESSMENT_TYPES.items():
+        if (model_id or '').startswith(prefix):
+            return kind
+    return None
+
+
 def extract_pollutant_id_from_uri(uri):
     """Extract numeric ID from pollutant URI with mapping for deprecated IDs
     
@@ -1652,6 +1666,7 @@ class Migration:
         models_created = set()
         model_sources = set()  # v3 ids that turned out to be models
         default_aggregation = None
+        retyped = []  # (regime, method, v3 type, v4 type)
 
         for row in rows:
             row_dict = dict(zip(cols, row))
@@ -1666,6 +1681,11 @@ class Migration:
 
             if is_model:
                 model_sources.add(local_id)
+                aligned = model_assessment_type(method_id)
+                if aligned and aligned != assesstype:
+                    retyped.append((row_dict['assessmentregime_id'], method_id,
+                                    assesstype, aligned))
+                    assesstype = aligned
                 if method_id not in models_created:
                     if default_aggregation is None:
                         default_aggregation = self._default_model_aggregation(tgt)
@@ -1702,6 +1722,13 @@ class Migration:
         self.stats['assessmentdata'] = len(rows)
         self.stats['models_from_assessmentdata'] = len(models_created)
         log(f"   ✓ assessmentdata: {len(rows)} rows")
+        if retyped:
+            log(f"   ⚠ {len(retyped)} model link(s) had an assessment type that does not "
+                f"match the model: v4 requires 'model' for MOD_ and 'objective' for OBE_, "
+                f"so the type was set from the prefix. Check them on Management -> "
+                f"Assessment data:")
+            for regime, method, old, new in retyped:
+                log(f"     {regime} / {method}: {old or '(none)'} -> {new}")
         if models_created:
             log(f"   ✓ models: {len(models_created)} created from v3 model links "
                 f"({', '.join(sorted(models_created))}); data aggregation process "

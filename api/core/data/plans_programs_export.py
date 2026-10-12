@@ -342,10 +342,11 @@ class PlansAndProgramsExport:
         -- exc.get('station', {{}}).get('name'), which a None would turn into an
         -- AttributeError.
         --
-        -- AssessmentType comes from the link, not from the id prefix. An OBE_ model is
-        -- usually 'objective' and a MOD_ one 'model', but which it is for this regime is
-        -- something the operator records; guessing it would repeat the defect
-        -- map_assessment_type was written to stop.
+        -- AssessmentType is read from the link, never inferred here. Links are
+        -- validated on write (assessmentdata/routes.py _method_mismatch): a MOD_ model
+        -- carries 'model' and an OBE_ one 'objective'. A row written before that check
+        -- is reported as stored and flagged on Management -> Assessment data, because
+        -- guessing would repeat the defect map_assessment_type was written to stop.
         --
         -- DataAggregationProcessId is NOT models.data_aggregation_process_id. That is
         -- MOE_03, describing what the model outputs; CAM_04 names the statistic AND the

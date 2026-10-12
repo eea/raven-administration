@@ -47,16 +47,57 @@ COLUMNS = ('assessment_regime_id', 'sampling_point_id', 'model_id', 'assessmentt
            'assessmentmethodedescription', 'from_time', 'to_time')
 
 
-def _validated(model):
-    """Exactly one kind of assessment method, and a period that runs forwards.
+# CAM_07 AssessmentType decides which kind of CAM_05 AssessmentMethodId the link may
+# name. The measurement types are assessed by an instrument, so by a sampling point;
+# modelling by a MOD_ model and objective estimation by an OBE_ one -- MOE_02 makes the
+# prefix say which of the two a models row is. client/.../assessmentdata/methodKind.js
+# carries the same rule for the forms, and the list query's `method_mismatch` CASE the
+# same rule for rows written before it was enforced.
+MEASUREMENT_TYPES = frozenset(('fixed', 'fixedrandom', 'indicative', 'other'))
+MODEL_TYPE_PREFIX = {'model': 'MOD_', 'objective': 'OBE_'}
+_MODEL_TYPE_LABEL = {'model': 'Modelling', 'objective': 'Objective estimation'}
 
-    The database enforces both, but a constraint violation reaches the user as a 500
-    naming a constraint; these say what to do about it.
+
+def _method_mismatch(assessmenttype, sampling_point_id, model_id):
+    """Why this assessment type cannot go with this method, or None if it can.
+
+    An unknown type is not judged here: the foreign key to eea_assessmenttypes
+    rejects it, with a message that names the column.
+    """
+    kind = (assessmenttype or '').strip()
+    if kind in MEASUREMENT_TYPES:
+        if model_id:
+            return (f"'{kind}' is a measurement type, so the method must be a sampling "
+                    f"point, not {model_id}. Choose a sampling point, or change the type "
+                    f"to Modelling or Objective estimation.")
+    elif kind in MODEL_TYPE_PREFIX:
+        prefix, label = MODEL_TYPE_PREFIX[kind], _MODEL_TYPE_LABEL[kind]
+        a = 'an' if prefix[0] in 'AEIOU' else 'a'
+        if sampling_point_id:
+            return (f'{label} is assessed by {a} {prefix} model, not by sampling point '
+                    f'{sampling_point_id}. Choose {a} {prefix} model, or change the type '
+                    f'to a measurement type.')
+        if model_id and not model_id.startswith(prefix):
+            return (f'{label} needs {a} {prefix} model; {model_id} is not one. Choose '
+                    f'{a} {prefix} model, or change the type to match {model_id}.')
+    return None
+
+
+def _validated(model):
+    """Exactly one kind of assessment method, of the kind its assessment type says,
+    and a period that runs forwards.
+
+    The database enforces the first and the last, but a constraint violation reaches
+    the user as a 500 naming a constraint; these say what to do about it.
     """
     if bool(model.sampling_point_id) == bool(model.model_id):
         raise BadRequest(
             'An assessment method is either a sampling point or a model, not both and '
             'not neither. AQR3 CAM_05 carries one AssessmentMethodId.')
+    mismatch = _method_mismatch(model.assessmenttype, model.sampling_point_id,
+                                model.model_id)
+    if mismatch:
+        raise BadRequest(mismatch)
     if model.from_time and model.to_time and model.to_time <= model.from_time:
         raise BadRequest('Valid To must be later than Valid From.')
     return model
@@ -102,6 +143,21 @@ def assessmentdata():
                    ad.assessmentmethodedescription,
                    ad.from_time,
                    ad.to_time,
+                   -- _method_mismatch, for rows written before it was enforced: they
+                   -- are flagged on screen rather than changed, and editing one makes
+                   -- the operator settle it.
+                   CASE
+                     WHEN ad.assessmenttype IN ('fixed', 'fixedrandom', 'indicative', 'other')
+                          AND ad.model_id IS NOT NULL
+                       THEN 'Measurement type on a model - needs a sampling point'
+                     WHEN ad.assessmenttype IN ('model', 'objective')
+                          AND ad.sampling_point_id IS NOT NULL
+                       THEN 'Model type on a sampling point - needs a model'
+                     WHEN ad.assessmenttype = 'model' AND ad.model_id NOT LIKE 'MOD\\_%%'
+                       THEN 'Modelling needs a MOD_ model'
+                     WHEN ad.assessmenttype = 'objective' AND ad.model_id NOT LIKE 'OBE\\_%%'
+                       THEN 'Objective estimation needs an OBE_ model'
+                   END                                  AS method_mismatch,
                    z.name                               AS zone_name,
                    COALESCE(NULLIF(p.notation, ''), p.label) AS regime_pollutant,
                    ot.notation                          AS objective_type,
