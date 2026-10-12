@@ -76,7 +76,7 @@ def compliance_rows():
                    c.attainment_id,
                    c.attainment_index,
                    c.srs_id,
-                   COALESCE(NULLIF(sr.srs_application, ''), sr.srs_application_id) as srs,
+                   sr.applications                             as srs,
                    c.calculated_at,
                    z.id                                        as zone_id,
                    z.name                                      as zone_name,
@@ -103,7 +103,13 @@ def compliance_rows():
             LEFT JOIN eea_reportingmetrics rm   ON rm.id = ar.reporting_metric_id
             LEFT JOIN models m                  ON m.id  = c.assessment_method_id
             LEFT JOIN sampling_points sp        ON sp.id = c.assessment_method_id
-            LEFT JOIN spatial_representativeness sr ON sr.id = c.srs_id
+            -- CAM_16 names the area; it has one row per application, so they are
+            -- folded into one label rather than joined, which would repeat the row.
+            LEFT JOIN (SELECT srs_id,
+                              srs_id || ' (' || string_agg(srs_application, ', '
+                                         ORDER BY srs_application DESC) || ')' AS applications
+                       FROM spatial_representativeness GROUP BY srs_id) sr
+                   ON sr.srs_id = c.srs_id
             LEFT JOIN stations st               ON st.id = sp.station_id
             WHERE c.reporting_year = %(year)s
             ORDER BY c.assessment_regime_id, c.assessment_method_id,
@@ -140,11 +146,14 @@ def compliance_lookups():
         # CAM_16. Nothing derives it, so the areas an operator has uploaded on
         # Management -> Spatial Representativeness are the only candidates; the list is
         # empty until one exists.
+        # One entry per area (SRS_02), with the applications it has.
         cursor.execute("""
-            SELECT id as value,
-                   id || COALESCE(' - ' || NULLIF(srs_application, ''), '') as label
+            SELECT srs_id as value,
+                   srs_id || ' (' || string_agg(srs_application, ', '
+                              ORDER BY srs_application DESC) || ')' as label
             FROM spatial_representativeness
-            ORDER BY id
+            GROUP BY srs_id
+            ORDER BY srs_id
         """)
         srs = cursor.fetchall()
 
@@ -187,6 +196,14 @@ def compliance_update():
     params.update({c: key[c] for c in KEY})
 
     with CursorFromPool() as cursor:
+        # No foreign key can hold CAM_16: an SRSId is shared by its applications, so it
+        # is not unique in spatial_representativeness. Checked here instead.
+        if model.srs_id:
+            cursor.execute('SELECT 1 FROM spatial_representativeness WHERE srs_id = %s',
+                           (model.srs_id,))
+            if not cursor.fetchone():
+                raise BadRequest(f'SRS Id {model.srs_id!r} is not an area on Management -> '
+                                 f'Spatial Representativeness.')
         cursor.execute(f"""
             UPDATE compliance_assessment_method
             SET {assignments}

@@ -1,3 +1,11 @@
+"""AQR3 SRS SpatialRepresentativeness, one row per SRS application.
+
+The guide keys SRS on (CountryCode, SRSId, SRSApplicationId): SRS_02 SRSId names an
+area, and SRS_03 SRSApplicationId one use of it -- SPO representativeness or
+exceedance extent (SRS_04). The grid cells (SRI) and the GeoTIFF (SRE) belong to the
+application, so srs_application_id is the key here; srs_id is shared by an area's
+applications and is what CAM_16 links to.
+"""
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
@@ -8,34 +16,32 @@ class PointModel(BaseModel):
 
 
 class SpatialRepresentativenessModel(BaseModel):
-    id: str = Field(..., min_length=1, max_length=255)
-    srs_application_id: str = Field(..., min_length=1, max_length=255)
+    # SRS_02 and SRS_03, varchar(50) in the guide.
+    srs_id: str = Field(..., min_length=1, max_length=50)
+    # Derived by the API from srs_id and the application when left empty.
+    srs_application_id: Optional[str] = Field(None, max_length=50)
+    # SRS_04: spo_sr | exc_sr (eea_srapplication).
     srs_application: str = Field(..., min_length=1, max_length=100)
-    points: List[PointModel] = []
-    # AQR3 SRI_05 is an integer number of metres (10 | 100 | 1000 | 10000).
-    spatial_resolution: Optional[int] = None
-    # AQR3 SRS_05 — whether the area is given inline as grid cells or as an
-    # external GeoTIFF. FK to eea_resultencoding.
-    result_encoding_id: Optional[str] = Field(None, max_length=100)
-    # AQR3 SRS_06 — the assessment method this area is representative of: a
-    # sampling point for spo_sr, a model for exc_sr. No vocabulary; the guide
-    # cross-checks it against the SamplingPoint and Model tables.
+    # SRS_05: inline (SRI grid cells) | external (an SRE GeoTIFF).
+    result_encoding_id: str = Field('inline', min_length=1, max_length=100)
+    # SRS_06: the model/OBE that defined the area. Checked against models.
     representativeness_assessment_method_id: Optional[str] = Field(None, max_length=255)
-    # AQR3 SRE_04 — the filename of the GeoTIFF uploaded to Reportnet3, when the
-    # area is reported externally rather than as inline grid cells. srs_external
-    # is 1:1 with this row, so it is carried here rather than in its own model;
-    # the routes upsert or delete that row from result_encoding_id.
+    # SRI_05 / SRE_03, an integer number of metres (10 | 100 | 1000 | 10000).
+    spatial_resolution: Optional[int] = None
+    # SRE_04: the filename of the GeoTIFF uploaded to Reportnet3. External only.
     geotiff_attachment: Optional[str] = Field(None, max_length=100)
-    # Where the area comes from, besides `points`: a file staged by /parse (what the
-    # form sends), or another record's cells (Duplicate). See routes._store_area.
+    # Where an inline area comes from: points as JSON (the API's original shape), a
+    # file staged by /parse (what the form sends), or another application's cells
+    # (Duplicate). See routes._store_area.
+    points: List[PointModel] = []
     upload_token: Optional[str] = Field(None, max_length=32)
-    copy_cells_from: Optional[str] = Field(None, max_length=255)
+    copy_cells_from: Optional[str] = Field(None, max_length=50)
 
 
 class SrImportModel(SpatialRepresentativenessModel):
-    """A CSV row: an SR without its area. The area fields are excluded rather than
-    left at their defaults, so a file cannot name them and the template does not
-    show them."""
+    """A CSV row: an SR application without its area. The area fields are excluded
+    rather than left at their defaults, so a file cannot name them and the template
+    does not show them."""
     points: List[PointModel] = Field(default=[], exclude=True)
     upload_token: Optional[str] = Field(None, exclude=True)
     copy_cells_from: Optional[str] = Field(None, exclude=True)

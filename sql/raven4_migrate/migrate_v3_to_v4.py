@@ -635,8 +635,8 @@ class Migration:
             cur.execute("""
                 delete from srs_inline a
                  where a.ctid > (select min(b.ctid) from srs_inline b
-                                  where b.spatial_representativeness_id
-                                        = a.spatial_representativeness_id
+                                  where b.srs_application_id
+                                        = a.srs_application_id
                                     and b.x = a.x and b.y = a.y
                                     and b.spatial_resolution = a.spatial_resolution)
             """)

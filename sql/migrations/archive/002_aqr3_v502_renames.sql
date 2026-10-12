@@ -337,7 +337,15 @@ alter table spatial_representativeness
         references eea_resultencoding on update cascade;
 
 comment on table spatial_representativeness is 'AQR3 SRS. Links an SR area (SPO representativeness or exceedance extent) to the compliance assessment method.';
-comment on column spatial_representativeness.id is 'AQR3 SRS_02 SRSId';
+-- Guarded since 029, which renamed `id` to srs_application_id: this file is replayed
+-- against the current schema by the parity test, and run by hand on old databases.
+do $$
+begin
+    if exists (select 1 from information_schema.columns
+               where table_name = 'spatial_representativeness' and column_name = 'id') then
+        comment on column spatial_representativeness.id is 'AQR3 SRS_02 SRSId';
+    end if;
+end $$;
 comment on column spatial_representativeness.srs_application_id is 'AQR3 SRS_03 SRSApplicationId';
 comment on column spatial_representativeness.srs_application is 'AQR3 SRS_04 SRSApplication -> eea_srapplication';
 comment on column spatial_representativeness.result_encoding_id is 'AQR3 SRS_05 ResultEncoding -> eea_resultencoding';

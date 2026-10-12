@@ -1,37 +1,62 @@
+// One row per SRS application, named as in the AQR3 v5.02 guide. SRS_02 SRSId names the
+// area (and is what CAM_16 links to); SRS_03 SRSApplicationId names one use of it --
+// SPO representativeness or exceedance extent (SRS_04) -- and is the key the grid cells
+// (SRI) and the GeoTIFF (SRE) belong to. An area may have one application of each.
 const pageOptions = (lookups) => {
   return {
     entityName: "Spatial Representativeness",
+    keyProps: ["srs_application_id"],
     properties: [
       {
+        // AQR3 SRS_02. Shared by the area's applications.
         type: "text",
-        label: "Id",
-        prop: "id",
+        label: "SRS Id",
+        prop: "srs_id",
+        placeholder: "str(50): the area, e.g. SRS_NO0001",
+        required: true,
+        default: null,
+        enableInEdit: true,
+        showInGrid: true
+      },
+      {
+        // AQR3 SRS_04: spo_sr | exc_sr.
+        type: "lookup",
+        label: "SRS Application",
+        prop_id: "srs_application",
+        prop: "srs_application",
+        lookup: "applications",
+        required: true,
+        default: "spo_sr",
+        enableInEdit: true,
+        showInGrid: true
+      },
+      {
+        // AQR3 SRS_03. Filled in from the two above until typed in; fixed once saved,
+        // because the cells and the GeoTIFF row hang off it.
+        type: "text",
+        label: "SRS Application Id",
+        prop: "srs_application_id",
+        placeholder: "str(50): <SRS Id>_spo or <SRS Id>_exc",
+        help: "Filled in from the SRS Id and the application; change it if you need another.",
         required: true,
         default: null,
         enableInEdit: false,
         showInGrid: true
       },
       {
-        type: "text",
-        label: "Application Id",
-        prop: "srs_application_id",
-        required: true,
-        default: null,
-        enableInEdit: true,
-        showInGrid: true
-      },
-      {
+        // AQR3 SRS_05: inline grid cells (SRI) or an external GeoTIFF (SRE).
         type: "lookup",
-        label: "Application",
-        prop_id: "srs_application",
-        prop: "srs_application",
-        lookup: "applications",
+        label: "Result Encoding",
+        prop_id: "result_encoding_id",
+        prop: "result_encoding",
+        lookup: "resultencodings",
         required: true,
-        default: null,
+        default: "inline",
         enableInEdit: true,
         showInGrid: true
       },
       {
+        // AQR3 SRI_05 / SRE_03.
         type: "lookup",
         label: "Spatial Resolution",
         prop_id: "spatial_resolution",
@@ -43,22 +68,10 @@ const pageOptions = (lookups) => {
         showInGrid: true
       },
       {
-        // AQR3 SRS_05 — inline grid cells vs an external GeoTIFF.
+        // AQR3 SRS_06: the model/OBE that defined the area. A sampling point reaches an
+        // SR through CAM_16 instead.
         type: "lookup",
-        label: "Result Encoding",
-        prop_id: "result_encoding_id",
-        prop: "result_encoding",
-        lookup: "resultencodings",
-        required: false,
-        default: null,
-        enableInEdit: true,
-        showInGrid: true
-      },
-      {
-        // AQR3 SRS_06 — the sampling point or model this area represents. No
-        // vocabulary, so the lookup unions both tables.
-        type: "lookup",
-        label: "Assessment Method",
+        label: "Representativeness Assessment Method",
         prop_id: "representativeness_assessment_method_id",
         prop: "representativeness_assessment_method_id",
         lookup: "assessmentmethods",
@@ -68,24 +81,21 @@ const pageOptions = (lookups) => {
         showInGrid: true
       },
       {
-        // AQR3 SRE_04 — only meaningful when Result Encoding is "external": the
-        // area is then reported as this GeoTIFF instead of as inline grid cells.
-        // The API creates or removes the srs_external row from the encoding.
+        // AQR3 SRE_04. Only for an external area, which it then is.
         type: "text",
-        label: "GeoTIFF (external)",
+        label: "GeoTIFF Attachment",
         prop: "geotiff_attachment",
         placeholder: "str: file name uploaded to Reportnet3, e.g. srs_NO0001.tif",
-        required: false,
+        encoding: "external",
+        required: true,
         default: null,
         enableInEdit: true,
         showInGrid: true
       },
       {
         // A computed COUNT, so it belongs in the grid and not in the form.
-        // Was "numeric", which Crud does not recognise — it happened to render
-        // nothing in edit mode and so looked correct.
         type: "gridOnly",
-        label: "Points",
+        label: "Cells",
         prop: "point_count",
         required: false,
         default: null,

@@ -175,7 +175,7 @@ def _to_wgs84(xs, ys):
 @jwt_required_with_management_claim()
 def get_lookups():
     with CursorFromPool() as cursor:
-        # eea_srapplication: spo_sr / exc_sr
+        # SRS_04 eea_srapplication: spo_sr / exc_sr
         cursor.execute("""
             SELECT COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value
             FROM eea_srapplication r
@@ -191,21 +191,21 @@ def get_lookups():
         """)
         spatialresolutions = cursor.fetchall()
 
-        # SRS_05 eea_resultencoding: inline / external / zone
+        # SRS_05: the guide's two encodings. The vocabulary also has `zone`, which
+        # SRS has no table for.
         cursor.execute("""
-            SELECT COALESCE(NULLIF(r.notation, ''), r.label) as label, r.id as value
+            SELECT r.label, r.id as value
             FROM eea_resultencoding r
-            ORDER BY LOWER(r.label)
-        """)
+            WHERE r.id IN %s
+            ORDER BY r.id DESC
+        """, (ENCODINGS,))
         resultencodings = cursor.fetchall()
 
-        # SRS_06 has no vocabulary: the guide cross-checks it against the
-        # SamplingPoint and Model tables, so offer both rather than free text.
+        # SRS_06: the model/OBE that defined the area, per the guide. A sampling point
+        # reaches an SR through CAM_16 instead.
         cursor.execute("""
-            SELECT id AS value, id || ' (sampling point)' AS label FROM sampling_points
-            UNION ALL
-            SELECT id AS value, id || ' (model)' AS label FROM models
-            ORDER BY label
+            SELECT id AS value, id || COALESCE(' - ' || assessment_method_name, '') AS label
+            FROM models ORDER BY id
         """)
         assessmentmethods = cursor.fetchall()
 
@@ -221,56 +221,99 @@ def get_all():
     with CursorFromPool() as cursor:
         cursor.execute("""
             SELECT
-                sr.id,
+                sr.srs_id,
                 sr.srs_application_id,
                 sr.srs_application,
                 sr.result_encoding_id,
                 COALESCE(NULLIF(re.notation, ''), re.label) AS result_encoding,
                 sr.representativeness_assessment_method_id,
+                COALESCE(ext.spatial_resolution, MIN(a.spatial_resolution)) AS spatial_resolution,
                 ext.geotiff_attachment,
                 sr.created_at,
                 COUNT(a.id) AS point_count
             FROM spatial_representativeness sr
             LEFT JOIN eea_resultencoding re ON sr.result_encoding_id = re.id
-            LEFT JOIN srs_external ext ON ext.spatial_representativeness_id = sr.id
-            LEFT JOIN srs_inline a ON a.spatial_representativeness_id = sr.id
-            GROUP BY sr.id, sr.srs_application_id, sr.srs_application, sr.result_encoding_id,
-                     re.notation, re.label, sr.representativeness_assessment_method_id,
-                     ext.geotiff_attachment, sr.created_at
-            ORDER BY LOWER(sr.id)
+            LEFT JOIN srs_external ext ON ext.srs_application_id = sr.srs_application_id
+            LEFT JOIN srs_inline a ON a.srs_application_id = sr.srs_application_id
+            GROUP BY sr.srs_application_id, re.notation, re.label,
+                     ext.spatial_resolution, ext.geotiff_attachment
+            ORDER BY LOWER(sr.srs_id), sr.srs_application DESC
         """)
         return jsonify(cursor.fetchall())
 
 
-def _sync_external(cursor, obj):
-    """Keep srs_external in step with the SR's result encoding.
+# SRS_04 and SRS_05 values, and the suffix a derived SRSApplicationId gets.
+APPLICATIONS = {'spo_sr': 'spo', 'exc_sr': 'exc'}
+ENCODINGS = ('inline', 'external')
+MAX_ID = 50
 
-    srs_external is strictly 1:1 with spatial_representativeness, and which of the
-    two representations applies is what result_encoding_id says. So an SR encoded
-    as `external` gets (or keeps) its row, and one switched back to inline loses
-    it — leaving a stale external row would make SRE export a GeoTIFF reference
+
+def _validated(cursor, obj):
+    """The checks the database cannot make, as messages that say what to do.
+
+    Returns the model with srs_application_id derived when it was left empty:
+    <SRSId>_spo or <SRSId>_exc, so an area's two applications pair up visibly.
+    """
+    if obj.srs_application not in APPLICATIONS:
+        raise BadRequest(f'SRS Application must be one of {", ".join(APPLICATIONS)} '
+                         f'(SRS_04), not {obj.srs_application!r}.')
+    if obj.result_encoding_id not in ENCODINGS:
+        raise BadRequest(f'Result Encoding must be inline or external (SRS_05), '
+                         f'not {obj.result_encoding_id!r}.')
+    if not obj.srs_application_id:
+        derived = f'{obj.srs_id}_{APPLICATIONS[obj.srs_application]}'
+        if len(derived) > MAX_ID:
+            raise BadRequest(f'SRS Application Id {derived!r} would be {len(derived)} '
+                             f'characters; AQR3 allows {MAX_ID}. Shorten the SRS Id or '
+                             f'give the Application Id yourself.')
+        obj = obj.model_copy(update={'srs_application_id': derived})
+
+    method = obj.representativeness_assessment_method_id
+    if method:
+        cursor.execute("SELECT 1 FROM models WHERE id = %s", (method,))
+        if not cursor.fetchone():
+            raise BadRequest(f'Representativeness Assessment Method {method!r} is not a '
+                             f'Model / OBE. SRS_06 names the model that defined the area; '
+                             f'a sampling point is linked to the area through CAM_16.')
+
+    if obj.result_encoding_id == 'external':
+        if not obj.geotiff_attachment:
+            raise BadRequest('An external area is reported as a GeoTIFF: give the GeoTIFF '
+                             'Attachment, the name of the file uploaded to Reportnet3 (SRE_04).')
+        if obj.points or obj.upload_token or obj.copy_cells_from:
+            raise BadRequest('An external area has no grid cells; its GeoTIFF is the area. '
+                             'Set Result Encoding to inline to upload cells.')
+    return obj
+
+
+def _sync_external(cursor, obj):
+    """Keep srs_external in step with the application's result encoding.
+
+    srs_external is strictly 1:1 with an application, and which of the two
+    representations applies is what result_encoding_id says. So an application
+    encoded as `external` gets (or keeps) its row, and one switched back to inline
+    loses it — leaving a stale external row would make SRE export a GeoTIFF reference
     for an area that is reported as grid cells.
     """
-    if (obj.result_encoding_id or '').lower() == 'external':
+    if obj.result_encoding_id == 'external':
         try:
             validate_reference('SRE_04', obj.geotiff_attachment)
         except AttachmentReferenceError as e:
             raise BadRequest(str(e))
         cursor.execute("""
-            INSERT INTO srs_external (spatial_representativeness_id, spatial_resolution,
-                                      geotiff_attachment)
-            VALUES (%(id)s, %(spatial_resolution)s, %(geotiff_attachment)s)
-            ON CONFLICT (spatial_representativeness_id) DO UPDATE
+            INSERT INTO srs_external (srs_application_id, spatial_resolution, geotiff_attachment)
+            VALUES (%(key)s, %(spatial_resolution)s, %(geotiff_attachment)s)
+            ON CONFLICT (srs_application_id) DO UPDATE
                SET spatial_resolution = excluded.spatial_resolution,
                    geotiff_attachment = excluded.geotiff_attachment
-        """, {'id': obj.id, 'spatial_resolution': obj.spatial_resolution,
+        """, {'key': obj.srs_application_id, 'spatial_resolution': obj.spatial_resolution,
               'geotiff_attachment': obj.geotiff_attachment})
     else:
-        cursor.execute('DELETE FROM srs_external WHERE spatial_representativeness_id = %s',
-                       (obj.id,))
+        cursor.execute('DELETE FROM srs_external WHERE srs_application_id = %s',
+                       (obj.srs_application_id,))
 
 
-def _insert_points(cursor, sr_id, points_4326, spatial_resolution):
+def _insert_points(cursor, key, points_4326, spatial_resolution):
     """Store points sent as JSON (the API's original shape) as AQR3 SRI grid cells.
 
     Reprojects to EPSG:3035 *and snaps to the resolution* — a cell reference that
@@ -279,7 +322,7 @@ def _insert_points(cursor, sr_id, points_4326, spatial_resolution):
     several source points onto one cell, so the returned count is cells written,
     not points supplied. The form no longer sends points; it sends an upload token.
     """
-    cursor.execute("DELETE FROM srs_inline WHERE spatial_representativeness_id = %s", (sr_id,))
+    cursor.execute("DELETE FROM srs_inline WHERE srs_application_id = %s", (key,))
     if not points_4326:
         return 0
 
@@ -287,14 +330,14 @@ def _insert_points(cursor, sr_id, points_4326, spatial_resolution):
                                    spatial_resolution, source_srid=4326)
     resolution = validate_resolution(spatial_resolution)
     cursor.executemany("""
-        INSERT INTO srs_inline (spatial_representativeness_id, x, y, spatial_resolution)
+        INSERT INTO srs_inline (srs_application_id, x, y, spatial_resolution)
         VALUES (%s, %s, %s, %s)
-    """, [(sr_id, x, y, resolution) for x, y in cells])
+    """, [(key, x, y, resolution) for x, y in cells])
     return len(cells)
 
 
-def _insert_upload(cursor, sr_id, token, res):
-    """Replace an SR's cells with every point of a parsed upload, snapped in SQL.
+def _insert_upload(cursor, key, token, res):
+    """Replace an application's cells with every point of a parsed upload, snapped in SQL.
 
     The same floor as core.reporting.aqr3.grid.snap, on points parse already put in
     EPSG:3035, so a file of any size is saved whole without passing through Python.
@@ -310,31 +353,30 @@ def _insert_upload(cursor, sr_id, token, res):
             f'{upload["filename"]} was filled with {upload["fill_resolution"]} m cells, but '
             f'the Spatial Resolution is {res} m. Upload the file again.')
 
-    cursor.execute("DELETE FROM srs_inline WHERE spatial_representativeness_id = %s", (sr_id,))
+    cursor.execute("DELETE FROM srs_inline WHERE srs_application_id = %s", (key,))
     cursor.execute("""
-        INSERT INTO srs_inline (spatial_representativeness_id, x, y, spatial_resolution)
-        SELECT DISTINCT %(sr)s,
+        INSERT INTO srs_inline (srs_application_id, x, y, spatial_resolution)
+        SELECT DISTINCT %(key)s,
                (floor(x / %(res)s) * %(res)s)::bigint,
                (floor(y / %(res)s) * %(res)s)::bigint,
                %(res)s
         FROM srs_upload_points WHERE token = %(token)s
-    """, {"sr": sr_id, "res": res, "token": token})
+    """, {"key": key, "res": res, "token": token})
     count = cursor.rowcount
     cursor.execute("DELETE FROM srs_uploads WHERE token = %s", (token,))
     return count
 
 
-def _resnap_cells(cursor, source_id, target_id, res):
-    """Give `target_id` the cells of `source_id`, at resolution `res`.
+def _resnap_cells(cursor, source_key, target_key, res):
+    """Give application `target_key` the cells of `source_key`, at resolution `res`.
 
-    For Duplicate (a new record taking another's area) and for an edit that changes
-    only the resolution. Coarser works -- each cell's centre lands in exactly one
-    bigger cell. Finer cannot be derived from coarse cells, so the file is needed.
+    For Duplicate (a new application taking another's area) and for an edit that
+    changes only the resolution. Coarser works -- each cell's centre lands in exactly
+    one bigger cell. Finer cannot be derived from coarse cells, so the file is needed.
     """
     cursor.execute("""
-        SELECT MAX(spatial_resolution) AS res FROM srs_inline
-        WHERE spatial_representativeness_id = %s
-    """, (source_id,))
+        SELECT MAX(spatial_resolution) AS res FROM srs_inline WHERE srs_application_id = %s
+    """, (source_key,))
     current = cursor.fetchone()["res"]
     if current is None:
         return 0
@@ -343,72 +385,98 @@ def _resnap_cells(cursor, source_id, target_id, res):
             f'The area is stored as {current} m cells; {res} m cells cannot be made from '
             f'them. Upload the spatial file again to use a finer resolution.')
     # Every reference to srs_inline in one statement sees the same snapshot, so
-    # source and target may be the same record.
+    # source and target may be the same application.
     cursor.execute("""
         WITH source AS (
             SELECT x, y, spatial_resolution AS r FROM srs_inline
-            WHERE spatial_representativeness_id = %(source)s
+            WHERE srs_application_id = %(source)s
         ), cleared AS (
-            DELETE FROM srs_inline WHERE spatial_representativeness_id = %(target)s
+            DELETE FROM srs_inline WHERE srs_application_id = %(target)s
         )
-        INSERT INTO srs_inline (spatial_representativeness_id, x, y, spatial_resolution)
+        INSERT INTO srs_inline (srs_application_id, x, y, spatial_resolution)
         SELECT DISTINCT %(target)s,
                (floor((x + r / 2.0) / %(res)s) * %(res)s)::bigint,
                (floor((y + r / 2.0) / %(res)s) * %(res)s)::bigint,
                %(res)s
         FROM source
-    """, {"source": source_id, "target": target_id, "res": res})
+    """, {"source": source_key, "target": target_key, "res": res})
     return cursor.rowcount
 
 
 def _store_area(cursor, obj, editing=False):
-    """Write the record's grid cells from whichever source the request names.
+    """Write the application's grid cells from whichever source the request names.
 
-    In order: a parsed upload (the form), points as JSON (the original API shape),
-    another record's cells (Duplicate). An edit naming none of them keeps its cells,
-    re-snapped if only the resolution changed. Returns the record's cell count.
+    External applications have none: the GeoTIFF is the area. Otherwise, in order: a
+    parsed upload (the form), points as JSON (the original API shape), another
+    application's cells (Duplicate). An edit naming none of them keeps its cells,
+    re-snapped if only the resolution changed. Returns the cell count.
     """
+    key = obj.srs_application_id
+
     def resolution():
         try:
             return validate_resolution(obj.spatial_resolution)
         except GridError as e:
             raise BadRequest(str(e))
 
+    if obj.result_encoding_id == 'external':
+        cursor.execute("DELETE FROM srs_inline WHERE srs_application_id = %s", (key,))
+        return 0
     if obj.upload_token:
-        return _insert_upload(cursor, obj.id, obj.upload_token, resolution())
+        return _insert_upload(cursor, key, obj.upload_token, resolution())
     if obj.points:
-        return _insert_points(cursor, obj.id, obj.points, resolution())
+        return _insert_points(cursor, key, obj.points, resolution())
     if obj.copy_cells_from:
-        return _resnap_cells(cursor, obj.copy_cells_from, obj.id, resolution())
+        return _resnap_cells(cursor, obj.copy_cells_from, key, resolution())
     if editing and obj.spatial_resolution:
         cursor.execute("""
             SELECT COUNT(*) AS n, MIN(spatial_resolution) AS lo, MAX(spatial_resolution) AS hi
-            FROM srs_inline WHERE spatial_representativeness_id = %s
-        """, (obj.id,))
+            FROM srs_inline WHERE srs_application_id = %s
+        """, (key,))
         stored = cursor.fetchone()
         res = resolution()
         if stored["n"] and (stored["lo"] != res or stored["hi"] != res):
-            return _resnap_cells(cursor, obj.id, obj.id, res)
+            return _resnap_cells(cursor, key, key, res)
         return stored["n"]
     return 0
 
 
+def _row_values(obj):
+    return {"srs_id": obj.srs_id, "srs_application_id": obj.srs_application_id,
+            "srs_application": obj.srs_application,
+            "result_encoding_id": obj.result_encoding_id,
+            "representativeness_assessment_method_id":
+                obj.representativeness_assessment_method_id}
+
+
+def _duplicate_message(e, obj):
+    """A unique violation as something to act on: which key, and what to change."""
+    if 'srs_id_application' in (e.diag.constraint_name or ''):
+        return (f'SRS Id {obj.srs_id!r} already has a {obj.srs_application} application. '
+                f'An area has at most one of each (SRS_04).')
+    return (f'SRS Application Id {obj.srs_application_id!r} is already used. It is the key '
+            f'of the grid cells (SRI) and the GeoTIFF (SRE), so it must be unique.')
+
+
 def _save(cursor, obj):
-    """Insert one SR with its area. The form's insert and the CSV import both write
-    through here; an import carries no area, so it is added in the form."""
-    cursor.execute("""
-        INSERT INTO spatial_representativeness
-            (id, srs_application_id, srs_application, result_encoding_id,
-             representativeness_assessment_method_id)
-        VALUES (%(id)s, %(srs_application_id)s, %(srs_application)s, %(result_encoding_id)s,
-                %(representativeness_assessment_method_id)s)
-    """, {"id": obj.id, "srs_application_id": obj.srs_application_id,
-          "srs_application": obj.srs_application,
-          "result_encoding_id": obj.result_encoding_id,
-          "representativeness_assessment_method_id":
-              obj.representativeness_assessment_method_id})
+    """Insert one SR application with its area. The form's insert and the CSV import
+    both write through here; an import carries no area, so it is added in the form."""
+    from psycopg2.errors import UniqueViolation
+    obj = _validated(cursor, obj)
+    cursor.execute("SAVEPOINT sr_insert")
+    try:
+        cursor.execute("""
+            INSERT INTO spatial_representativeness
+                (srs_id, srs_application_id, srs_application, result_encoding_id,
+                 representativeness_assessment_method_id)
+            VALUES (%(srs_id)s, %(srs_application_id)s, %(srs_application)s,
+                    %(result_encoding_id)s, %(representativeness_assessment_method_id)s)
+        """, _row_values(obj))
+    except UniqueViolation as e:
+        cursor.execute("ROLLBACK TO SAVEPOINT sr_insert")
+        raise BadRequest(_duplicate_message(e, obj))
     _sync_external(cursor, obj)
-    return _store_area(cursor, obj)
+    return obj, _store_area(cursor, obj)
 
 
 @sr_endpoint.route("/api/management/spatialrepresentativeness/insert", methods=["POST"])
@@ -416,21 +484,22 @@ def _save(cursor, obj):
 def insert():
     obj = SpatialRepresentativenessModel(**request.json)
     with CursorFromPool() as cursor:
-        count = _save(cursor, obj)
-    return {"message": "Inserted", "id": obj.id, "point_count": count}, 201
+        obj, count = _save(cursor, obj)
+    return {"message": "Inserted", "srs_application_id": obj.srs_application_id,
+            "point_count": count}, 201
 
 
 @sr_endpoint.route("/api/management/spatialrepresentativeness/import", methods=["POST"])
 @jwt_required_with_management_claim()
 def import_csv():
-    """One SR per CSV row, without its area: the grid cells come from a spatial file
-    in the form, which a CSV row cannot carry."""
+    """One SR application per CSV row, without its area: the grid cells come from a
+    spatial file in the form, which a CSV row cannot carry."""
     if "file" not in request.files:
         raise BadRequest("File form does not contain the key 'file'")
     rows = read_csv_rows(request.files["file"], SrImportModel)
     with CursorFromPool() as cursor:
         count = import_rows(cursor, rows, SrImportModel, _save)
-    return jsonify({"msg": f"{count} spatial representativeness record(s) imported"})
+    return jsonify({"msg": f"{count} spatial representativeness application(s) imported"})
 
 
 @sr_endpoint.route("/api/management/spatialrepresentativeness/export", methods=["GET"])
@@ -440,15 +509,15 @@ def export_csv():
     not in it; spatial_resolution is the external GeoTIFF's, or else the grid's."""
     with CursorFromPool() as cursor:
         cursor.execute("""
-            SELECT sr.id, sr.srs_application_id, sr.srs_application,
+            SELECT sr.srs_id, sr.srs_application_id, sr.srs_application,
                    sr.result_encoding_id, sr.representativeness_assessment_method_id,
                    COALESCE(ext.spatial_resolution,
                             (SELECT MIN(a.spatial_resolution) FROM srs_inline a
-                              WHERE a.spatial_representativeness_id = sr.id)) AS spatial_resolution,
+                              WHERE a.srs_application_id = sr.srs_application_id)) AS spatial_resolution,
                    ext.geotiff_attachment
             FROM spatial_representativeness sr
-            LEFT JOIN srs_external ext ON ext.spatial_representativeness_id = sr.id
-            ORDER BY LOWER(sr.id)
+            LEFT JOIN srs_external ext ON ext.srs_application_id = sr.srs_application_id
+            ORDER BY LOWER(sr.srs_id), sr.srs_application DESC
         """)
         return csv_response(cursor.fetchall(), SrImportModel,
                             "spatial_representativeness.csv")
@@ -457,21 +526,28 @@ def export_csv():
 @sr_endpoint.route("/api/management/spatialrepresentativeness/update", methods=["POST"])
 @jwt_required_with_management_claim()
 def update():
+    """Update one application, found by its SRS Application Id -- the key, which the
+    form does not let change, since the cells and the GeoTIFF row hang off it."""
+    from psycopg2.errors import UniqueViolation
     obj = SpatialRepresentativenessModel(**request.json)
+    if not obj.srs_application_id:
+        raise BadRequest('srs_application_id is required: it names the application to update.')
     with CursorFromPool() as cursor:
-        cursor.execute("""
-            UPDATE spatial_representativeness
-            SET srs_application_id = %(srs_application_id)s,
-                srs_application = %(srs_application)s,
-                result_encoding_id = %(result_encoding_id)s,
-                representativeness_assessment_method_id =
-                    %(representativeness_assessment_method_id)s
-            WHERE id = %(id)s
-        """, {"id": obj.id, "srs_application_id": obj.srs_application_id,
-              "srs_application": obj.srs_application,
-              "result_encoding_id": obj.result_encoding_id,
-              "representativeness_assessment_method_id":
-                  obj.representativeness_assessment_method_id})
+        obj = _validated(cursor, obj)
+        cursor.execute("SAVEPOINT sr_update")
+        try:
+            cursor.execute("""
+                UPDATE spatial_representativeness
+                SET srs_id = %(srs_id)s,
+                    srs_application = %(srs_application)s,
+                    result_encoding_id = %(result_encoding_id)s,
+                    representativeness_assessment_method_id =
+                        %(representativeness_assessment_method_id)s
+                WHERE srs_application_id = %(srs_application_id)s
+            """, _row_values(obj))
+        except UniqueViolation as e:
+            cursor.execute("ROLLBACK TO SAVEPOINT sr_update")
+            raise BadRequest(_duplicate_message(e, obj))
         if cursor.rowcount == 0:
             return {"error": "Not found"}, 404
         _sync_external(cursor, obj)
@@ -482,20 +558,44 @@ def update():
 @sr_endpoint.route("/api/management/spatialrepresentativeness/delete", methods=["POST"])
 @jwt_required_with_management_claim()
 def delete():
+    """Delete applications by SRS Application Id.
+
+    CAM_16 links to the area (SRSId), with no foreign key since an SRSId is shared by
+    its applications. So deleting an area's last application while a compliance row
+    still names it is refused, as the foreign key used to refuse it.
+    """
     dm = DeleteModel(**request.json)
-    ids = tuple(dm.ids)
-    placeholders = ",".join(["%s"] * len(ids))
+    keys = tuple(dm.ids)
+    if not keys:
+        raise BadRequest('Nothing to delete.')
     with CursorFromPool() as cursor:
-        cursor.execute(f"DELETE FROM spatial_representativeness WHERE id IN ({placeholders})", ids)
+        cursor.execute("""
+            SELECT gone.srs_id, string_agg(DISTINCT c.attainment_id, ', ') AS attainments
+            FROM (SELECT DISTINCT srs_id FROM spatial_representativeness
+                  WHERE srs_application_id IN %(keys)s) gone
+            JOIN compliance_assessment_method c ON c.srs_id = gone.srs_id
+            WHERE NOT EXISTS (SELECT 1 FROM spatial_representativeness keep
+                              WHERE keep.srs_id = gone.srs_id
+                                AND keep.srs_application_id NOT IN %(keys)s)
+            GROUP BY gone.srs_id
+        """, {"keys": keys})
+        used = cursor.fetchall()
+        if used:
+            raise BadRequest('; '.join(
+                f'SRS Id {u["srs_id"]} is linked from compliance (attainments: '
+                f'{u["attainments"] or "none named"})' for u in used)
+                + '. Remove the SRS Id there first.')
+        cursor.execute("DELETE FROM spatial_representativeness WHERE srs_application_id IN %s",
+                       (keys,))
         if cursor.rowcount == 0:
             return {"error": "Not found"}, 404
     return {"message": f"Deleted {cursor.rowcount} record(s)"}, 200
 
 
-@sr_endpoint.route("/api/management/spatialrepresentativeness/<sr_id>", methods=["GET"])
+@sr_endpoint.route("/api/management/spatialrepresentativeness/<key>", methods=["GET"])
 @jwt_required_with_management_claim()
-def get_by_id(sr_id):
-    """The record, its cell count, and up to PREVIEW_POINTS of its cells to draw.
+def get_by_id(key):
+    """One application, its cell count, and up to PREVIEW_POINTS of its cells to draw.
 
     Only a sample: an area can have millions of cells, and the form no longer sends
     them back -- an edit keeps the stored cells, a Duplicate copies them server-side.
@@ -503,17 +603,17 @@ def get_by_id(sr_id):
     import numpy as np
     with CursorFromPool() as cursor:
         cursor.execute("""
-            SELECT sr.id, sr.srs_application_id, sr.srs_application, sr.created_at,
+            SELECT sr.srs_id, sr.srs_application_id, sr.srs_application, sr.created_at,
                    sr.result_encoding_id, sr.representativeness_assessment_method_id,
                    ext.geotiff_attachment, ext.spatial_resolution AS external_resolution,
                    (SELECT COUNT(*) FROM srs_inline a
-                     WHERE a.spatial_representativeness_id = sr.id) AS point_count,
+                     WHERE a.srs_application_id = sr.srs_application_id) AS point_count,
                    (SELECT MIN(a.spatial_resolution) FROM srs_inline a
-                     WHERE a.spatial_representativeness_id = sr.id) AS cell_resolution
+                     WHERE a.srs_application_id = sr.srs_application_id) AS cell_resolution
             FROM spatial_representativeness sr
-            LEFT JOIN srs_external ext ON ext.spatial_representativeness_id = sr.id
-            WHERE sr.id = %s
-        """, (sr_id,))
+            LEFT JOIN srs_external ext ON ext.srs_application_id = sr.srs_application_id
+            WHERE sr.srs_application_id = %s
+        """, (key,))
         record = cursor.fetchone()
         if not record:
             return {"error": "Not found"}, 404
@@ -523,9 +623,9 @@ def get_by_id(sr_id):
         cursor.execute("""
             SELECT x, y, spatial_resolution FROM (
                 SELECT x, y, spatial_resolution, row_number() OVER (ORDER BY id) AS n
-                FROM srs_inline WHERE spatial_representativeness_id = %s
+                FROM srs_inline WHERE srs_application_id = %s
             ) cells WHERE (n - 1) %% %s = 0
-        """, (sr_id, step))
+        """, (key, step))
         cells = cursor.fetchall()
 
     # Cell centres, not the stored lower-left corners: a corner sits on four cells.
@@ -536,7 +636,7 @@ def get_by_id(sr_id):
                            np.array([c["y"] for c in cells], dtype=float) + half)
 
     return jsonify({
-        "id":                 record["id"],
+        "srs_id":             record["srs_id"],
         "srs_application_id": record["srs_application_id"],
         "srs_application":    record["srs_application"],
         "result_encoding_id": record["result_encoding_id"],

@@ -155,7 +155,9 @@ const saveDelete = async (o) => {
     // `where id in (...)` cannot address a composite key, so these delete one row.
     for (const row of selected.value) await props.service.delete(keyOf(row));
   } else {
-    await props.service.delete({ ids: selected.value.map((p) => p.id) });
+    // The one key column, which is `id` unless the page declares another.
+    const [key] = cmp_keyProps.value;
+    await props.service.delete({ ids: selected.value.map((p) => p[key]) });
   }
   await loadData();
   Eventy.showHideMessage(`${props.name} deleted`, "success", 5000);

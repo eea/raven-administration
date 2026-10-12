@@ -766,7 +766,7 @@ SRS = TableSpec(
     params=('country_code',),
     sql="""
         SELECT %(country_code)s AS country_code,
-               sr.id            AS srs_id,
+               sr.srs_id,
                sr.srs_application_id,
                sa.notation      AS srs_application,
                re.notation      AS result_encoding,
@@ -774,7 +774,7 @@ SRS = TableSpec(
         FROM spatial_representativeness sr
         LEFT JOIN eea_srapplication  sa ON sr.srs_application    = sa.id
         LEFT JOIN eea_resultencoding re ON sr.result_encoding_id = re.id
-        ORDER BY sr.id, sr.srs_application_id
+        ORDER BY sr.srs_id, sr.srs_application_id
     """,
     columns=(
         Column('CountryCode', 'country_code'),
@@ -800,7 +800,7 @@ SRI = TableSpec(
                i.y,
                i.spatial_resolution
         FROM srs_inline i
-        JOIN spatial_representativeness sr ON i.spatial_representativeness_id = sr.id
+        JOIN spatial_representativeness sr ON i.srs_application_id = sr.srs_application_id
         ORDER BY sr.srs_application_id, i.x, i.y
     """,
     columns=(
@@ -825,7 +825,7 @@ SRE = TableSpec(
                e.spatial_resolution,
                e.geotiff_attachment
         FROM srs_external e
-        JOIN spatial_representativeness sr ON e.spatial_representativeness_id = sr.id
+        JOIN spatial_representativeness sr ON e.srs_application_id = sr.srs_application_id
         ORDER BY sr.srs_application_id
     """,
     columns=(

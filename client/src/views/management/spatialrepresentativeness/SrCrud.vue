@@ -34,6 +34,12 @@ const lastFile      = ref(null);
 // The parsed file, staged on the server with every point. The save sends this, not
 // the preview, so an area is saved whole however large.
 const uploadToken   = ref(null);
+// Whether the user typed the SRS Application Id. Until then it follows the SRS Id and
+// the application, as <SRSId>_spo / <SRSId>_exc -- what the API derives too.
+const appIdTouched  = ref(false);
+const SUFFIX = { spo_sr: "spo", exc_sr: "exc" };
+
+const isExternal = computed(() => obj.value.result_encoding_id === "external");
 
 // GeoJSON FeatureCollection for Leaflet — limit to MAX_PREVIEW points
 const previewGeoJson = computed(() => {
@@ -50,8 +56,9 @@ const previewGeoJson = computed(() => {
 
 watch(() => props.show, async () => {
   if (props.duplicateSource) {
-    // Duplicate: pre-fill everything from source except id
-    const { id, point_count, created_at, ...rest } = props.duplicateSource;
+    // Duplicate: everything but the key, which is derived again -- usually for the
+    // same area's other application.
+    const { srs_application_id, point_count, created_at, ...rest } = props.duplicateSource;
     obj.value = { ...rest };
   } else if (!props.selectedValue) {
     obj.value = props.options.properties.reduce((a, v) => ({ ...a, [v.prop]: v.default }), {});
@@ -64,10 +71,12 @@ watch(() => props.show, async () => {
   truncated.value     = false;
   lastFile.value      = null;
   uploadToken.value   = null;
+  appIdTouched.value  = props.isEdit;
   if (fileInputRef.value) fileInputRef.value.value = "";
 
-  // Load existing record (with points) in edit mode or duplicate
-  const loadId = props.isEdit ? props.selectedValue?.id : props.duplicateSource?.id;
+  // Load the existing application (with a sample of its cells) to edit or duplicate
+  const loadId = props.isEdit ? props.selectedValue?.srs_application_id
+                              : props.duplicateSource?.srs_application_id;
   if (props.show && loadId) {
     try {
       const record = await Service.getById(loadId);
@@ -150,30 +159,46 @@ watch(() => obj.value.spatial_resolution, (now, before) => {
   if (lastFile.value && now && now !== before && !parsing.value) parse(lastFile.value);
 });
 
+watch(() => [obj.value.srs_id, obj.value.srs_application], ([srsId, application]) => {
+  if (appIdTouched.value || !srsId || !SUFFIX[application]) return;
+  obj.value.srs_application_id = `${srsId}_${SUFFIX[application]}`;
+});
+
+const onFieldInput = (p) => {
+  if (p.prop === "srs_application_id") appIdTouched.value = true;
+};
+
 const title = computed(() => props.isEdit ? "Edit Spatial Representativeness" : "Add Spatial Representativeness");
 
-const requiredProps = computed(() =>
-  props.options?.properties?.filter((p) => p.required && p.type !== "gridOnly" && p.type !== "numeric") ?? []
+// A property may apply only to one encoding: the GeoTIFF Attachment to external areas.
+const applies = (p) => !p.encoding || p.encoding === (obj.value.result_encoding_id || "inline");
+
+const formProps = computed(() =>
+  props.options?.properties?.filter((p) => p.type !== "gridOnly" && p.type !== "numeric" && applies(p)) ?? []
 );
-const optionalProps = computed(() =>
-  props.options?.properties?.filter((p) => !p.required && p.type !== "gridOnly" && p.type !== "numeric") ?? []
-);
+const requiredProps = computed(() => formProps.value.filter((p) => p.required));
+const optionalProps = computed(() => formProps.value.filter((p) => !p.required));
 
 const isFormValid = computed(() => {
   const metaValid = requiredProps.value.every((p) => {
     const v = obj.value[p.prop_id ?? p.prop];
     return v !== null && v !== undefined && v !== "";
   });
-  const pointsValid = props.isEdit || previewPoints.value.length > 0;
-  return metaValid && pointsValid && !parsing.value;
+  // An inline area needs cells: a new file, the ones it has (edit), or the source's
+  // (Duplicate). An external one is its GeoTIFF, which is a required field above.
+  const areaValid = isExternal.value || props.isEdit || previewPoints.value.length > 0;
+  return metaValid && areaValid && !parsing.value;
 });
 
 // The area travels by reference: a new file by its upload token, a Duplicate by the
-// record it copies. With neither, an edit keeps its stored cells.
+// application it copies. With neither, an edit keeps its stored cells. An external
+// area has no cells, so it sends neither.
 const handleSave = () => {
   const { points, ...values } = obj.value;
-  if (uploadToken.value) values.upload_token = uploadToken.value;
-  else if (props.duplicateSource) values.copy_cells_from = props.duplicateSource.id;
+  if (!isExternal.value) {
+    if (uploadToken.value) values.upload_token = uploadToken.value;
+    else if (props.duplicateSource) values.copy_cells_from = props.duplicateSource.srs_application_id;
+  }
   emit("save", values);
 };
 
@@ -194,10 +219,12 @@ const pointToLayer = (_, latlng) => {
         <div v-for="p in requiredProps" :key="p.prop" class="mb-2">
           <div class="font-bold">{{ p.label }}</div>
           <input v-if="p.type === 'text'" type="text" class="input w-full"
-            v-model="obj[p.prop]" :disabled="isEdit && !p.enableInEdit" />
+            v-model="obj[p.prop]" :disabled="isEdit && !p.enableInEdit"
+            :placeholder="p.placeholder" @input="onFieldInput(p)" />
           <select v-else-if="p.type === 'lookup'" class="select w-full" v-model="obj[p.prop_id]">
             <option v-for="opt in options.lookups[p.lookup]" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
+          <div v-if="p.help" class="text-xs text-nord3 mt-0.5">{{ p.help }}</div>
         </div>
         <div v-for="p in optionalProps" :key="p.prop" class="mb-2">
           <div class="font-bold">{{ p.label }} <span class="text-nord3 font-normal text-xs">(optional)</span></div>
@@ -210,10 +237,15 @@ const pointToLayer = (_, latlng) => {
         </div>
       </div>
 
-      <!-- Points section -->
-      <div class="border-t border-nord4 pt-3">
+      <!-- Area: inline grid cells. An external area is its GeoTIFF Attachment instead. -->
+      <div v-if="isExternal" class="border-t border-nord4 pt-3 text-xs text-nord3">
+        An external area is reported as the GeoTIFF named above (AQR3 SRE), which you upload
+        to Reportnet3 yourself. It has no grid cells here; choose Result Encoding "inline"
+        to upload the area as cells instead.
+      </div>
+      <div v-else class="border-t border-nord4 pt-3">
         <div class="font-bold text-base mb-3">
-          Area points
+          Area (grid cells)
           <span v-if="isEdit" class="text-nord3 font-normal text-xs">(upload new file to replace)</span>
           <span v-else class="text-nord11 font-normal text-xs">*</span>
         </div>

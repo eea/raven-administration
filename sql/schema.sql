@@ -1236,55 +1236,63 @@ comment on column assessment_regimes.pollutant_id is 'FK to eea_pollutants.id (n
 -- install. They belong in the core schema.
 -- ---------------------------------------------------------------------------
 
+-- One row per SRS application (SRS_03), the key the cells (SRI) and the GeoTIFF
+-- (SRE) belong to. srs_id (SRS_02) names the area and is shared by up to one row
+-- per application; CAM_16 links to it. Migration 029 turned the table round from
+-- the old shape, keyed on the SRSId, which allowed one application per area.
 create table if not exists spatial_representativeness
 (
-    id                                      varchar(255) not null primary key,
-    srs_application_id                      varchar(255),
+    srs_application_id                      varchar(50)  not null primary key,
     srs_application                         varchar(100),
     representativeness_assessment_method_id varchar(255),
     result_encoding_id                      varchar(100)
         references eea_resultencoding
             on update cascade,
-    created_at                              timestamp default CURRENT_TIMESTAMP
+    created_at                              timestamp default CURRENT_TIMESTAMP,
+    srs_id                                  varchar(50)  not null,
+    constraint spatial_representativeness_srs_id_application_key
+        unique (srs_id, srs_application)
 );
 
-comment on table spatial_representativeness is 'AQR3 SRS. Links an SR area (SPO representativeness or exceedance extent) to the compliance assessment method.';
-comment on column spatial_representativeness.id is 'AQR3 SRS_02 SRSId';
-comment on column spatial_representativeness.srs_application_id is 'AQR3 SRS_03 SRSApplicationId';
-comment on column spatial_representativeness.srs_application is 'AQR3 SRS_04 SRSApplication -> eea_srapplication';
-comment on column spatial_representativeness.result_encoding_id is 'AQR3 SRS_05 ResultEncoding -> eea_resultencoding';
-comment on column spatial_representativeness.representativeness_assessment_method_id is 'AQR3 SRS_06';
+comment on table spatial_representativeness is 'AQR3 SRS SpatialRepresentativeness. One row per SRS application: a use (SPO representativeness or exceedance extent) of an area, which CAM_16 links to by its SRSId.';
+comment on column spatial_representativeness.srs_id is 'AQR3 SRS_02 SRSId. Names the area; up to one row per SRS_04 application shares it. CAM_16 points here.';
+comment on column spatial_representativeness.srs_application_id is 'AQR3 SRS_03 SRSApplicationId. The key: SRI and SRE rows belong to it.';
+comment on column spatial_representativeness.srs_application is 'AQR3 SRS_04 SRSApplication -> eea_srapplication (spo_sr | exc_sr)';
+comment on column spatial_representativeness.result_encoding_id is 'AQR3 SRS_05 ResultEncoding -> eea_resultencoding: inline (SRI cells) or external (an SRE GeoTIFF)';
+comment on column spatial_representativeness.representativeness_assessment_method_id is 'AQR3 SRS_06 RepresentativenessAssessmentMethodId. The model/OBE that defined the area -> models.id, checked by the API.';
 
 create table if not exists srs_inline
 (
-    id                            serial primary key,
-    spatial_representativeness_id varchar(255)
-        references spatial_representativeness
+    id                 serial primary key,
+    srs_application_id varchar(50)
+        constraint srs_inline_srs_application_id_fkey references spatial_representativeness
             on update cascade on delete cascade,
-    x                             bigint,
-    y                             bigint,
-    spatial_resolution            integer
+    x                  bigint,
+    y                  bigint,
+    spatial_resolution integer
 );
 
-comment on table srs_inline is 'AQR3 SRI. Grid cells of an SR area.';
+comment on table srs_inline is 'AQR3 SRI. Grid cells of an SR application''s area.';
+comment on column srs_inline.srs_application_id is 'AQR3 SRI_02 SRSApplicationId';
 comment on column srs_inline.x is 'AQR3 SRI_03. EPSG:3035 easting, snapped to spatial_resolution.';
 comment on column srs_inline.y is 'AQR3 SRI_04. EPSG:3035 northing, snapped to spatial_resolution.';
 comment on column srs_inline.spatial_resolution is 'AQR3 SRI_05 SpatialResolution in metres (10 | 100 | 1000 | 10000)';
 
 create index if not exists idx_srs_inline_sr
-    on srs_inline (spatial_representativeness_id);
+    on srs_inline (srs_application_id);
 
 create table if not exists srs_external
 (
-    spatial_representativeness_id varchar(255) not null
-        references spatial_representativeness
+    srs_application_id varchar(50) not null
+        constraint srs_external_srs_application_id_fkey references spatial_representativeness
             on update cascade on delete cascade,
-    spatial_resolution            integer,
-    geotiff_attachment            varchar(100),
-    primary key (spatial_representativeness_id)
+    spatial_resolution integer,
+    geotiff_attachment varchar(100),
+    primary key (srs_application_id)
 );
 
 comment on table srs_external is 'AQR3 SRE. SR area supplied as an attached GEOTIFF instead of inline grid cells.';
+comment on column srs_external.srs_application_id is 'AQR3 SRE_02 SRSApplicationId';
 comment on column srs_external.geotiff_attachment is 'AQR3 SRE_04 GeoTiffAttachment. The filename of the GeoTIFF uploaded to Reportnet3; varchar(100) per the guide.';
 
 create table if not exists srs_uploads
@@ -1725,9 +1733,7 @@ create table if not exists compliance_assessment_method
     attainment_id               varchar(100),
     attainment_index            integer default 1 not null
         constraint cam_attainment_index_range check (attainment_index between 1 and 99),
-    srs_id                      varchar(255)
-        constraint cam_srs_id_fkey references spatial_representativeness
-            on update cascade,
+    srs_id                      varchar(255),
     preliminary_reason_id       varchar(100)
         references eea_exceedancereason
             on update cascade,
@@ -1740,7 +1746,7 @@ comment on table compliance_assessment_method is 'AQR3 CAM. Persisted yearly com
 comment on column compliance_assessment_method.assessment_method_id is 'AQR3 CAM_05. Either a sampling_points.id (measurement) or a models.id (model/OBE) — deliberately not a FK, since it spans both.';
 comment on column compliance_assessment_method.attainment_id is 'AQR3 CAM_15 AttainmentId. Mandatory format: ATT_<ZoneId>_<PollutantId>_<ObjectiveType>_<ProtectionTarget>_<ReportingMetric>_<ReportingYear>_<idx>. Derived from this row''s assessment_regime_id, which carries the same five components: one attainment per regime per reporting year, shared by every assessment method assessing it, with attainment_index as the trailing <idx>.';
 comment on column compliance_assessment_method.attainment_index is 'AQR3 CAM_15 ordering index (1-99). The operator''s, never restated by a recalculation: the guide gives one attainment per zone/assessment regime unless an exceedance covers only part of the zone, or different exceedances have different causes. Raise it to split a regime into more than one compliance situation.';
-comment on column compliance_assessment_method.srs_id is 'AQR3 CAM_16 SRSId. Entered, not derived — SRS_02 names a spatial area an operator uploads and SRS_06 points from that area at the model which assessed it, so nothing here can infer the link. Was set to the assessment method id until 4.502.23, which pointed every value at a SpatialRepresentativeness table with no matching row.';
+comment on column compliance_assessment_method.srs_id is 'AQR3 CAM_16 SRSId. Entered, not derived. Matches spatial_representativeness.srs_id, which is not unique (one row per application), so the API checks it rather than a foreign key.';
 comment on column compliance_assessment_method.deletion is 'AQR3 CAM_18 Deletion — flags a previously reported row for withdrawal.';
 
 create index if not exists idx_cam_year
@@ -2639,5 +2645,7 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
        ('4.502.27', 'baseline: schema.sql comments document_original_url as where an '
                     'uploaded PDF is served (migration 027)'),
        ('4.502.28', 'baseline: schema.sql declares srs_uploads and srs_upload_points '
-                    '(migration 028)')
+                    '(migration 028)'),
+       ('4.502.29', 'baseline: schema.sql keys spatial_representativeness on '
+                    'srs_application_id, and CAM_16 srs_id has no foreign key (migration 029)')
 on conflict (version) do nothing;

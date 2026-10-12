@@ -105,13 +105,20 @@ $$;
 -- Snapping can collapse distinct source points onto one cell. AQR3 keys SRI on
 -- (SRSApplicationId, X, Y), so drop the duplicates that snapping created,
 -- keeping the lowest id.
-delete from srs_inline a
-using srs_inline b
-where a.id > b.id
-  and a.spatial_representativeness_id = b.spatial_representativeness_id
-  and a.x = b.x
-  and a.y = b.y
-  and a.spatial_resolution = b.spatial_resolution;
+-- The owner column is spatial_representativeness_id before 029 and
+-- srs_application_id after it; this file is run against both.
+do $$
+declare
+    owner text := case when exists (select 1 from information_schema.columns
+                                    where table_name = 'srs_inline'
+                                      and column_name = 'srs_application_id')
+                       then 'srs_application_id' else 'spatial_representativeness_id' end;
+begin
+    execute format('delete from srs_inline a using srs_inline b
+                    where a.id > b.id and a.%1$I = b.%1$I
+                      and a.x = b.x and a.y = b.y
+                      and a.spatial_resolution = b.spatial_resolution', owner);
+end $$;
 
 insert into schema_version (version, description)
 values ('4.502.4',
