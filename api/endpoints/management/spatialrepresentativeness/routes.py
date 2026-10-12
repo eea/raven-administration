@@ -14,6 +14,15 @@ sr_endpoint = Blueprint("spatialrepresentativeness", __name__)
 
 MAX_POINTS = 50_000
 
+# What SrCrud.vue's file picker offers (its ACCEPT). Anything else used to fall
+# through to geopandas and fail as a 500 with a GDAL message.
+EXTENSIONS = ('.geojson', '.json', '.gpkg', '.shp', '.zip', '.parquet', '.geoparquet',
+              '.tif', '.tiff')
+
+
+class SpatialFileError(ValueError):
+    """The uploaded file is the user's to fix: reported as a 400 with this message."""
+
 
 def _parse_to_wgs84(file, source_epsg=4326):
     """Parse any supported spatial file; return list of (x, y) tuples in EPSG:4326."""
@@ -22,6 +31,9 @@ def _parse_to_wgs84(file, source_epsg=4326):
     from pyproj import Transformer
 
     filename = file.filename.lower()
+    if not filename.endswith(EXTENSIONS):
+        raise SpatialFileError(f'{file.filename} is not a supported spatial file. '
+                               f'Upload one of: {", ".join(EXTENSIONS)}.')
 
     with tempfile.TemporaryDirectory() as tmpdir:
         filepath = os.path.join(tmpdir, file.filename)
@@ -42,12 +54,18 @@ def _parse_to_wgs84(file, source_epsg=4326):
 
         if filename.endswith(".zip"):
             import zipfile
-            with zipfile.ZipFile(filepath, "r") as z:
-                z.extractall(tmpdir)
-            shp_files = [f for f in os.listdir(tmpdir) if f.endswith(".shp")]
+            try:
+                with zipfile.ZipFile(filepath, "r") as z:
+                    z.extractall(tmpdir)
+            except zipfile.BadZipFile:
+                raise SpatialFileError(f'{file.filename} is not a readable zip file.')
+            # Anywhere in the zip: zipping a folder, as Windows' "Send to > Compressed
+            # folder" does, puts the shapefile one level down.
+            shp_files = sorted(os.path.join(root, f) for root, _, files in os.walk(tmpdir)
+                               for f in files if f.lower().endswith(".shp"))
             if not shp_files:
-                raise ValueError("No .shp found in zip")
-            gdf = gpd.read_file(os.path.join(tmpdir, shp_files[0]))
+                raise SpatialFileError(f'No shapefile (.shp) found in {file.filename}.')
+            gdf = gpd.read_file(shp_files[0])
         elif filename.endswith(".parquet") or filename.endswith(".geoparquet"):
             gdf = gpd.read_parquet(filepath)
         elif filename.endswith(".shp"):
@@ -323,7 +341,12 @@ def get_by_id(sr_id):
     spatial_resolution = None
     for row in rows:
         if row["x"] is not None:
-            lng, lat = t.transform(row["x"], row["y"])
+            # The cell's centre, not its stored lower-left corner. The form sends these
+            # points back on every save, and the insert snaps them again: a corner
+            # that comes back from EPSG:4326 a hair below or left of the grid line
+            # snaps into the neighbouring cell, so each save shifted the area by a row.
+            half = (row["spatial_resolution"] or 0) / 2
+            lng, lat = t.transform(row["x"] + half, row["y"] + half)
             points.append({"x": float(lng), "y": float(lat)})
             if spatial_resolution is None:
                 spatial_resolution = row["spatial_resolution"]
@@ -351,7 +374,10 @@ def parse_file():
     if "file" not in request.files:
         return {"error": "No file provided"}, 400
     file = request.files["file"]
-    source_epsg = int(request.form.get("source_epsg", 4326))
+    try:
+        source_epsg = int(request.form.get("source_epsg", 4326))
+    except ValueError:
+        return {"error": f'source_epsg must be an EPSG code, got {request.form.get("source_epsg")!r}'}, 400
     try:
         points = _parse_to_wgs84(file, source_epsg)
         truncated = len(points) > MAX_POINTS
@@ -361,5 +387,10 @@ def parse_file():
             "total": len(points),
             "truncated": truncated
         })
+    except SpatialFileError as e:
+        return {"error": str(e)}, 400
     except Exception as e:
-        return {"error": str(e)}, 500
+        # Every reader (pyogrio, pyarrow, rasterio) raises its own type for a file it
+        # cannot read, and an unreadable upload is the user's to fix, not a server
+        # fault. Say which file, and keep the reader's reason.
+        return {"error": f"Could not read {file.filename} as a spatial file: {e}"}, 400
