@@ -28,5 +28,11 @@ class SpatialRepresentativenessModel(BaseModel):
     geotiff_attachment: Optional[str] = Field(None, max_length=100)
 
 
+class SrImportModel(SpatialRepresentativenessModel):
+    """A CSV row: an SR without its area. `points` is excluded rather than left at
+    its default, so a file cannot name it and the template does not show it."""
+    points: List[PointModel] = Field(default=[], exclude=True)
+
+
 class DeleteModel(BaseModel):
     ids: list

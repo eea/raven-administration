@@ -13,5 +13,5 @@ onMounted(async () => {
 </script>
 
 <template>
-  <Manager name="Pollution level adjustments" :options="options" :service="Service" :show-download-button="false" />
+  <Manager name="Pollution level adjustments" :options="options" :service="Service" />
 </template>

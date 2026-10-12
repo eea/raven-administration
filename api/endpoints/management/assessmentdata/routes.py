@@ -21,6 +21,7 @@ CAM_05 spans two tables. `assessmentlocal_id` is generated in the database from
 from flask import Blueprint, jsonify, request
 from werkzeug.exceptions import BadRequest
 
+from core.data.csv_import import csv_response, import_rows, read_csv_rows
 from core.database import CursorFromPool
 from core.jwt_ext_custom import (jwt_required_with_allnetworks_claim,
                                  jwt_required_with_management_claim)
@@ -166,26 +167,56 @@ def assessmentdata_lookups():
                         'models': models, 'assessment_types': assessment_types})
 
 
-@assessmentdata_endpoint.route(f'{BASE}/insert', methods=['POST'])
-@jwt_required_with_management_claim()
-@jwt_required_with_allnetworks_claim()
-def assessmentdata_insert():
-    model = _validated(AssessmentDataModel(**request.json))
+def _save(cursor, model):
+    """Insert one link. The form's insert and the CSV import both write through here."""
+    model = _validated(model)
     if not model.id:
         model = model.model_copy(update={'id': _derive_id(model)})
 
     columns = ', '.join(('id',) + COLUMNS)
     values = ', '.join(f'%({c})s' for c in ('id',) + COLUMNS)
-    with CursorFromPool() as cursor:
-        cursor.execute(
-            f'INSERT INTO assessmentdata ({columns}) VALUES ({values}) '
-            f'ON CONFLICT (id) DO NOTHING', model)
-        if cursor.rowcount == 0:
-            raise BadRequest(
-                'This assessment method already assesses this regime over this period. '
-                'Change the validity dates, or edit the existing link.')
+    cursor.execute(
+        f'INSERT INTO assessmentdata ({columns}) VALUES ({values}) '
+        f'ON CONFLICT (id) DO NOTHING', model)
+    if cursor.rowcount == 0:
+        raise BadRequest(
+            'This assessment method already assesses this regime over this period. '
+            'Change the validity dates, or edit the existing link.')
+    return model.id
 
-    return jsonify({'msg': 'Assessment data created successfully', 'id': model.id})
+
+@assessmentdata_endpoint.route(f'{BASE}/insert', methods=['POST'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def assessmentdata_insert():
+    with CursorFromPool() as cursor:
+        id = _save(cursor, AssessmentDataModel(**request.json))
+    return jsonify({'msg': 'Assessment data created successfully', 'id': id})
+
+
+@assessmentdata_endpoint.route(f'{BASE}/import', methods=['POST'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def assessmentdata_import():
+    """One link per CSV row, with the form's checks. `id` may be left empty."""
+    if 'file' not in request.files:
+        raise BadRequest("File form does not contain the key 'file'")
+    rows = read_csv_rows(request.files['file'], AssessmentDataModel)
+    with CursorFromPool() as cursor:
+        count = import_rows(cursor, rows, AssessmentDataModel, _save)
+    return jsonify({'msg': f'{count} assessment data row(s) imported'})
+
+
+@assessmentdata_endpoint.route(f'{BASE}/export', methods=['GET'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def assessmentdata_export():
+    """The columns the import takes, so the file is also its template."""
+    columns = ', '.join(('id',) + COLUMNS)
+    with CursorFromPool() as cursor:
+        cursor.execute(f'SELECT {columns} FROM assessmentdata '
+                       f'ORDER BY assessment_regime_id, assessmentlocal_id, from_time')
+        return csv_response(cursor.fetchall(), AssessmentDataModel, 'assessmentdata.csv')
 
 
 @assessmentdata_endpoint.route(f'{BASE}/update', methods=['POST'])

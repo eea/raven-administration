@@ -11,6 +11,7 @@ import tempfile
 from flask import Blueprint, jsonify, request
 from werkzeug.exceptions import BadRequest
 
+from core.data.csv_import import csv_response, import_rows, read_csv_rows
 from core.database import CursorFromPool
 from core.eea.id_generator import IdentifierError, validate_identifier
 from core.jwt_ext_custom import jwt_required_with_management_claim
@@ -118,25 +119,49 @@ def _validated(model):
     return model
 
 
+MODEL_COLUMNS = ('id', 'data_aggregation_process_id', 'assessment_method_name', 'pollutant_id',
+                 'result_encoding_id', 'method_application_id', 'generic_mqi',
+                 'data_quality_document_id', 'method_document_id')
+
+
+def _save(cursor, model):
+    """Insert one model. The form's insert and the CSV import both write through here."""
+    model = _validated(model)
+    cursor.execute(f"""
+        INSERT INTO models ({', '.join(MODEL_COLUMNS)})
+        VALUES ({', '.join(f'%({c})s' for c in MODEL_COLUMNS)})
+    """, model)
+    if cursor.rowcount == 0:
+        raise BadRequest('Could not insert model ' + model.id)
+
+
 @models_endpoint.route('/api/management/models/insert', methods=['POST'])
 @jwt_required_with_management_claim()
 def models_insert():
-    model = _validated(ModelObjectiveEstimationModel(**request.json))
     with CursorFromPool() as cursor:
-        cursor.execute("""
-            INSERT INTO models (
-                id, data_aggregation_process_id, assessment_method_name, pollutant_id,
-                result_encoding_id, method_application_id, generic_mqi,
-                data_quality_document_id, method_document_id
-            ) VALUES (
-                %(id)s, %(data_aggregation_process_id)s, %(assessment_method_name)s, %(pollutant_id)s,
-                %(result_encoding_id)s, %(method_application_id)s, %(generic_mqi)s,
-                %(data_quality_document_id)s, %(method_document_id)s
-            )
-        """, model)
-        if cursor.rowcount == 0:
-            raise BadRequest('Could not insert model ' + model.id)
+        _save(cursor, ModelObjectiveEstimationModel(**request.json))
     return jsonify({'msg': 'Model created successfully'})
+
+
+@models_endpoint.route('/api/management/models/import', methods=['POST'])
+@jwt_required_with_management_claim()
+def models_import():
+    """One model per CSV row, with the form's checks. Gridded results are not in it."""
+    if 'file' not in request.files:
+        raise BadRequest("File form does not contain the key 'file'")
+    rows = read_csv_rows(request.files['file'], ModelObjectiveEstimationModel)
+    with CursorFromPool() as cursor:
+        count = import_rows(cursor, rows, ModelObjectiveEstimationModel, _save)
+    return jsonify({'msg': f'{count} model(s) imported'})
+
+
+@models_endpoint.route('/api/management/models/export', methods=['GET'])
+@jwt_required_with_management_claim()
+def models_export():
+    """The columns the import takes, so the file is also its template."""
+    with CursorFromPool() as cursor:
+        cursor.execute(f"SELECT {', '.join(MODEL_COLUMNS)} FROM models ORDER BY id")
+        return csv_response(cursor.fetchall(), ModelObjectiveEstimationModel, 'models.csv')
 
 
 @models_endpoint.route('/api/management/models/update', methods=['POST'])

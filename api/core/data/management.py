@@ -5,6 +5,8 @@ import io
 from shapely import wkt
 from werkzeug.exceptions import BadRequest
 
+from core.data.csv_import import NA_VALUES
+
 
 # ---------------------------------------------------------------------------
 # Generic import/export CSV header contract
@@ -107,9 +109,8 @@ class Management:
         self.df_schema = df_schema
 
     def parse_file(self, file):
-        na_values = ['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A', 'n/a',  '', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', '']
         if file.filename.endswith(".csv"):
-            self.df = pd.read_csv(io.StringIO(file.stream.read().decode("utf-8")), skipinitialspace=True, keep_default_na=False, na_values=na_values)
+            self.df = pd.read_csv(io.StringIO(file.stream.read().decode("utf-8")), skipinitialspace=True, keep_default_na=False, na_values=NA_VALUES)
         elif file.filename.endswith(".gpkg"):
             gdf = gp.read_file(file, driver="GPKG")
             gdf["geom"] = gdf.geometry.to_wkt()

@@ -12,6 +12,7 @@ the generic Manager delete — `Q.delete`'s `where id in (...)` cannot address i
 from flask import Blueprint, jsonify, request
 from werkzeug.exceptions import BadRequest
 
+from core.data.csv_import import csv_response, import_rows, read_csv_rows
 from core.database import CursorFromPool
 from core.jwt_ext_custom import (jwt_required_with_allnetworks_claim,
                                 jwt_required_with_management_claim)
@@ -118,19 +119,54 @@ def adjustments_lookups():
                     'methods': methods, 'documents': documents})
 
 
+COLUMNS = ('attainment_id', 'adjustment_source_id') + VALUES
+
+
+def _save(cursor, model):
+    """Insert one adjustment. The form's insert and the CSV import both write through
+    here. Rows of one file are saved in order, so two rows giving the same method to
+    different sources of an attainment are caught as well."""
+    _assert_method_is_source_specific(cursor, model)
+    cursor.execute(f"""
+        INSERT INTO pollution_level_adjustment ({', '.join(COLUMNS)})
+        VALUES ({', '.join(f'%({c})s' for c in COLUMNS)})
+    """, model)
+
+
 @adjustments_endpoint.route(f'{BASE}/insert', methods=['POST'])
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def insert():
-    model = AdjustmentModel(**request.json)
-    columns = ('attainment_id', 'adjustment_source_id') + VALUES
     with CursorFromPool() as cursor:
-        _assert_method_is_source_specific(cursor, model)
-        cursor.execute(f"""
-            INSERT INTO pollution_level_adjustment ({', '.join(columns)})
-            VALUES ({', '.join(f'%({c})s' for c in columns)})
-        """, model)
+        _save(cursor, AdjustmentModel(**request.json))
     return jsonify({'msg': 'Adjustment created successfully'}), 201
+
+
+@adjustments_endpoint.route(f'{BASE}/import', methods=['POST'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def import_csv():
+    """One adjustment per CSV row, with the form's checks."""
+    if 'file' not in request.files:
+        raise BadRequest("File form does not contain the key 'file'")
+    rows = read_csv_rows(request.files['file'], AdjustmentModel)
+    with CursorFromPool() as cursor:
+        count = import_rows(cursor, rows, AdjustmentModel, _save)
+    return jsonify({'msg': f'{count} adjustment(s) imported'})
+
+
+@adjustments_endpoint.route(f'{BASE}/export', methods=['GET'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def export_csv():
+    """The columns the import takes, so the file is also its template."""
+    with CursorFromPool() as cursor:
+        cursor.execute(f"""
+            SELECT {', '.join(COLUMNS)} FROM pollution_level_adjustment
+            ORDER BY attainment_id, adjustment_source_id
+        """)
+        return csv_response(cursor.fetchall(), AdjustmentModel,
+                            'pollution_level_adjustment.csv')
 
 
 @adjustments_endpoint.route(f'{BASE}/update', methods=['POST'])

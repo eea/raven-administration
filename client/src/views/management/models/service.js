@@ -1,4 +1,4 @@
-import { Get, Post, Upload } from "../../../helpers/request";
+import { Get, Post, Upload, DownloadGet } from "../../../helpers/request";
 
 const Service = {
   get: async () => Get("/api/management/models"),
@@ -7,6 +7,10 @@ const Service = {
   delete: async (data) => Post("/api/management/models/delete", data),
 
   lookups: async () => Get("/api/management/models/lookups"),
+
+  // One model per row, checked like the form; the export is also the template.
+  upload: async (data) => Upload("/api/management/models/import", data),
+  download: async () => DownloadGet("/api/management/models/export"),
 
   // Gridded results (AQR3 MOEResultInline): a GeoTIFF for one timestep, snapped
   // onto the EEA INSPIRE grid in EPSG:3035.

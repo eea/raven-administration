@@ -83,10 +83,29 @@ requests.post(f'{url}/api/imports/stations', files=files, headers=headers)
 
 To discover the exact headers for a table and version, export it first — the
 header row is authoritative and always matches what the import will accept.
-`sampling_points` excludes `from_time` and `to_time` from the round-trip.
+`sampling_points` includes `from_time` (the default AQR3 SPL_03 LocationBegin).
 
 `zones` also accepts a GeoPackage (`.gpkg`) instead of CSV, in which case the
 geometry comes from the file's geometry column.
+
+## Pages with their own import
+
+Four pages import through their own route instead, because each row must pass the
+same checks as the page's form. The generic importer writes rows straight into the
+table and would skip them. These routes take CSV only, and have no v2 variant.
+
+| Page | Import | Export / template |
+|---|---|---|
+| Assessment data | `POST /api/management/assessmentdata/import` | `GET /api/management/assessmentdata/export` |
+| Models / OBE | `POST /api/management/models/import` | `GET /api/management/models/export` |
+| Pollution level adjustments | `POST /api/management/pollutionleveladjustment/import` | `GET /api/management/pollutionleveladjustment/export` |
+| Spatial representativeness | `POST /api/management/spatialrepresentativeness/import` | `GET /api/management/spatialrepresentativeness/export` |
+
+- The export's header is exactly what the import accepts. Required columns must be present; optional ones may be left out. An unknown column is refused.
+- A file is saved whole or not at all. An error names its CSV line (`Row 3: ...`; the header is line 1).
+- Rows are inserted, never updated. A row that already exists is an error.
+- Assessment data: `id` may be empty, and is then derived as the form does. Each row names a `sampling_point_id` or a `model_id`, not both.
+- Spatial representativeness: the CSV carries the records only. The area's grid cells come from a spatial file in the page's form.
 
 ## Observations
 

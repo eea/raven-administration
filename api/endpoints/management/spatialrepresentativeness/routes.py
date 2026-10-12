@@ -1,10 +1,11 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.exceptions import BadRequest
 from core.jwt_ext_custom import jwt_required_with_management_claim
+from core.data.csv_import import csv_response, import_rows, read_csv_rows
 from core.database import CursorFromPool
 from core.reporting.aqr3.attachments import AttachmentReferenceError, validate_reference
 from core.reporting.aqr3.grid import points_to_inspire_grid, validate_resolution
-from .models import SpatialRepresentativenessModel, DeleteModel
+from .models import SpatialRepresentativenessModel, SrImportModel, DeleteModel
 import io
 import tempfile
 import os
@@ -193,25 +194,65 @@ def _insert_points(cursor, sr_id, points_4326, spatial_resolution):
     return len(cells)
 
 
+def _save(cursor, obj):
+    """Insert one SR with its area. The form's insert and the CSV import both write
+    through here; an import carries no points, so its area is added in the form."""
+    cursor.execute("""
+        INSERT INTO spatial_representativeness
+            (id, srs_application_id, srs_application, result_encoding_id,
+             representativeness_assessment_method_id)
+        VALUES (%(id)s, %(srs_application_id)s, %(srs_application)s, %(result_encoding_id)s,
+                %(representativeness_assessment_method_id)s)
+    """, {"id": obj.id, "srs_application_id": obj.srs_application_id,
+          "srs_application": obj.srs_application,
+          "result_encoding_id": obj.result_encoding_id,
+          "representativeness_assessment_method_id":
+              obj.representativeness_assessment_method_id})
+    _sync_external(cursor, obj)
+    return _insert_points(cursor, obj.id, obj.points, obj.spatial_resolution)
+
+
 @sr_endpoint.route("/api/management/spatialrepresentativeness/insert", methods=["POST"])
 @jwt_required_with_management_claim()
 def insert():
     obj = SpatialRepresentativenessModel(**request.json)
     with CursorFromPool() as cursor:
-        cursor.execute("""
-            INSERT INTO spatial_representativeness
-                (id, srs_application_id, srs_application, result_encoding_id,
-                 representativeness_assessment_method_id)
-            VALUES (%(id)s, %(srs_application_id)s, %(srs_application)s, %(result_encoding_id)s,
-                    %(representativeness_assessment_method_id)s)
-        """, {"id": obj.id, "srs_application_id": obj.srs_application_id,
-              "srs_application": obj.srs_application,
-              "result_encoding_id": obj.result_encoding_id,
-              "representativeness_assessment_method_id":
-                  obj.representativeness_assessment_method_id})
-        _sync_external(cursor, obj)
-        count = _insert_points(cursor, obj.id, obj.points, obj.spatial_resolution)
+        count = _save(cursor, obj)
     return {"message": "Inserted", "id": obj.id, "point_count": count}, 201
+
+
+@sr_endpoint.route("/api/management/spatialrepresentativeness/import", methods=["POST"])
+@jwt_required_with_management_claim()
+def import_csv():
+    """One SR per CSV row, without its area: the grid cells come from a spatial file
+    in the form, which a CSV row cannot carry."""
+    if "file" not in request.files:
+        raise BadRequest("File form does not contain the key 'file'")
+    rows = read_csv_rows(request.files["file"], SrImportModel)
+    with CursorFromPool() as cursor:
+        count = import_rows(cursor, rows, SrImportModel, _save)
+    return jsonify({"msg": f"{count} spatial representativeness record(s) imported"})
+
+
+@sr_endpoint.route("/api/management/spatialrepresentativeness/export", methods=["GET"])
+@jwt_required_with_management_claim()
+def export_csv():
+    """The columns the import takes, so the file is also its template. The area is
+    not in it; spatial_resolution is the external GeoTIFF's, or else the grid's."""
+    with CursorFromPool() as cursor:
+        cursor.execute("""
+            SELECT sr.id, sr.srs_application_id, sr.srs_application,
+                   sr.result_encoding_id, sr.representativeness_assessment_method_id,
+                   COALESCE(ext.spatial_resolution,
+                            (SELECT MIN(a.spatial_resolution) FROM srs_inline a
+                              WHERE a.spatial_representativeness_id = sr.id)) AS spatial_resolution,
+                   ext.geotiff_attachment
+            FROM spatial_representativeness sr
+            LEFT JOIN srs_external ext ON ext.spatial_representativeness_id = sr.id
+            ORDER BY LOWER(sr.id)
+        """)
+        return csv_response(cursor.fetchall(), SrImportModel,
+                            "spatial_representativeness.csv")
 
 
 @sr_endpoint.route("/api/management/spatialrepresentativeness/update", methods=["POST"])
