@@ -2647,5 +2647,8 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
        ('4.502.28', 'baseline: schema.sql declares srs_uploads and srs_upload_points '
                     '(migration 028)'),
        ('4.502.29', 'baseline: schema.sql keys spatial_representativeness on '
-                    'srs_application_id, and CAM_16 srs_id has no foreign key (migration 029)')
+                    'srs_application_id, and CAM_16 srs_id has no foreign key (migration 029)'),
+       -- 030 fills empty notations; data.sql's own backfill already did that here.
+       ('4.502.30', 'baseline: no-op on a fresh install -- sql/data.sql already fills '
+                    'an empty eea_*.notation from the id (migration 030)')
 on conflict (version) do nothing;
