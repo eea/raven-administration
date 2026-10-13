@@ -63,11 +63,11 @@ File: client/src/views/data/test/Map.vue
 
 ```vue
 <script setup>
-import { featureGroup, map, tileLayer, marker } from "leaflet";
+import { featureGroup, map, marker } from "leaflet";
 import { onMounted } from "vue";
+import { addBasemap } from "../../../helpers/basemap";
 import Service from "./service";
 var mymap;
-let url = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 
 onMounted(async () => {
   const stations = await Service.get();
@@ -78,8 +78,9 @@ onMounted(async () => {
 
   var group = featureGroup(layers);
   mymap = map("map", {
-    layers: [tileLayer(url, {}), group]
+    layers: [group]
   }).setView([0, 0], 3);
+  addBasemap(mymap);
   mymap.fitBounds(group.getBounds());
 });
 </script>
@@ -93,6 +94,11 @@ onMounted(async () => {
 
 <style></style>
 ```
+
+The background map comes from `helpers/basemap.js` (OpenFreeMap vector tiles), never
+from a tile URL in the page. With `@vue-leaflet` call `addBasemap(mapRef.value.leafletObject)`
+from `<LMap @ready>` and give the `<LMap>` `:use-global-leaflet="true"`; the helper says why.
+The CARTO raster URL earlier versions used now returns an "API KEY REQUIRED" image.
 
 `ToolBar` accepts `title`, `show-add`, `show-download`, `show-upload`, `show-filter`,
 `filter-text` and `q` — nothing else. It has no column picker: that lives in

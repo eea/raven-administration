@@ -1,7 +1,8 @@
 <script setup>
 import { computed, ref, watch, nextTick } from "vue";
 import Popup from "../../../components/Popup.vue";
-import { LMap, LTileLayer, LGeoJson } from "@vue-leaflet/vue-leaflet";
+import { LMap, LGeoJson } from "@vue-leaflet/vue-leaflet";
+import { addBasemap } from "../../../helpers/basemap";
 import "leaflet/dist/leaflet.css";
 import Eventy from "../../../helpers/eventy";
 
@@ -22,7 +23,6 @@ const mapRef = ref(null);
 const geoJsonRef = ref(null);
 const fileInput = ref(null);
 const sourceEpsg = ref(4326);
-let url = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 
 const geoJsonData = computed(() => {
   if (obj.value.geojson) {
@@ -79,6 +79,7 @@ watch(geoJsonData, () => {
 
 const onMapReady = () => {
   if (mapRef.value?.leafletObject) {
+    addBasemap(mapRef.value.leafletObject);
     mapRef.value.leafletObject.invalidateSize();
     fitBounds();
   }
@@ -199,8 +200,7 @@ const handleClose = () => {
         <div class="mb-2 flex flex-col h-96">
           <div class="font-bold">Preview:</div>
           <div class="border border-nord4 h-full w-full flex-1">
-            <LMap ref="mapRef" :zoom="3" :center="[0, 0]" :options="{ zoomControl: true, attributionControl: false }" @ready="onMapReady">
-              <LTileLayer :url="url" />
+            <LMap ref="mapRef" :zoom="3" :center="[0, 0]" :options="{ zoomControl: true, attributionControl: false }" :use-global-leaflet="true" @ready="onMapReady">
               <LGeoJson v-if="geoJsonData" ref="geoJsonRef" :geojson="geoJsonData" :options="geoJsonOptions" />
             </LMap>
           </div>

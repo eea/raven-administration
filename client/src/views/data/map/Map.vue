@@ -1,15 +1,14 @@
 <script setup>
 import { onMounted, ref, watch, computed } from "vue";
 import "leaflet/dist/leaflet.css";
-import "leaflet"; // Ensure Leaflet is loaded before vue-leaflet
-import { LMap, LTileLayer, LCircleMarker, LTooltip } from "@vue-leaflet/vue-leaflet";
+import { LMap, LCircleMarker, LTooltip } from "@vue-leaflet/vue-leaflet";
+import { addBasemap } from "../../../helpers/basemap";
 import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
 
-const url = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 const map = ref(null);
 const stations = ref([]);
 const legends = ref([]);
@@ -20,6 +19,7 @@ const currentLegend = computed(() => legends.value[aqi_type.value] || []);
 const hasMultipleLegends = computed(() => Object.keys(legends.value).length > 1);
 
 const onMapReady = () => {
+  addBasemap(map.value.leafletObject);
   mapReady.value = true;
   if (stations.value.length > 0) {
     fit(stations.value.map((s) => [s.y, s.x]));
@@ -74,9 +74,7 @@ const rectByAqi = (color, hideNoData) => {
   <common-layout>
     <tool-bar title="Map" :show-add="false" :show-download="false" :show-filter="false" />
     <div class="border border-nord4 h-full w-full flex-1">
-      <LMap ref="map" :zoom="2" :center="[0, 0]" :options="{ zoomControl: false, attributionControl: false }" class="relative" @ready="onMapReady">
-        <LTileLayer :url="url" attribution="" layer-type="base" />
-
+      <LMap ref="map" :zoom="2" :center="[0, 0]" :options="{ zoomControl: false, attributionControl: false }" class="relative" :use-global-leaflet="true" @ready="onMapReady">
         <LCircleMarker v-for="station in stations" :key="station.id" :name="station.name" :radius="6 + station.aqi" :lat-lng="[station.y, station.x]" :color="station.aqi_color" :fill-opacity="0.7" :weight="2">
           <l-tooltip :options="{ interactive: true, offset: [15, 0], className: 'map-tooltip' }">
             <div class="font-bold text-xl">{{ station.name }}</div>
