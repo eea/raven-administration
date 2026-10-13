@@ -48,7 +48,9 @@ def networks_lookups():
             SELECT d.id as value, d.id || ' - ' || COALESCE(dobj.label, '') as label
             FROM documents d
             LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
-            WHERE d.datatable_id = 'network'
+            -- Every document: eea_datatable has no network table (the EEA list is
+            -- MeasurementStation, SamplingProcess, AssessmentRegimeZone, ...), so the
+            -- old `= 'network'` filter matched nothing and the dropdown was empty.
             ORDER BY d.id
         """)
         network_documents = cursor.fetchall()

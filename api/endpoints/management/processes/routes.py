@@ -180,32 +180,24 @@ def processes_lookups():
         cursor.execute("SELECT id as value, label FROM eea_equivalencedemonstrated ORDER BY LOWER(label)")
         equivalence_demonstrated = cursor.fetchall()
         
+        # The SamplingProcess documents, offered in all three document dropdowns.
+        # These filtered on datatable 'samplingprocess' (the EEA id is
+        # 'SamplingProcess') and on document objects 'dataqualityreport',
+        # 'equivalencedemonstrationreport' and 'processdocumentation', which
+        # eea_documentobject does not have (AQD, Classificationreport) -- so all
+        # three were always empty. Which of the three a document is, is the
+        # field it is chosen for (SPP_13/14/15), not a property of the document.
         cursor.execute("""
             SELECT d.id as value, d.id || ' - ' || COALESCE(dobj.label, '') as label
             FROM documents d
             LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
-            WHERE d.datatable_id = 'samplingprocess' AND d.documentobject_id = 'dataqualityreport'
+            WHERE lower(d.datatable_id) = 'samplingprocess'
             ORDER BY d.id
         """)
-        data_quality_reports = cursor.fetchall()
-        
-        cursor.execute("""
-            SELECT d.id as value, d.id || ' - ' || COALESCE(dobj.label, '') as label
-            FROM documents d
-            LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
-            WHERE d.datatable_id = 'samplingprocess' AND d.documentobject_id = 'equivalencedemonstrationreport'
-            ORDER BY d.id
-        """)
-        equivalence_demonstration_reports = cursor.fetchall()
-        
-        cursor.execute("""
-            SELECT d.id as value, d.id || ' - ' || COALESCE(dobj.label, '') as label
-            FROM documents d
-            LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
-            WHERE d.datatable_id = 'samplingprocess' AND d.documentobject_id = 'processdocumentation'
-            ORDER BY d.id
-        """)
-        process_documentations = cursor.fetchall()
+        process_documents = cursor.fetchall()
+        data_quality_reports = process_documents
+        equivalence_demonstration_reports = process_documents
+        process_documentations = process_documents
         
         return jsonify({
             "sampling_points": sampling_points,

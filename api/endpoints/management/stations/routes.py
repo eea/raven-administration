@@ -56,7 +56,10 @@ def stations_lookups():
             SELECT d.id as value, d.id || ' - ' || COALESCE(dobj.label, '') as label
             FROM documents d
             LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
-            WHERE d.datatable_id = 'station'
+            -- eea_datatable.id is 'MeasurementStation'; `= 'station'` matched nothing,
+            -- so the dropdown was always empty. Compared case-insensitively, as the
+            -- fallback vocabulary (sql/vocabularies.py) spells its codes in lower case.
+            WHERE lower(d.datatable_id) IN ('measurementstation', 'station')
             ORDER BY d.id
         """)
         documents = cursor.fetchall()
