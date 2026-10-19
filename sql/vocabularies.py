@@ -50,6 +50,8 @@ class Vocabulary:
     fallback: Tuple[dict, ...] = ()     # used only when every fetch attempt fails
     fallback_note: str = ''            # why the fallback exists / how trustworthy it is
     also_into: Tuple[str, ...] = ()    # extra legacy tables fed the same rows
+    attributes: Tuple[Tuple[str, str, str], ...] = ()  # (CSV header, column, kind) beyond id/label/notation/uri
+    prune: bool = False                # a fetch replaces the table: rows it did not return are deleted
 
     @property
     def url(self):
@@ -233,6 +235,28 @@ COUNTRY_FALLBACK = _rows(
 )
 
 
+# The columns Generate regimes decomposes an objective into, read from the CSV by
+# header name. Both aq/environmentalobjective and its 2024 recast export them;
+# assessmentThreshold (and, in the original, exceedanceMetric) is repeated, and the
+# repeats are comma-joined into one column.
+#   text     the value as given (URIs, for every column but definition)
+#   number   a decimal, or NULL
+#   uri_int  the integer last segment of a URI: relatedPollutant is a pollutant URI,
+#            and eea_pollutants is keyed on that number
+ENVIRONMENTAL_OBJECTIVE_ATTRIBUTES = (
+    ('definition', 'definition', 'text'),
+    ('exceedancemetric', 'exceedance_metric', 'text'),
+    ('hasobjectivetype', 'objective_type', 'text'),
+    ('assessmentthreshold', 'assessment_threshold', 'text'),
+    ('hasprotectiontarget', 'protection_target', 'text'),
+    ('hasreportingmetric', 'reporting_metric', 'text'),
+    ('aggregationprocess', 'aggregation_process', 'text'),
+    ('exceedancethreshold', 'exceedance_threshold', 'number'),
+    ('exceedancethresholdextra', 'exceedance_threshold_extra', 'number'),
+    ('relatedpollutant', 'related_pollutant', 'uri_int'),
+)
+
+
 # ---------------------------------------------------------------------------
 # The registry
 # ---------------------------------------------------------------------------
@@ -363,10 +387,15 @@ VOCABULARIES = (
     # -- Environmental objectives ------------------------------------------
     # AQR3 v5.02 is the AAQD 2024/2881 recast, so prefer the recast vocabulary and
     # fall back to the original. CSV because the RDF omits the threshold columns.
+    # uri_suffix, not numeric_uri_suffix: recast concepts are named
+    # (0001_ALT_H_3hAbove_2026), and a numeric id rejected every one of them while
+    # the fetch still counted as a success (migration 031). Pruned, so a reload
+    # from the recast does not leave the original vocabulary's rows next to it.
     Vocabulary('eea_environmentalobjective', 'aq/environmentalobjective',
                aqr3='assessment regime bulk fill (not an AQR3 attribute)',
-               fmt='csv', id_from='numeric_uri_suffix',
-               prefer=('aq/environmentalobjective2024recast',)),
+               fmt='csv', id_from='uri_suffix',
+               prefer=('aq/environmentalobjective2024recast',),
+               attributes=ENVIRONMENTAL_OBJECTIVE_ATTRIBUTES, prune=True),
 
     # -- Raven-internal / legacy, not AQR3 attributes -----------------------
     Vocabulary('eea_stationclassifications', 'aq/stationclassification'),

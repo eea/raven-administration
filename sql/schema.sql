@@ -286,14 +286,14 @@ create table if not exists eea_aggregationprocess
 
 create table if not exists eea_environmentalobjective
 (
-    id                         integer not null primary key,
-    label                      text    not null,
-    notation                   varchar(10),
-    uri                        text    not null unique,
+    id                         varchar(100) not null primary key,
+    label                      text         not null,
+    notation                   varchar(100),
+    uri                        text         not null unique,
     definition                 text,
-    exceedance_metric          varchar(255),
+    exceedance_metric          text,
     objective_type             varchar(255),
-    assessment_threshold       varchar(255),
+    assessment_threshold       text,
     protection_target          varchar(255),
     reporting_metric           varchar(255),
     aggregation_process        varchar(255),
@@ -2650,5 +2650,7 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
                     'srs_application_id, and CAM_16 srs_id has no foreign key (migration 029)'),
        -- 030 fills empty notations; data.sql's own backfill already did that here.
        ('4.502.30', 'baseline: no-op on a fresh install -- sql/data.sql already fills '
-                    'an empty eea_*.notation from the id (migration 030)')
+                    'an empty eea_*.notation from the id (migration 030)'),
+       ('4.502.31', 'baseline: schema.sql declares eea_environmentalobjective.id as text '
+                    '(migration 031)')
 on conflict (version) do nothing;

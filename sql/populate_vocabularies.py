@@ -28,6 +28,7 @@ import io
 import os
 import sys
 import xml.etree.ElementTree as ET
+from decimal import Decimal, InvalidOperation
 
 
 import psycopg2
@@ -143,8 +144,15 @@ def parse_csv(content):
     positionally and locate the columns by name instead of hardcoding indices
     (the pre-existing loader hardcoded 19 positions and silently corrupts if EEA
     reorders a column).
+
+    Every other column goes into `attributes`, keyed by its lowercased header, with
+    the non-empty values of a repeated header comma-joined. Which of them a table
+    keeps is the registry's business (Vocabulary.attributes), not the parser's.
     """
-    reader = csv.reader(io.StringIO(content))
+    # The Data Dictionary CSV starts with a byte order mark. Left in, it sits before
+    # the first header's opening quote, the column reads '\ufeff"URI"', and no
+    # concept gets a URI -- which every uri_suffix id is derived from.
+    reader = csv.reader(io.StringIO(content.lstrip('\ufeff')))
     try:
         header = next(reader)
     except StopIteration:
@@ -161,6 +169,7 @@ def parse_csv(content):
     i_uri = col('uri')
     i_label = col('label', 'preflabel')
     i_notation = col('notation')
+    core = {i_uri, i_label, i_notation}
 
     concepts = []
     for row in reader:
@@ -175,7 +184,16 @@ def parse_csv(content):
             notation = uri.rstrip('/').rsplit('/', 1)[-1]
         if not (notation or uri):
             continue
-        concepts.append({'uri': uri, 'notation': notation, 'label': label or notation})
+
+        attributes = {}
+        for i, name in enumerate(lowered):
+            if i in core or not name:
+                continue
+            values = attributes.setdefault(name, [])
+            if get(i):
+                values.append(get(i))
+        concepts.append({'uri': uri, 'notation': notation, 'label': label or notation,
+                         'attributes': {k: ','.join(v) for k, v in attributes.items()}})
 
     return concepts
 
@@ -264,8 +282,25 @@ def derive_id(concept, id_from):
     return concept.get('notation') or suffix or None
 
 
+def attribute_value(raw, kind):
+    """Convert one CSV attribute for its column. Empty or unconvertible -> None."""
+    if not raw:
+        return None
+    if kind == 'number':
+        try:
+            return Decimal(raw)
+        except InvalidOperation:
+            return None
+    if kind == 'uri_int':
+        try:
+            return int(raw.rstrip('/').rsplit('/', 1)[-1])
+        except ValueError:
+            return None
+    return raw
+
+
 def upsert(cursor, table, concepts, id_from, widths, extra_timestep=False,
-           notation_from='notation'):
+           notation_from='notation', attributes=()):
     """Insert or refresh rows. Returns (written, rejected).
 
     Upserts with DO UPDATE rather than DO NOTHING so a corrected label upstream
@@ -275,6 +310,9 @@ def upsert(cursor, table, concepts, id_from, widths, extra_timestep=False,
     supplies no notation of its own. Applied here rather than in parse_rdf/parse_csv
     because those are deliberately vocabulary-agnostic, and because derive_id must
     keep reading the real URI suffix (meteoparameter ids have to stay 51-99).
+
+    attributes are the registry's (CSV header, column, kind) triples. They are written
+    only for a concept parsed from a CSV, so a fallback row does not blank them.
     """
     written, rejected = 0, []
     has_notation = 'notation' in widths
@@ -298,6 +336,12 @@ def upsert(cursor, table, concepts, id_from, widths, extra_timestep=False,
         if extra_timestep:
             cols.append('timestep')
             vals.append(TIMESTEP_SECONDS.get(concept['notation'], 1))
+        if 'attributes' in concept:
+            for header, column, kind in attributes:
+                if column in widths:
+                    cols.append(column)
+                    vals.append(clip(attribute_value(concept['attributes'].get(header), kind),
+                                     widths[column]))
 
         updates = ', '.join(f'{c} = EXCLUDED.{c}' for c in cols if c != 'id')
         sql = (f'INSERT INTO {table} ({", ".join(cols)}) '
@@ -318,6 +362,20 @@ def upsert(cursor, table, concepts, id_from, widths, extra_timestep=False,
             rejected.append(f'{row_id} ({str(e).splitlines()[0][:70]})')
 
     return written, rejected
+
+
+def prune(cursor, table, concepts, id_from):
+    """Delete the rows this fetch did not return. Returns how many.
+
+    For a vocabulary whose sources replace each other rather than add up: the
+    environmental objective recast supersedes the original, and keeping both would
+    leave the superseded objectives on offer in Generate regimes.
+    """
+    keep = [str(i) for i in (derive_id(c, id_from) for c in concepts) if i is not None]
+    if not keep:
+        return 0
+    cursor.execute(f'DELETE FROM {table} WHERE id::text <> ALL(%s)', (keep,))
+    return cursor.rowcount
 
 
 def fallback_concepts(vocab):
@@ -425,9 +483,15 @@ def main():
                     t_widths = widths if target == vocab.table else column_widths(cursor, target)
                     written, rej = upsert(cursor, target, concepts, vocab.id_from, t_widths,
                                          extra_timestep=(vocab.table == 'eea_times'),
-                                         notation_from=vocab.notation_from)
+                                         notation_from=vocab.notation_from,
+                                         attributes=vocab.attributes)
                     total += written
                     rejected.extend(rej)
+
+                if vocab.prune and status == FETCHED and total:
+                    pruned = prune(cursor, vocab.table, concepts, vocab.id_from)
+                    if pruned:
+                        print(f'      -> {pruned} row(s) not in {source} deleted')
 
                 prev = results.get(vocab.table)
                 if prev and prev.get('status') == FETCHED and status == FALLBACK:

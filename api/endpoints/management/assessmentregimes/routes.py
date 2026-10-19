@@ -342,14 +342,16 @@ _CANDIDATE_SQL = """
         LEFT JOIN eea_protectiontargets pt ON pt.uri = eo.protection_target
         LEFT JOIN eea_reportingmetrics rm  ON rm.uri = eo.reporting_metric
         LEFT JOIN eea_objectivetypes ot    ON eo.objective_type IN (ot.id, ot.uri, ot.notation)
-        -- Only the objectives that carry a threshold, as the retired grid filtered them.
-        WHERE (eo.assessment_threshold LIKE '%%UAT%%'
-            OR eo.assessment_threshold LIKE '%%LAT%%'
-            OR eo.assessment_threshold LIKE '%%LTO%%')
-          -- ARZ_09 PollutantId is NOT NULL on assessment_regimes and is part of ARZ_02,
-          -- so an objective with no related pollutant cannot become a regime at all.
-          -- Excluded here rather than offered and then skipped.
-          AND eo.related_pollutant IS NOT NULL
+        -- Every objective, not only those with an upper/lower assessment threshold as
+        -- the retired grid filtered them. The 2024/2881 recast has none: it has one
+        -- assessment threshold (aboveAT/belowAT), and its LTO objectives have NA. And
+        -- alert and information thresholds and critical levels without a threshold
+        -- are regimes too -- Malta reports ALT, INT and CL regimes with NA.
+        --
+        -- ARZ_09 PollutantId is NOT NULL on assessment_regimes and is part of ARZ_02,
+        -- so an objective with no related pollutant cannot become a regime at all.
+        -- Excluded here rather than offered and then skipped.
+        WHERE eo.related_pollutant IS NOT NULL
           -- A regime already covering this combination for the year is not a candidate.
           -- Matched on the five attributes ARZ_02 is derived from rather than on the id,
           -- so a regime whose id was entered by hand still counts as covering it.
@@ -366,7 +368,9 @@ _CANDIDATE_SQL = """
         -- UAT/LAT objective and the LTO objective for the same pollutant, protection
         -- target, objective type and reporting metric are the same regime. Listing both
         -- would promise more rows than generating can create -- their derived ARZ_02 is
-        -- byte-identical -- and the second would silently be reported as skipped.
+        -- byte-identical -- and the second would silently be reported as skipped. The
+        -- recast also lists most objectives twice, for attainment years 2026 and 2030,
+        -- which ARZ does not carry either.
         -- eo.id last makes the surviving representative deterministic.
         ORDER BY z.id, eo.related_pollutant, ot.id, pt.id, rm.id, eo.id
     ) c
