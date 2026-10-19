@@ -100,7 +100,7 @@ def _as_bool(value):
     return None  # 'unknown' -> NULL rather than a misleading false
 
 
-def _drop_rows_no_longer_produced(cursor, reporting_year, planned):
+def _drop_rows_no_longer_produced(cursor, reporting_year, planned, zones=None, pollutants=None):
     """Remove the year's rows this run does not produce, and only those.
 
     The year used to be deleted wholesale, on the reasoning that a regime which has
@@ -108,20 +108,35 @@ def _drop_rows_no_longer_produced(cursor, reporting_year, planned):
     every hand-entered value, which the upsert now goes to some trouble to keep -- a
     DELETE followed by an INSERT leaves nothing for COALESCE to find. So the rows about
     to be rebuilt are spared and the rest still go.
+
+    A run filtered to some zones or pollutants only speaks for those: it used to delete
+    every other zone's rows for the year too, because it had not produced them.
     """
+    params = {'year': reporting_year, 'zones': list(zones or []),
+              'pollutants': list(pollutants or [])}
+    scope = ''
+    if zones or pollutants:
+        scope = """
+           AND assessment_regime_id IN (
+               SELECT ar.id
+                 FROM assessment_regimes ar
+                 LEFT JOIN eea_pollutants rp ON ar.pollutant_id = rp.id
+                WHERE (cardinality(%(zones)s::text[]) = 0 OR ar.zone_id = ANY(%(zones)s))
+                  AND (cardinality(%(pollutants)s::text[]) = 0
+                       OR rp.notation = ANY(%(pollutants)s)))"""
+
     keys = tuple((regime, aggregation, method)
                  for _, regime, aggregation, method in planned)
     if not keys:
-        cursor.execute('DELETE FROM compliance_assessment_method WHERE reporting_year = %s',
-                       (reporting_year,))
+        cursor.execute('DELETE FROM compliance_assessment_method '
+                       'WHERE reporting_year = %(year)s' + scope, params)
         return
 
     cursor.execute("""
         DELETE FROM compliance_assessment_method
          WHERE reporting_year = %(year)s
            AND (assessment_regime_id, data_aggregation_process_id, assessment_method_id)
-               NOT IN %(keys)s
-    """, {'year': reporting_year, 'keys': keys})
+               NOT IN %(keys)s""" + scope, dict(params, keys=keys))
 
 
 def persist_compliance(cursor, reporting_year, directive=None, pollutants=None, zones=None):
@@ -187,7 +202,7 @@ def persist_compliance(cursor, reporting_year, directive=None, pollutants=None, 
 
         planned.append((row, regime_id, aggregation, method_id))
 
-    _drop_rows_no_longer_produced(cursor, reporting_year, planned)
+    _drop_rows_no_longer_produced(cursor, reporting_year, planned, zones, pollutants)
 
     for row, regime_id, aggregation, method_id in planned:
         cursor.execute("""
