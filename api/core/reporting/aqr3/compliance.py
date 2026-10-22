@@ -58,12 +58,14 @@ logger = logging.getLogger(__name__)
 # Why a sampling point produced no compliance row. The codes the derivation raises
 # (SKIP_POLLUTANT_MISMATCH and friends) travel through unchanged; these are the two this
 # module decides for itself.
+SKIP_NOT_LINKED = 'not_linked'
 SKIP_INCOMPLETE_REGIME = 'incomplete_regime'
 SKIP_DUPLICATE_KEY = 'duplicate_key'
 
 # Human wording for the Dataflow page, so the toast and the panel cannot drift from the
 # codes.
 SKIP_LABELS = {
+    SKIP_NOT_LINKED: 'sampling point not linked to an assessment regime',
     SKIP_INCOMPLETE_REGIME: 'incomplete assessment regime',
     SKIP_DUPLICATE_KEY: 'another row already covers this regime, aggregation process '
                         'and assessment method',
@@ -81,7 +83,7 @@ _EXCEEDANCE_FALSE = {'no', 'false', '0'}
 # and a total instead of the whole list.
 #
 # Stratified: up to this many PER REASON, not per run. A database missing its assessment
-# regimes produces hundreds of `incomplete_regime` entries, which under a flat cap bury
+# regimes produces hundreds of `not_linked` entries, which under a flat cap bury
 # the handful of `pollutant_mismatch` ones — and those are the only kind an operator can
 # act on row by row.
 _MAX_REPORTED_SKIPS = 20
@@ -170,13 +172,30 @@ def persist_compliance(cursor, reporting_year, directive=None, pollutants=None, 
         method_id = row.get('assessmentmethodid')
         aggregation = row.get('dataaggregationprocessid')
 
-        if not (regime_id and method_id and aggregation):
+        link_id = row.get('assessmentdataid')
+
+        # A sampling point with no Assessment data link at all. Nothing is wrong with a
+        # regime -- there is none -- so it is reported apart from the case below.
+        if not regime_id:
+            skipped.append({
+                'code': SKIP_NOT_LINKED,
+                'assessment_method_id': method_id,
+                'assessment_regime_id': None,
+                'assessment_data_id': None,
+                'reason': 'not linked to any assessment regime for the year. Add a link '
+                          'on Management -> Assessment Data, or leave it out of compliance.',
+            })
+            continue
+
+        if not (method_id and aggregation):
             skipped.append({
                 'code': SKIP_INCOMPLETE_REGIME,
                 'assessment_method_id': method_id,
                 'assessment_regime_id': regime_id,
-                'reason': 'incomplete assessment regime (missing regime id, '
-                          'assessment method id or aggregation process)',
+                'assessment_data_id': link_id,
+                'reason': f'no aggregation process (CAM_04) can be resolved for {regime_id}: '
+                          f'its objective type and reporting metric have no matching '
+                          f'threshold for this pollutant',
             })
             continue
 
@@ -187,11 +206,19 @@ def persist_compliance(cursor, reporting_year, directive=None, pollutants=None, 
         # quietly, because the two rows genuinely disagree about how the air was assessed
         # and only an operator can say which is right.
         key = (regime_id, aggregation, method_id)
+        if key in seen and seen[key].get('assessmenttype') == row.get('assessmenttype'):
+            # Two links that agree: one method assessing one regime under one type,
+            # split by validity period -- an instrument replaced part-way through the
+            # year. Together they are the one compliance situation this key names.
+            continue
         if key in seen:
             skipped.append({
                 'code': SKIP_DUPLICATE_KEY,
                 'assessment_method_id': method_id,
                 'assessment_regime_id': regime_id,
+                'assessment_data_id': link_id,
+                'assessment_data_ids': [seen[key].get('assessmentdataid'), link_id],
+                'assessment_types': [seen[key].get('assessmenttype'), row.get('assessmenttype')],
                 'reason': f'a row for {regime_id} / {aggregation} / {method_id} is '
                           f'already produced by assessment type '
                           f'{seen[key].get("assessmenttype")}; this one says '

@@ -69,19 +69,23 @@ SKIP_FORMAT_FAILED = 'format_failed'
 class Skipped:
     """A row the derivation deliberately did not produce, and why."""
 
-    __slots__ = ('code', 'reason', 'assessment_method_id', 'assessment_regime_id')
+    __slots__ = ('code', 'reason', 'assessment_method_id', 'assessment_regime_id',
+                 'assessment_data_id')
 
     def __init__(self, code, reason, assessment_method_id=None,
-                 assessment_regime_id=None):
+                 assessment_regime_id=None, assessment_data_id=None):
         self.code = code
         self.reason = reason
         self.assessment_method_id = assessment_method_id
         self.assessment_regime_id = assessment_regime_id
+        # The assessmentdata row, so the Dataflow page can open the link to fix.
+        self.assessment_data_id = assessment_data_id
 
     def as_dict(self):
         return {'code': self.code, 'reason': self.reason,
                 'assessment_method_id': self.assessment_method_id,
-                'assessment_regime_id': self.assessment_regime_id}
+                'assessment_regime_id': self.assessment_regime_id,
+                'assessment_data_id': self.assessment_data_id}
 
 
 class PlansAndProgramsExport:
@@ -299,6 +303,8 @@ class PlansAndProgramsExport:
             -- Assessment type (from assessmentdata in v4 schema)
             eat.notation as assessment_type_notation,
             eat.label as assessment_type_label,
+            -- The link row itself, so feedback can point at it (Management -> Assessment Data).
+            ad.id as assessment_data_id,
 
             -- AQR3 MOE_08 GenericMQI, for the model branch below. NULL here: a sampling
             -- point has no modelling quality indicator, and CAM_12 is its analogue.
@@ -391,6 +397,8 @@ class PlansAndProgramsExport:
 
             eat.notation as assessment_type_notation,
             eat.label as assessment_type_label,
+            -- The link row itself, so feedback can point at it (Management -> Assessment Data).
+            ad.id as assessment_data_id,
 
             -- MOE_08. A property of the method, so only a DEFAULT for CAM_13, which is
             -- the MQI of this assessment -- this regime, this pollutant, this year.
@@ -474,7 +482,7 @@ class PlansAndProgramsExport:
                     f"{row.get('regime_pollutant')} (PollutantId {regime_pollutant_id}). "
                     f"Correct the link on Management -> Assessment Data, or the "
                     f"regime's pollutant.",
-                    method_id, assessment_regime_id)
+                    method_id, assessment_regime_id, row.get('assessment_data_id'))
 
             # Past the check the two agree, so either would do -- but the regime's is the
             # one AQR3 reports and the one the identifiers are built from, so it is the
@@ -550,6 +558,8 @@ class PlansAndProgramsExport:
                 "assessmentregimeid": assessment_regime_id,
                 "dataaggregationprocessid": aggregation_process,
                 "assessmentmethodid": assessment_method_id,
+                # The assessmentdata row this came from. Additive, for the Dataflow feedback.
+                "assessmentdataid": row.get('assessment_data_id'),
                 # AQR3 v5.02 renamed these two. The pre-v5.02 keys `complianceid`
                 # and `airpollutantcode` are gone: compliance keys on AttainmentId,
                 # and PollutantId is the numeric code.

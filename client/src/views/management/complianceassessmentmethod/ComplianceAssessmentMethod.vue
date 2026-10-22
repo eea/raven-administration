@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
+import { useRoute } from "vue-router";
 import Manager from "../../../components/n-manager/Manager.vue";
 import Eventy from "../../../helpers/eventy";
 import Service from "./service";
@@ -9,6 +10,7 @@ import pageOptions from "./pageOptions";
 // this page has no add and no delete -- AQR3 retracts a row with the Deletion flag,
 // which is editable. See pageOptions.js for what is and is not editable.
 
+const route = useRoute();
 const options = ref({});
 const years = ref([]);
 const year = ref(null);
@@ -31,7 +33,9 @@ onMounted(async () => {
     return;
   }
   years.value = lookups.years ?? [];
-  year.value = years.value[0] ?? null;
+  // ?year= from a link (with ?focus=, which Manager reads), else the latest year.
+  const linked = Number(route.query.year);
+  year.value = years.value.includes(linked) ? linked : years.value[0] ?? null;
   options.value = pageOptions(lookups);
 });
 </script>

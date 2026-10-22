@@ -1,5 +1,6 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 import Eventy from "../../helpers/eventy";
 import Crud from "./Crud.vue";
 import GridDataTable from "./GridDataTable.vue";
@@ -9,6 +10,7 @@ import ToolBar from "../ToolBar.vue";
 import CommonLayout from "../CommonLayout.vue";
 import CMenuItems from "../CMenuItems.vue";
 import CmdK from "../CmdK.vue";
+import { focusKeys, focusRows } from "../../helpers/focusRows";
 
 const emit = defineEmits(["context-menu-action"]);
 
@@ -57,6 +59,7 @@ const { q, filteredList } = useFilter(data);
 
 onMounted(async () => {
   await loadData();
+  await applyFocus();
 });
 
 const loadData = async () => {
@@ -116,6 +119,34 @@ const cmp_keyProps = computed(() => props.options?.keyProps ?? ["id"]);
 const isCompositeKey = computed(() => cmp_keyProps.value.length > 1);
 
 const keyOf = (row) => Object.fromEntries(cmp_keyProps.value.map((k) => [k, row?.[k]]));
+
+// Deep link: ?focus=<key>[,<key>...] selects, highlights and scrolls to those rows. A
+// composite key is its values joined with "|", in keyProps order. The Dataflow page's
+// recalculation feedback links here, so the row to fix is on screen, not somewhere in
+// a few hundred.
+const route = useRoute();
+const gridApi = ref(null);
+const focused = ref(new Set());
+const keyString = (row) => cmp_keyProps.value.map((k) => row?.[k] ?? "").join("|");
+
+const applyFocus = async () => {
+  const keys = focusKeys(route.query);
+  focused.value = new Set(keys);
+  if (!keys.length) return;
+  q.value = ""; // a search left in the toolbar must not hide the row
+  await nextTick();
+  const found = await focusRows(() => gridApi.value, keyString, keys);
+  if (!found) Eventy.showHideMessage(`${keys.join(", ")} is not in ${props.name}`, "warning", 5000);
+};
+
+watch(() => route.query.focus, applyFocus);
+
+const getRowStyle = (params) => {
+  if (focused.value.size && focused.value.has(keyString(params.data))) {
+    return { background: "#ebcb8b66" };
+  }
+  return props.options?.getRowStyle?.(params) ?? null;
+};
 
 const saveEdit = async (o) => {
   Eventy.showMessage("Updating data, Please wait!", "loading");
@@ -193,7 +224,7 @@ const cmp_properties = computed(() => {
     </tool-bar>
     <input ref="fileInput" type="file" accept=".csv,.gpkg" class="hidden" @change="onFileChange" />
 
-    <grid-data-table v-model:selected="selected" :properties="cmp_properties" :values="filteredList" :get-row-style="options.getRowStyle" @context-menu-action="onContextMenuAction" @on-dbl-click="onDoubleClick">
+    <grid-data-table v-model:selected="selected" :properties="cmp_properties" :values="filteredList" :get-row-style="getRowStyle" @grid-ready="(api) => (gridApi = api)" @context-menu-action="onContextMenuAction" @on-dbl-click="onDoubleClick">
       <template #context-menu-items="{ handleAction, contextData }">
         <CMenuItems :show-duplicate="showDuplicate" :show-delete="showDeleteButton" @edit="handleAction('edit')" @delete="handleAction('delete')" @duplicate="handleAction('duplicate')" />
         <slot name="extra-context-menu-items" v-bind="{ handleAction, contextData }" />

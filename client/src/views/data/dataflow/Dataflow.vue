@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
 import Service from "./service";
 import Eventy from "../../../helpers/eventy";
 import CommonLayout from "../../../components/CommonLayout.vue";
@@ -26,6 +27,23 @@ const scope = ref(null);
 // one of whose rows was skipped -- means a regime is declared in AssessmentRegimeZone
 // and reports no compliance at all, which nobody spots from a number.
 const recalc = ref(null);
+
+// Each feedback line links to the Management page where it is fixed, opened on the row
+// (Manager reads ?focus=). The target follows from the reason:
+//   not_linked                     the sampling point; the fix is a new Assessment data link
+//   duplicate_key, pollutant_mismatch  the Assessment data link(s) that disagree
+//   incomplete_regime, malformed_regime_id  the regime
+const router = useRouter();
+const openRows = (name, keys) => {
+  const focus = (keys ?? []).filter(Boolean).join(",");
+  router.push(focus ? { name, query: { focus } } : { name });
+};
+const isModel = (id) => /^(MOD|OBE)_/.test(id ?? "");
+const openMethod = (entry) => {
+  const links = entry.assessment_data_ids ?? (entry.assessment_data_id ? [entry.assessment_data_id] : []);
+  if (entry.code !== "not_linked" && links.length) return openRows("AssessmentData", links);
+  openRows(isModel(entry.assessment_method_id) ? "Models" : "SamplingPoints", [entry.assessment_method_id]);
+};
 
 // Outstanding upgrade tasks, shown above the export. A migrated database can be
 // perfectly healthy as a database and still produce a submission Reportnet 3
@@ -235,7 +253,10 @@ const downloadAll = async () => {
             compliance row at all
           </div>
           <div class="text-nord3 font-mono text-xs mt-1">
-            {{ recalc.regimes_without_rows.join(", ") }}
+            <template v-for="(regime, i) in recalc.regimes_without_rows" :key="regime">
+              <span v-if="i">, </span>
+              <a class="hover:underline cursor-pointer text-nord10" @click="openRows('AssessmentRegimes', [regime])">{{ regime }}</a>
+            </template>
           </div>
           <div class="text-nord3 text-xs mt-1">
             They are still declared in AssessmentRegimeZone, so the submission claims the
@@ -246,8 +267,18 @@ const downloadAll = async () => {
 
         <ul v-if="recalc.skipped?.length" class="mt-2 text-nord3 text-xs list-disc pl-5">
           <li v-for="(entry, i) in recalc.skipped" :key="i">
-            <span class="font-mono">{{ entry.assessment_method_id ?? "—" }}</span>
+            <a v-if="entry.assessment_method_id" class="font-mono hover:underline cursor-pointer text-nord10"
+              :title="entry.code === 'not_linked' ? 'Open the sampling point' : 'Open the Assessment data link(s)'"
+              @click="openMethod(entry)">{{ entry.assessment_method_id }}</a>
+            <span v-else class="font-mono">—</span>
+            <template v-if="entry.assessment_regime_id">
+              /
+              <a class="font-mono hover:underline cursor-pointer text-nord10" title="Open the assessment regime"
+                @click="openRows('AssessmentRegimes', [entry.assessment_regime_id])">{{ entry.assessment_regime_id }}</a>
+            </template>
             — {{ entry.reason }}
+            <a v-if="entry.code === 'not_linked'" class="hover:underline cursor-pointer text-nord10 whitespace-nowrap"
+              @click="openRows('AssessmentData')">Add a link →</a>
           </li>
         </ul>
       </div>

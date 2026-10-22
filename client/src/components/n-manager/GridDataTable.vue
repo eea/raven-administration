@@ -13,7 +13,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(["update:selected", "on-dbl-click", "context-menu-action"]);
+const emit = defineEmits(["update:selected", "on-dbl-click", "context-menu-action", "grid-ready"]);
 
 // Properties that the user can toggle on/off (showInGrid or defaultHidden)
 const toggleableProps = computed(() =>
@@ -161,6 +161,7 @@ const onDoubleClick = (data, event, gridEvent) => {
         :show-copy-options="true"
         @context-menu-action="onContextMenuAction"
         @on-double-click="onDoubleClick"
+        @grid-ready="(api) => emit('grid-ready', api)"
       >
         <template #context-menu-items="slotProps">
           <slot name="context-menu-items" v-bind="slotProps" />
