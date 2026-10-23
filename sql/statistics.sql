@@ -25,13 +25,11 @@ comment on table eea_aggregationprocess is 'EEA aggregation process types (e.g.,
 
 create table if not exists statistics
 (
-    pollutant_uri          text                  not null
-        constraint statistics_eea_pollutants_uri_fk
-            references eea_pollutants
+    pollutant_id           integer               not null
+        references eea_pollutants
             on update cascade on delete cascade,
-    aggregation_process_id text                  not null
-        constraint statistics_eea_aggregationprocess_id_fk
-            references eea_aggregationprocess
+    aggregation_process_id varchar(100)          not null
+        references eea_aggregationprocess
             on update cascade on delete cascade,
     directive_2008_50      boolean default false not null,
     directive_2024_2881    boolean default false not null
@@ -148,104 +146,103 @@ select v.notation as id, v.label, v.notation,
 on conflict (id) do nothing;
 
 
--- NOT FIXED HERE, and it does not work on a v4 database: the rows below name
--- `pollutant_uri` and pass a URI for `aggregation_process_id`, but sql/schema.sql
--- declares `statistics (pollutant_id integer, aggregation_process_id varchar(100))`.
--- Every one of these INSERTs therefore fails with "column pollutant_uri does not
--- exist" on any database built from schema.sql. That is a stale-column-name defect
--- rather than an id-convention one -- sql/aqi.sql has the same problem -- and it
--- needs the seed re-derived against the v4 shape, so it is left for its own change.
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/1', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/winter-avg', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/AOT40c', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/AOT40c-P5Y', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/1', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/5', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/8', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/9', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/10', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/38', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/6001', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/1', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/5', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/8', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/9', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/10', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/38', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/6001', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/1', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/5', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/8', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/9', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/10', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/38', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/6001', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hr-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/1', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/5', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/8', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/9', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/10', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/38', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/6001', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-max', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/1', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/5', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/8', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/9', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/10', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/38', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/6001', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-day-min', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/1', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-P1D-per99', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-P1D-per99', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/5', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-P1D-per99', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/8', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-P1D-per99', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/10', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-P1D-per99', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/6001', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-P1D-per99', true, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/6001', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-3daysAbove50', false, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/5', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-3daysAbove90', false, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/1', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-daysAbove125', true, false);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/6001', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-daysAbove25', false, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/10', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-daysAbove4', false, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/5', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-daysAbove45', false, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/5', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-daysAbove50', true, false);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/8', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-daysAbove50', false, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/1', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-daysAbove50', false, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/6001', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-daysAbove50', false, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/5', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-daysAbove90', false, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-dmaxAbove100', false, true);
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-dmaxAbove120', true, false);
-
-------------------------------------------------------------------------------------
--- NEW AGGREGATIONS (added Dec 2025)
-------------------------------------------------------------------------------------
-
--- 3 Consecutive Hour Exceedances
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/8', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-3hAbove200', false, true);  -- NO2
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/1', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-3hAbove350', false, true);  -- SO2
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/8', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-3hAbove400', true, false);  -- NO2
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/1', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-3hAbove500', true, false);  -- SO2
-
--- 8-Hour Max Exceedances
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/10', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-8hdmxAbove10', true, true);  -- CO
-
--- Hourly Exceedances
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/8', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hrsAbove150', false, true);  -- NO2
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hrsAbove180', true, true);  -- O3
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/8', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hrsAbove200', true, true);  -- NO2
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hrsAbove240', true, true);  -- O3
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/1', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hrsAbove275', false, true);  -- SO2
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/1', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-hrsAbove350', true, true);  -- SO2
-
--- Percentile
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P1Y-dmax-per99', false, true);  -- O3
-
--- Multi-Year
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/P3Y-dmaxAbove120', true, true);  -- O3
-
--- SOMO Indicators  
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/SOMO10', true, true);  -- O3
-INSERT INTO statistics (pollutant_uri, aggregation_process_id, directive_2008_50, directive_2024_2881) VALUES ('http://dd.eionet.europa.eu/vocabulary/aq/pollutant/7', 'http://dd.eionet.europa.eu/vocabulary/aq/aggregationprocess/SOMO35', true, true);  -- O3
-
+-- Which statistics the Statistics page offers per pollutant, and under which directive.
+--
+-- The v4 shape, as sql/schema.sql declares it: the numeric pollutant id, and the short
+-- aggregation process id (the convention migration 016 established). This seed used to
+-- name a v3 `pollutant_uri` column and pass URIs, so every row failed on a v4 database
+-- and the Statistics page listed no pollutants -- dev-raven4 had 0 rows.
+--
+-- Idempotent: a pair already present is left alone, so running this again, or on a
+-- database that curated its own configuration, adds only what is missing. Migration
+-- 032_statistics_seed.sql inserts the same rows into a database whose table is empty,
+-- and the migrate wizard runs this file when the v3 source had none.
+insert into statistics (pollutant_id, aggregation_process_id, directive_2008_50,
+                        directive_2024_2881)
+select v.pollutant_id, v.aggregation_process_id, v.directive_2008_50, v.directive_2024_2881
+  from (values
+          (   1, 'winter-avg',              true,  true),
+          (   7, 'AOT40c',                  true,  true),
+          (   7, 'AOT40c-P5Y',              true,  true),
+          (   1, 'P1Y',                     true,  true),
+          (   7, 'P1Y',                     true,  true),
+          (   5, 'P1Y',                     true,  true),
+          (   8, 'P1Y',                     true,  true),
+          (   9, 'P1Y',                     true,  true),
+          (  10, 'P1Y',                     true,  true),
+          (  38, 'P1Y',                     true,  true),
+          (6001, 'P1Y',                     true,  true),
+          (   1, 'P1Y-hr-max',              true,  true),
+          (   7, 'P1Y-hr-max',              true,  true),
+          (   5, 'P1Y-hr-max',              true,  true),
+          (   8, 'P1Y-hr-max',              true,  true),
+          (   9, 'P1Y-hr-max',              true,  true),
+          (  10, 'P1Y-hr-max',              true,  true),
+          (  38, 'P1Y-hr-max',              true,  true),
+          (6001, 'P1Y-hr-max',              true,  true),
+          (   1, 'P1Y-hr-min',              true,  true),
+          (   7, 'P1Y-hr-min',              true,  true),
+          (   5, 'P1Y-hr-min',              true,  true),
+          (   8, 'P1Y-hr-min',              true,  true),
+          (   9, 'P1Y-hr-min',              true,  true),
+          (  10, 'P1Y-hr-min',              true,  true),
+          (  38, 'P1Y-hr-min',              true,  true),
+          (6001, 'P1Y-hr-min',              true,  true),
+          (   1, 'P1Y-day-max',             true,  true),
+          (   7, 'P1Y-day-max',             true,  true),
+          (   5, 'P1Y-day-max',             true,  true),
+          (   8, 'P1Y-day-max',             true,  true),
+          (   9, 'P1Y-day-max',             true,  true),
+          (  10, 'P1Y-day-max',             true,  true),
+          (  38, 'P1Y-day-max',             true,  true),
+          (6001, 'P1Y-day-max',             true,  true),
+          (   1, 'P1Y-day-min',             true,  true),
+          (   7, 'P1Y-day-min',             true,  true),
+          (   5, 'P1Y-day-min',             true,  true),
+          (   8, 'P1Y-day-min',             true,  true),
+          (   9, 'P1Y-day-min',             true,  true),
+          (  10, 'P1Y-day-min',             true,  true),
+          (  38, 'P1Y-day-min',             true,  true),
+          (6001, 'P1Y-day-min',             true,  true),
+          (   1, 'P1Y-P1D-per99',           true,  true),
+          (   7, 'P1Y-P1D-per99',           true,  true),
+          (   5, 'P1Y-P1D-per99',           true,  true),
+          (   8, 'P1Y-P1D-per99',           true,  true),
+          (  10, 'P1Y-P1D-per99',           true,  true),
+          (6001, 'P1Y-P1D-per99',           true,  true),
+          (6001, 'P1Y-3daysAbove50',       false,  true),
+          (   5, 'P1Y-3daysAbove90',       false,  true),
+          (   1, 'P1Y-daysAbove125',        true, false),
+          (6001, 'P1Y-daysAbove25',        false,  true),
+          (  10, 'P1Y-daysAbove4',         false,  true),
+          (   5, 'P1Y-daysAbove45',        false,  true),
+          (   5, 'P1Y-daysAbove50',         true, false),
+          (   8, 'P1Y-daysAbove50',        false,  true),
+          (   1, 'P1Y-daysAbove50',        false,  true),
+          (6001, 'P1Y-daysAbove50',        false,  true),
+          (   5, 'P1Y-daysAbove90',        false,  true),
+          (   7, 'P1Y-dmaxAbove100',       false,  true),
+          (   7, 'P1Y-dmaxAbove120',        true, false),
+          (   8, 'P1Y-3hAbove200',         false,  true),
+          (   1, 'P1Y-3hAbove350',         false,  true),
+          (   8, 'P1Y-3hAbove400',          true, false),
+          (   1, 'P1Y-3hAbove500',          true, false),
+          (  10, 'P1Y-8hdmxAbove10',        true,  true),
+          (   8, 'P1Y-hrsAbove150',        false,  true),
+          (   7, 'P1Y-hrsAbove180',         true,  true),
+          (   8, 'P1Y-hrsAbove200',         true,  true),
+          (   7, 'P1Y-hrsAbove240',         true,  true),
+          (   1, 'P1Y-hrsAbove275',        false,  true),
+          (   1, 'P1Y-hrsAbove350',         true,  true),
+          (   7, 'P1Y-dmax-per99',         false,  true),
+          (   7, 'P3Y-dmaxAbove120',        true,  true),
+          (   7, 'SOMO10',                  true,  true),
+          (   7, 'SOMO35',                  true,  true)
+       ) as v(pollutant_id, aggregation_process_id, directive_2008_50, directive_2024_2881)
+ -- Only pairs whose vocabulary rows exist: a missing pollutant or aggregation process
+ -- would otherwise fail the whole statement on its foreign key.
+ where exists (select 1 from eea_pollutants p where p.id = v.pollutant_id)
+   and exists (select 1 from eea_aggregationprocess a where a.id = v.aggregation_process_id)
+   and not exists (select 1 from statistics s
+                    where s.pollutant_id = v.pollutant_id
+                      and s.aggregation_process_id = v.aggregation_process_id);

@@ -2652,5 +2652,8 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
        ('4.502.30', 'baseline: no-op on a fresh install -- sql/data.sql already fills '
                     'an empty eea_*.notation from the id (migration 030)'),
        ('4.502.31', 'baseline: schema.sql declares eea_environmentalobjective.id as text '
-                    '(migration 031)')
+                    '(migration 031)'),
+       -- 032 seeds an empty statistics table; a fresh install runs sql/statistics.sql.
+       ('4.502.32', 'baseline: no-op on a fresh install -- sql/statistics.sql seeds '
+                    'statistics (migration 032)')
 on conflict (version) do nothing;

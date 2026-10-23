@@ -1990,13 +1990,30 @@ class Migration:
         self.stats['directives'] = len(rows)
         log(f"   ✓ directives: {len(rows)} rows")
 
+    def _seed_statistics(self, tgt, why):
+        """Load sql/statistics.sql, the default statistics configuration.
+
+        The Statistics page lists only what this table holds, so a source with none
+        left the page empty (Malta, dev-raven4). schema.sql's baseline records migration
+        032 -- which seeds an empty table -- as applied, so nothing later fills it.
+        """
+        seed_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'statistics.sql')
+        with open(seed_file, 'r', encoding='utf-8') as f:
+            tgt.execute(f.read())
+        tgt.execute("SELECT count(*) FROM statistics")
+        seeded = tgt.fetchone()[0]
+        self.stats['statistics'] = seeded
+        log(f"   ✓ statistics: {why} - seeded {seeded} rows from statistics.sql")
+
     def _migrate_statistics(self, src, tgt):
         if not self.source_has_table('statistics'):
-            log("   ⚠ statistics: no such table in the v3 source - skipped")
-            self.stats['statistics'] = 0
+            self._seed_statistics(tgt, 'no such table in the v3 source')
             return
         src.execute("SELECT * FROM statistics")
         rows = src.fetchall()
+        if not rows:
+            self._seed_statistics(tgt, 'the v3 source has no rows')
+            return
         cols = [desc[0] for desc in src.description]
         
         for row in rows:
