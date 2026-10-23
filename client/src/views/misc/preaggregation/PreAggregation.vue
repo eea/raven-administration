@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import Container from "../../../components/Container.vue";
 import CommonLayout from "../../../components/CommonLayout.vue";
@@ -35,8 +35,45 @@ const columns = [
   }
 ];
 
+// The refresh runs in the background on the server: it outlived the HTTP request, so
+// the page reported a failure while the database went on and finished. Poll its status
+// instead, and pick up a refresh already running (started here earlier, or by the cron).
+const running = ref(false);
+let timer = null;
+
+const poll = async () => {
+  let still = true;
+  try {
+    ({ running: still } = await Service.status());
+  } catch {
+    // A failed poll is not a finished refresh; try again on the next tick.
+  }
+  if (still) {
+    timer = setTimeout(poll, 5000);
+    return;
+  }
+  running.value = false;
+  timer = null;
+  await loadData();
+  Eventy.hideMessage();
+  Eventy.showHideMessage("Aggregation finished", "success", 4000);
+};
+
+const watchRefresh = () => {
+  running.value = true;
+  Eventy.showMessage("Aggregating data. This may take several minutes -- you can leave this page.", "loading");
+  timer = setTimeout(poll, 5000);
+};
+
 onMounted(async () => {
   await loadData();
+  const { running: busy } = await Service.status();
+  if (busy) watchRefresh();
+});
+
+onUnmounted(() => {
+  if (timer) clearTimeout(timer);
+  if (running.value) Eventy.hideMessage();
 });
 
 const loadData = async () => {
@@ -44,10 +81,9 @@ const loadData = async () => {
 };
 
 const update = async () => {
-  Eventy.showMessage("Aggregating data. Please wait", "loading");
+  if (running.value) return;
   await Service.update();
-  await loadData();
-  Eventy.hideMessage();
+  watchRefresh();
 };
 </script>
 
@@ -57,7 +93,7 @@ const update = async () => {
 
     <container>
       <div class="font-bold">Pre aggregating the data may take a while, depending on the amount of data stored in the database</div>
-      <div><button class="button" @click="update">Manually aggregate data</button></div>
+      <div><button class="button" :disabled="running" @click="update">{{ running ? "Aggregating..." : "Manually aggregate data" }}</button></div>
     </container>
     <div class="flex-1 mt-4 min-h-0">
       <DataTable :data="data" :columns="columns" :filter="true" :floating-filter="false" :responsive="true" />
