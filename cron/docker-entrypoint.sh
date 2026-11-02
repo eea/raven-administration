@@ -34,15 +34,18 @@ except Exception as e:
     exit(1)
 "
 
-# Test SMTP configuration
-echo "Testing SMTP configuration..."
+# Show mail configuration
+echo "Checking mail configuration..."
 python3 -c "
 import os
 from dotenv import load_dotenv
 load_dotenv()
-smtp_server = os.environ.get('SMTP_SERVER', 'localhost')
-smtp_port = os.environ.get('SMTP_PORT', '25')
-print(f'✅ SMTP configured: {smtp_server}:{smtp_port}')
+if os.environ.get('MAIL_METHOD', 'smtp').lower() == 'graph':
+    print(f'✅ Graph API configured, sender: {os.environ.get(\"GRAPH_SENDER\")}')
+else:
+    smtp_server = os.environ.get('SMTP_SERVER', 'localhost')
+    smtp_port = os.environ.get('SMTP_PORT', '25')
+    print(f'✅ SMTP configured: {smtp_server}:{smtp_port}')
 "
 
 # Generate crontab based on environment variables
