@@ -31,6 +31,7 @@ git clone https://git.nilu.no/raven/raven-administration
 8. Run the `sql\aqi.sql` script
 9. Run the `sql\notifications.sql` script
 10. Run the `sql\meteo_concentration.sql` script
+11. Run the `sql\strong_acidity.sql` script
 
 ## Set environment varables
 

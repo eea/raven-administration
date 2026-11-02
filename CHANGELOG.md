@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.5.9] - 2026-11-02
+
+### Added
+
+- Pollutant Strong acidity (SA), `http://dd.eionet.europa.eu/vocabulary/aq/pollutant/3`. Run the [sql file](sql/strong_acidity.sql) to make it available.
+
 ## [3.5.8] - 2026-10-09
 
 ### Changed
