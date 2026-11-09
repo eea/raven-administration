@@ -9,6 +9,8 @@ const Service = {
   // The key travels separately from the values, but only to address the row: it is
   // derived from the assessment regime and method and is not editable.
   update: async (key, values) => Post(`${BASE}/update`, { key, values }),
+  // The same recalculation as Dataflow's button, under the management claim.
+  recalculate: async (year) => Post(`${BASE}/recalculate`, { year }),
 };
 
 export default Service;

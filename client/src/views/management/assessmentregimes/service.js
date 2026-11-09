@@ -7,7 +7,8 @@ const Service = {
   delete: async (data) => Post("/api/management/assessmentregimes/delete", data),
   lookups: async () => Get("/api/management/assessmentregimes/lookups"),
   // Bulk fill, inherited from the retired assessmentregimezones grid.
-  candidates: async (year) => Get(`/api/management/assessmentregimes/candidates?year=${year}`),
+  candidates: async (year, scope = "measured") =>
+    Get(`/api/management/assessmentregimes/candidates?year=${year}&scope=${scope}`),
   generate: async (data) => Post("/api/management/assessmentregimes/generate", data),
   // A regime's assessment methods (AQR3 CAM_05), edited row by row through the
   // Assessment data API. Never replaced as a set: v3 did that, and the delete half

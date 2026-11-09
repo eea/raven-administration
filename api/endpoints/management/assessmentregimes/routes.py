@@ -19,6 +19,7 @@ from pydantic import ValidationError
 from werkzeug.exceptions import BadRequest
 
 from core.database import CursorFromPool
+from core.eea import assessment_threshold as at
 from core.eea.id_generator import EEAIDGenerator, IdentifierError, validate_identifier
 from core.jwt_ext_custom import (jwt_required_with_allnetworks_claim,
                                 jwt_required_with_management_claim)
@@ -50,6 +51,51 @@ def _validated(model):
     except IdentifierError as e:
         raise BadRequest(str(e))
     return model
+
+
+# The environmental objectives a regime decomposes from. Several can match (the UAT/LAT
+# objective and the LTO one share pollutant, objective type, target and metric), so the
+# allowed classifications are their union.
+_OBJECTIVES_OF_REGIME = """
+    SELECT eo.assessment_threshold
+      FROM eea_environmentalobjective eo
+      LEFT JOIN eea_protectiontargets pt ON pt.uri = eo.protection_target
+      LEFT JOIN eea_reportingmetrics rm  ON rm.uri = eo.reporting_metric
+      LEFT JOIN eea_objectivetypes ot    ON eo.objective_type IN (ot.id, ot.uri, ot.notation)
+     WHERE eo.related_pollutant = %(pollutant_id)s
+       AND ot.id IS NOT DISTINCT FROM %(objective_type_id)s
+       AND pt.id IS NOT DISTINCT FROM %(protection_target_id)s
+       AND rm.id IS NOT DISTINCT FROM %(reporting_metric_id)s
+"""
+
+
+def _allowed_thresholds(cursor, model):
+    """The AssessmentThresholdExceedance values the regime's objective allows, or None
+    when no objective matches (an empty vocabulary, or a hand-made combination)."""
+    cursor.execute(_OBJECTIVES_OF_REGIME, {
+        'pollutant_id': model.pollutant_id, 'objective_type_id': model.objective_type_id,
+        'protection_target_id': model.protection_target_id,
+        'reporting_metric_id': model.reporting_metric_id})
+    rows = cursor.fetchall()
+    if not rows:
+        return None
+    return {value for row in rows for value in at.allowed_values(row['assessment_threshold'])}
+
+
+def _check_threshold(cursor, model):
+    """Refuse a classification the environmental objective does not allow.
+
+    The vocabulary lists them per objective -- aboveUAT/LAT-UAT/belowLAT for a limit
+    value, aboveLTO/belowLTO for ozone's long-term objective, NA for an alert threshold
+    -- and Reportnet3 rejects anything else.
+    """
+    value = model.assessment_threshold_exceedance_id
+    if not value:
+        return
+    allowed = _allowed_thresholds(cursor, model)
+    if allowed and value not in allowed:
+        raise BadRequest(f'Assessment threshold exceedance {value} is not allowed for this '
+                         f'objective; the vocabulary allows {", ".join(sorted(allowed))}.')
 
 
 def _derive_id(cursor, model):
@@ -176,6 +222,7 @@ def assessmentregimes_insert():
         if not model.id:
             model = model.model_copy(update={'id': _derive_id(cursor, model)})
         _validated(model)
+        _check_threshold(cursor, model)
         cursor.execute(f'INSERT INTO assessment_regimes ({columns}) VALUES ({values})', model)
 
     return jsonify({'msg': 'Assessment regime created successfully', 'id': model.id})
@@ -201,6 +248,7 @@ def assessmentregimes_update():
         existing = cursor.fetchone() is not None
         if not existing:
             _validated(model)
+        _check_threshold(cursor, model)
 
         assignments = ', '.join(f'{c} = %({c})s' for c in COLUMNS)
         cursor.execute(f"""
@@ -335,7 +383,20 @@ _CANDIDATE_SQL = """
                pt.id                                   AS protection_target_id,
                pt.notation                             AS protection_target,
                rm.id                                   AS reporting_metric_id,
-               rm.notation                             AS reporting_metric
+               rm.notation                             AS reporting_metric,
+               eo.assessment_threshold                 AS allowed_thresholds,
+               -- Reporting sampling points measuring the pollutant inside the zone,
+               -- located by their station's coordinates, active during the year.
+               (SELECT count(*) FROM sampling_points sp
+                  JOIN stations st ON st.id = sp.station_id
+                 WHERE sp.pollutant_id = eo.related_pollutant
+                   AND sp.report_to_eea AND st.report_to_eea
+                   AND st.longitude IS NOT NULL AND st.latitude IS NOT NULL
+                   AND (sp.from_time IS NULL OR sp.from_time < make_date(%(year)s + 1, 1, 1))
+                   AND (sp.to_time IS NULL OR sp.to_time >= make_date(%(year)s, 1, 1))
+                   AND {in_zone})                     AS n_points,
+               (SELECT count(*) FROM models m
+                 WHERE m.pollutant_id = eo.related_pollutant) AS n_models
         FROM zones z
         CROSS JOIN eea_environmentalobjective eo
         LEFT JOIN eea_pollutants p         ON p.id  = eo.related_pollutant
@@ -374,8 +435,34 @@ _CANDIDATE_SQL = """
         -- eo.id last makes the surviving representative deterministic.
         ORDER BY z.id, eo.related_pollutant, ot.id, pt.id, rm.id, eo.id
     ) c
+    -- scope 'measured' (the wizard's default) keeps what the zone actually assesses: a
+    -- pollutant with a sampling point inside the zone, or a model for it (models carry
+    -- no location). It also drops the margin-of-tolerance objectives, which applied
+    -- only under a time extension and lapsed in 2015. 'all' lists every combination.
+    WHERE %(scope)s = 'all'
+       OR ((c.n_points > 0 OR c.n_models > 0)
+           AND c.objective_type IS DISTINCT FROM 'LVMOT'
+           AND c.objective_type IS DISTINCT FROM 'LVmaxMOT')
     ORDER BY c.zone_national_code, c.pollutant, c.objective_type
-"""
+""".replace('{in_zone}', at.IN_ZONE)
+
+
+def _with_proposals(cursor, rows, year):
+    """Add each candidate's proposed AssessmentThresholdExceedance and its basis.
+
+    From the five years before the classification year, measured inside the zone; see
+    core/eea/assessment_threshold.py. A zone's statistics are read once per threshold,
+    however many objectives share them.
+    """
+    cache = {}
+    for row in rows:
+        allowed = at.allowed_values(row.get('allowed_thresholds'))
+        row['allowed_thresholds'] = allowed
+        proposal = at.classify(cursor, row['zone_id'], row['pollutant_id'],
+                               row.get('protection_target'), allowed, year, cache)
+        row['proposed_threshold_exceedance'] = proposal['value']
+        row['proposal_basis'] = proposal['basis']
+    return rows
 
 
 @assessmentregimes_endpoint.route('/api/management/assessmentregimes/candidates',
@@ -383,14 +470,23 @@ _CANDIDATE_SQL = """
 @jwt_required_with_management_claim()
 @jwt_required_with_allnetworks_claim()
 def assessmentregimes_candidates():
-    """Zone x environmental-objective combinations with no regime yet for a year."""
+    """Zone x environmental-objective combinations with no regime yet for a year.
+
+    ?scope=measured (default) or all; ?classify=0 skips the proposed classification.
+    """
     year = request.args.get('year', type=int)
     if year is None:
         raise BadRequest('A "year" query parameter is required')
+    scope = request.args.get('scope', 'measured')
+    if scope not in ('measured', 'all'):
+        raise BadRequest('"scope" is measured or all')
 
     with CursorFromPool() as cursor:
-        cursor.execute(_CANDIDATE_SQL, {'year': year})
-        return jsonify(cursor.fetchall())
+        cursor.execute(_CANDIDATE_SQL, {'year': year, 'scope': scope})
+        rows = cursor.fetchall()
+        if request.args.get('classify', '1') != '0':
+            rows = _with_proposals(cursor, rows, year)
+        return jsonify(rows)
 
 
 @assessmentregimes_endpoint.route('/api/management/assessmentregimes/generate',
@@ -413,19 +509,52 @@ def assessmentregimes_generate():
     if not wanted:
         raise BadRequest('Select at least one combination to generate')
 
-    # The two optional annotations the retired grid existed to set.
+    # The two optional annotations the retired grid existed to set. A classification
+    # given per combination wins over the one for the whole batch, and that over the
+    # proposal computed from the zone's measurements. A combination that names the key
+    # with an empty value asks for none: the user cleared the proposal.
     threshold = body.get('assessment_threshold_exceedance_id') or None
     document = body.get('classification_document_id') or None
 
-    keys = {(str(c.get('zone_id')), c.get('environmental_objective_id')) for c in wanted}
+    unset = object()
+    chosen = {(str(c.get('zone_id')), c.get('environmental_objective_id')):
+              (c.get('assessment_threshold_exceedance_id') or None)
+              if 'assessment_threshold_exceedance_id' in c else unset for c in wanted}
 
-    created, skipped = [], 0
+    def key(row):
+        return str(row['zone_id']), row['environmental_objective_id']
+
+    created, skipped, refused = [], 0, []
     with CursorFromPool() as cursor:
-        cursor.execute(_CANDIDATE_SQL, {'year': year})
-        candidates = [row for row in cursor.fetchall()
-                      if (str(row['zone_id']), row['environmental_objective_id']) in keys]
+        # 'all': whatever the dialog listed, any existing combination may be generated.
+        cursor.execute(_CANDIDATE_SQL, {'year': year, 'scope': 'all'})
+        candidates = [row for row in cursor.fetchall() if key(row) in chosen]
+        if all(chosen[key(row)] is not unset or threshold for row in candidates):
+            for row in candidates:
+                row['allowed_thresholds'] = at.allowed_values(row['allowed_thresholds'])
+        else:
+            candidates = _with_proposals(cursor, candidates, year)
+
+        # Checked before anything is written, so a refusal leaves nothing half done.
+        for row in candidates:
+            allowed = row['allowed_thresholds']
+            given = chosen[key(row)]
+            value = (given if given is not unset
+                     else threshold or row.get('proposed_threshold_exceedance'))
+            if value and allowed and value not in allowed:
+                if given is not unset:
+                    refused.append(f'{row["zone_national_code"]} {row["pollutant"]} '
+                                   f'{row["objective_type"]}: {value}')
+                # The batch-wide value does not fit this objective: fall back to the
+                # proposal rather than refuse the row.
+                value = row.get('proposed_threshold_exceedance')
+            row['threshold_value'] = value
+        if refused:
+            raise BadRequest('Not an allowed classification for the objective: '
+                             + '; '.join(refused[:10]) + (' ...' if len(refused) > 10 else ''))
 
         for row in candidates:
+            value = row['threshold_value']
             try:
                 model = AssessmentRegimeModel(
                     id=None,
@@ -434,7 +563,7 @@ def assessmentregimes_generate():
                     protection_target_id=row['protection_target_id'],
                     objective_type_id=row['objective_type_id'],
                     reporting_metric_id=row['reporting_metric_id'],
-                    assessment_threshold_exceedance_id=threshold,
+                    assessment_threshold_exceedance_id=value,
                     classification_year=year,
                     classification_document_id=document,
                 )

@@ -30,6 +30,7 @@ from werkzeug.exceptions import BadRequest, HTTPException
 
 from core.data.csv_import import csv_response, import_rows, read_csv_rows
 from core.database import CursorFromPool
+from core.eea.assessment_threshold import IN_ZONE
 from core.jwt_ext_custom import (jwt_required_with_allnetworks_claim,
                                  jwt_required_with_management_claim)
 from core.query import DeleteModel, Q
@@ -316,6 +317,66 @@ def assessmentdata_candidates():
 
         return jsonify({'regime': found, 'sampling_points': sampling_points,
                         'models': models})
+
+
+# Every regime of a year x every reporting sampling point that measures the regime's
+# pollutant inside the regime's zone. The zone is matched by the station's coordinates,
+# since a sampling point carries no zone of its own; zones overlap (a PAH zone often
+# covers a whole country), which is why the pollutant has to match as well.
+_YEAR_CANDIDATES_SQL = """
+    SELECT ar.id AS assessment_regime_id,
+           z.zone_national_code, z.name AS zone_name,
+           COALESCE(NULLIF(p.notation, ''), p.label) AS pollutant,
+           ot.notation AS objective_type, pt.notation AS protection_target,
+           rm.notation AS reporting_metric,
+           sp.id AS sampling_point_id, st.name AS station_name,
+           sp.sampling_point_reference_id,
+           -- The type this point was linked with before, if ever; else fixed.
+           COALESCE((SELECT ad.assessmenttype FROM assessmentdata ad
+                      WHERE ad.sampling_point_id = sp.id
+                      ORDER BY ad.to_time DESC NULLS FIRST, ad.id LIMIT 1),
+                    'fixed') AS assessmenttype
+      FROM assessment_regimes ar
+      JOIN zones z ON z.id = ar.zone_id
+      LEFT JOIN eea_pollutants p ON p.id = ar.pollutant_id
+      LEFT JOIN eea_objectivetypes ot ON ot.id = ar.objective_type_id
+      LEFT JOIN eea_protectiontargets pt ON pt.id = ar.protection_target_id
+      LEFT JOIN eea_reportingmetrics rm ON rm.id = ar.reporting_metric_id
+      JOIN sampling_points sp ON sp.pollutant_id = ar.pollutant_id
+      JOIN stations st ON st.id = sp.station_id
+     WHERE ar.classification_year = %(year)s
+       AND sp.report_to_eea AND st.report_to_eea
+       AND st.longitude IS NOT NULL AND st.latitude IS NOT NULL
+       AND (sp.from_time IS NULL OR sp.from_time < make_date(%(year)s + 1, 1, 1))
+       AND (sp.to_time IS NULL OR sp.to_time >= make_date(%(year)s, 1, 1))
+       AND {in_zone}
+       AND NOT EXISTS (SELECT 1 FROM assessmentdata ad
+                        WHERE ad.assessment_regime_id = ar.id
+                          AND ad.sampling_point_id = sp.id
+                          AND ad.to_time IS NULL)
+     ORDER BY z.zone_national_code, pollutant, objective_type, ar.id, LOWER(st.name), sp.id
+""".replace('{in_zone}', IN_ZONE)
+
+
+@assessmentdata_endpoint.route(f'{BASE}/candidates-year', methods=['GET'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def assessmentdata_candidates_year():
+    """The sampling point links still missing for a classification year, for the wizard.
+
+    Writing goes through insert-many like the regime page's multi-add, so there is one
+    write path. Models have no location; the per-regime dialog links those.
+    """
+    year = request.args.get('year', type=int)
+    if year is None:
+        raise BadRequest('A "year" query parameter is required')
+    with CursorFromPool() as cursor:
+        cursor.execute(_YEAR_CANDIDATES_SQL, {'year': year})
+        rows = cursor.fetchall()
+        cursor.execute('SELECT count(*) AS n FROM assessment_regimes '
+                       'WHERE classification_year = %s', (year,))
+        regimes = cursor.fetchone()['n']
+    return jsonify({'rows': rows, 'regimes': regimes})
 
 
 @assessmentdata_endpoint.route(f'{BASE}/insert-many', methods=['POST'])

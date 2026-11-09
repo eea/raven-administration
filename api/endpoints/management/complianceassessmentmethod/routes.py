@@ -24,6 +24,7 @@ from flask import Blueprint, jsonify, request
 from werkzeug.exceptions import BadRequest
 
 from core.database import CursorFromPool
+from core.reporting.aqr3.compliance import persist_compliance
 from core.jwt_ext_custom import (jwt_required_with_allnetworks_claim,
                                  jwt_required_with_management_claim)
 
@@ -41,6 +42,26 @@ KEY = ('reporting_year', 'assessment_regime_id', 'data_aggregation_process_id',
 VALUES = ('is_exceedance', 'data_coverage', 'pollution_level', 'pollution_level_adjusted',
           'relative_uncertainty_limit', 'assessment_mqi', 'correction_flag',
           'preliminary_reason_id', 'srs_id', 'attainment_index', 'deletion')
+
+
+@compliance_endpoint.route(f'{BASE}/recalculate', methods=['POST'])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
+def compliance_recalculate():
+    """Recalculate a year from this page -- the same as Dataflow's button.
+
+    Dataflow's route wants the exporting claim; the people who set up regimes and their
+    links on the Management pages hold the management claim, and the wizard that
+    chains those pages ends here. Same function, same summary, so the page shows the
+    same feedback with the same links.
+    """
+    data = request.get_json(silent=True) or {}
+    year = data.get('year')
+    if not isinstance(year, int):
+        raise BadRequest('A "year" is required to recalculate compliance')
+    with CursorFromPool() as cursor:
+        summary = persist_compliance(cursor, reporting_year=year)
+    return jsonify(summary)
 
 
 @compliance_endpoint.route(BASE, methods=['GET'])

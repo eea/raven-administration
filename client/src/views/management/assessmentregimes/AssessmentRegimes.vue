@@ -1,12 +1,13 @@
 <script setup>
 import { onMounted, ref } from "vue";
+import { useRoute } from "vue-router";
 import Manager from "../../../components/n-manager/Manager.vue";
 import GenerateRegimes from "./GenerateRegimes.vue";
 import LinkedMethods from "./LinkedMethods.vue";
 import CircleHover from "../../../components/CircleHover.vue";
 import Service from "./service";
 import pageOptions from "./pageOptions";
-import IconGenerate from "~icons/material-symbols/table-rows-narrow";
+import IconGenerate from "~icons/material-symbols/wand-stars";
 import IconLinks from "~icons/material-symbols/link";
 
 // AQR3 calls this table AssessmentRegimeZone (ARZ), which is why the page is titled
@@ -17,6 +18,9 @@ import IconLinks from "~icons/material-symbols/link";
 
 const options = ref({});
 const showGenerate = ref(false);
+// ?wizard=1&year= opens the generate step directly (the wizard's entry point).
+const route = useRoute();
+const wizardYear = ref(Number(route.query.year) || null);
 // Remount Manager after a generate so its row set reloads.
 const dataVersion = ref(0);
 
@@ -31,11 +35,12 @@ const onContextMenuAction = ({ action, data }) => {
 onMounted(async () => {
   const lookups = await Service.lookups();
   options.value = pageOptions(lookups);
+  if (route.query.wizard) showGenerate.value = true;
 });
 </script>
 
 <template>
-  <generate-regimes :show="showGenerate" :lookups="options.lookups ?? {}"
+  <generate-regimes :show="showGenerate" :lookups="options.lookups ?? {}" :initial-year="wizardYear"
                     @close="showGenerate = false" @generated="dataVersion++" />
 
   <linked-methods :show="!!linksRegime" :regime="linksRegime" @close="linksRegime = null" />
@@ -43,7 +48,7 @@ onMounted(async () => {
   <Manager :key="dataVersion" name="Assessment regime zones" :options="options" :service="Service"
            :show-download-button="false" @context-menu-action="onContextMenuAction">
     <template #toolbar>
-      <CircleHover class="ml-1 self-center" title="Generate regimes for a year"
+      <CircleHover class="ml-1 self-center" title="Generate regimes for a year (wizard, step 1 of 3)"
                    @click="showGenerate = true">
         <icon-generate class="text-nord10 text-base self-center" />
       </CircleHover>

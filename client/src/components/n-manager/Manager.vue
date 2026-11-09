@@ -222,6 +222,8 @@ const cmp_properties = computed(() => {
       <!-- Page-specific toolbar controls: a year selector, a bulk action. -->
       <slot name="toolbar" v-bind="{ reload: loadData }" />
     </tool-bar>
+    <!-- Page-specific notices between the toolbar and the grid: a wizard step, a result. -->
+    <slot name="banner" />
     <input ref="fileInput" type="file" accept=".csv,.gpkg" class="hidden" @change="onFileChange" />
 
     <grid-data-table v-model:selected="selected" :properties="cmp_properties" :values="filteredList" :get-row-style="getRowStyle" @grid-ready="(api) => (gridApi = api)" @context-menu-action="onContextMenuAction" @on-dbl-click="onDoubleClick">
