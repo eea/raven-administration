@@ -4,9 +4,9 @@ A zone is classified per pollutant against the directive's assessment thresholds
 
 - 2008/50/EC Annex II A (and 2004/107/EC Annex II I for As, Cd, Ni and BaP): an upper and
   a lower threshold, giving aboveUAT, LAT-UAT or belowLAT.
-- (EU) 2024/2881 Annex II: one assessment threshold, giving aboveAT or belowAT. The EEA
-  vocabulary does not list these values yet, so they apply only to an objective whose
-  allowed values include aboveAT.
+- (EU) 2024/2881 Annex II: one assessment threshold, giving aboveAT or belowAT -- what
+  the recast vocabulary (aq/environmentalobjective2024recast, which the loader prefers)
+  allows for its limit and target value objectives.
 - Ozone's long-term objective (2008/50 Article 9): aboveLTO if it was exceeded in any of
   the previous five years.
 
