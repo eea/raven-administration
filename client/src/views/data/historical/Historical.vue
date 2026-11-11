@@ -12,6 +12,7 @@ import { format, isAfter, isBefore, startOfWeek } from "date-fns";
 import { groupBy, downloadCsv } from "../../../helpers/utils";
 import { datetimeCellRenderer, granularityFromHistoricalRow } from "../../../helpers/datetimeHighlight";
 import Eventy from "../../../helpers/eventy";
+import useHistoricalExtension from "../../../composables/useHistoricalExtension";
 import IconModify from "~icons/material-symbols/tune";
 import IconReplot from "~icons/material-symbols/bar-chart";
 import IconList from "~icons/material-symbols/table-rows-narrow";
@@ -51,6 +52,10 @@ const hoveredLegendIndex = ref(-1);
 
 const route = useRoute();
 const gridData = ref([]);
+
+// Series contributed by plugins (e.g. external data sources), plotted alongside our own.
+const { pickers: extensionPickers, selections: extensionSelections, selectedCount: extensionCount, fetchSeries: fetchExtensionSeries } = useHistoricalExtension();
+const nothingSelected = computed(() => selectedIds.value.length === 0 && extensionCount.value === 0);
 
 var chart;
 
@@ -100,13 +105,20 @@ const plotData = async () => {
 
   gridData.value = [];
 
-  gridData.value = await Service.get({
-    sampling_point_ids: selectedIds.value,
+  const query = {
     from_dt: format(fromtime.value, "yyyy-MM-dd HH:00"),
     to_dt: format(totime.value, "yyyy-MM-dd HH:00"),
     meantype: meantype.value,
     coverage: coverage.value
-  });
+  };
+
+  // The core endpoint requires at least one sampling point, so skip it when only
+  // plugin series are selected.
+  const [coreRows, extension] = await Promise.all([
+    selectedIds.value.length > 0 ? Service.get({ sampling_point_ids: selectedIds.value, ...query }) : [],
+    fetchExtensionSeries(query)
+  ]);
+  gridData.value = [...coreRows, ...extension.rows];
 
   activeMeantype.value = meantype.value;
   collapsed.value = true;
@@ -118,7 +130,8 @@ const plotData = async () => {
   chart.data = formatValues(gridData.value, axes);
   chart.update();
 
-  Eventy.hideMessage();
+  if (extension.errors.length > 0) Eventy.showHideMessage(extension.errors.join(" | "), "error", 8000);
+  else Eventy.hideMessage();
 };
 
 const onDownload = async () => {
@@ -404,8 +417,13 @@ const pivotData = computed(() => {
         <DataTable :font-size="11" :columns="timeseriesColumns" :data="cmp_timeseries" selection-mode="multiRow" :get-row-id="(params) => params.data.sampling_point_id" @grid-ready="onTimeseriesGridReady" @first-data-rendered="onTimeseriesFirstDataRendered" @selection-changed="onTimeseriesSelectionChanged" />
       </div>
 
+      <div v-for="ext in extensionPickers" :key="ext.id" class="h-64 mt-6">
+        <div class="font-bold">{{ ext.title || ext.id }}</div>
+        <component :is="ext.picker" v-model="extensionSelections[ext.id]" :from="fromtime" :to="totime" />
+      </div>
+
       <div class="mt-6">
-        <button class="button" @click="plotData" :disabled="selectedIds.length == 0">Plot data</button>
+        <button class="button" @click="plotData" :disabled="nothingSelected">Plot data</button>
       </div>
       </Container>
     </Transition>
@@ -431,13 +449,20 @@ const pivotData = computed(() => {
             <span class="font-semibold">{{ selectedIds.length }}</span>
             sampling point{{ selectedIds.length !== 1 ? "s" : "" }}
           </span>
+          <template v-if="extensionCount > 0">
+            <span class="text-nord4">|</span>
+            <span>
+              <span class="font-semibold">{{ extensionCount }}</span>
+              external series
+            </span>
+          </template>
         </div>
         <div class="flex gap-2">
           <button class="button flex items-center gap-1.5" @click="collapsed = false">
             <IconModify class="text-base" />
             Modify
           </button>
-          <button class="button flex items-center gap-1.5" @click="plotData" :disabled="selectedIds.length == 0">
+          <button class="button flex items-center gap-1.5" @click="plotData" :disabled="nothingSelected">
             <IconReplot class="text-base" />
             Re-plot
           </button>
@@ -496,7 +521,7 @@ const pivotData = computed(() => {
 }
 .collapse-enter-to,
 .collapse-leave-from {
-  max-height: 800px;
+  max-height: 1400px;
   opacity: 1;
 }
 </style>
