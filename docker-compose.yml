@@ -45,8 +45,7 @@ services:
       - api
     environment:
       - RAVEN_API_URL=http://api:5000
-      # TEMPORARY: on by default while MCP is tested on servers. Change back to false before release.
-      - MCP_ENABLED=${MCP_ENABLED:-true}
+      - MCP_ENABLED=${MCP_ENABLED:-false}
     # on-failure, not always: a disabled server exits cleanly and must not be restarted.
     restart: on-failure
   # rnotebook:
