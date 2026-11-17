@@ -191,6 +191,18 @@ Raven can let AI assistants such as Claude query its data: series, latest values
 exceedances, zones, assessment regimes and the observation log. It is read-only, and each user signs in
 with their own Raven username and password, so they see exactly what they see in the web client.
 
+Examples of what you can ask:
+
+- "Which stations measure NO2, and what are the latest values?"
+- "Show monthly PM10 averages at station X for 2025."
+- "What was the annual mean NO2 per station in 2025, and how good was the data coverage?"
+- "Which PM10 sampling points exceeded the 2024/2881 limit values in 2025?"
+- "Which zones and assessment regimes do we have for O3, and does zone X meet its objectives?"
+- "Who changed the validity flags for this series last month, and when?"
+
+Questions about zones need the management and all-networks permissions, and questions about change
+history need the quality control permission.
+
 ### Enable it
 
 1. In `.env`, set:
@@ -235,6 +247,3 @@ following to `claude_desktop_config.json`, then restart Claude Desktop:
   }
 }
 ```
-
-Then ask in plain language, for example "What was the annual mean NO2 per station in 2025?" or
-"Which PM10 sampling points exceeded the daily limit in 2025?"
