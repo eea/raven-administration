@@ -32,6 +32,23 @@ services:
     volumes:
       - client-dist:/usr/share/nginx/html
     restart: always
+  # Read-only MCP server, reached through the client's nginx at /mcp (no port of its own).
+  # Off unless MCP_ENABLED=true in .env: the server then exits at start and stays stopped,
+  # and nginx answers /mcp with 502.
+  mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    image: ${CONTAINER_NAME_MCP:-raven-mcp}
+    container_name: ${CONTAINER_NAME_MCP:-raven-mcp}
+    depends_on:
+      - api
+    environment:
+      - RAVEN_API_URL=http://api:5000
+      # TEMPORARY: on by default while MCP is tested on servers. Change back to false before release.
+      - MCP_ENABLED=${MCP_ENABLED:-true}
+    # on-failure, not always: a disabled server exits cleanly and must not be restarted.
+    restart: on-failure
   # rnotebook:
   #   build:
   #     context: .

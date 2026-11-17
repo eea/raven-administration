@@ -184,3 +184,56 @@ npm run dev
 # from the r folder start r notebook backend server
 Rscript r/app.R
 ```
+
+## MCP server (AI assistants)
+
+Raven can let AI assistants such as Claude query its data: series, latest values, statistics,
+exceedances, zones, assessment regimes and the observation log. It is read-only, and each user signs in
+with their own Raven username and password, so they see exactly what they see in the web client.
+
+### Enable it
+
+1. In `.env`, set:
+
+   ```
+   MCP_ENABLED=true
+   ```
+
+2. Rebuild and start:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+3. The MCP server is now available at `https://<raven-host>/mcp`.
+
+Serve Raven over HTTPS only: the MCP connection sends the user's password with every request.
+To turn it off again, set `MCP_ENABLED=false` and run `docker compose up -d` again.
+
+### Connect an AI assistant
+
+**Claude Code:** run, with your own Raven username and password:
+
+```bash
+claude mcp add --transport http raven https://<raven-host>/mcp -H "X-Raven-Username: your-username" -H "X-Raven-Password: your-password"
+```
+
+**Claude Desktop:** requires [Node.js](https://nodejs.org). Open Settings, Developer, Edit Config, add the
+following to `claude_desktop_config.json`, then restart Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "raven": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://<raven-host>/mcp",
+               "--header", "X-Raven-Username:${RAVEN_USERNAME}",
+               "--header", "X-Raven-Password:${RAVEN_PASSWORD}"],
+      "env": { "RAVEN_USERNAME": "your-username", "RAVEN_PASSWORD": "your-password" }
+    }
+  }
+}
+```
+
+Then ask in plain language, for example "What was the annual mean NO2 per station in 2025?" or
+"Which PM10 sampling points exceeded the daily limit in 2025?"
