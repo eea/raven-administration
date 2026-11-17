@@ -212,10 +212,11 @@ To turn it off again, set `MCP_ENABLED=false` and run `docker compose up -d` aga
 
 ### Connect an AI assistant
 
-**Claude Code:** run, with your own Raven username and password:
+**Claude Code:** run, with your own Raven username and password. `--scope user` makes Raven available in
+all your Claude Code sessions:
 
 ```bash
-claude mcp add --transport http raven https://<raven-host>/mcp -H "X-Raven-Username: your-username" -H "X-Raven-Password: your-password"
+claude mcp add --scope user --transport http raven https://<raven-host>/mcp -H "X-Raven-Username: your-username" -H "X-Raven-Password: your-password"
 ```
 
 **Claude Desktop:** requires [Node.js](https://nodejs.org). Open Settings, Developer, Edit Config, add the
