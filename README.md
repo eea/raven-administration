@@ -25,6 +25,10 @@ git clone https://git.nilu.no/raven/raven-administration
 
 ## Setup the database
 
+> **Migrating from Raven v3?** Do not use these steps: follow
+> [`sql/raven4_migrate/README.md`](sql/raven4_migrate/README.md) instead. Some of the scripts
+> below must not be run on a migrated database.
+
 **Run db scripts to create the database**
 
 1. Create a postgres database, ie `ravendb`

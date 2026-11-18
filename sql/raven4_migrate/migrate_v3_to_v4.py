@@ -49,8 +49,10 @@ is reached, so:
                             networks.aggregation_timezone, because the AQR3 export
                             resolves its UTC offset from it -- left NULL, every datetime
                             in every exported table is emitted without an offset.
-    directives / statistics / aqi
-                            each probed; skipped with a warning when absent.
+    directives              probed; skipped with a warning when absent.
+    statistics / aqi        probed and copied; sql/statistics.sql seeds the default
+                            configuration when v3 has none, and sql/aqi.sql always adds
+                            the EEA index bands v3 lacks (LOCAL bands are kept).
     sampling_points.from_time
                             falls back to begin_position, since it is AQR3 SPL_03
                             LocationBegin and part of SamplingPointLocation's unique key.
@@ -100,6 +102,19 @@ TARGET_DB = {
     'user': os.getenv('TARGET_DB_USER', 'ravendb4'),
     'password': os.getenv('TARGET_DB_PASSWORD')
 }
+
+# The code lists this migration resolves against: every table passed to
+# resolve_vocabulary_id(), plus eea_countries (settings.country_code_id) and
+# eea_pollutants. populate_vocabularies.py exits 1 whenever ANY eea_ table ends empty,
+# and on a fresh database several always do (no EEA source, or they belong to
+# raven-plan-program), so its exit code cannot decide whether the migration can run.
+# These tables can. migrate-wizard's stages.py has the same list minus the last two.
+REQUIRED_VOCABULARIES = (
+    'eea_administrativelevels', 'eea_areaclassifications', 'eea_concentrations',
+    'eea_measurementequipments', 'eea_measurementmethods', 'eea_measurementtypes',
+    'eea_times', 'eea_timezones', 'eea_countries', 'eea_pollutants',
+    'eea_spocategory', 'eea_equivalencedemonstrated',
+)
 
 
 # log() writes ✓/⚠/❌, and on Windows a redirected stdout defaults to cp1252, which
@@ -475,52 +490,80 @@ class Migration:
         
         log("   ✓ Schema created successfully")
     
-    def populate_lookups(self):
-        """Populate EEA lookup tables from RDF vocabularies"""
-        log("\n📥 Checking/populating lookup tables...")
-        
+    def _empty_vocabularies(self):
+        """The REQUIRED_VOCABULARIES that hold no rows in the target."""
         cur = self.target_conn.cursor()
-        
-        # Check if lookups already populated
-        cur.execute("SELECT COUNT(*) FROM eea_pollutants")
-        pollutant_count = cur.fetchone()[0]
-        
-        if pollutant_count > 0:
-            log(f"   ✓ Lookups already populated ({pollutant_count} pollutants)")
-            cur.close()
-            return
-        
-        log("   Lookups empty - populating from RDF vocabularies...")
+        empty = []
+        for table in REQUIRED_VOCABULARIES:
+            # Constant names from REQUIRED_VOCABULARIES, never input.
+            cur.execute(f'SELECT EXISTS (SELECT 1 FROM "{table}")')
+            if not cur.fetchone()[0]:
+                empty.append(table)
+        cur.close()
+        return empty
 
-        # sql/populate_vocabularies.py is the canonical loader and lives in this repo,
-        # so it ships in every image. The old path went four levels up to
-        # ../../../../raven-rn3-db/populate_lookups_v4_2.py -- outside the repo and
-        # absent from the container -- so this step raised FileNotFoundError on any
-        # target whose eea_pollutants was empty, which is every fresh install.
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        populate_script = os.path.join(script_dir, '..', 'populate_vocabularies.py')
-
-        if not os.path.exists(populate_script):
-            raise FileNotFoundError(f"Populate script not found: {populate_script}")
-
+    def _run_vocabulary_loader(self, *extra):
+        # sql/populate_vocabularies.py is the canonical loader and lives in this repo.
         # It takes --db-uri (defaulting to $DB_URI), not the TARGET_DB_* variables this
         # script uses, so pass the target explicitly rather than letting it pick up
-        # whichever DB_URI the environment happens to carry -- which on a developer
-        # machine is usually a different database entirely.
+        # whichever DB_URI the environment happens to carry.
         import subprocess
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        populate_script = os.path.join(script_dir, '..', 'populate_vocabularies.py')
+        if not os.path.exists(populate_script):
+            raise FileNotFoundError(f"Populate script not found: {populate_script}")
         result = subprocess.run(
-            [sys.executable, populate_script, '--db-uri', self.target_uri()],
+            [sys.executable, populate_script, '--db-uri', self.target_uri(), *extra],
             capture_output=True, text=True,
             cwd=os.path.dirname(os.path.abspath(populate_script))
         )
+        # Its exit code is not the verdict (see REQUIRED_VOCABULARIES); its warnings
+        # are still worth showing.
+        for line in (result.stdout or '').splitlines():
+            if 'WARNING' in line:
+                log(f"   {line.strip()}")
+        if result.returncode != 0 and result.stderr and result.stderr.strip():
+            log(f"   loader stderr: {result.stderr.strip()[-2000:]}")
+        return result
 
-        if result.returncode != 0:
-            log(f"   ⚠ Populate script output: {result.stderr}")
-            raise RuntimeError(f"Populate script failed: {result.stderr}")
+    def populate_lookups(self):
+        """Populate the EEA lookup tables from the EEA Data Dictionary.
 
-        log("   ✓ Lookup tables populated")
-        cur.close()
-    
+        Decided by REQUIRED_VOCABULARIES, not by the loader's exit code, which is 1 on
+        every fresh database. Offline, the loader's curated fallbacks are tried once.
+        """
+        log("\n📥 Checking/populating lookup tables...")
+
+        # The loader commits on its own connection; ours must not hold the schema open.
+        self.target_conn.commit()
+
+        if not self._empty_vocabularies():
+            log("   ✓ Lookups already populated")
+            return
+
+        log("   Lookups empty - populating from the EEA Data Dictionary...")
+        self._run_vocabulary_loader()
+        self.target_conn.commit()   # see the loader's rows
+        missing = self._empty_vocabularies()
+
+        if missing:
+            log(f"   ⚠ Could not load from the EEA: {', '.join(missing)} - "
+                "trying the built-in fallbacks (--offline)")
+            self._run_vocabulary_loader('--offline')
+            self.target_conn.commit()
+            missing = self._empty_vocabularies()
+            if missing:
+                raise RuntimeError(
+                    'These code lists could not be loaded online or offline, and the '
+                    f'migration needs them: {", ".join(missing)}. Check that '
+                    'dd.eionet.europa.eu is reachable, or load the built-in set with '
+                    '`psql -d <target> -f sql/data.sql`, then run this script again.')
+            log("   ⚠ Using the built-in code lists - re-run sql/populate_vocabularies.py "
+                "when dd.eionet.europa.eu is reachable")
+
+        log("   ✓ Lookup tables populated (code lists this migration does not use may "
+            "stay empty; that is expected)")
+
     def remediate_legacy_data(self, seed_adjustments=True):
         """Derive AQR3 v5.02 columns from data an older Raven already holds.
 
@@ -925,7 +968,7 @@ class Migration:
         
         # v3: id, name, organisation, locator, postcode, email, address, phone, website, is_responsible_reporter
         # v4: id, person_name, email, authority_name, authority_url, authority_address, authority_instance_id, authority_role_id, authority_status_id
-        # DEFAULTS: authority_instance_id='network', authority_role_id='AQD', authority_status_id='active' (for RN3 required fields)
+        # DEFAULTS: authority_instance_id = the network concept, authority_status_id='active' (RN3 required)
         # is_responsible_reporter carries the one piece of role information v3 held, so
         # read it where it exists rather than sending every authority to the same role.
         has_reporter_flag = self.source_has_column('responsible_authorities',
@@ -937,6 +980,23 @@ class Migration:
         """)
         rows = src.fetchall()
 
+        # AUT_05 AuthorityInstance. v3 attaches an authority to a network
+        # (networks.responsible_authority_id), so that is the instance. Its id is the
+        # concept name as loaded, and EEA has spelled it two ways: AirQualityNetwork
+        # (what migration 019 rekeyed to) and, in the vocabulary as published since,
+        # `network`. A hard-coded 'Network' matched neither, so every migration stopped
+        # here on authorities_authority_instance_id_fkey. Take whichever the target holds.
+        tgt.execute("""
+            SELECT id FROM eea_authorityinstance
+             WHERE lower(id) IN ('network', 'airqualitynetwork')
+             ORDER BY lower(id) = 'network' DESC
+             LIMIT 1
+        """)
+        found = tgt.fetchone()
+        instance_id = found[0] if found else None
+        if instance_id is None:
+            log("   ⚠ eea_authorityinstance has no network concept - AuthorityInstance left empty")
+
         for row in rows:
             id_val, name, organisation, email, website, address, is_reporter = row
             tgt.execute("""
@@ -946,12 +1006,9 @@ class Migration:
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id, authority_role_id, email) DO NOTHING
             """, (id_val, name, email, organisation, website, address,
-                  # AUT_05 AuthorityInstance is keyed by concept name since migration 019:
-                  # 'Network', not the old lowercase 'network'. v3 attaches an authority to
-                  # a network (networks.responsible_authority_id), so that is the instance.
+                  instance_id,
                   # AUT_03 AuthorityRole is eea_authorityobject, whose terms are
                   # 'reporting' and 'assessment' -- 'AQD' was never one of them.
-                  'Network',
                   'reporting' if is_reporter else 'assessment',
                   'active'))
         
@@ -2036,10 +2093,25 @@ class Migration:
         self.stats['statistics'] = len(rows)
         log(f"   ✓ statistics: {len(rows)} rows")
 
+    def _seed_aqi(self, tgt):
+        """Load sql/aqi.sql: add the EEA index bands that are missing.
+
+        Non-destructive: it creates the table only if absent and inserts with
+        ON CONFLICT DO NOTHING, so bands copied from v3 -- LOCAL ones above all -- stay.
+        A v3 source without them used to leave the AQI with no EEA bands at all.
+        """
+        seed_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'aqi.sql')
+        with open(seed_file, 'r', encoding='utf-8') as f:
+            tgt.execute(f.read())
+        tgt.execute("SELECT count(*) FROM aqi")
+        total = tgt.fetchone()[0]
+        self.stats['aqi'] = total
+        log(f"   ✓ aqi: EEA bands ensured from aqi.sql - {total} rows in total")
+
     def _migrate_aqi(self, src, tgt):
         if not self.source_has_table('aqi'):
-            log("   ⚠ aqi: no such table in the v3 source - skipped")
-            self.stats['aqi'] = 0
+            log("   ⚠ aqi: no such table in the v3 source")
+            self._seed_aqi(tgt)
             return
         src.execute("SELECT * FROM aqi")
         rows = src.fetchall()
@@ -2066,8 +2138,8 @@ class Migration:
                     timestep,
                 ))
         
-        self.stats['aqi'] = len(rows)
-        log(f"   ✓ aqi: {len(rows)} rows")
+        log(f"   ✓ aqi: {len(rows)} rows copied from v3")
+        self._seed_aqi(tgt)
 
     def migrate_notifications(self):
         """Migrate notification tables"""
