@@ -136,7 +136,10 @@ def export_exceedances_plans_programs():
                 pollutants=model.pollutants,
                 zones=model.zones,
                 exceedances_only=model.exceedances_only,
-                assessment_types=model.assessment_types
+                assessment_types=model.assessment_types,
+                # The stored CAM verdict, figures and AttainmentId index; without it
+                # every row is "unknown" and every AttainmentId ends in _1.
+                with_stored_compliance=True
             )
         
         return jsonify(result), 200

@@ -91,17 +91,19 @@ SPO_CATEGORY_FALLBACK = _rows(
     ('multisource', 'Multisource', 'multisource'),
 )
 
-# AUT_05. Guide: "Name of the authority instance: zone, network, nuts0, nuts1,
-# nuts2, nuts3, station, SPO... - new code list".
+# AUT_05. The nine concepts aq/authorityinstance publishes (checked 2026-11-18), with
+# id = notation = the URI's last segment. Migration 033 holds the same rows and
+# tests/unit/test_authorityinstance_concepts.py keeps the two identical.
 AUTHORITY_INSTANCE_FALLBACK = _rows(
-    ('zone', 'Zone', 'zone'),
-    ('network', 'Network', 'network'),
-    ('nuts0', 'NUTS level 0', 'nuts0'),
-    ('nuts1', 'NUTS level 1', 'nuts1'),
-    ('nuts2', 'NUTS level 2', 'nuts2'),
-    ('nuts3', 'NUTS level 3', 'nuts3'),
-    ('station', 'Station', 'station'),
-    ('SPO', 'Sampling point', 'SPO'),
+    ('model', 'ModelObjectiveEstimation.AssessmentMethodId', 'model'),
+    ('network', 'MeasurementStation.NetworkId', 'network'),
+    ('samplingpoint', 'SamplingPoint.AssessmentMethodId', 'samplingpoint'),
+    ('station', 'MeasurementStation.StationEoICode', 'station'),
+    ('nuts0', 'Authority.CountryCode', 'nuts0'),
+    ('nuts1', 'AssessmentRegimeZone.ZoneId', 'nuts1'),
+    ('nuts2', 'AssessmentRegimeZone.ZoneId', 'nuts2'),
+    ('nuts3', 'AssessmentRegimeZone.ZoneId', 'nuts3'),
+    ('zone', 'AssessmentRegimeZone.ZoneId', 'zone'),
 )
 
 # AUT_10. Guide: "Status or classification of the authority (e.g., active/inactive)".
@@ -280,6 +282,9 @@ VOCABULARIES = (
     # so an authority could not be reported at NUTS 1 or 2 at all. The concept name is
     # also what the guide's Authority example writes in the AuthorityInstance column,
     # so AUT_05 exports it. Migration 019 moves databases already loaded the old way.
+    # EEA has since renamed the concepts (AirQualityNetwork -> network, ...) and made the
+    # notation equal to the name; uri_suffix still gives that name. Migration 033 moves
+    # databases off the retired spellings.
     Vocabulary('eea_authorityinstance', 'aq/authorityinstance', aqr3='AUT_05 AuthorityInstance',
                id_from='uri_suffix',
                fallback=AUTHORITY_INSTANCE_FALLBACK,

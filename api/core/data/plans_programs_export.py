@@ -111,7 +111,8 @@ class PlansAndProgramsExport:
         pollutants: List[str] = None,
         zones: List[str] = None,
         exceedances_only: bool = True,
-        assessment_types: List[str] = None
+        assessment_types: List[str] = None,
+        with_stored_compliance: bool = False
     ) -> Dict[str, Any]:
         """
         Export exceedances formatted for Plans & Programs.
@@ -124,6 +125,11 @@ class PlansAndProgramsExport:
             zones: Filter by zone IDs (empty = all)
             exceedances_only: Only return exceeded thresholds
             assessment_types: Filter by assessment type (empty = all)
+            with_stored_compliance: Overlay what compliance_assessment_method holds
+                for each row -- the verdict, the figures and the operator's
+                AttainmentId index (see _overlay_stored_compliance). The HTTP
+                endpoint asks for it; persist_compliance must not, or it would read
+                its own stored values back as computed ones.
         
         Returns:
             Dictionary with metadata and formatted exceedances array
@@ -166,6 +172,9 @@ class PlansAndProgramsExport:
                 skipped.append(formatted)
             elif formatted:  # None means formatting threw; it is logged there
                 formatted_exceedances.append(formatted)
+
+        if with_stored_compliance:
+            self._overlay_stored_compliance(formatted_exceedances, reportingyear)
         
         # Generate metadata
         metadata = self._generate_metadata(
@@ -189,6 +198,64 @@ class PlansAndProgramsExport:
             "out_of_scope": out_of_scope,
         }
     
+    # IsExceedance in this payload's own literal domain ('yes'/'no'/'unknown'),
+    # which _generate_metadata and the raven-plan-program import read.
+    _VERDICT = {True: 'yes', False: 'no', None: 'unknown'}
+
+    def _overlay_stored_compliance(self, exceedances: List[Dict], reportingyear: int) -> None:
+        """Fill each row from its stored CAM row, matched on the CAM key.
+
+        The derivation does not evaluate exceedances yet, so on its own every row is
+        IsExceedance "unknown" with no pollution level, and AttainmentId always ends
+        in _1. compliance_assessment_method holds what an operator entered on the
+        Compliance Assessment Method page (or a later evaluation computes) and the
+        Compliance Situation No. -- that is what a consumer of this export needs.
+
+        A row with no stored CAM row (compliance not recalculated for the year yet)
+        is left as derived. Both the v5.02 keys and the pre-v5.02 ones the payload
+        has always carried are set, so older consumers keep working.
+        """
+        if not exceedances:
+            return
+        self.cursor.execute("""
+            SELECT c.assessment_regime_id, c.data_aggregation_process_id,
+                   c.assessment_method_id, c.is_exceedance, c.data_coverage,
+                   c.pollution_level, c.pollution_level_adjusted,
+                   c.relative_uncertainty_limit, c.assessment_mqi, c.correction_flag,
+                   c.attainment_id, c.attainment_index, c.srs_id, c.deletion,
+                   COALESCE(NULLIF(er.notation, ''), c.preliminary_reason_id) AS preliminary_reason
+            FROM compliance_assessment_method c
+            LEFT JOIN eea_exceedancereason er ON er.id = c.preliminary_reason_id
+            WHERE c.reporting_year = %(year)s
+        """, {'year': reportingyear})
+        stored = {(r['assessment_regime_id'], r['data_aggregation_process_id'],
+                   r['assessment_method_id']): r for r in self.cursor.fetchall()}
+
+        def num(value):
+            return float(value) if value is not None else None
+
+        for exc in exceedances:
+            cam = stored.get((exc.get('assessmentregimeid'), exc.get('dataaggregationprocessid'),
+                              exc.get('assessmentmethodid')))
+            if cam is None:
+                continue
+            exc['isexceedance'] = self._VERDICT[cam['is_exceedance']]
+            exc['datacoverage'] = num(cam['data_coverage'])
+            exc['pollutionlevel'] = exc['airpollutionlevel'] = num(cam['pollution_level'])
+            exc['pollutionleveladjusted'] = exc['airpollutionleveladjusted'] =                 num(cam['pollution_level_adjusted'])
+            exc['relativeuncertaintylimit'] = num(cam['relative_uncertainty_limit'])
+            exc['assessmentmqi'] = num(cam['assessment_mqi'])
+            exc['correctionflag'] = exc['correctionfactor'] = cam['correction_flag']
+            exc['attainmentindex'] = cam['attainment_index']
+            if cam['attainment_id']:
+                exc['attainmentid'] = cam['attainment_id']
+            exc['srsid'] = cam['srs_id']
+            exc['preliminaryreason'] = cam['preliminary_reason']
+            exc['deletion'] = cam['deletion']
+            if exc.get('measurement') is not None:
+                exc['measurement']['value'] = exc['pollutionlevel']
+                exc['measurement']['coverage'] = exc['datacoverage']
+
     def _query_exceedances(
         self,
         countrycode: str,
@@ -507,8 +574,8 @@ class PlansAndProgramsExport:
             # `attainmentbase` is the identifier without its trailing ordering index.
             # persist_compliance appends the index stored on the row, so that an operator
             # who has split a regime into an exceedance and a non-exceedance situation
-            # keeps that split across a recalculation. Over HTTP there is no stored row
-            # to consult, so `attainmentid` is the index-1 form.
+            # keeps that split across a recalculation. Here it is the index-1 form; the
+            # HTTP endpoint replaces it with the stored one (_overlay_stored_compliance).
             assessment_method_id = method_id
 
             attainment_base = attainment_id = None
@@ -568,7 +635,9 @@ class PlansAndProgramsExport:
                 "pollutantid": pollutant_id,
                 "assessmenttype": assessment_type,
                 "hotspot": False,
-                "isexceedance": "unknown",  # TODO: Calculate from threshold evaluation
+                # Derivation does not evaluate yet; over HTTP the stored CAM verdict
+                # replaces this (_overlay_stored_compliance).
+                "isexceedance": "unknown",
                 "airpollutionlevel": None,  # TODO: Get from aggregation
                 "airpollutionleveladjusted": None,
                 # Always None: `processes` lost its uncertainty_estimate column in v4 and

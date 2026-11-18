@@ -328,7 +328,7 @@ create table if not exists eea_authorityinstance
     uri      varchar(255) not null unique
 );
 
-comment on table eea_authorityinstance is 'Authority instance level vocabulary (zone, network, nuts, station, SPO)';
+comment on table eea_authorityinstance is 'Authority instance level vocabulary (aq/authorityinstance: nuts0..nuts3, zone, network, station, samplingpoint, model)';
 
 create table if not exists eea_authoritystatus
 (
@@ -617,8 +617,7 @@ comment on column authorities.email is
     'organisations holding the same role for the same instance';
 comment on column authorities.authority_instance_id is
     'AQR3 AUT_05 AuthorityInstance -> eea_authorityinstance, keyed by concept name '
-    '(nuts0..nuts3 | zone | AirQualityNetwork | AirQualityStationEoICode | '
-    'SamplingPoint | Model)';
+    '(nuts0..nuts3 | zone | network | station | samplingpoint | model)';
 
 comment on table authorities is
     'Reportnet3 authority contacts, feeding AQR3 AUT. Keyed on (AuthorityInstanceId, '
@@ -2655,5 +2654,9 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
                     '(migration 031)'),
        -- 032 seeds an empty statistics table; a fresh install runs sql/statistics.sql.
        ('4.502.32', 'baseline: no-op on a fresh install -- sql/statistics.sql seeds '
-                    'statistics (migration 032)')
+                    'statistics (migration 032)'),
+       -- 033 moves authorities off retired aq/authorityinstance spellings; a fresh
+       -- install loads the current concepts and has no authorities to move.
+       ('4.502.33', 'baseline: no-op on a fresh install -- vocabularies.py loads the '
+                    'current aq/authorityinstance concepts (migration 033)')
 on conflict (version) do nothing;
