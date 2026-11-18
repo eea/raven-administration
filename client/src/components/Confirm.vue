@@ -1,4 +1,6 @@
 <script setup>
+import IconAlert from "~icons/tabler/alert-triangle";
+
 const props = defineProps({
   show: Boolean,
   title: String,
@@ -17,13 +19,18 @@ const ok = () => {
 </script>
 
 <template>
-  <div class="absolute right-0 top-0 bottom-0 w-full z-998" v-if="show">
-    <div class="absolute z-999 px-6 py-4 bg-white border border-nord4 rounded shadow-xl left-1/2 top-1/4 flex flex-col min-w-40 max-w-72">
-      <div class="font-bold mb-1 text-lg">{{ title }}</div>
-      <div class="mb-4" v-html="text"></div>
-      <div class="flex justify-end gap-4">
-        <button class="button" @click="ok">Ok</button>
+  <div class="absolute inset-0 z-998 bg-nord0/30 backdrop-blur-[2px] grid place-items-center p-4" v-if="show" @keydown.esc="close">
+    <div class="z-999 w-full max-w-sm p-5 bg-white rounded-2xl shadow-pop ring-1 ring-nord0/5 flex flex-col gap-4 animate-fade-in">
+      <div class="flex gap-3">
+        <div class="grid place-items-center size-10 rounded-full bg-nord11/10 text-nord11 shrink-0"><IconAlert class="text-xl" /></div>
+        <div class="min-w-0">
+          <div class="font-display font-bold text-lg text-nord0">{{ title }}</div>
+          <div class="mt-1 text-nord3" v-html="text"></div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2">
         <button class="button" @click="close">Cancel</button>
+        <button class="button button-primary" @click="ok">Ok</button>
       </div>
     </div>
   </div>

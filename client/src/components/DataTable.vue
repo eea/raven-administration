@@ -126,7 +126,9 @@ const rowSelection = computed(() => {
 });
 
 const defaultColDef = {
-  // minWidth: 100,
+  // On a phone, flex would squeeze every column to a few characters; give them a floor
+  // so the grid scrolls sideways instead. Desktop widths are unaffected.
+  minWidth: typeof window !== "undefined" && window.innerWidth < 640 ? 110 : undefined,
   sortable: true,
   resizable: true,
   filter: props.filter,
@@ -156,28 +158,38 @@ if (props.responsive) defaultColDef.flex = 1;
 
 // to use myTheme in an application, pass it to the theme grid option
 const myTheme = themeQuartz.withParams({
-  accentColor: "#81a1c1",
-  backgroundColor: "#F9FBFC",
-  borderColor: "#d8dee9",
-  borderRadius: 2,
+  // CSS variables, so the grid follows the palette chosen at runtime (assets/palettes.css).
+  accentColor: "var(--color-nord10)",
+  backgroundColor: "#ffffff",
+  borderColor: "#e3e8f1",
+  borderRadius: 6,
   browserColorScheme: "light",
-  fontFamily: ["ui-sans-serif", "system-ui", "sans-serif"],
-  foregroundColor: "#4C566A",
-  headerBackgroundColor: "#F3F5F7",
+  fontFamily: ["Inter Variable", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+  foregroundColor: "#1a2337",
+  textColor: "#2d3a52",
+  headerBackgroundColor: "#f5f7fb",
+  headerTextColor: "#5b6880",
   headerFontWeight: 600,
-  headerFontSize: props.fontSize,
+  headerFontSize: Math.max(props.fontSize - 1, 10),
   headerRowBorder: true,
+  headerColumnResizeHandleColor: "#cfd6e3",
+  rowBorder: { color: "#eef1f6" },
+  rowHoverColor: "color-mix(in srgb, var(--color-nord10) 6%, transparent)",
+  selectedRowBackgroundColor: "color-mix(in srgb, var(--color-nord10) 12%, transparent)",
+  oddRowBackgroundColor: "#fcfdfe",
   fontSize: props.fontSize,
-  spacing: 4,
-  wrapperBorderRadius: 4,
+  spacing: props.fontSize <= 12 ? 4 : 5,
+  wrapperBorderRadius: 12,
+  wrapperBorder: { color: "#dde3ee" },
+  iconSize: 15,
 
   checkboxUncheckedBackgroundColor: "#fff",
-  checkboxUncheckedBorderColor: "#d8dee9",
-  checkboxCheckedBackgroundColor: "#3b4252",
-  checkboxCheckedBorderColor: "#d8dee9",
+  checkboxUncheckedBorderColor: "#c9d1df",
+  checkboxCheckedBackgroundColor: "var(--color-nord10)",
+  checkboxCheckedBorderColor: "var(--color-nord10)",
   checkboxCheckedShapeColor: "#fff",
-  checkboxIndeterminateBorderColor: "#d8dee9",
-  checkboxIndeterminateBackgroundColor: "#4c566a"
+  checkboxIndeterminateBorderColor: "var(--color-nord10)",
+  checkboxIndeterminateBackgroundColor: "var(--color-nord9)"
 });
 
 // Watch for changes in props.columns only
@@ -330,7 +342,7 @@ const onFirstDataRendered = (params) => {
       <slot name="context-menu-items" :handleAction="handleMenuAction" :contextData="contextData" :gridApi="gridApi" />
       <!-- Built-in copy options -->
       <template v-if="showCopyOptions">
-        <div v-if="hasCustomMenuItems" class="border-t border-nord4 mt-1 pt-1"></div>
+        <div v-if="hasCustomMenuItems" class="border-t border-nord4/70 my-1 mx-1"></div>
         <div @click="handleAction('copy-cell')" class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6 whitespace-nowrap">
           <IconCopy class="text-nord9 text-base self-center" />
           <div class="self-center ml-1">Copy cell value</div>

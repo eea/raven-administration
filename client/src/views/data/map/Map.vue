@@ -124,7 +124,9 @@ const rectByAqi = (color, hideNoData) => {
 </template>
 
 <style>
-@import "tailwindcss";
+/* @reference, not @import: importing tailwindcss here re-emitted the whole framework
+   with its default theme the moment this page loaded, overriding the app theme. */
+@reference "../../../assets/style.css";
 .map-tooltip {
   @apply bg-gray-100 text-gray-600 flex flex-col gap-0 px-4;
 }

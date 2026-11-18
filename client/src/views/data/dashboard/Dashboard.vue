@@ -283,7 +283,7 @@ const onRemove = (id) => {
           </label>
           <input :value="searchQuery" class="input" placeholder="Search station, pollutant, timestep…" @input="onSearch($event.target.value)" />
           <div class="h-full">
-            <DataTable :font-size="11" :columns="timeseriesColumns" :data="allTimeseries" selection-mode="multiRow" :get-row-id="(p) => p.data.sampling_point_id" @grid-ready="onGridReady" @first-data-rendered="onGridFirstData" @selection-changed="onSelectionChanged" />
+            <DataTable :font-size="12" :columns="timeseriesColumns" :data="allTimeseries" selection-mode="multiRow" :get-row-id="(p) => p.data.sampling_point_id" @grid-ready="onGridReady" @first-data-rendered="onGridFirstData" @selection-changed="onSelectionChanged" />
           </div>
         </div>
 

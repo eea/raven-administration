@@ -1,134 +1,249 @@
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource-variable/jetbrains-mono";
 @import "tailwindcss";
+@import "./palettes.css";
 
+/*
+ * Raven design tokens.
+ *
+ * The nord0..nord15 names are kept on purpose: ~90 views and every plugin use
+ * them as utility classes (text-nord3, bg-nord14/20, ...). Re-pointing the
+ * tokens restyles all of them at once, without touching a single view. Each
+ * token keeps the *role* it had in the Nord palette:
+ *
+ *   nord0-3   ink, darkest to body text      nord4-6  borders and light fills
+ *   nord7     teal (progress, selection)     nord8    sky (soft hover tint)
+ *   nord9     accent, light                  nord10   accent / primary
+ *   nord11    danger   nord12 orange   nord13 warning   nord14 success   nord15 violet
+ */
 @theme {
-  --color-nord0: #2e3440;
-  --color-nord1: #3b4252;
-  --color-nord2: #434c5e;
-  --color-nord3: #4c566a;
-  --color-nord4: #d8dee9;
-  --color-nord5: #e5e9f0;
-  --color-nord6: #eceff4;
-  --color-nord7: #8fbcbb;
-  --color-nord8: #88c0d0;
-  --color-nord9: #81a1c1;
-  --color-nord10: #5e81ac;
-  --color-nord11: #bf616a;
-  --color-nord12: #d08770;
-  --color-nord13: #ebcb8b;
-  --color-nord14: #a3be8c;
-  --color-nord15: #b48ead;
+  --color-nord0: #0b1324;
+  --color-nord1: #1a2337;
+  --color-nord2: #2d3a52;
+  --color-nord3: #46546d;
+  --color-nord4: #dde3ee;
+  --color-nord5: #e9edf5;
+  --color-nord6: #f2f5fa;
+  --color-nord7: #14b8a6;
+  --color-nord8: #38bdf8;
+  --color-nord9: #2dd4bf;
+  --color-nord10: #0d9488;
+  --color-nord11: #e11d48;
+  --color-nord12: #f97316;
+  --color-nord13: #f5a524;
+  --color-nord14: #10b981;
+  --color-nord15: #a855f7;
+
+  /* Semantic aliases for new code */
+  --color-brand: #0d9488;
+  --color-brand-soft: #e7f6f4;
+  --color-surface: #ffffff;
+  --color-canvas: #f3f5fa;
+  --color-ink: #0b1324;
+  --color-muted: #6b7a93;
+  --color-line: #dde3ee;
+
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-display: "Plus Jakarta Sans Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 3px rgb(15 23 42 / 0.06);
+  --shadow-pop: 0 12px 32px -8px rgb(15 23 42 / 0.22), 0 4px 10px -4px rgb(15 23 42 / 0.12);
+
+  --animate-fade-in: fade-in 0.18s ease-out;
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+  }
 }
 
+/* 15px root (was 14px): every rem-based utility grows ~7%. */
 html,
 body {
-  @apply h-full w-full text-[14px];
+  @apply h-full w-full text-[15px];
 }
 
 body {
   @apply h-full text-nord3 antialiased font-sans leading-normal m-0;
-  background-color: #ededeb;
+  background-color: var(--color-canvas);
+  font-feature-settings: "cv11", "ss01", "ss03";
+  -webkit-tap-highlight-color: transparent;
 }
 
 #app {
   @apply flex flex-col min-h-full items-stretch relative flex-1 w-full h-full;
 }
 
+h1, h2, h3, h4,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+}
+
+h1, h2, h3 {
+  color: var(--color-nord0);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-nord10) 20%, transparent);
+}
+
+/* Slim, quiet scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(100 116 139 / 0.35) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: rgb(100 116 139 / 0.3);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background-color: rgb(100 116 139 / 0.5); }
+
+:focus-visible:not(input, textarea, select) {
+  outline: 2px solid color-mix(in srgb, var(--color-nord10) 55%, transparent);
+  outline-offset: 2px;
+}
+
 a {
-  @apply underline! text-nord0!;
+  @apply text-nord10! underline! decoration-nord10/30! underline-offset-2;
 }
 
 a:hover {
-  @apply no-underline text-nord0;
+  @apply decoration-nord10!;
 }
 
 .plot_tooltip {
-  @apply border border-nord4 rounded  bg-white p-2 opacity-60 text-sm  font-sans;
-  --vis-tooltip-text-color: #4c566a;
-  --vis-tooltip-border-color: #d8dee9;
-  --vis-font-family: "ui-sans-serif", sans-serif;
+  @apply border border-nord4 rounded-lg bg-white p-2 opacity-90 text-sm font-sans shadow-lg;
+  --vis-tooltip-text-color: #46546d;
+  --vis-tooltip-border-color: #dde3ee;
+  --vis-font-family: "Inter Variable", ui-sans-serif, sans-serif;
 }
 
+/* -------------------------------------------------------------------------------- */
+/* Controls                                                                          */
+
 .button {
-  @apply px-2 py-1 rounded text-nord3 cursor-pointer border border-nord4 select-none bg-white/50;
-  /*inline-block*/
-  @apply hover:border-nord3/40;
+  @apply inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-nord2 font-medium cursor-pointer select-none
+    border border-nord4 bg-white shadow-[0_1px_1px_rgb(15_23_42/0.04)]
+    transition-[background-color,border-color,box-shadow,color] duration-150;
+  @apply hover:border-nord10/40 hover:bg-brand-soft/60 hover:text-nord0;
+  @apply active:translate-y-px;
+}
+
+.button-primary,
+.button.primary {
+  @apply bg-nord10 text-white border-nord10 shadow-[0_1px_2px_color-mix(in_srgb,var(--color-nord10)_35%,transparent)];
+  @apply hover:bg-(--accent-hover) hover:border-(--accent-hover) hover:text-white;
+}
+
+.button-danger {
+  @apply text-nord11 border-nord11/30 hover:bg-nord11/5 hover:border-nord11/60 hover:text-nord11;
 }
 
 .button[aria-selected="true"] {
-  @apply border-2 border-nord7;
+  @apply border-nord10 bg-brand-soft text-nord10 ring-2 ring-nord10/15;
 }
 
 .button:disabled {
-  @apply bg-nord6/50 text-nord3/50 border-nord4 pointer-events-none;
+  @apply bg-nord6 text-nord3/50 border-nord4 shadow-none pointer-events-none;
 }
 
 .input {
-  @apply px-2 py-1 rounded inline-block border border-nord4 bg-white focus:outline-none;
+  @apply px-2.5 py-1.5 rounded-lg inline-block border border-nord4 bg-white text-nord1 placeholder:text-[#9aa6ba]
+    shadow-[inset_0_1px_1px_rgb(15_23_42/0.03)] transition-[border-color,box-shadow] duration-150
+    focus:outline-none focus:border-nord10/60 focus:ring-3 focus:ring-nord10/12;
 }
 
-input:disabled {
-  @apply bg-nord6/50 text-nord3/50 border-nord4;
+textarea.input {
+  @apply block;
+}
+
+input:disabled,
+textarea:disabled {
+  @apply bg-nord6 text-nord3/60 border-nord4;
 }
 
 .select {
-  @apply text-inherit border border-nord4 rounded px-2 py-1 outline-none transition-colors duration-200 bg-white;
+  @apply text-nord1 border border-nord4 rounded-lg pl-2.5 pr-8 py-1.5 outline-none bg-white cursor-pointer
+    transition-[border-color,box-shadow] duration-150 appearance-none
+    focus:border-nord10/60 focus:ring-3 focus:ring-nord10/12;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7a93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+}
+.select[multiple] {
+  @apply pr-2.5;
+  background-image: none;
 }
 .option {
   @apply bg-white text-inherit;
 }
 .select:disabled {
-  @apply bg-nord6/50 text-nord3/50 border-nord4;
+  @apply bg-nord6 text-nord3/60 border-nord4 cursor-default;
 }
 
 .tooltip {
-  @apply bg-gray-50 border border-nord4 rounded p-2 font-sans  z-9999 transition-opacity duration-300 m-0 self-center;
+  @apply bg-nord0 text-white/90 border border-nord0 rounded-lg px-2.5 py-1.5 font-sans text-[0.8rem] z-9999 shadow-xl transition-opacity duration-200 m-0 self-center;
   white-space: pre-line;
 }
 
-input[type="checkbox"]:not(:disabled) {
-  @apply cursor-pointer accent-nord1;
-  transform: scale(1.2);
+input[type="checkbox"],
+input[type="radio"] {
+  @apply size-4 align-middle;
 }
 
-/* Disabled checkboxes */
-input[type="checkbox"]:disabled {
-  @apply cursor-pointer accent-nord6 opacity-100;
-  transform: scale(1.2);
-}
-
-input[type="radio"]:not(:disabled) {
-  @apply cursor-pointer accent-nord1;
-  transform: scale(1.2);
-}
-
-input[type="radio"]:disabled {
-  @apply cursor-pointer accent-nord6 opacity-100;
-  transform: scale(1.2);
-}
-
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
 input[type="range"]:not(:disabled) {
-  @apply cursor-pointer accent-nord1;
-  /* transform: scale(0.8); */
+  @apply cursor-pointer accent-nord10;
 }
 
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled,
 input[type="range"]:disabled {
-  @apply cursor-pointer accent-nord6 opacity-100;
-  /* transform: scale(0.8); */
+  @apply cursor-pointer accent-nord4 opacity-100;
+}
+
+kbd {
+  @apply inline-flex items-center rounded-md border border-nord4 bg-white px-1.5 py-px font-mono text-[0.7rem] text-muted shadow-[0_1px_0_rgb(15_23_42/0.08)];
+}
+
+/* Card surface for new code and for Container.vue */
+.card {
+  @apply bg-white border border-nord4/80 rounded-xl shadow-card;
+}
+
+/* Small pill / badge */
+.chip {
+  @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-nord6 text-nord2 border border-nord4/70;
 }
 
 /* -------------------------------------------------------------------------------- */
+/* Plain tables                                                                      */
 
 .table {
-  @apply bg-gray-50 min-w-full divide-y divide-nord4/20 border border-nord4;
+  @apply bg-white min-w-full border border-nord4 rounded-xl overflow-hidden border-separate border-spacing-0;
 }
 
 .table td,
 .table th {
-  @apply p-2 text-left;
+  @apply px-3 py-2 text-left border-b border-nord4/60;
+}
+
+.table tr:last-child td {
+  @apply border-b-0;
 }
 
 .table tr:hover {
-  @apply bg-gray-100 cursor-pointer;
+  @apply bg-brand-soft/50 cursor-pointer;
 }
 
 .table th:hover {
@@ -136,18 +251,45 @@ input[type="range"]:disabled {
 }
 
 .table th {
-  @apply bg-gray-100;
+  @apply bg-nord6 text-[0.75rem] font-semibold uppercase tracking-wide text-muted;
 }
 
-/* .table td:first-child {
-  width: 1%;
-  white-space: nowrap;
-} */
-
 .table .selected {
-  @apply bg-nord14/20;
+  @apply bg-nord14/12;
 }
 
 .table .selected:hover {
-  @apply bg-nord14/20;
+  @apply bg-nord14/18;
+}
+
+/* -------------------------------------------------------------------------------- */
+/* ag-grid niceties not reachable through theme params                               */
+
+.ag-root-wrapper {
+  box-shadow: var(--shadow-card);
+}
+.ag-header-cell-text {
+  letter-spacing: 0.01em;
+}
+.ag-cell {
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------------------------- */
+/* Context menus (CMenu.vue). Views build their items by hand with
+   "pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6"; this rounds them off
+   without editing every view.                                                       */
+
+.cmenu-item,
+.cmenu > div.cursor-pointer,
+.cmenu > div > div.cursor-pointer {
+  @apply flex items-center gap-2.5 pl-2.5! pr-5! py-1.5! rounded-lg cursor-pointer text-nord1 whitespace-nowrap transition-colors duration-100;
+}
+.cmenu-item:hover,
+.cmenu > div.cursor-pointer:hover,
+.cmenu > div > div.cursor-pointer:hover {
+  @apply bg-brand-soft! text-nord0;
+}
+.cmenu > div.font-bold:first-child {
+  @apply px-2.5! pt-1 pb-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-muted;
 }

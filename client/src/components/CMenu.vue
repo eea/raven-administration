@@ -130,7 +130,7 @@ defineExpose({ showMenu, hideMenu });
   <!-- overflow-y-auto pairs with the maxHeight showMenu() may set. The capture-phase
        scroll -> hideMenu listener is guarded by menu.contains(target), and contains() is
        true for the node itself, so scrolling the menu does not dismiss it. -->
-  <div ref="menu" v-if="visible" class="border border-nord4 rounded shadow-lg bg-white fixed z-1000 flex flex-col py-2 text-base overflow-y-auto" :style="menuStyle">
+  <div ref="menu" v-if="visible" class="cmenu rounded-xl ring-1 ring-nord0/8 shadow-pop bg-white/95 backdrop-blur-md fixed z-1000 flex flex-col p-1.5 text-[0.93rem] overflow-y-auto min-w-48" :style="menuStyle">
     <slot :handleAction="handleAction" />
   </div>
 </template>

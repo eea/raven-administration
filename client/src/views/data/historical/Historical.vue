@@ -414,7 +414,7 @@ const pivotData = computed(() => {
           Sampling Points
           <FavoritesPicker title="Select favorite series" @select="applyFavorite" />
         </div>
-        <DataTable :font-size="11" :columns="timeseriesColumns" :data="cmp_timeseries" selection-mode="multiRow" :get-row-id="(params) => params.data.sampling_point_id" @grid-ready="onTimeseriesGridReady" @first-data-rendered="onTimeseriesFirstDataRendered" @selection-changed="onTimeseriesSelectionChanged" />
+        <DataTable :font-size="12" :columns="timeseriesColumns" :data="cmp_timeseries" selection-mode="multiRow" :get-row-id="(params) => params.data.sampling_point_id" @grid-ready="onTimeseriesGridReady" @first-data-rendered="onTimeseriesFirstDataRendered" @selection-changed="onTimeseriesSelectionChanged" />
       </div>
 
       <div v-for="ext in extensionPickers" :key="ext.id" class="h-64 mt-6">

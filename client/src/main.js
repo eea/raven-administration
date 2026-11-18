@@ -5,6 +5,8 @@ import "./assets/style.css";
 // import "./assets/n-elements.css";
 import { disableTextSelectOnShiftDown } from "./helpers/utils";
 import "./helpers/branding"; // ensure window.__ravenBranding is set before plugins load
+import { applyPalette } from "./helpers/palette";
+applyPalette(); // before mount, so the first paint already has the chosen colours
 import DataTable from "./components/DataTable.vue";
 import FavoritesPicker from "./components/favorites/FavoritesPicker.vue";
 

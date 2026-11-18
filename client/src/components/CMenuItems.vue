@@ -26,17 +26,17 @@ const emit = defineEmits(["edit", "delete", "duplicate"]);
 </script>
 
 <template>
-  <div v-if="showTitle" class="px-2 font-bold text-base text-nord3">Menu:</div>
-  <div v-if="showEdit" class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="emit('edit')">
-    <IconEdit class="text-nord15 text-base self-center" />
-    <div class="self-center ml-1">Edit</div>
+  <div v-if="showTitle" class="px-2.5 pt-1 pb-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-muted">Actions</div>
+  <div v-if="showEdit" class="cmenu-item" @click="emit('edit')">
+    <IconEdit class="text-nord15 text-[1.05rem] self-center" />
+    <div class="self-center">Edit</div>
   </div>
-  <div v-if="showDuplicate" class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="emit('duplicate')">
-    <IconDuplicate class="text-nord10 text-base self-center" />
-    <div class="self-center ml-1">Duplicate</div>
+  <div v-if="showDuplicate" class="cmenu-item" @click="emit('duplicate')">
+    <IconDuplicate class="text-nord10 text-[1.05rem] self-center" />
+    <div class="self-center">Duplicate</div>
   </div>
-  <div v-if="showDelete" class="pl-2 pr-4 py-1.5 flex cursor-pointer hover:bg-nord6" @click="emit('delete')">
-    <IconDelete class="text-nord11 text-base self-center" />
-    <div class="self-center ml-1">Delete</div>
+  <div v-if="showDelete" class="cmenu-item" @click="emit('delete')">
+    <IconDelete class="text-nord11 text-[1.05rem] self-center" />
+    <div class="self-center">Delete</div>
   </div>
 </template>

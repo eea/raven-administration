@@ -63,27 +63,27 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
 <template>
   <Teleport to="body">
     <Transition name="cmdk">
-      <div v-if="open" class="fixed inset-0 z-200 flex justify-center" style="padding-top: 18vh" @click.self="hide">
-        <div class="bg-white border border-nord4 rounded-xl shadow-2xl w-full max-w-lg h-fit overflow-hidden">
+      <div v-if="open" class="fixed inset-0 z-200 flex justify-center px-4 bg-nord0/25 backdrop-blur-[2px]" style="padding-top: 16vh" @click.self="hide">
+        <div class="bg-white ring-1 ring-nord0/5 rounded-2xl shadow-pop w-full max-w-lg h-fit overflow-hidden">
           <!-- Input row -->
-          <div class="flex items-center gap-2 px-4 py-3 border-b border-nord5">
-            <IconSearch class="text-nord9 text-lg shrink-0" />
+          <div class="flex items-center gap-3 px-4 h-14 border-b border-nord5">
+            <IconSearch class="text-nord10 text-xl shrink-0" />
             <input
               ref="inputRef"
               type="text"
               :value="localQ"
               @input="onInput"
-              placeholder="Filter…"
-              class="flex-1 outline-none bg-transparent text-base text-nord0 placeholder:text-nord4"
+              placeholder="Filter this page…"
+              class="flex-1 outline-none focus-visible:outline-none bg-transparent text-[1.05rem] text-nord0 placeholder:text-[#9aa6ba]"
             />
             <button v-if="localQ" @click="clear" class="text-nord3 hover:text-nord0 transition-colors">
               <IconClose class="text-base" />
             </button>
-            <kbd class="hidden sm:inline-flex items-center gap-0.5 border border-nord4 rounded px-1.5 py-0.5 text-xs text-nord3 font-mono shrink-0">Enter</kbd>
+            <kbd class="hidden sm:inline-flex shrink-0">Enter</kbd>
           </div>
 
           <!-- Footer -->
-          <div class="px-4 py-1.5 text-xs text-nord3 flex justify-between">
+          <div class="px-4 h-10 items-center bg-nord6/60 text-xs text-muted flex justify-between">
             <span v-if="localQ && resultCount !== null">
               <span class="font-semibold text-nord0">{{ resultCount }}</span> result{{ resultCount !== 1 ? "s" : "" }}
             </span>

@@ -1,6 +1,11 @@
 <script setup></script>
 <template>
-    <div class="rounded-full h-6 w-6 flex justify-center hover:bg-white hover:border-2 hover:border-nord14 hover:cursor-pointer">
-        <slot />
-    </div>
+  <!-- Icon button. Name kept for the ~30 call sites and for plugins. -->
+  <div
+    role="button"
+    tabindex="0"
+    class="grid place-items-center size-8 rounded-lg text-nord3 border border-transparent cursor-pointer transition-[background-color,border-color,box-shadow,transform] duration-150 hover:bg-white hover:border-nord4 hover:shadow-card active:scale-95"
+  >
+    <slot />
+  </div>
 </template>

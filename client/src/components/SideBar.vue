@@ -5,14 +5,14 @@ const props = defineProps({
 });
 
 const cls = computed(() => {
-  return props.show ? "translate-x-0 duration-200" : "translate-x-full duration-800 ";
+  return props.show ? "translate-x-0 duration-300" : "translate-x-full duration-300 pointer-events-none";
 });
 </script>
 
 <template>
-  <div class="transform transition ease-in-out absolute right-0 top-0 h-full w-full z-[999] flex" :class="cls">
-    <div class="w-full h-full select-none bg-nord6/50"></div>
-    <div class="bg-white border border-nord4 shadow-lg h-full">
+  <div class="transform transition ease-[cubic-bezier(.2,.8,.2,1)] absolute right-0 top-0 h-full w-full z-[999] flex" :class="cls">
+    <div class="flex-1 h-full select-none bg-nord0/25 backdrop-blur-[2px] transition-opacity duration-300" :class="show ? 'opacity-100' : 'opacity-0'"></div>
+    <div class="bg-white border-l border-nord4 shadow-pop h-full max-w-full">
       <slot />
     </div>
   </div>

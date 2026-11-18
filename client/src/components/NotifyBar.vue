@@ -1,10 +1,10 @@
 <script setup>
 import { computed, ref } from "vue";
 import Eventy from "../helpers/eventy";
-import IconError from "~icons/ic/baseline-error-outline";
-import IconSuccess from "~icons/clarity/success-standard-line";
-import IconLoading from "~icons/uil/spinner-alt";
-import IconClose from "~icons/ic/sharp-close";
+import IconError from "~icons/tabler/alert-circle";
+import IconSuccess from "~icons/tabler/circle-check";
+import IconLoading from "~icons/tabler/loader-2";
+import IconClose from "~icons/tabler/x";
 
 var notify = ref({});
 var show = ref(false);
@@ -23,30 +23,27 @@ const close = () => {
 };
 
 const cls = computed(() => {
-  var s = show.value ? " left-4 duration-500 " : "-left-full duration-500";
-  if (notify.value.type == "error") return s + "border-nord11/75";
-  if (notify.value.type == "warning") return s + "border-nord13";
-  return s + "border-nord14";
+  return show.value ? "left-4 sm:left-6 opacity-100 duration-500" : "-left-full opacity-0 duration-500";
 });
 
-const cls2 = computed(() => {
-  if (notify.value.type == "error") return "bg-nord11/50";
-  if (notify.value.type == "warning") return "bg-nord13/50";
-  if (notify.value.type == "loading") return "bg-nord15/50";
-
-  return "bg-nord14/50";
+const tone = computed(() => {
+  if (notify.value.type == "error") return { icon: "bg-nord11/12 text-nord11", bar: "bg-nord11" };
+  if (notify.value.type == "warning") return { icon: "bg-nord13/15 text-[#b7791f]", bar: "bg-nord13" };
+  if (notify.value.type == "loading") return { icon: "bg-nord10/10 text-nord10", bar: "bg-nord10" };
+  return { icon: "bg-nord14/12 text-nord14", bar: "bg-nord14" };
 });
 </script>
 <template>
-  <div class="transition-position ease-in-out absolute bottom-4 border rounded shadow z-[9999] bg-white flex text-xl" :class="cls">
-    <div class="flex p-1" :class="cls2">
-      <icon-error v-if="notify.type == 'error' || notify.type == 'warning'" class="text-lg self-center" />
-      <icon-loading v-else-if="notify.type == 'loading'" class="text-lg self-center animate-spin" />
-      <icon-success v-else class="text-lg self-center" />
+  <div class="transition-all ease-[cubic-bezier(.2,.8,.2,1)] fixed bottom-5 max-w-[calc(100vw-2rem)] rounded-xl shadow-pop ring-1 ring-nord0/8 z-[9999] bg-white flex items-center gap-3 pl-3 pr-2 py-2.5 overflow-hidden" :class="cls">
+    <div class="absolute left-0 top-0 bottom-0 w-1" :class="tone.bar"></div>
+    <div class="grid place-items-center size-8 rounded-full shrink-0 ml-1" :class="tone.icon">
+      <icon-error v-if="notify.type == 'error' || notify.type == 'warning'" class="text-lg" />
+      <icon-loading v-else-if="notify.type == 'loading'" class="text-lg animate-spin" />
+      <icon-success v-else class="text-lg" />
     </div>
-    <div class="px-4 py-2">{{ notify.msg }}</div>
-    <div class="pr-1 pt-1">
-      <icon-close class="text-sm self-center cursor-pointer hover:text-nord14" @click="close()" />
-    </div>
+    <div class="pr-2 text-[0.95rem] text-nord1 font-medium">{{ notify.msg }}</div>
+    <button class="grid place-items-center size-7 rounded-md text-nord3 hover:bg-nord6 hover:text-nord0 shrink-0" aria-label="Dismiss" @click="close()">
+      <icon-close class="text-sm" />
+    </button>
   </div>
 </template>

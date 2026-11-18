@@ -45,9 +45,9 @@ export default {
 
 <template>
   <!-- TODO: re-enable @click.self="onClose" when ready -->
-  <div class="absolute top-0 bottom-0 left-0 right-0 bg-black/30 z-100" v-if="show">
-    <div class="absolute top-1/2 left-1/2 p-4 border border-nord4 rounded-xl flex flex-col gap-2 bg-gray-50 shadow z-110 -translate-x-1/2 -translate-y-1/2 min-w-96 text-base max-h-[90vh]" v-bind="$attrs">
-      <div class="select-none font-bold flex justify-between">
+  <div class="absolute top-0 bottom-0 left-0 right-0 bg-nord0/35 backdrop-blur-[2px] z-100" v-if="show">
+    <div class="absolute top-1/2 left-1/2 p-5 rounded-2xl ring-1 ring-nord0/5 flex flex-col gap-3 bg-white shadow-pop z-110 -translate-x-1/2 -translate-y-1/2 min-w-[min(24rem,calc(100%-2rem))] max-w-[calc(100%-2.5rem)] text-base max-h-[90vh]" v-bind="$attrs">
+      <div class="select-none font-display font-bold text-lg text-nord0 flex justify-between items-center gap-4">
         <div>{{ title }}</div>
         <div class="flex items-center gap-2">
           <!-- Header, deliberately, not the body: the body below is overflow-y-auto,
@@ -58,10 +58,10 @@ export default {
                viewport and mis-clamp. Slotted content should use the FavoritesPicker
                pattern (relative wrapper + absolute panel) instead. -->
           <slot name="actions"></slot>
-          <icon-close class="self-center text-nord3 hover:cursor-pointer hover:text-nord0" @click="onClose" />
+          <button class="grid place-items-center size-8 rounded-lg text-nord3 hover:bg-nord6 hover:text-nord0 transition" aria-label="Close" @click="onClose"><icon-close class="text-lg" /></button>
         </div>
       </div>
-      <div class="border border-gray-300"></div>
+      <div class="border-t border-nord4/80 -mx-5"></div>
       <div :class="bodyClass"><slot></slot></div>
     </div>
   </div>
