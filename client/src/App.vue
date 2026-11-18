@@ -23,11 +23,12 @@ const mobileOpen = ref(false);
 watch(mobile, () => (mobileOpen.value = false));
 
 const COLLAPSE_KEY = "raven_nav_collapsed";
+// Collapsed (icon rail) by default; only an explicit "0" — the user expanded it — opens it.
 const readCollapsed = () => {
   try {
-    return localStorage.getItem(COLLAPSE_KEY) === "1";
+    return localStorage.getItem(COLLAPSE_KEY) !== "0";
   } catch {
-    return false;
+    return true;
   }
 };
 const collapsed = ref(readCollapsed());
