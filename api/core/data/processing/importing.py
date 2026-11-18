@@ -105,7 +105,7 @@ class Importing:
         approved = cursor.fetchone()
         if approved:
             raise Exception(
-                f"Import blocked: verified (approved) data already exists for {approved[0]} at {approved[1]}. "
+                f"Import blocked: verified (approved) data already exists for {approved['sampling_point_id']} at {approved['from_time']}. "
                 "Verified data cannot be overwritten."
             )
 
