@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 import Auth from "../../helpers/auth";
 import { branding } from "../../helpers/branding";
@@ -13,6 +13,13 @@ import IconChart from "~icons/tabler/chart-area-line";
 import IconCloud from "~icons/tabler/cloud-upload";
 
 const router = useRouter();
+const route = useRoute();
+
+// Only same-site paths: "//host" and absolute URLs would make this an open redirect.
+const safeRedirect = (r) => {
+  if (typeof r !== "string" || !r.startsWith("/") || r.startsWith("//") || r.startsWith("/\\") || r.startsWith("/login")) return null;
+  return r;
+};
 const canCreateAdmin = ref(false);
 const username = ref("");
 const password = ref("");
@@ -37,7 +44,7 @@ const login = async () => {
     message.value = "";
     await Auth.signin(username.value, password.value);
     reset();
-    router.push({ name: "Home" });
+    router.replace(safeRedirect(route.query.redirect) ?? { name: "Home" });
   } catch (error) {
     message.value = error.message;
   }

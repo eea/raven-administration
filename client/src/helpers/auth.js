@@ -28,6 +28,22 @@ const Auth = {
     if (!resp.token) throw Error("Internal error. Could not get a valid token");
     sessionStorage.setItem("token", resp.token);
   },
+  // Token expiry in epoch milliseconds, or null when not signed in.
+  expiresAt() {
+    const exp = Auth.claims().exp;
+    return exp ? exp * 1000 : null;
+  },
+  // "Stay signed in": swap a still-valid token for a fresh one.
+  async refresh() {
+    const resp = await Post("/api/auth/refresh", {});
+    if (!resp.token) throw Error("Could not refresh the session");
+    sessionStorage.setItem("token", resp.token);
+  },
+  // Where to send someone whose session ended: the login page, then back here.
+  loginUrl() {
+    const here = window.location.pathname + window.location.search + window.location.hash;
+    return here === "/" || here.startsWith("/login") ? "/login" : "/login?redirect=" + encodeURIComponent(here);
+  },
   signout() {
     sessionStorage.removeItem("token");
   },

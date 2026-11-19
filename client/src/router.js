@@ -122,7 +122,7 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   Eventy.hideMessage();
   var isAuth = Auth.isAuth();
-  if (to.name !== "Login" && !isAuth) next({ name: "Login" });
+  if (to.name !== "Login" && !isAuth) next(to.fullPath === "/" ? { name: "Login" } : { name: "Login", query: { redirect: to.fullPath } });
   else next();
 });
 

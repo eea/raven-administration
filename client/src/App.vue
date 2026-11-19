@@ -5,6 +5,7 @@ import { useMediaQuery } from "@vueuse/core";
 
 import ProgressBar from "./components/ProgressBar.vue";
 import NotifyBar from "./components/NotifyBar.vue";
+import SessionExpiryBanner from "./components/SessionExpiryBanner.vue";
 import TopBar from "./components/TopBar.vue";
 import MenuBar from "./components/MenuBar.vue";
 import NavPalette from "./components/NavPalette.vue";
@@ -49,6 +50,7 @@ const paletteOpen = ref(false);
 <template>
   <ProgressBar />
   <NotifyBar />
+  <SessionExpiryBanner v-if="!isLogin" />
   <div class="h-full flex overflow-hidden">
     <MenuBar :show="!isLogin" :collapsed="collapsed" :mobile="mobile" :mobile-open="mobileOpen" @close="mobileOpen = false" @toggle-collapse="toggleCollapse" />
     <div class="flex-1 min-w-0 flex flex-col overflow-hidden">

@@ -22,7 +22,8 @@ class User(RavenBaseModel):
 
 
 # USER
-def get_user(username, password):
+def load_user(username):
+    """The user with their merged group permissions, or None. No password check."""
     with CursorFromPool() as cursor:
         sql = """
           select
@@ -61,12 +62,20 @@ def get_user(username, password):
           group by u.id, u.name, u.username, u.password             
         """
         cursor.execute(sql, {"username": username})
-        user = cursor.fetchone()
+        return cursor.fetchone()
 
-        if user == None or check_password_hash(user["password"], password) == False:
-            return None
 
-        return User(**user)
+def get_user(username, password):
+    user = load_user(username)
+    if user == None or check_password_hash(user["password"], password) == False:
+        return None
+    return User(**user)
+
+
+def get_user_by_username(username):
+    """Used by token refresh: the signed-in identity, permissions re-read, no password."""
+    user = load_user(username)
+    return User(**user) if user else None
 
 
 def get_claims(user: User):

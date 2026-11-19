@@ -23,9 +23,14 @@ const Interceptor = {
         } else return response;
       },
       (error) => {
-        if (error.response && (401 === error.response.status || 422 === error.response.status)) {
+        if (
+          error.response &&
+          (401 === error.response.status || 422 === error.response.status) &&
+          !String(error.config?.url ?? "").includes("/api/auth/signin")
+        ) {
+          // Back to the page the session ended on once signed in again.
           Auth.signout();
-          window.location.href = "/login";
+          window.location.href = Auth.loginUrl();
         } else if (error.response && 403 === error.response.status) {
           window.location.href = "/forbidden";
         } else if (error.response && 404 === error.response.status && !error.response.request.responseURL.toLowerCase().includes("api")) {
