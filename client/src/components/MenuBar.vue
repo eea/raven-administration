@@ -96,6 +96,10 @@ const goto = (comp) => {
   if (props.mobile) emit("close");
 };
 
+// The logo goes "home": the Home route redirects to the page marked
+// "Opens here after login" (raven_default_view), so the two always agree.
+const goHome = () => goto("Home");
+
 // ── rail flyout ─────────────────────────────────────────────────────────────
 const flyout = ref(null); // { group, top }
 let flyoutTimer = null;
@@ -167,13 +171,16 @@ defineExpose({ focusFilter: () => filterInput.value?.focus() });
   >
     <!-- Brand -->
     <div class="flex items-center gap-3 h-16 shrink-0" :class="rail ? 'justify-center px-0' : 'px-4'">
-      <div class="logo grid place-items-center size-9 rounded-xl shrink-0 text-white shadow-lg shadow-black/25">
-        <IconLogo class="text-[1.15rem]" />
-      </div>
-      <div v-if="!rail" class="min-w-0 leading-tight">
-        <div class="font-display n-strong font-bold text-[1.05rem] tracking-tight truncate">{{ branding.appName }}</div>
-        <div class="text-[0.72rem] uppercase tracking-[0.14em] n-faint truncate">{{ branding.subtitle }}</div>
-      </div>
+      <a :href="router.resolve({ name: 'Home' }).href" class="flex items-center gap-3 min-w-0 no-underline! cursor-pointer"
+        title="Go to start page" @click.prevent="goHome">
+        <div class="logo grid place-items-center size-9 rounded-xl shrink-0 text-white shadow-lg shadow-black/25">
+          <IconLogo class="text-[1.15rem]" />
+        </div>
+        <div v-if="!rail" class="min-w-0 leading-tight">
+          <div class="font-display n-strong font-bold text-[1.05rem] tracking-tight truncate">{{ branding.appName }}</div>
+          <div class="text-[0.72rem] uppercase tracking-[0.14em] n-faint truncate">{{ branding.subtitle }}</div>
+        </div>
+      </a>
       <button v-if="mobile" class="ml-auto grid place-items-center size-9 rounded-lg n-hover" @click="emit('close')" aria-label="Close menu">
         <IconX class="text-lg" />
       </button>
