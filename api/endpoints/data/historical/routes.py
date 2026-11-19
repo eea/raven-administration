@@ -16,7 +16,9 @@ def historical():
     with CursorFromPool() as cursor:
         m = HistoricalModel(**request.json)
         sampling_point_ids = Q.sampling_point_ids_by_networks_access(m.sampling_point_ids)
-        meanvalues = Mean.Aggregate(cursor, MeanType(m.meantype), sampling_point_ids, m.from_dt, m.to_dt, m.coverage, 3, 3, True)
+        # pluginMetadata: series with a local (plugin) pollutant or unit get their name and
+        # unit in the legend and table, and their own y-axis, like on the dashboard.
+        meanvalues = Mean.Aggregate(cursor, MeanType(m.meantype), sampling_point_ids, m.from_dt, m.to_dt, m.coverage, 3, 3, True, pluginMetadata=True)
         return jsonify(meanvalues)
 
 

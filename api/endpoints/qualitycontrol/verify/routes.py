@@ -5,6 +5,7 @@ from werkzeug.exceptions import BadRequest
 from flask_jwt_extended import jwt_required
 from core.database import CursorFromPool
 from core.query import Q
+from core import series_metadata as smeta
 from endpoints.qualitycontrol.verify.models import DatasetModel, FlagModel
 from core.jwt_ext_custom import jwt_required_with_qualitycontrol_claim
 from core.log_context import set_log_context
@@ -23,6 +24,9 @@ def datasets():
             "year": m.year,
             "networkids": n_param["networkids"]
         }
+        # Local (plugin) pollutant / timestep where the series has no EEA term.
+        pollutant = smeta.expr('pollutant', "NULLIF(po.notation, '')", 'po.label')
+        timestep = smeta.expr('timestep', "NULLIF(t.notation, '')", 't.label')
         cursor.execute(f"""
             {with_network_sql}
             select 
@@ -37,7 +41,7 @@ def datasets():
                     COALESCE (min(aa.c) FILTER (WHERE observationverification_id = 3),0) AS not_verified								
                 from 
                 (
-                  select s.name, p.id, EXTRACT(year FROM o.from_time) as year,EXTRACT(month FROM o.from_time) as month, COALESCE(NULLIF(po.notation, ''), po.label) pollutant, COALESCE(NULLIF(t.notation, ''), t.label) as timestep, o.observationverification_id, count(*) as c
+                  select s.name, p.id, EXTRACT(year FROM o.from_time) as year,EXTRACT(month FROM o.from_time) as month, {pollutant} pollutant, {timestep} as timestep, o.observationverification_id, count(*) as c
                   from stations s
                   join network_access n on n.id = s.network_id
                   join sampling_points p on s.id = p.station_id
@@ -47,9 +51,10 @@ def datasets():
                   -- from Verify, even though the observations were there to approve.
                   left join eea_pollutants po on p.pollutant_id = po.id
                   left join eea_times t on p.time_resolution_id = t.id
+                  {smeta.joins('p')}
                   where EXTRACT(year FROM o.from_time) = %(year)s
                   and s.id = %(station_id)s
-                  group by s.name, EXTRACT(year FROM o.from_time), EXTRACT(month FROM o.from_time), o.observationverification_id, COALESCE(NULLIF(po.notation, ''), po.label), p.id, t.notation, t.label
+                  group by s.name, EXTRACT(year FROM o.from_time), EXTRACT(month FROM o.from_time), o.observationverification_id, {pollutant}, p.id, {timestep}
                 ) aa
                 group by aa.name,aa.id, aa.year, aa.month, aa.pollutant, aa.timestep
             """, params)

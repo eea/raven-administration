@@ -4,6 +4,7 @@ from flask_jwt_extended import jwt_required
 from core.database import CursorFromPool
 from core.query import Q
 from core.groups import Groups
+from core import series_metadata as smeta
 from endpoints.qualitycontrol.validate.models import TimevalueModel, FlagModel
 from core.jwt_ext_custom import jwt_required_with_qualitycontrol_claim
 from core.log_context import set_log_context
@@ -40,20 +41,23 @@ def timevalues():
         """, m)
         rows = [dict(r) for r in cursor.fetchall()]
 
-        # Fetch group members (other SPs in the same group)
-        cursor.execute("""
+        # Fetch group members (other SPs in the same group). The label falls back to a
+        # local (plugin) pollutant name where the member has no EEA pollutant.
+        label = smeta.expr('pollutant', "NULLIF(p.notation, '')", 'p.label')
+        cursor.execute(f"""
             SELECT
                 g2.sampling_point_id,
-                COALESCE(NULLIF(p.notation, ''), p.label) AS label
+                {label} AS label
             FROM sampling_point_groups g1
             JOIN sampling_point_groups g2 ON g1.group_id = g2.group_id
             JOIN sampling_points sp ON sp.id = g2.sampling_point_id
             -- LEFT: pollutant_id nullable since migration 012; a group member with a local
             -- pollutant must still be offered as a comparison series.
             LEFT JOIN eea_pollutants p ON p.id = sp.pollutant_id
+            {smeta.joins('sp')}
             WHERE g1.sampling_point_id = %(sp_id)s
               AND g2.sampling_point_id != %(sp_id)s
-            ORDER BY LOWER(p.notation)
+            ORDER BY LOWER({label})
         """, {"sp_id": m.sampling_point_id})
         members = [dict(r) for r in cursor.fetchall()]
 

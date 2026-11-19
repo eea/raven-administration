@@ -135,8 +135,9 @@ class Mean:
         and the eight attainment directives, and core/eea/generate_attainment/
         directives/tv.py groups by ["sampling_point_id", "unit", ...]. pandas groupby
         drops rows whose key is NaN, so turning a NULL unit into 'm/s' would quietly
-        pull previously-excluded series into an attainment result. Only the dashboard,
-        which needs the unit to group its chart axes, asks for it.
+        pull previously-excluded series into an attainment result. Only the dashboard and
+        Historical data, which need the name and unit for their legends and chart axes,
+        ask for it.
         """
         component = "COALESCE(NULLIF(po.notation, ''), po.label)"
         timestep = 'ti.notation'
