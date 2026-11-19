@@ -217,8 +217,8 @@ const getConfigSchema = (pluginId) => {
       <div v-if="getConfigSchema(configPlugin?.id).length > 0">
         <div class="mb-3" v-for="field in getConfigSchema(configPlugin?.id)" :key="field.key">
           <div class="font-bold mb-1">{{ field.label }}:</div>
-          <input v-if="field.type === 'text'" type="text" class="input w-full" v-model="configData[field.key]" />
-          <input v-else-if="field.type === 'number'" type="number" class="input w-full" v-model="configData[field.key]" />
+          <input v-if="field.type === 'text'" type="text" class="input w-full" :placeholder="field.placeholder" v-model="configData[field.key]" />
+          <input v-else-if="field.type === 'number'" type="number" class="input w-full" :placeholder="field.placeholder" v-model="configData[field.key]" />
           <div v-else-if="field.type === 'checkbox'" class="flex gap-2 cursor-pointer" @click="configData[field.key] = !configData[field.key]">
             <input type="checkbox" :checked="configData[field.key]" class="self-center" readonly />
             <span class="self-center text-sm text-nord3">{{ field.label }}</span>
@@ -229,6 +229,8 @@ const getConfigSchema = (pluginId) => {
             <div class="text-xs text-nord3">Max 100 KB. Changes take effect after saving and reloading the page.</div>
             <button v-if="configData[field.key]" class="button text-xs self-start" @click="configData[field.key] = ''">Remove image</button>
           </div>
+          <!-- Optional help text from the plugin's configSchema; \n starts a new line -->
+          <div v-if="field.description" class="text-xs text-nord3 mt-1 whitespace-pre-line">{{ field.description }}</div>
         </div>
       </div>
       <div v-else class="text-nord3 text-sm mb-4">
