@@ -16,6 +16,11 @@ import IconLinks from "~icons/material-symbols/link";
 // nothing exported it, so migration 020 dropped it. Its bulk fill lives on in
 // GenerateRegimes.vue, writing real regimes.
 
+// embedded: shown inside Management -> Assessment setup, which has the generator
+// itself -- so no wand here, and edits are reported up so its summaries follow.
+const props = defineProps({ embedded: { type: Boolean, default: false } });
+const emit = defineEmits(["changed"]);
+
 const options = ref({});
 const showGenerate = ref(false);
 // ?wizard=1&year= opens the generate step directly (the wizard's entry point).
@@ -35,20 +40,21 @@ const onContextMenuAction = ({ action, data }) => {
 onMounted(async () => {
   const lookups = await Service.lookups();
   options.value = pageOptions(lookups);
-  if (route.query.wizard) showGenerate.value = true;
+  if (route.query.wizard && !props.embedded) showGenerate.value = true;
 });
 </script>
 
 <template>
-  <generate-regimes :show="showGenerate" :lookups="options.lookups ?? {}" :initial-year="wizardYear"
+  <generate-regimes v-if="!embedded" :show="showGenerate" :lookups="options.lookups ?? {}" :initial-year="wizardYear"
                     @close="showGenerate = false" @generated="dataVersion++" />
 
-  <linked-methods :show="!!linksRegime" :regime="linksRegime" @close="linksRegime = null" />
+  <linked-methods :show="!!linksRegime" :regime="linksRegime" @close="linksRegime = null; emit('changed')" />
 
   <Manager :key="dataVersion" name="Assessment regime zones" :options="options" :service="Service"
-           :show-download-button="false" @context-menu-action="onContextMenuAction">
-    <template #toolbar>
-      <CircleHover class="ml-1 self-center" title="Generate regimes for a year (wizard, step 1 of 3)"
+           :show-download-button="false" :embedded="embedded"
+           @context-menu-action="onContextMenuAction" @changed="emit('changed')">
+    <template v-if="!embedded" #toolbar>
+      <CircleHover class="ml-1 self-center" title="Generate regimes for a year (also on Management → Assessment setup)"
                    @click="showGenerate = true">
         <icon-generate class="text-nord10 text-base self-center" />
       </CircleHover>

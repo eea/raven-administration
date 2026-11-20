@@ -14,6 +14,14 @@ import IconRecalculate from "~icons/material-symbols/wand-stars";
 // delete; AQR3 retracts a row with the Deletion flag, which is editable. See
 // pageOptions.js for what is and is not editable.
 
+// embedded: shown inside Management -> Assessment setup for its year. That page owns
+// the year and the recalculation, so neither is offered here.
+const props = defineProps({
+  embedded: { type: Boolean, default: false },
+  year: { type: Number, default: null }
+});
+const emit = defineEmits(["changed"]);
+
 const route = useRoute();
 const router = useRouter();
 const options = ref({});
@@ -53,10 +61,10 @@ onMounted(async () => {
   }
   years.value = lookups.years ?? [];
   // ?year= from a link (with ?focus=, which Manager reads), else the latest year.
-  const linked = Number(route.query.year);
+  const linked = props.embedded ? props.year : Number(route.query.year);
   year.value = linked || (years.value[0] ?? yearChoices.value[0]);
   options.value = pageOptions(lookups);
-  if (route.query.wizard) confirming.value = true;
+  if (route.query.wizard && !props.embedded) confirming.value = true;
 });
 
 const recalculate = async () => {
@@ -77,7 +85,7 @@ const recalculate = async () => {
   }
 };
 
-const back = () => router.push({ name: "AssessmentData", query: { wizard: 1, year: year.value } });
+const back = () => router.push({ name: "AssessmentSetup", query: { year: year.value, step: 3 } });
 </script>
 
 <template>
@@ -89,13 +97,15 @@ const back = () => router.push({ name: "AssessmentData", query: { wizard: 1, yea
     :show-add-button="false"
     :show-delete-button="false"
     :show-download-button="false"
+    :embedded="embedded"
+    @changed="emit('changed')"
   >
-    <template #toolbar>
+    <template v-if="!embedded" #toolbar>
       <select v-if="yearChoices.length" v-model="year" class="select ml-3 self-center text-sm"
               @change="recalc = null">
         <option v-for="y in yearChoices" :key="y" :value="y">{{ y }}{{ years.includes(y) ? "" : " (not calculated)" }}</option>
       </select>
-      <CircleHover class="ml-1 self-center" :title="`Recalculate compliance for ${year} (wizard, step 3 of 3)`"
+      <CircleHover class="ml-1 self-center" :title="`Recalculate compliance for ${year}`"
                    @click="confirming = true">
         <icon-recalculate class="text-nord10 text-base self-center" :class="running ? 'animate-pulse' : ''" />
       </CircleHover>
@@ -103,11 +113,11 @@ const back = () => router.push({ name: "AssessmentData", query: { wizard: 1, yea
     <template #banner>
       <div v-if="confirming" class="mb-2 p-3 rounded border border-nord13 bg-nord13/20 text-sm flex items-center gap-3">
         <div class="flex-1">
-          <strong>Step 3 of 3:</strong> recalculate ComplianceAssessmentMethod for {{ year }} from its assessment
+          Recalculate ComplianceAssessmentMethod for {{ year }} from its assessment
           regimes and their linked sampling points and models. The year's rows are rebuilt; the columns you
           maintain by hand (PollutionLevel, MQI, Deletion and the others editable here) are kept.
         </div>
-        <button class="button" @click="back">← Step 2</button>
+        <button class="button" @click="back">Assessment setup</button>
         <button class="button" :disabled="running" @click="recalculate">Recalculate {{ year }}</button>
         <button class="button" @click="confirming = false">Cancel</button>
       </div>

@@ -18,6 +18,10 @@ import IconGenerate from "~icons/material-symbols/wand-stars";
 // point, a MOD_ model or an OBE_ one (methodKind.js). The wand opens step 2 of the
 // assessment setup wizard, which links the sampling points inside each regime's zone.
 
+// embedded: shown inside Management -> Assessment setup, which has the linker itself.
+const props = defineProps({ embedded: { type: Boolean, default: false } });
+const emit = defineEmits(["changed"]);
+
 const route = useRoute();
 const options = ref({});
 const showGenerate = ref(false);
@@ -28,18 +32,18 @@ const dataVersion = ref(0);
 onMounted(async () => {
   const lookups = await Service.lookups();
   options.value = pageOptions(lookups);
-  if (route.query.wizard) showGenerate.value = true;
+  if (route.query.wizard && !props.embedded) showGenerate.value = true;
 });
 </script>
 
 <template>
-  <generate-assessment-data :show="showGenerate" :initial-year="wizardYear"
+  <generate-assessment-data v-if="!embedded" :show="showGenerate" :initial-year="wizardYear"
                             @close="showGenerate = false" @linked="dataVersion++" />
 
   <Manager :key="dataVersion" name="Assessment data" :options="options" :service="Service"
-           :crud-component="AssessmentDataCrud">
-    <template #toolbar>
-      <CircleHover class="ml-1 self-center" title="Link sampling points by zone (wizard, step 2 of 3)"
+           :crud-component="AssessmentDataCrud" :embedded="embedded" @changed="emit('changed')">
+    <template v-if="!embedded" #toolbar>
+      <CircleHover class="ml-1 self-center" title="Link sampling points by zone (also on Management → Assessment setup)"
                    @click="showGenerate = true">
         <icon-generate class="text-nord10 text-base self-center" />
       </CircleHover>

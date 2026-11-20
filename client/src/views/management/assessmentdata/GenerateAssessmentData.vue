@@ -17,12 +17,16 @@ import Service from "./service";
 //
 // Writes through insert-many: all or nothing, insert only, an existing link is never
 // touched.
+//
+// Embedded (Management -> Assessment setup, step 2) it renders without the popup, takes
+// its year from the page, and Back / Next switch the page's tabs.
 
 const props = defineProps({
   show: Boolean,
-  initialYear: { type: Number, default: null }
+  initialYear: { type: Number, default: null },
+  embedded: { type: Boolean, default: false }
 });
-const emit = defineEmits(["close", "linked"]);
+const emit = defineEmits(["close", "linked", "back", "next", "counted"]);
 const router = useRouter();
 
 const now = new Date().getFullYear();
@@ -37,7 +41,7 @@ const loaded = ref(false);
 const linked = ref(0);
 const gridApi = ref(null);
 
-const columns = [
+const allColumns = [
   { field: "zone_national_code", headerName: "Zone Code", sortable: true, filter: true, minWidth: 100, flex: 0.8 },
   { field: "pollutant", headerName: "Pollutant", sortable: true, filter: true, minWidth: 100, flex: 0.8 },
   { field: "objective_type", headerName: "Objective", sortable: true, filter: true, minWidth: 90, flex: 0.7 },
@@ -48,6 +52,12 @@ const columns = [
   { field: "assessmenttype", headerName: "Assessment Type", sortable: true, filter: true, minWidth: 110, flex: 0.8,
     headerTooltip: "The type the point was linked with before, else fixed measurement" }
 ];
+
+// Zone, pollutant, objective and metric already say which regime; the ARE_ id is for the
+// raw table.
+const columns = computed(() => (props.embedded
+  ? allColumns.filter((c) => c.field !== "assessment_regime_id")
+  : allColumns));
 
 const getRowId = (params) => `${params.data.assessment_regime_id}|${params.data.sampling_point_id}`;
 const onGridReady = (api) => (gridApi.value = api);
@@ -60,6 +70,7 @@ const reset = () => {
 };
 
 watch(() => props.show, (open) => {
+  if (props.embedded) return;
   if (!open) return reset();
   if (props.initialYear) year.value = props.initialYear;
   load();
@@ -74,6 +85,7 @@ const load = async () => {
     rows.value = found.rows ?? [];
     regimes.value = found.regimes ?? 0;
     loaded.value = true;
+    emit("counted", { missing: rows.value.length, regimes: regimes.value });
   } catch {
     Eventy.showHideMessage("Could not load the sampling points to link.", "error", 4000);
   } finally {
@@ -107,28 +119,42 @@ const onLink = async () => {
   }
 };
 
+watch(() => props.initialYear, (y) => {
+  if (!props.embedded || !y) return;
+  reset();
+  year.value = y;
+  load();
+}, { immediate: true });
+
+const wrapAttrs = computed(() => (props.embedded
+  ? { class: "flex-1 min-h-0 flex flex-col" }
+  : { show: props.show, title: "Link sampling points by zone", class: "w-[78rem] max-w-[95%] h-[85vh]",
+      bodyClass: "flex-1 min-h-0 flex flex-col" }));
+
 const back = () => {
+  if (props.embedded) return emit("back");
   emit("close");
-  router.push({ name: "AssessmentRegimes", query: { wizard: 1, year: year.value } });
+  router.push({ name: "AssessmentSetup", query: { year: year.value, step: 1 } });
 };
 const next = () => {
+  if (props.embedded) return emit("next");
   emit("close");
-  router.push({ name: "ComplianceAssessmentMethod", query: { wizard: 1, year: year.value } });
+  router.push({ name: "AssessmentSetup", query: { year: year.value, step: 3 } });
 };
 </script>
 
 <template>
-  <popup :show="show" title="Link sampling points by zone — step 2 of 3" class="w-[78rem] max-w-[95%] h-[85vh]"
-         body-class="flex-1 min-h-0 flex flex-col" @on-close="emit('close')">
+  <component :is="embedded ? 'div' : Popup" v-bind="wrapAttrs" @on-close="emit('close')">
     <p class="text-xs text-nord3 mb-3 shrink-0">
       For each assessment regime of the year, the reporting sampling points that measure its pollutant and
       whose station lies <strong>inside the regime's zone</strong>, not linked yet. Select rows to link only
       those; with nothing selected, all listed are linked. Models have no location — link them per regime
-      from <em>Assessment regimes → Linked sampling points / models</em>.
+      <template v-if="embedded">from step 1: right-click a regime under <em>Existing regimes</em>.</template>
+      <template v-else>from <em>Assessment regimes → Linked sampling points / models</em>.</template>
     </p>
 
     <div class="flex gap-3 items-end mb-3 shrink-0">
-      <div>
+      <div v-if="!embedded">
         <div class="font-bold text-sm">Classification Year</div>
         <select class="select w-32" v-model="year" :disabled="loading || saving" @change="load">
           <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
@@ -143,7 +169,7 @@ const next = () => {
       <template v-if="!loaded">Loading...</template>
       <template v-else-if="regimes === 0">
         No assessment regimes for {{ year }} yet —
-        <a class="text-nord10 hover:underline cursor-pointer" @click="back">generate them first (step 1)</a>.
+        <a class="text-nord10 hover:underline cursor-pointer" @click="back">generate them first</a>.
       </template>
       <template v-else-if="rows.length">
         {{ rows.length }} link(s) missing across {{ regimes }} regime(s) of {{ year }}.
@@ -158,7 +184,7 @@ const next = () => {
 
     <div class="border-t border-gray-300 mt-3 shrink-0"></div>
     <div class="flex justify-end pt-2 gap-4 shrink-0">
-      <button class="button mr-auto" @click="back">← Step 1: regimes</button>
+      <button class="button mr-auto" @click="back">← Regimes</button>
       <button class="button" :disabled="!canLink" @click="onLink">
         {{ saving ? "Linking..." : "Link" }}
       </button>
@@ -166,7 +192,7 @@ const next = () => {
               title="Recalculate ComplianceAssessmentMethod for the year">
         Next: calculate compliance →
       </button>
-      <button class="button" @click="emit('close')">Close</button>
+      <button v-if="!embedded" class="button" @click="emit('close')">Close</button>
     </div>
-  </popup>
+  </component>
 </template>

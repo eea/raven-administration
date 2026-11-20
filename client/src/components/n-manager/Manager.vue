@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+import IconBack from "~icons/material-symbols/arrow-back";
 import Eventy from "../../helpers/eventy";
 import Crud from "./Crud.vue";
 import GridDataTable from "./GridDataTable.vue";
@@ -12,7 +13,9 @@ import CMenuItems from "../CMenuItems.vue";
 import CmdK from "../CmdK.vue";
 import { focusKeys, focusRows } from "../../helpers/focusRows";
 
-const emit = defineEmits(["context-menu-action"]);
+// changed: a row was added, saved, deleted or imported -- for a page that shows a
+// summary of the same table next to it (Assessment setup).
+const emit = defineEmits(["context-menu-action", "changed"]);
 
 const props = defineProps({
   name: String,
@@ -37,6 +40,14 @@ const props = defineProps({
     default: true
   },
   showDuplicate: {
+    type: Boolean,
+    default: false
+  },
+  // Shown inside another page (Assessment setup) rather than as a page of its own: no
+  // page padding, so the table runs to the host's edges, and no `relative`, so this
+  // manager's popups are placed against the host page and cover its content area
+  // instead of being clipped to the embedded box.
+  embedded: {
     type: Boolean,
     default: false
   }
@@ -89,6 +100,7 @@ const onFileChange = async (event) => {
   try {
     await props.service.upload(formData);
     await loadData();
+    emit("changed");
     Eventy.showHideMessage(`${props.name} imported successfully`, "success", 5000);
   } finally {
     event.target.value = "";
@@ -125,6 +137,15 @@ const keyOf = (row) => Object.fromEntries(cmp_keyProps.value.map((k) => [k, row?
 // recalculation feedback links here, so the row to fix is on screen, not somewhere in
 // a few hundred.
 const route = useRoute();
+const router = useRouter();
+
+// Opened from Assessment setup ("Open as full page", ?from=setup): offer the way back,
+// to the same year, step and table view.
+const backToSetup = computed(() => !props.embedded && route.query.from === "setup");
+const goBackToSetup = () => router.push({
+  name: "AssessmentSetup",
+  query: { year: route.query.year, step: route.query.step, view: "table" }
+});
 const gridApi = ref(null);
 const focused = ref(new Set());
 const keyString = (row) => cmp_keyProps.value.map((k) => row?.[k] ?? "").join("|");
@@ -162,6 +183,7 @@ const saveEdit = async (o) => {
     await props.service.update(o);
   }
   await loadData();
+  emit("changed");
   Eventy.showHideMessage(`${props.name} saved`, "success", 5000);
   close();
 };
@@ -173,6 +195,7 @@ const saveAdd = async (o) => {
   }
   await props.service.insert(o);
   await loadData();
+  emit("changed");
   Eventy.showHideMessage(`${props.name} saved`, "success", 5000);
   close();
 };
@@ -191,6 +214,7 @@ const saveDelete = async (o) => {
     await props.service.delete({ ids: selected.value.map((p) => p[key]) });
   }
   await loadData();
+  emit("changed");
   Eventy.showHideMessage(`${props.name} deleted`, "success", 5000);
   close();
 };
@@ -210,7 +234,7 @@ const cmp_properties = computed(() => {
 </script>
 
 <template>
-  <common-layout>
+  <component :is="embedded ? 'div' : CommonLayout" :class="embedded ? 'h-full flex flex-col gap-1' : ''">
     <confirm :show="showConfirm" title="Delete" text="Are you sure you want to delete?" @close="close" @ok="saveDelete" />
 
     <component v-if="showAddButton" :is="crudComponent" :is-edit="false" :show="showAdd" :options="options" :duplicate-source="duplicateSource" @close="close" @save="saveAdd" />
@@ -219,6 +243,9 @@ const cmp_properties = computed(() => {
     <CmdK v-model="q" :result-count="filteredList.length" />
 
     <tool-bar :title="name" v-model:q="q" :show-add="showAddButton" :show-download="showDownloadButton" :show-upload="showUpload" @add-click="showAdd = true" @download-click="onDownload" @upload-click="onUpload">
+      <button v-if="backToSetup" class="button order-first flex items-center gap-1 mr-2" title="Back to Assessment setup" @click="goBackToSetup">
+        <icon-back class="text-base" /> Assessment setup
+      </button>
       <!-- Page-specific toolbar controls: a year selector, a bulk action. -->
       <slot name="toolbar" v-bind="{ reload: loadData }" />
     </tool-bar>
@@ -232,7 +259,7 @@ const cmp_properties = computed(() => {
         <slot name="extra-context-menu-items" v-bind="{ handleAction, contextData }" />
       </template>
     </grid-data-table>
-  </common-layout>
+  </component>
 </template>
 
 <style></style>

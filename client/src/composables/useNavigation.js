@@ -39,6 +39,7 @@ import ISR from "~icons/tabler/radar-2";
 import IModels from "~icons/tabler/cpu";
 import IPLA from "~icons/tabler/adjustments-horizontal";
 import ICAM from "~icons/tabler/scale";
+import IAssessmentSetup from "~icons/tabler/wand";
 import IDashboard from "~icons/tabler/layout-dashboard";
 import ILatest from "~icons/tabler/clock-bolt";
 import IHistorical from "~icons/tabler/chart-line";
@@ -87,6 +88,7 @@ const ITEM_ICONS = {
   Models: IModels,
   PollutionLevelAdjustment: IPLA,
   ComplianceAssessmentMethod: ICAM,
+  AssessmentSetup: IAssessmentSetup,
   Dashboard: IDashboard,
   Latest: ILatest,
   Historical: IHistorical,
@@ -164,12 +166,12 @@ const getmodules = () => {
         { name: "Stations", comp: "Stations", show: jwt.management },
         { name: "Sampling Points", comp: "SamplingPoints", show: jwt.management },
         { name: "Sampling Processes", comp: "Processes", show: jwt.management },
-        { name: "Assessment Regime Zones", comp: "AssessmentRegimes", show: jwt.management && jwt.allnetworks },
-        { name: "Assessment Data", comp: "AssessmentData", show: jwt.management && jwt.allnetworks },
+        // Regimes, their assessment data and CAM in one page. The three raw tables are
+        // collapsed sections inside it; their routes remain for deep links (?focus=).
+        { name: "Assessment setup", comp: "AssessmentSetup", show: jwt.management && jwt.allnetworks },
         { name: "Spatial Representativeness", comp: "SpatialRepresentativeness", show: jwt.management },
         { name: "Models / OBE", comp: "Models", show: jwt.management && jwt.allnetworks },
-        { name: "Pollution Level Adjustments", comp: "PollutionLevelAdjustment", show: jwt.management && jwt.allnetworks },
-        { name: "Compliance Assessment Method", comp: "ComplianceAssessmentMethod", show: jwt.management && jwt.allnetworks }
+        { name: "Pollution Level Adjustments", comp: "PollutionLevelAdjustment", show: jwt.management && jwt.allnetworks }
       ]
     },
     {

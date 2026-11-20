@@ -19,14 +19,18 @@ import Service from "./service";
 // previous years measured in the zone against the directive's assessment thresholds
 // (core/eea/assessment_threshold.py). It is editable, limited to what the objective
 // allows; the reasoning is in the row's tooltip.
+//
+// Embedded (Management -> Assessment setup, step 1) it renders without the popup, takes
+// its year from the page and loads straight away; Next is then the page's tab switch.
 
 const props = defineProps({
   show: Boolean,
   lookups: { type: Object, default: () => ({}) },
-  initialYear: { type: Number, default: null }
+  initialYear: { type: Number, default: null },
+  embedded: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(["close", "generated"]);
+const emit = defineEmits(["close", "generated", "next", "counted"]);
 const router = useRouter();
 
 const now = new Date().getFullYear();
@@ -84,6 +88,7 @@ const reset = () => {
 };
 
 watch(() => props.show, (open) => {
+  if (props.embedded) return;
   if (!open) return reset();
   if (props.initialYear) year.value = props.initialYear;
 });
@@ -96,7 +101,8 @@ const load = async () => {
     const found = await Service.candidates(year.value, measuredOnly.value ? "measured" : "all");
     rows.value = found.map((r) => ({ ...r, chosen_threshold: r.proposed_threshold_exceedance ?? "" }));
     loaded.value = true;
-    if (rows.value.length === 0) {
+    emit("counted", rows.value.length);
+    if (rows.value.length === 0 && !props.embedded) {
       Eventy.showHideMessage(`Every combination already has a regime for ${year.value}`, "success", 4000);
     }
   } catch {
@@ -137,15 +143,28 @@ const onGenerate = async () => {
   }
 };
 
+// The page owns the year when embedded.
+watch(() => props.initialYear, (y) => {
+  if (!props.embedded || !y) return;
+  reset();
+  year.value = y;
+  load();
+}, { immediate: true });
+
+const wrapAttrs = computed(() => (props.embedded
+  ? { class: "flex-1 min-h-0 flex flex-col" }
+  : { show: props.show, title: "Generate assessment regimes", class: "w-[78rem] max-w-[95%] h-[85vh]",
+      bodyClass: "flex-1 min-h-0 flex flex-col" }));
+
 const next = () => {
+  if (props.embedded) return emit("next");
   emit("close");
-  router.push({ name: "AssessmentData", query: { wizard: 1, year: year.value } });
+  router.push({ name: "AssessmentSetup", query: { year: year.value, step: 2 } });
 };
 </script>
 
 <template>
-  <popup :show="show" title="Generate assessment regimes — step 1 of 3" class="w-[78rem] max-w-[95%] h-[85vh]"
-         body-class="flex-1 min-h-0 flex flex-col" @on-close="emit('close')">
+  <component :is="embedded ? 'div' : Popup" v-bind="wrapAttrs" @on-close="emit('close')">
     <p class="text-xs text-nord3 mb-3 shrink-0">
       Zone x environmental objective combinations (EEA vocabulary) that have <strong>no regime yet</strong>
       for the classification year. The AssessmentRegimeId is derived server-side. The classification is
@@ -155,7 +174,7 @@ const next = () => {
     </p>
 
     <div class="flex gap-3 items-end mb-3 shrink-0">
-      <div>
+      <div v-if="!embedded">
         <div class="font-bold text-sm">Classification Year</div>
         <select class="select w-32" v-model="year" :disabled="loading || saving">
           <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
@@ -163,11 +182,11 @@ const next = () => {
       </div>
       <label class="flex items-center gap-1 text-sm self-center mt-4 cursor-pointer"
              title="A pollutant counts when a reporting sampling point measuring it has its station inside the zone, or a model exists for it">
-        <input type="checkbox" v-model="measuredOnly" :disabled="loading || saving" />
+        <input type="checkbox" v-model="measuredOnly" :disabled="loading || saving" @change="embedded && load()" />
         Only pollutants measured in the zone
       </label>
       <button class="button" @click="load" :disabled="loading || saving">
-        {{ loading ? "Loading..." : "Find missing" }}
+        {{ loading ? "Loading..." : embedded ? "Refresh" : "Find missing" }}
       </button>
 
       <div class="flex-1"></div>
@@ -209,7 +228,7 @@ const next = () => {
               title="Link the sampling points inside each regime's zone">
         Next: link sampling points →
       </button>
-      <button class="button" @click="emit('close')">Close</button>
+      <button v-if="!embedded" class="button" @click="emit('close')">Close</button>
     </div>
-  </popup>
+  </component>
 </template>
