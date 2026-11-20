@@ -85,6 +85,17 @@ h1, h2, h3 {
   color: var(--color-nord0);
 }
 
+/* Tailwind v4 preflight gives buttons cursor: default; put the pointer back on
+   everything clickable. In the base layer so a cursor-* utility still wins. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+}
+
 .tabular {
   font-variant-numeric: tabular-nums;
 }
