@@ -8,7 +8,10 @@ import { reactive, computed } from "vue";
  *   window.__ravenPlugins[id].historicalExtension = {
  *     title: 'External sources',          // heading above the picker
  *     picker: SomeVueComponent,           // optional; v-model = the plugin's selection (array),
- *                                         // also receives :from and :to (Date)
+ *                                         // also receives :from and :to (Date). The picker sets
+ *                                         // its own height (e.g. a small one while it lists nothing).
+ *     pickerHasTitle: true,               // optional; the picker draws its own title row, so the
+ *                                         // page does not print `title` above it
  *     getSeries(ctx) { ... return rows }  // may be async
  *   }
  *

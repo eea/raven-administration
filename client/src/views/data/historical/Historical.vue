@@ -423,8 +423,9 @@ const pivotData = computed(() => {
         <DataTable :font-size="12" :columns="timeseriesColumns" :data="cmp_timeseries" selection-mode="multiRow" :get-row-id="(params) => params.data.sampling_point_id" @grid-ready="onTimeseriesGridReady" @first-data-rendered="onTimeseriesFirstDataRendered" @selection-changed="onTimeseriesSelectionChanged" />
       </div>
 
-      <div v-for="ext in extensionPickers" :key="ext.id" class="h-64 mt-6">
-        <div class="font-bold">{{ ext.title || ext.id }}</div>
+      <!-- The picker sets its own height; it may also draw its own title row (pickerHasTitle). -->
+      <div v-for="ext in extensionPickers" :key="ext.id" class="mt-6" :class="{ 'h-64': !ext.pickerHasTitle }">
+        <div v-if="!ext.pickerHasTitle" class="font-bold">{{ ext.title || ext.id }}</div>
         <component :is="ext.picker" v-model="extensionSelections[ext.id]" :from="fromtime" :to="totime" />
       </div>
 
@@ -509,16 +510,19 @@ const pivotData = computed(() => {
       <WindRose :rows="gridData" :meantype="activeMeantype" />
     </Container>
 
-    <Container v-show="showPlot" class="flex-1 mt-4 min-h-48">
+    <!-- Straight on the page background (no card) to save margins; tall enough for ~10 rows. -->
+    <div v-show="showPlot" class="flex-1 mt-4 flex flex-col min-h-[440px]">
       <div class="flex justify-end mb-2">
         <div class="flex items-center gap-1.5 cursor-pointer select-none text-sm font-bold" @click="pivotView = !pivotView" :title="pivotView ? 'Switch to row view' : 'Switch to pivot view'">
           <component :is="pivotView ? IconList : IconPivot" class="text-base text-nord10" />
           {{ pivotView ? "Row view" : "Pivot view" }}
         </div>
       </div>
-      <DataTable v-if="!pivotView" :columns="gridDataColumns" :data="filteredGridData" :get-row-style="getRowStyle"></DataTable>
-      <DataTable v-else :columns="pivotColumns" :data="pivotData"></DataTable>
-    </Container>
+      <div class="flex-1 min-h-[400px]">
+        <DataTable v-if="!pivotView" :columns="gridDataColumns" :data="filteredGridData" :get-row-style="getRowStyle"></DataTable>
+        <DataTable v-else :columns="pivotColumns" :data="pivotData"></DataTable>
+      </div>
+    </div>
   </CommonLayout>
 </template>
 
