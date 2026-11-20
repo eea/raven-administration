@@ -20,12 +20,12 @@ INSERT INTO public.eea_adjustmenttypes (id, label, uri) VALUES ('noneApplicable'
 INSERT INTO public.eea_adjustmenttypes (id, label, uri) VALUES ('nsCorrection', 'Natural source correction', 'http://dd.eionet.europa.eu/vocabulary/aq/adjustmenttype/nsCorrection');
 INSERT INTO public.eea_adjustmenttypes (id, label, uri) VALUES ('wssCorrection', 'Winter-sanding or -salting correction', 'http://dd.eionet.europa.eu/vocabulary/aq/adjustmenttype/wssCorrection');
 
-INSERT INTO public.eea_areaclassifications (id, label, notation, uri) VALUES ('rural', 'Rural', 'Rural', 'http://dd.eionet.europa.eu/vocabulary/aq/areaclassification/rural');
-INSERT INTO public.eea_areaclassifications (id, label, notation, uri) VALUES ('rural-nearcity', 'Rural-Near_city', 'Rural-Near_city', 'http://dd.eionet.europa.eu/vocabulary/aq/areaclassification/rural-nearcity');
-INSERT INTO public.eea_areaclassifications (id, label, notation, uri) VALUES ('rural-regional', 'Rural-Regional', 'Rural-Regional', 'http://dd.eionet.europa.eu/vocabulary/aq/areaclassification/rural-regional');
-INSERT INTO public.eea_areaclassifications (id, label, notation, uri) VALUES ('rural-remote', 'Rural-Remote', 'Rural-Remote', 'http://dd.eionet.europa.eu/vocabulary/aq/areaclassification/rural-remote');
-INSERT INTO public.eea_areaclassifications (id, label, notation, uri) VALUES ('suburban', 'Suburban', 'Suburban', 'http://dd.eionet.europa.eu/vocabulary/aq/areaclassification/suburban');
-INSERT INTO public.eea_areaclassifications (id, label, notation, uri) VALUES ('urban', 'Urban', 'Urban', 'http://dd.eionet.europa.eu/vocabulary/aq/areaclassification/urban');
+INSERT INTO public.eea_areaclassifications (id, label, notation, uri) VALUES ('rural', 'Rural', 'rural', 'http://dd.eionet.europa.eu/vocabulary/aq/areaclassification/rural');
+INSERT INTO public.eea_areaclassifications (id, label, notation, uri) VALUES ('rural-nearcity', 'Rural-Near_city', 'rural-nearcity', 'http://dd.eionet.europa.eu/vocabulary/aq/areaclassification/rural-nearcity');
+INSERT INTO public.eea_areaclassifications (id, label, notation, uri) VALUES ('rural-regional', 'Rural-Regional', 'rural-regional', 'http://dd.eionet.europa.eu/vocabulary/aq/areaclassification/rural-regional');
+INSERT INTO public.eea_areaclassifications (id, label, notation, uri) VALUES ('rural-remote', 'Rural-Remote', 'rural-remote', 'http://dd.eionet.europa.eu/vocabulary/aq/areaclassification/rural-remote');
+INSERT INTO public.eea_areaclassifications (id, label, notation, uri) VALUES ('suburban', 'Suburban', 'suburban', 'http://dd.eionet.europa.eu/vocabulary/aq/areaclassification/suburban');
+INSERT INTO public.eea_areaclassifications (id, label, notation, uri) VALUES ('urban', 'Urban', 'urban', 'http://dd.eionet.europa.eu/vocabulary/aq/areaclassification/urban');
 
 INSERT INTO public.eea_assessmentthresholdexceedances (id, label, uri) VALUES ('aboveLTO', 'Above the long-term objective', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmentthresholdexceedance/aboveLTO');
 INSERT INTO public.eea_assessmentthresholdexceedances (id, label, uri) VALUES ('aboveUAT', 'Above Upper Assessment Threshold (>UAT)', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmentthresholdexceedance/aboveUAT');
@@ -34,12 +34,12 @@ INSERT INTO public.eea_assessmentthresholdexceedances (id, label, uri) VALUES ('
 INSERT INTO public.eea_assessmentthresholdexceedances (id, label, uri) VALUES ('LAT-UAT', 'Between the upper and lower threshold (LAT-UAT), on 3 or more occasions during the 5 previous years.', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmentthresholdexceedance/LAT-UAT');
 INSERT INTO public.eea_assessmentthresholdexceedances (id, label, uri) VALUES ('NA', 'Not Applicable', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmentthresholdexceedance/NA');
 
-INSERT INTO public.eea_assessmenttypes (id, label, notation, uri) VALUES ('fixed', 'Fixed measurement', 'Fixed measurement', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmenttype/fixed');
-INSERT INTO public.eea_assessmenttypes (id, label, notation, uri) VALUES ('fixedrandom', 'Fixed random measurements', 'Fixed random measurements', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmenttype/fixedrandom');
-INSERT INTO public.eea_assessmenttypes (id, label, notation, uri) VALUES ('model', 'Modelling', 'Modelling', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmenttype/model');
-INSERT INTO public.eea_assessmenttypes (id, label, notation, uri) VALUES ('indicative', 'Indicative measurement', 'Indicative measurement', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmenttype/indicative');
-INSERT INTO public.eea_assessmenttypes (id, label, notation, uri) VALUES ('other', 'Other measurement', 'Other measurement', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmenttype/other');
-INSERT INTO public.eea_assessmenttypes (id, label, notation, uri) VALUES ('objective', 'Objective estimation', 'Objective estimation', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmenttype/objective');
+INSERT INTO public.eea_assessmenttypes (id, label, notation, uri) VALUES ('fixed', 'Fixed measurement', 'fixed', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmenttype/fixed');
+INSERT INTO public.eea_assessmenttypes (id, label, notation, uri) VALUES ('fixedrandom', 'Fixed random measurements', 'fixedrandom', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmenttype/fixedrandom');
+INSERT INTO public.eea_assessmenttypes (id, label, notation, uri) VALUES ('model', 'Modelling', 'model', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmenttype/model');
+INSERT INTO public.eea_assessmenttypes (id, label, notation, uri) VALUES ('indicative', 'Indicative measurement', 'indicative', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmenttype/indicative');
+INSERT INTO public.eea_assessmenttypes (id, label, notation, uri) VALUES ('other', 'Other measurement', 'other', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmenttype/other');
+INSERT INTO public.eea_assessmenttypes (id, label, notation, uri) VALUES ('objective', 'Objective estimation', 'objective', 'http://dd.eionet.europa.eu/vocabulary/aq/assessmenttype/objective');
 
 INSERT INTO public.eea_concentrations (id, label, notation, uri) VALUES ('m-1', 'Per meter', 'm-1', 'http://dd.eionet.europa.eu/vocabulary/uom/concentration/m-1');
 INSERT INTO public.eea_concentrations (id, label, notation, uri) VALUES ('mg.l-1', 'Micrograms per litre.', 'mg/l', 'http://dd.eionet.europa.eu/vocabulary/uom/concentration/mg.l-1');
@@ -76,11 +76,11 @@ INSERT INTO public.eea_concentrations (id, label, notation, uri) VALUES ('ug.m-3
 INSERT INTO public.eea_concentrations (id, label, notation, uri) VALUES ('ugN.m-3', 'Micrograms of nitrogen per cubic metre', 'µg N/m3', 'http://dd.eionet.europa.eu/vocabulary/uom/concentration/ugN.m-3');
 INSERT INTO public.eea_concentrations (id, label, notation, uri) VALUES ('ugSO2.m-3', 'Micrograms of sulphur dioxide per cubic metre', 'µg SO2/m3', 'http://dd.eionet.europa.eu/vocabulary/uom/concentration/ugSO2.m-3');
 
-INSERT INTO public.eea_equivalencedemonstrated (id, label, notation, uri) VALUES ('inprogress', 'Equivalence testing in progress', 'Equivalence testing in progress', 'http://dd.eionet.europa.eu/vocabulary/aq/equivalencedemonstrated/inprogress');
-INSERT INTO public.eea_equivalencedemonstrated (id, label, notation, uri) VALUES ('no', 'Equivalence not demonstrated', 'Equivalence not demonstrated', 'http://dd.eionet.europa.eu/vocabulary/aq/equivalencedemonstrated/no');
-INSERT INTO public.eea_equivalencedemonstrated (id, label, notation, uri) VALUES ('noRef', 'Demonstration not possible, no reference method defined by Directive', 'Demonstration not possible, no reference method defined by Directive', 'http://dd.eionet.europa.eu/vocabulary/aq/equivalencedemonstrated/noRef');
-INSERT INTO public.eea_equivalencedemonstrated (id, label, notation, uri) VALUES ('ref', 'Reference method used, demonstration not necessary', 'Reference method used, demonstration not necessary', 'http://dd.eionet.europa.eu/vocabulary/aq/equivalencedemonstrated/ref');
-INSERT INTO public.eea_equivalencedemonstrated (id, label, notation, uri) VALUES ('yes', 'Equivalence demonstrated', 'Equivalence demonstrated', 'http://dd.eionet.europa.eu/vocabulary/aq/equivalencedemonstrated/yes');
+INSERT INTO public.eea_equivalencedemonstrated (id, label, notation, uri) VALUES ('inprogress', 'Equivalence testing in progress', 'inprogress', 'http://dd.eionet.europa.eu/vocabulary/aq/equivalencedemonstrated/inprogress');
+INSERT INTO public.eea_equivalencedemonstrated (id, label, notation, uri) VALUES ('no', 'Equivalence not demonstrated', 'no', 'http://dd.eionet.europa.eu/vocabulary/aq/equivalencedemonstrated/no');
+INSERT INTO public.eea_equivalencedemonstrated (id, label, notation, uri) VALUES ('noRef', 'Demonstration not possible, no reference method defined by Directive', 'noRef', 'http://dd.eionet.europa.eu/vocabulary/aq/equivalencedemonstrated/noRef');
+INSERT INTO public.eea_equivalencedemonstrated (id, label, notation, uri) VALUES ('ref', 'Reference method used, demonstration not necessary', 'ref', 'http://dd.eionet.europa.eu/vocabulary/aq/equivalencedemonstrated/ref');
+INSERT INTO public.eea_equivalencedemonstrated (id, label, notation, uri) VALUES ('yes', 'Equivalence demonstrated', 'yes', 'http://dd.eionet.europa.eu/vocabulary/aq/equivalencedemonstrated/yes');
 
 INSERT INTO public.eea_exceedancedescription (id, label) VALUES (1, 'Base');
 INSERT INTO public.eea_exceedancedescription (id, label) VALUES (2, 'Adjustment');
@@ -489,10 +489,15 @@ INSERT INTO public.eea_administrativelevels (id, label, notation, uri) VALUES ('
 INSERT INTO public.eea_resultencoding (id, label, notation, uri) VALUES ('inline', 'Inline (grid cells in the CSV)', 'inline', 'http://dd.eionet.europa.eu/vocabulary/aq/resultencoding/inline');
 INSERT INTO public.eea_resultencoding (id, label, notation, uri) VALUES ('external', 'External (attached GEOTIFF)', 'external', 'http://dd.eionet.europa.eu/vocabulary/aq/resultencoding/external');
 
-INSERT INTO public.eea_modelapplication (id, label, notation, uri) VALUES ('assessment', 'Assessment', 'assessment', 'http://dd.eionet.europa.eu/vocabulary/aq/modelapplication/assessment');
-INSERT INTO public.eea_modelapplication (id, label, notation, uri) VALUES ('adjustment', 'Adjustment', 'adjustment', 'http://dd.eionet.europa.eu/vocabulary/aq/modelapplication/adjustment');
+INSERT INTO public.eea_modelapplication (id, label, notation, uri) VALUES ('adjustment', 'Natural source adjustment', 'adjustment', 'http://dd.eionet.europa.eu/vocabulary/aq/modelapplication/adjustment');
+INSERT INTO public.eea_modelapplication (id, label, notation, uri) VALUES ('airqualityconcentrations', 'air quality concentrations', 'airqualityconcentrations', 'http://dd.eionet.europa.eu/vocabulary/aq/modelapplication/airqualityconcentrations');
+INSERT INTO public.eea_modelapplication (id, label, notation, uri) VALUES ('airqualityforecasting', 'air quality forecasting', 'airqualityforecasting', 'http://dd.eionet.europa.eu/vocabulary/aq/modelapplication/airqualityforecasting');
+INSERT INTO public.eea_modelapplication (id, label, notation, uri) VALUES ('assessment', 'Assessment for Compliance', 'assessment', 'http://dd.eionet.europa.eu/vocabulary/aq/modelapplication/assessment');
+INSERT INTO public.eea_modelapplication (id, label, notation, uri) VALUES ('populationexposure', 'population exposure', 'populationexposure', 'http://dd.eionet.europa.eu/vocabulary/aq/modelapplication/populationexposure');
 INSERT INTO public.eea_modelapplication (id, label, notation, uri) VALUES ('scenario', 'Scenario', 'scenario', 'http://dd.eionet.europa.eu/vocabulary/aq/modelapplication/scenario');
-INSERT INTO public.eea_modelapplication (id, label, notation, uri) VALUES ('representativeness', 'Spatial representativeness', 'representativeness', 'http://dd.eionet.europa.eu/vocabulary/aq/modelapplication/representativeness');
+INSERT INTO public.eea_modelapplication (id, label, notation, uri) VALUES ('sourceapportionment', 'source apportionment', 'sourceapportionment', 'http://dd.eionet.europa.eu/vocabulary/aq/modelapplication/sourceapportionment');
+INSERT INTO public.eea_modelapplication (id, label, notation, uri) VALUES ('spatialrepresentativeness', 'spatial representativeness', 'spatialrepresentativeness', 'http://dd.eionet.europa.eu/vocabulary/aq/modelapplication/spatialrepresentativeness');
+INSERT INTO public.eea_modelapplication (id, label, notation, uri) VALUES ('aei', 'average exposure indicator', 'aei', 'http://dd.eionet.europa.eu/vocabulary/aq/modelapplication/aei');
 
 -- EEA INSPIRE grid resolution steps in metres (see the guide's Introduction sheet)
 INSERT INTO public.eea_spatialresolution (id, label, notation, uri) VALUES ('10', '10 m', '10', 'http://dd.eionet.europa.eu/vocabulary/aq/spatialresolution/10');

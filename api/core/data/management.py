@@ -131,7 +131,7 @@ class Management:
     __TYPE_NAMES = {
         "numeric": "a number",
         "varchar": "text",
-        "bool": "true or false",
+        "bool": "Y/N or true/false",
         "geometry": "WKT geometry",
         "timestamp": "a timestamp",
         "timestamptz": "a timestamp",
@@ -193,10 +193,15 @@ class Management:
             self.df[self.df[row.column_name].notna()][row.column_name].astype(str)
 
         elif row.data_type == "bool":
-            bool_list = ['true', 'True', 'TRUE', True, 'false', 'False', 'FALSE', False]
-            if (not self.df[row.column_name].isin(bool_list).any()) and (self.df[row.column_name].notna().any()):
+            # What Postgres itself takes as a boolean, and so what the insert can
+            # pass through as text. Y/N is what the AQR3 export writes.
+            accepted = {'true', 'false', 'y', 'n', 'yes', 'no', 't', 'f', '1', '0'}
+            values = self.df[row.column_name].dropna()
+            bad = values[~values.map(lambda v: str(v).strip().lower() in accepted
+                                     if not isinstance(v, bool) else True)]
+            if not bad.empty:
                 raise BadRequest(f'Column {row.column_name} must be a boolean value '
-                                 f'(true or false).')
+                                 f'(Y/N or true/false), not {bad.iloc[0]!r}.')
 
         elif row.data_type == "geometry":
             self.df[self.df[row.column_name].notna()][row.column_name].apply(wkt.loads)

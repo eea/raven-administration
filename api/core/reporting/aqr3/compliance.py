@@ -73,9 +73,10 @@ SKIP_LABELS = {
                              'its assessment regime',
 }
 
-# The evaluation reports isexceedance as a string; CAM_08 is a boolean.
-_EXCEEDANCE_TRUE = {'yes', 'true', '1'}
-_EXCEEDANCE_FALSE = {'no', 'false', '0'}
+# The evaluation reports isexceedance as a string; CAM_08 is a boolean. `y`/`n` is
+# what formatters.boolean writes, so an exported flag reads back as itself.
+_EXCEEDANCE_TRUE = {'y', 'yes', 'true', '1'}
+_EXCEEDANCE_FALSE = {'n', 'no', 'false', '0'}
 
 # The evaluation drives off sampling_points with a LEFT JOIN to assessmentdata, so
 # a database with no assessment regimes yields one skipped row per sampling point —

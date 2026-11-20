@@ -23,6 +23,7 @@ from core.eea.id_generator import (
 )
 from core.data.exceedances import (
     Exceedances,
+    ASSESSMENT_TYPE_MAPPING,
     DIRECTIVE_THRESHOLDS,
     get_pollutant_eea_code,
     map_assessment_type,
@@ -292,14 +293,15 @@ class PlansAndProgramsExport:
         
         # Filter by assessment types if specified
         if assessment_types:
-            # Map back to RAVEN notations
-            raven_notations = [
-                k for k, v in map_assessment_type.__globals__.get('ASSESSMENT_TYPE_MAPPING', {}).items()
-                if v in assessment_types
-            ]
-            if raven_notations:
-                where_clauses.append("eat.notation = ANY(%(assessment_types)s)")
-                params['assessment_types'] = raven_notations
+            # By id, which is the aq/assessmenttype code. The labels are kept for a
+            # database whose notation still holds them (data.sql seeded notation =
+            # label until migration 034); matching on the labels alone found nothing
+            # once the notation was the code.
+            labels = [k for k, v in ASSESSMENT_TYPE_MAPPING.items() if v in assessment_types]
+            where_clauses.append("(eat.id = ANY(%(assessment_type_ids)s) "
+                                 "OR eat.notation = ANY(%(assessment_types)s))")
+            params['assessment_type_ids'] = list(assessment_types)
+            params['assessment_types'] = labels
         
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
         

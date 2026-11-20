@@ -5,6 +5,8 @@ from endpoints.management.samplingpoints.models import SamplingPointsModel
 from core.jwt_ext_custom import jwt_required_with_management_claim
 from core.query import Q, DeleteModel, vocab_option
 from core.query_access import Access
+from core.eea.id_generator import (EEAIDGenerator, IdentifierError,
+                                   SEP, validate_identifier)
 
 
 samplingpoints_endpoint = Blueprint('samplingpoints', __name__)
@@ -92,6 +94,57 @@ def samplingpoints_lookups():
         })
 
 
+def _reference_id(cursor, model):
+    """AQR3 SPO_03 SamplingPointReferenceId for a sampling point about to be written.
+
+    The format is fully mandatory -- SPOref_<StationEoICode>_<PollutantId, 4 digits>_<idx>
+    -- and until 2026-11 nothing here built or checked it, so most databases export
+    the column empty (609 of 609 reportable points on raven_local) and 4sFera's review
+    found hand-typed ones with an unpadded pollutant id.
+
+    Left empty, it is generated from the station's EoI code and the pollutant with
+    the lowest free ordering index. Typed, it must match the format and name this
+    point's own station and pollutant, so moving a point to another station or
+    pollutant cannot leave a reference to the old one; clearing the field
+    regenerates it. A point that cannot be reported (no EoI code or no EEA pollutant)
+    keeps whatever it has, since SPO never exports it.
+    """
+    typed = (model.sampling_point_reference_id or '').strip() or None
+    cursor.execute("SELECT station_eoi_code FROM stations WHERE id = %s", (model.station_id,))
+    row = cursor.fetchone()
+    eoi = (row or {}).get('station_eoi_code')
+    if not eoi or not model.pollutant_id or model.pollutant_id <= 0:
+        return typed
+
+    prefix = SEP.join(['SPOref', str(eoi).strip(), f'{int(model.pollutant_id):04d}'])
+    if typed:
+        try:
+            validate_identifier('SamplingPointReferenceId', typed)
+        except IdentifierError as e:
+            raise BadRequest(f'{e}. Leave it empty to have it generated as {prefix}_<n>.')
+        if typed.rsplit(SEP, 1)[0] != prefix:
+            raise BadRequest(
+                f"SamplingPointReferenceId {typed!r} does not name this sampling point's "
+                f'station and pollutant ({prefix}_<n>). Clear it to have it regenerated.')
+        return typed
+
+    cursor.execute("""
+        SELECT sampling_point_reference_id AS ref FROM sampling_points
+         WHERE sampling_point_reference_id LIKE %s AND id <> %s
+    """, (prefix.replace('_', r'\_') + r'\_%', model.id))
+    used = {r['ref'].rsplit(SEP, 1)[1] for r in cursor.fetchall()}
+    index = next((n for n in range(1, 100) if str(n) not in used), None)
+    if index is None:
+        raise BadRequest(f'All 99 ordering indexes of {prefix}_<n> are taken.')
+    try:
+        return EEAIDGenerator.generate_sampling_point_reference_id(eoi, model.pollutant_id, index)
+    except IdentifierError:
+        # An EoI code that cannot form one (an underscore in it, or too long for
+        # varchar(32)). Not a reason to refuse the rest of the edit; the export's
+        # scope check is where the missing reference shows.
+        return None
+
+
 @samplingpoints_endpoint.route('/api/management/samplingpoints/update', methods=['POST'])
 @jwt_required_with_management_claim()
 def samplingpoints_update():
@@ -100,6 +153,8 @@ def samplingpoints_update():
 
         if not Access.to_sampling_point(model.id):
             raise BadRequest("Access denied for samplingpoint")
+
+        model.sampling_point_reference_id = _reference_id(cursor, model)
 
         sql = """ 
           UPDATE sampling_points
@@ -140,6 +195,8 @@ def samplingpoints_insert():
 
         if not Access.to_station(model.station_id):
             raise BadRequest("Access denied for station")
+
+        model.sampling_point_reference_id = _reference_id(cursor, model)
 
         sql = """
           INSERT INTO sampling_points (

@@ -350,7 +350,9 @@ PATTERNS = {
         re.compile(rf'^SCE_(?P<zone>.+?)_(?P<pollutant>\d+)_(?P<objective>{_CODE})'
                    rf'_(?P<target>{_CODE})_(?P<metric>{_CODE})_(?P<idx>\d{{1,2}})$'),
     'SamplingPointReferenceId':
-        re.compile(rf'^SPOref_(?P<station>{_CODE})_(?P<pollutant>\d+)_(?P<idx>\d{{1,2}})$'),
+        # The pollutant id is four digits in every example of the guide's Identifiers
+        # sheet (SPOref_DU0001_0005_1), which 4sFera checks against.
+        re.compile(rf'^SPOref_(?P<station>{_CODE})_(?P<pollutant>\d{{4}})_(?P<idx>\d{{1,2}})$'),
     'PlanId':
         re.compile(r'^PLA_.+$'),
     'ModelAssessmentMethodId':

@@ -18,10 +18,14 @@ DOCUMENT_TYPE_CODES = {
     'NetworkDocument': 'NET',
     'DataQualityDocument': 'DQ',
     'EquivalenceDemonstrationDocument': 'EQ',
+    'ProcessDocument': 'PR',
     'ProcessDocumentation': 'PR',
+    'MethodDocument': 'MR',
     'ModelDocument': 'MR',
     'ClassificationDocument': 'CL',
+    'SourceApportionmentDocument': 'SAP',
     'SourceAppDocument': 'SAP',
+    'AdjustmentDocument': 'ADJ',
     'PlanDocument': 'PLA',
 }
 

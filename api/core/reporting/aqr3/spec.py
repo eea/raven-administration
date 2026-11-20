@@ -871,7 +871,10 @@ DOC = TableSpec(
     params=('country_code',),
     sql="""
         SELECT %(country_code)s AS country_code,
-               dt.notation   AS data_table,
+               -- The concept id (AssessmentRegimeZone), not its notation (ARZ): the
+               -- code list value, as 4sFera's review of 2026-11-20 pointed out, and
+               -- what the guide's Documentation example writes.
+               dt.id         AS data_table,
                dobj.notation AS document_type,
                d.id          AS document_id,
                d.documentattachment AS document_attachment,
@@ -879,7 +882,7 @@ DOC = TableSpec(
         FROM documents d
         LEFT JOIN eea_datatable dt        ON d.datatable_id      = dt.id
         LEFT JOIN eea_documentobject dobj ON d.documentobject_id = dobj.id
-        ORDER BY dt.notation, dobj.notation, d.id
+        ORDER BY dt.id, dobj.notation, d.id
     """,
     columns=(
         Column('CountryCode', 'country_code'),

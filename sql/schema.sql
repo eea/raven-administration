@@ -388,7 +388,7 @@ create table if not exists eea_documentobject
     uri      varchar(255) not null unique
 );
 
-comment on table eea_documentobject is 'Document object types for AUTH reporting - AQD, Classificationreport, etc.';
+comment on table eea_documentobject is 'AQR3 DOC_03 DocumentType (vocabulary aq/documenttype, despite the table name): NetworkDocument, DataQualityDocument, ProcessDocument, MethodDocument, ClassificationDocument, ...';
 
 create table if not exists eea_datatable
 (
@@ -398,7 +398,7 @@ create table if not exists eea_datatable
     uri      varchar(255) not null unique
 );
 
-comment on table eea_datatable is 'Data table types - samplingprocess, model, assessmentregimezone, planscenario';
+comment on table eea_datatable is 'AQR3 DOC_02 DataTable (aq/datatable): id is the concept, e.g. AssessmentRegimeZone; notation the table code, e.g. ARZ';
 
 create table if not exists eea_resultencoding
 (
@@ -2658,5 +2658,10 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
        -- 033 moves authorities off retired aq/authorityinstance spellings; a fresh
        -- install loads the current concepts and has no authorities to move.
        ('4.502.33', 'baseline: no-op on a fresh install -- vocabularies.py loads the '
-                    'current aq/authorityinstance concepts (migration 033)')
+                    'current aq/authorityinstance concepts (migration 033)'),
+       -- 034 moves retired vocabulary spellings and fills SamplingPointReferenceIds; a
+       -- fresh install loads the current concepts and has no sampling points yet.
+       ('4.502.34', 'baseline: no-op on a fresh install -- data.sql and vocabularies.py '
+                    'carry the current modelapplication, datatable and DocumentType '
+                    'concepts (migration 034)')
 on conflict (version) do nothing;

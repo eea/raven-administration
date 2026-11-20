@@ -122,24 +122,31 @@ AUTHORITY_ROLE_FALLBACK = _rows(
     ('assessment', 'Assessment', 'assessment'),
 )
 
-# DOC_03. `aq/documentobject` returns HTTP 500. Values from schema.sql's own comment:
-# "Document object types for AUTH reporting - AQD, Classificationreport, etc."
+# DOC_03. As EEA publishes aq/documenttype (2026-11-20) -- the vocabulary DOC_03 names;
+# the aq/documentobject this used to read returns HTTP 500 and is not it (migration 034).
 DOCUMENT_OBJECT_FALLBACK = _rows(
-    ('AQD', 'Air Quality Directive report', 'AQD'),
-    ('Classificationreport', 'Classification report', 'Classificationreport'),
+    ('ClassificationDocument', 'Classification Document', 'ClassificationDocument'),
+    ('DataQualityDocument', 'Data Quality Document', 'DataQualityDocument'),
+    ('EquivalenceDemonstrationDocument', 'Equivalence Demonstration Document', 'EquivalenceDemonstrationDocument'),
+    ('PlanDocument', 'Plan Document', 'PlanDocument'),
+    ('ProcessDocument', 'Process Document', 'ProcessDocument'),
+    ('NetworkDocument', 'Network Document', 'NetworkDocument'),
+    ('MethodDocument', 'Method Document', 'MethodDocument'),
+    ('AdjustmentDocument', 'Adjustment Document', 'AdjustmentDocument'),
+    ('SourceApportionmentDocument', 'Source Apportionment Document', 'SourceApportionmentDocument'),
 )
 
-# DOC_02. Values from schema.sql's comment: "Data table types - samplingprocess,
-# model, assessmentregimezone, planscenario", extended with the other v5.02 tables
-# that carry a DocumentId attribute.
+# DOC_02. As EEA publishes aq/datatable (2026-11-20): the id is the concept and is what
+# DataTable carries; the notation is the table code. The lowercase ids this replaced
+# were invented (migration 034).
 DATA_TABLE_FALLBACK = _rows(
-    ('samplingprocess', 'SamplingProcess', 'SPP'),
-    ('model', 'ModelObjectiveEstimation', 'MOE'),
-    ('assessmentregimezone', 'AssessmentRegimeZone', 'ARZ'),
-    ('planscenario', 'PlanScenario', 'PSC'),
-    ('network', 'MeasurementStation / network', 'STA'),
-    ('sourceapportionment', 'SourceApportionment', 'SAP'),
-    ('pollutionleveladjustment', 'PollutionLevelAdjustment', 'ADJ'),
+    ('PollutionLevelAdjustment', 'PollutionLevelAdjustment (ADJ)', 'ADJ'),
+    ('AssessmentRegimeZone', 'AssessmentRegimeZone (ARZ)', 'ARZ'),
+    ('CompliancePlanLink', 'CompliancePlanLink (CPL)', 'CPL'),
+    ('ModelObjectiveEstimation', 'ModelObjectiveEstimation (MOE)', 'MOE'),
+    ('SamplingProcess', 'SamplingProcess (SPP)', 'SPP'),
+    ('SourceApportionment', 'SourceApportionment (SAP)', 'SAP'),
+    ('MeasurementStation', 'MeasurementStation (STA)', 'STA'),
 )
 
 # MOE_06 / SRS_05. Guide: "Encoding method used for model results ('zone',
@@ -155,10 +162,17 @@ RESULT_ENCODING_FALLBACK = _rows(
 # MOE_07. Guide: "Purpose of the model application (e.g., assessment, adjustment,
 # scenario, spatial representativeness)".
 MODEL_APPLICATION_FALLBACK = _rows(
-    ('assessment', 'Assessment', 'assessment'),
-    ('adjustment', 'Adjustment', 'adjustment'),
+    # As EEA publishes it (2026-11-20). `sr`, which the guide's own MOE example still
+    # writes, was retired for `spatialrepresentativeness` on 2026-10-20 (migration 034).
+    ('adjustment', 'Natural source adjustment', 'adjustment'),
+    ('airqualityconcentrations', 'air quality concentrations', 'airqualityconcentrations'),
+    ('airqualityforecasting', 'air quality forecasting', 'airqualityforecasting'),
+    ('assessment', 'Assessment for Compliance', 'assessment'),
+    ('populationexposure', 'population exposure', 'populationexposure'),
     ('scenario', 'Scenario', 'scenario'),
-    ('representativeness', 'Spatial representativeness', 'representativeness'),
+    ('sourceapportionment', 'source apportionment', 'sourceapportionment'),
+    ('spatialrepresentativeness', 'spatial representativeness', 'spatialrepresentativeness'),
+    ('aei', 'average exposure indicator', 'aei'),
 )
 
 # MRI_12 / MRE_09 / SRI_05 / SRE_03. Guide Introduction: the common grid uses
@@ -383,11 +397,13 @@ VOCABULARIES = (
     # -- Documentation (DOC) -----------------------------------------------
     Vocabulary('eea_datatable', 'aq/datatable', aqr3='DOC_02 DataTable', id_from='uri_suffix',
                fallback=DATA_TABLE_FALLBACK,
-               fallback_note='values from the schema.sql table comment'),
+               fallback_note='the seven concepts EEA published on 2026-11-20'),
+    # The guide workbook names aq/documentobject (HTTP 500); its site and EEA
+    # publish aq/documenttype, so that is fetched first, as the recast is above.
     Vocabulary('eea_documentobject', 'aq/documentobject', aqr3='DOC_03 DocumentType',
+               prefer=('aq/documenttype',),
                fallback=DOCUMENT_OBJECT_FALLBACK,
-               fallback_note='vocabulary returns HTTP 500; values from the schema.sql '
-                             'table comment - likely incomplete'),
+               fallback_note='the nine concepts EEA published on 2026-11-20'),
 
     # -- Environmental objectives ------------------------------------------
     # AQR3 v5.02 is the AAQD 2024/2881 recast, so prefer the recast vocabulary and
