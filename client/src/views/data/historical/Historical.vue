@@ -13,6 +13,8 @@ import { groupBy, downloadCsv } from "../../../helpers/utils";
 import { datetimeCellRenderer, granularityFromHistoricalRow } from "../../../helpers/datetimeHighlight";
 import Eventy from "../../../helpers/eventy";
 import useHistoricalExtension from "../../../composables/useHistoricalExtension";
+import WindRose from "./WindRose.vue";
+import { listSeries, isDirection } from "./windrose";
 import IconModify from "~icons/material-symbols/tune";
 import IconReplot from "~icons/material-symbols/bar-chart";
 import IconList from "~icons/material-symbols/table-rows-narrow";
@@ -56,6 +58,10 @@ const gridData = ref([]);
 // Series contributed by plugins (e.g. external data sources), plotted alongside our own.
 const { pickers: extensionPickers, selections: extensionSelections, selectedCount: extensionCount, fetchSeries: fetchExtensionSeries } = useHistoricalExtension();
 const nothingSelected = computed(() => selectedIds.value.length === 0 && extensionCount.value === 0);
+
+// Wind / pollution rose, offered when a wind direction series is among the plotted ones.
+const showWindRose = ref(false);
+const hasWindDirection = computed(() => listSeries(gridData.value).some(isDirection));
 
 var chart;
 
@@ -480,6 +486,10 @@ const pivotData = computed(() => {
           </div>
         </div>
         <div class="flex items-center gap-6 shrink-0">
+          <div v-if="hasWindDirection" class="flex gap-2">
+            <label class="self-center cursor-pointer font-bold" @click="showWindRose = !showWindRose">Wind rose:</label>
+            <input type="checkbox" class="self-center" v-model="showWindRose" />
+          </div>
           <div class="flex gap-2">
             <label class="self-center cursor-pointer font-bold" @click="beginAtZero = !beginAtZero">Start Y-axis at zero:</label>
             <input type="checkbox" class="self-center" v-model="beginAtZero" />
@@ -493,6 +503,10 @@ const pivotData = computed(() => {
       <div class="h-full w-full py-4">
         <canvas id="chart" @dblclick="onResetZoom" style="cursor: crosshair"></canvas>
       </div>
+    </Container>
+
+    <Container v-if="showPlot && showWindRose && hasWindDirection" class="mt-4 p-4!">
+      <WindRose :rows="gridData" :meantype="activeMeantype" />
     </Container>
 
     <Container v-show="showPlot" class="flex-1 mt-4 min-h-48">
