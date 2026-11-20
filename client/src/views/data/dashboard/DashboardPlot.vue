@@ -484,16 +484,16 @@ onBeforeUnmount(() => {
       <span class="font-bold text-sm truncate min-w-0 cursor-default" :title="plot.title || 'Untitled'">{{ plot.title || "Untitled" }}</span>
       <!-- Nav icons group: Historical + Validate + Scale + Log picker -->
       <div class="relative shrink-0 flex items-center" ref="pickerRef">
-        <button class="text-nord3 hover:text-nord10 p-1 rounded" @click="goToHistorical" title="Open in Historical">
+        <button class="icon-btn" @click="goToHistorical" title="Open in Historical">
           <icon-history class="text-base" />
         </button>
-        <button class="text-nord3 hover:text-nord10 p-1 rounded" :class="{ 'text-nord10': pickerTarget === 'Validate' }" @click.stop="openPicker('Validate')" title="Open in Validate">
+        <button class="icon-btn" :class="{ 'is-active': pickerTarget === 'Validate' }" @click.stop="openPicker('Validate')" title="Open in Validate">
           <icon-validate class="text-base" />
         </button>
-        <button class="text-nord3 hover:text-nord10 p-1 rounded" :class="{ 'text-nord10': pickerTarget === 'Scale' }" @click.stop="openPicker('Scale')" title="Open in Scale">
+        <button class="icon-btn" :class="{ 'is-active': pickerTarget === 'Scale' }" @click.stop="openPicker('Scale')" title="Open in Scale">
           <icon-scale class="text-base" />
         </button>
-        <button class="text-nord3 hover:text-nord14 p-1 rounded" :class="{ 'text-nord14': pickerTarget === 'ViewDailyCheck' }" @click.stop="openPicker('ViewDailyCheck')" title="View daily check log">
+        <button class="icon-btn" :class="{ 'is-active': pickerTarget === 'ViewDailyCheck' }" @click.stop="openPicker('ViewDailyCheck')" title="View daily check log">
           <icon-log class="text-base" />
         </button>
         <div v-if="pickerTarget"
@@ -516,13 +516,13 @@ onBeforeUnmount(() => {
 
       <span class="text-xs font-mono text-nord3 shrink-0">{{ plot.timePreset }}</span>
 
-      <button class="text-nord3 hover:text-nord10 p-1 rounded" :class="{ 'animate-spin': loading }" @click="loadData()" title="Refresh">
+      <button class="icon-btn" :class="{ 'animate-spin': loading }" @click="loadData()" title="Refresh">
         <icon-refresh class="text-base" />
       </button>
-      <button class="text-nord3 hover:text-nord10 p-1 rounded" @click="emit('edit', plot)" title="Configure">
+      <button class="icon-btn" @click="emit('edit', plot)" title="Configure">
         <icon-tune class="text-base" />
       </button>
-      <button class="text-nord3 hover:text-nord11 p-1 rounded" @click="emit('remove', plot.id)" title="Remove">
+      <button class="icon-btn icon-btn-danger" @click="emit('remove', plot.id)" title="Remove">
         <icon-delete class="text-base" />
       </button>
     </div>
@@ -656,3 +656,26 @@ onBeforeUnmount(() => {
     </template>
   </c-menu>
 </template>
+
+<style scoped>
+/* Plot card icon buttons: one look for all of them, a soft round background on hover. */
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  color: var(--color-nord3);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.icon-btn:hover,
+.icon-btn.is-active {
+  background-color: var(--color-brand-soft);
+  color: var(--color-nord10);
+}
+.icon-btn-danger:hover {
+  background-color: color-mix(in srgb, var(--color-nord11) 10%, transparent);
+  color: var(--color-nord11);
+}
+</style>
