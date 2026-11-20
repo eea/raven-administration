@@ -49,6 +49,10 @@ const onSave = () => {
       <n-checkbox v-model="obj.qualitycontrol" class="self-center" />
     </div>
     <div class="flex cursor-pointer hover:bg-gray-50 p-1 select-none">
+      <div class="font-bold self-center flex-1" @click="obj.importing = !obj.importing">Importing:</div>
+      <n-checkbox v-model="obj.importing" class="self-center" />
+    </div>
+    <div class="flex cursor-pointer hover:bg-gray-50 p-1 select-none">
       <div class="font-bold self-center flex-1" @click="obj.users = !obj.users">Users:</div>
       <n-checkbox v-model="obj.users" class="self-center" />
     </div>

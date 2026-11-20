@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.  
 Changes before version 3.1.0 is not included
 
+## [3.6.0] - 2026-11-20
+
+### Added
+
+- New group permission **Importing**. It allows importing observations (Manual import and the logger import API) without the management permission, which also allows editing stations, sampling points and other metadata. Management still includes importing, so existing groups keep working. Run the [sql file](sql/importing_permission.sql) to add the permission, then create a group with Importing and All networks for users who should only import data. Users must sign in again to get the new permission.
+
+### Fixes
+
+- Importing stations (`/api/imports/stations`) did not require signing in. It now requires the management and all networks permissions, like the other metadata imports.
+- Manual import was shown in the menu to users with the processing permission, but the import itself required management. It is now shown to users with management or importing, and all networks.
+
 ## [3.5.9] - 2026-11-02
 
 ### Added

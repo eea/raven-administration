@@ -108,6 +108,7 @@ const cls_usedby = (row) => {
           <th>EEA dataflow</th>
           <th>Processing</th>
           <th>Quality control</th>
+          <th>Importing</th>
           <th>Users</th>
           <th>All networks</th>
           <th>Referenced by</th>
@@ -121,6 +122,7 @@ const cls_usedby = (row) => {
           <td><n-checkbox class="align-middle" v-model="row.exporting" :disabled="true" /></td>
           <td><n-checkbox class="align-middle" v-model="row.processing" :disabled="true" /></td>
           <td><n-checkbox class="align-middle" v-model="row.qualitycontrol" :disabled="true" /></td>
+          <td><n-checkbox class="align-middle" v-model="row.importing" :disabled="true" /></td>
           <td><n-checkbox class="align-middle" v-model="row.users" :disabled="true" /></td>
           <td><n-checkbox class="align-middle" v-model="row.allnetworks" :disabled="true" /></td>
           <td>

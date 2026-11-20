@@ -40,6 +40,7 @@ class InsertGroupModel(BaseModel):
     exporting: Optional[bool] = False
     processing: Optional[bool] = False
     qualitycontrol: Optional[bool] = False
+    importing: Optional[bool] = False
     users: Optional[bool] = False
     allnetworks: Optional[bool] = False
     networks: conlist(str, min_items=0)
@@ -56,6 +57,7 @@ class UpdateGroupModel(BaseModel):
     exporting: Optional[bool] = False
     processing: Optional[bool] = False
     qualitycontrol: Optional[bool] = False
+    importing: Optional[bool] = False
     users: Optional[bool] = False
     allnetworks: Optional[bool] = False
     networks: conlist(str, min_items=0)

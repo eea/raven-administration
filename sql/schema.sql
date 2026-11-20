@@ -275,6 +275,7 @@ create table if not exists "group"
     exporting      boolean,
     processing     boolean,
     qualitycontrol boolean,
+    importing      boolean default false                             not null,
     users          boolean,
     allnetworks    boolean,
     locked         boolean default false                             not null,

@@ -58,9 +58,9 @@ const getmodules = () => {
     },
     {
       group: "Import process",
-      show: jwt.processing,
+      show: jwt.processing || ((jwt.management || jwt.importing) && jwt.allnetworks),
       items: [
-        { name: "Manual import", comp: "Import", show: jwt.processing && jwt.allnetworks },
+        { name: "Manual import", comp: "Import", show: (jwt.management || jwt.importing) && jwt.allnetworks },
         { name: "Auto validate", comp: "AutoValidate", show: jwt.processing },
         { name: "Convert", comp: "Convert", show: jwt.processing },
         { name: "Calculate", comp: "Calculate", show: jwt.processing },

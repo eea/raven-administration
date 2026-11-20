@@ -46,6 +46,8 @@ def import_networks():
 
 
 @import_management_endpoint.route("/api/imports/stations", methods=["POST"])
+@jwt_required_with_management_claim()
+@jwt_required_with_allnetworks_claim()
 def import_stations():
     with CursorFromPool() as cursor:
         m = Management(cursor, "stations")

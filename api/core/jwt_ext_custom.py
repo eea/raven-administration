@@ -70,6 +70,21 @@ def jwt_required_with_management_claim():
     return wrapper
 
 
+def jwt_required_with_any_claim(*names):
+    """Allows the request when the token has at least one of the given claims."""
+    def wrapper(fn):
+        @wraps(fn)
+        def decorator(*args, **kwargs):
+            verify_jwt_in_request()
+            claims = get_jwt()
+            # .get: tokens issued before a claim existed don't carry it
+            if any(claims.get(name) for name in names):
+                return fn(*args, **kwargs)
+            return jsonify(msg="Access to this resource was denied"), 403
+        return decorator
+    return wrapper
+
+
 def verify_claim(claim, fn, *args, **kwargs):
     verify_jwt_in_request()
     claims = get_jwt()

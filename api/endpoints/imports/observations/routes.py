@@ -10,13 +10,14 @@ import pandas as pd
 import time
 from endpoints.imports.observations.models import LoggerLastValue
 from pandas import DataFrame
-from core.jwt_ext_custom import jwt_required_with_allnetworks_claim, jwt_required_with_management_claim
+from core.jwt_ext_custom import jwt_required_with_allnetworks_claim, jwt_required_with_any_claim
 
 observations_endpoint = Blueprint('observations', __name__)
 
 
 @observations_endpoint.route('/api/imports/observations', methods=['POST'])
-@jwt_required_with_management_claim()
+# Management includes importing; the importing permission allows it without metadata editing.
+@jwt_required_with_any_claim("management", "importing")
 @jwt_required_with_allnetworks_claim()
 def import_obs():
     with CursorFromPool() as cursor:
@@ -37,7 +38,8 @@ def import_obs():
 
 
 @observations_endpoint.route('/api/imports/logger', methods=['POST'])
-@jwt_required_with_management_claim()
+# Management includes importing; the importing permission allows it without metadata editing.
+@jwt_required_with_any_claim("management", "importing")
 @jwt_required_with_allnetworks_claim()
 def import_logger():
     with CursorFromPool() as cursor:
@@ -81,7 +83,8 @@ def import_logger():
 
 
 @observations_endpoint.route('/api/imports/logger', methods=['GET'])
-@jwt_required_with_management_claim()
+# Management includes importing; the importing permission allows it without metadata editing.
+@jwt_required_with_any_claim("management", "importing")
 @jwt_required_with_allnetworks_claim()
 def last_entry():
     with CursorFromPool() as cursor:
