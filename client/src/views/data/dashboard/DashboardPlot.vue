@@ -14,17 +14,18 @@ import Auth from "../../../helpers/auth";
 import SamplingPointLog from "../../management/samplingpoints/SamplingPointLog.vue";
 import CMenu from "../../../components/CMenu.vue";
 import Popup from "../../../components/Popup.vue";
-import IconRefresh  from "~icons/material-symbols/refresh";
-import IconTune     from "~icons/material-symbols/tune";
-import IconDelete   from "~icons/material-symbols/delete-outline";
-import IconHistory  from "~icons/material-symbols/bar-chart";
-import IconValidate from "~icons/material-symbols/fact-check";
-import IconScale    from "~icons/uil/process";
-import IconLog      from "~icons/material-symbols/assignment-outline";
-import IconCheckBox     from "~icons/material-symbols/check-box";
-import IconCheckBoxBlank from "~icons/material-symbols/check-box-outline-blank";
-import IconCoverageFull from "~icons/material-symbols/check-circle-outline";
-import IconCoveragePartial from "~icons/material-symbols/error-outline";
+// Same tabler icons as the menu entries the shortcuts open (useNavigation.js).
+import IconRefresh  from "~icons/tabler/refresh";
+import IconTune     from "~icons/tabler/adjustments-horizontal";
+import IconDelete   from "~icons/tabler/trash";
+import IconHistory  from "~icons/tabler/chart-line";
+import IconValidate from "~icons/tabler/checks";
+import IconScale    from "~icons/tabler/ruler-measure";
+import IconLog      from "~icons/tabler/clipboard-list";
+import IconCheckBox     from "~icons/tabler/square-check";
+import IconCheckBoxBlank from "~icons/tabler/square";
+import IconCoverageFull from "~icons/tabler/circle-check";
+import IconCoveragePartial from "~icons/tabler/alert-circle";
 
 Chart.register(zoomPlugin);
 
