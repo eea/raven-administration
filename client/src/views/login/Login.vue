@@ -82,7 +82,7 @@ const reset = () => {
         </div>
       </div>
       <div class="relative max-w-lg">
-        <h1 class="font-display text-[2.6rem] leading-[1.1] font-extrabold tracking-tight">Air quality data,<br /><span class="hero-grad text-transparent bg-clip-text">managed end to end.</span></h1>
+        <h1 class="font-display text-[2.6rem] leading-[1.1] font-extrabold tracking-tight !text-white">Air quality data,<br /><span class="hero-grad text-transparent bg-clip-text">managed end to end.</span></h1>
         <p class="mt-4 text-white/60 text-[1.05rem] max-w-md">Import, validate, verify and report observations from every station in your network.</p>
         <div class="mt-8 flex flex-wrap gap-2">
           <span class="pill"><IconChart /> Monitoring</span>
