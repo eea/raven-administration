@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import CommonLayout from "../../../components/CommonLayout.vue";
 import ToolBar from "../../../components/ToolBar.vue";
 import Popup from "../../../components/Popup.vue";
+import Confirm from "../../../components/Confirm.vue";
 import DataTable from "../../../components/DataTable.vue";
 import DashboardPlot from "./DashboardPlot.vue";
 import Service from "./service";
@@ -185,7 +186,18 @@ const onUpdate = (updated) => {
   }
 };
 
+// The trash button asks first; the plot's settings are gone once it is removed.
+const removeTarget = ref(null);
+const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const removeText = () => `Remove <strong>${escapeHtml(removeTarget.value?.title || "Untitled")}</strong> from the dashboard? Its settings cannot be restored.`;
+
 const onRemove = (id) => {
+  removeTarget.value = plots.value.find((p) => p.id === id) ?? null;
+};
+
+const confirmRemove = () => {
+  const id = removeTarget.value?.id;
+  removeTarget.value = null;
   plots.value = plots.value.filter((p) => p.id !== id);
   savePlots();
 };
@@ -193,6 +205,7 @@ const onRemove = (id) => {
 
 <template>
   <common-layout>
+    <confirm :show="!!removeTarget" title="Remove plot" :text="removeText()" @close="removeTarget = null" @ok="confirmRemove" />
     <tool-bar title="Dashboard" :show-filter="false" :show-download="false" @add-click="openAdd">
       <CircleHover class="ml-1 self-center" @click="toggleDefault" :title="isDefault ? 'Opens here after login' : 'Open here after login'">
         <icon-heart v-if="isDefault" class="text-nord10 text-sm self-center" />
