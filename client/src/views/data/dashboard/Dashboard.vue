@@ -8,9 +8,9 @@ import DataTable from "../../../components/DataTable.vue";
 import DashboardPlot from "./DashboardPlot.vue";
 import Service from "./service";
 import { datetimeCellRenderer, granularityFromTimestep } from "../../../helpers/datetimeHighlight";
-import IconHeart from "~icons/mdi/heart";
-import IconHeartOutline from "~icons/mdi/heart-outline";
-import IconStar from "~icons/mdi/star-outline";
+import IconHeart from "~icons/tabler/heart-filled";
+import IconHeartOutline from "~icons/tabler/heart";
+import IconStar from "~icons/tabler/star";
 import CircleHover from "../../../components/CircleHover.vue";
 import FavoritesPicker from "../../../components/favorites/FavoritesPicker.vue";
 import FavoritesManager from "../../../components/favorites/FavoritesManager.vue";
@@ -208,11 +208,11 @@ const confirmRemove = () => {
     <confirm :show="!!removeTarget" title="Remove plot" :text="removeText()" @close="removeTarget = null" @ok="confirmRemove" />
     <tool-bar title="Dashboard" :show-filter="false" :show-download="false" @add-click="openAdd">
       <CircleHover class="ml-1 self-center" @click="toggleDefault" :title="isDefault ? 'Opens here after login' : 'Open here after login'">
-        <icon-heart v-if="isDefault" class="text-nord10 text-sm self-center" />
-        <icon-heart-outline v-else class="text-nord3 text-sm self-center" />
+        <icon-heart v-if="isDefault" class="text-nord10 text-[1.05rem] self-center" />
+        <icon-heart-outline v-else class="text-nord3 text-[1.05rem] self-center" />
       </CircleHover>
       <CircleHover class="ml-1 self-center" @click="showFavoritesManager = true" title="Manage favorites">
-        <icon-star class="text-nord3 text-sm self-center" />
+        <icon-star class="text-nord3 text-[1.05rem] self-center" />
       </CircleHover>
     </tool-bar>
 
