@@ -36,6 +36,7 @@ watch(
         exporting: false,
         processing: false,
         qualitycontrol: false,
+        importing: false,
         users: false,
         allnetworks: false,
         networks: [],
@@ -101,6 +102,11 @@ const onClose = () => {
         <div class="flex cursor-pointer hover:bg-gray-50 p-1 select-none">
           <div class="font-bold self-center flex-1" @click="obj.qualitycontrol = !obj.qualitycontrol">Quality control:</div>
           <input type="checkbox" v-model="obj.qualitycontrol" class="self-center" />
+        </div>
+
+        <div class="flex cursor-pointer hover:bg-gray-50 p-1 select-none">
+          <div class="font-bold self-center flex-1" @click="obj.importing = !obj.importing">Importing:</div>
+          <input type="checkbox" v-model="obj.importing" class="self-center" />
         </div>
 
         <div class="flex cursor-pointer hover:bg-gray-50 p-1 select-none">

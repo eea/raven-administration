@@ -522,6 +522,7 @@ create table if not exists "group"
     exporting      boolean,
     processing     boolean,
     qualitycontrol boolean,
+    importing      boolean default false not null,
     users          boolean,
     allnetworks    boolean,
     locked         boolean default false not null,
@@ -2663,5 +2664,6 @@ values ('4.502.11', 'baseline: schema.sql embodies migrations 001-011'),
        -- fresh install loads the current concepts and has no sampling points yet.
        ('4.502.34', 'baseline: no-op on a fresh install -- data.sql and vocabularies.py '
                     'carry the current modelapplication, datatable and DocumentType '
-                    'concepts (migration 034)')
+                    'concepts (migration 034)'),
+       ('4.502.35', 'baseline: schema.sql declares group.importing (migration 035)')
 on conflict (version) do nothing;

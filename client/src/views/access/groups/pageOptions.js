@@ -10,6 +10,7 @@ const pageOptions = (lookups) => ({
     { type: "checkbox", label: "EEA dataflow", prop: "exporting", required: false, default: false, showInGrid: true, width: 120 },
     { type: "checkbox", label: "Processing", prop: "processing", required: false, default: false, showInGrid: true, width: 120 },
     { type: "checkbox", label: "Quality control", prop: "qualitycontrol", required: false, default: false, showInGrid: true, width: 140 },
+    { type: "checkbox", label: "Importing", prop: "importing", required: false, default: false, showInGrid: true, width: 110 },
     { type: "checkbox", label: "Users", prop: "users", required: false, default: false, showInGrid: true, width: 100 },
     { type: "checkbox", label: "All networks", prop: "allnetworks", required: false, default: false, showInGrid: true, width: 120 },
     {

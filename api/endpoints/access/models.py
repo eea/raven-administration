@@ -55,6 +55,7 @@ class InsertGroupModel(RavenBaseModel):
     exporting: Optional[bool] = False
     processing: Optional[bool] = False
     qualitycontrol: Optional[bool] = False
+    importing: Optional[bool] = False
     users: Optional[bool] = False
     allnetworks: Optional[bool] = False
     networks: Optional[List[str]] = None
@@ -72,6 +73,7 @@ class UpdateGroupModel(RavenBaseModel):
     exporting: Optional[bool] = False
     processing: Optional[bool] = False
     qualitycontrol: Optional[bool] = False
+    importing: Optional[bool] = False
     users: Optional[bool] = False
     allnetworks: Optional[bool] = False
     networks: Optional[List[str]] = None
