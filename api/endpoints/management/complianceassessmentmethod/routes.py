@@ -8,12 +8,12 @@ a real regime and assessment method, and inventing one would report a compliance
 situation that was never assessed -- and no delete, because AQR3's own way to retract
 a row is the Deletion flag (CAM_18), which is editable here.
 
-What *is* editable is the eight columns the evaluation is meant to compute but does
-not yet. `core/data/plans_programs_export.py` supplies IsExceedance, DataCoverage,
-PollutionLevel, PollutionLevelAdjusted, RelativeUncertaintyLimit, AssessmentMQI,
-CorrectionFlag and PreliminaryReason as TODO-marked placeholders, so they arrive as
-NULL and AQR3 wants PollutionLevel on every row. persist_compliance keeps whatever is
-stored here until the evaluation produces a value of its own.
+What *is* editable is the eight value columns. `core/data/plans_programs_export.py`
+computes IsExceedance, DataCoverage and PollutionLevel for a sampling point with data
+and a threshold; a model row, a row without data, and PollutionLevelAdjusted,
+RelativeUncertaintyLimit, AssessmentMQI, CorrectionFlag and PreliminaryReason arrive
+as NULL, and AQR3 wants PollutionLevel on every row. persist_compliance keeps whatever
+is stored here until the evaluation produces a value of its own.
 
 Composite primary key (reporting_year, assessment_regime_id,
 data_aggregation_process_id, assessment_method_id), so this does not use the generic

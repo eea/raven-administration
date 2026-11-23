@@ -15,11 +15,13 @@ THREE TIERS OF COLUMN.
    AttainmentId. These describe the row rather than measure it, so a stale value must
    not survive. AttainmentId is derived around one number it does not own -- see 3.
 
-2. NOT COMPUTED YET, so entered by hand and preserved: IsExceedance, DataCoverage,
-   PollutionLevel, PollutionLevelAdjusted, RelativeUncertaintyLimit, AssessmentMQI,
-   CorrectionFlag, PreliminaryReason and SRSId. The first eight are what the
-   evaluation is *meant* to compute but does not yet -- `plans_programs_export.py`
-   supplies them as TODO-marked placeholders, so they arrive as NULL. SRSId is
+2. COMPUTED WHERE POSSIBLE, otherwise entered by hand and preserved: IsExceedance,
+   DataCoverage, PollutionLevel, PollutionLevelAdjusted, RelativeUncertaintyLimit,
+   AssessmentMQI, CorrectionFlag, PreliminaryReason and SRSId. Since 2026-11-23 the
+   evaluation computes the first three for a sampling point that has data for the
+   year (`PlansAndProgramsExport._evaluate`); a model row, a row with no threshold
+   for the directive and a row with no data still arrive as NULL, as do the other
+   five, which nothing computes yet. SRSId is
    different in kind: nothing can ever derive it, because SRS_02 names a spatial area
    an operator uploads and SRS_06 points from that area at the model which assessed
    it, not at this row. It used to be set to the sampling point id, which pointed all

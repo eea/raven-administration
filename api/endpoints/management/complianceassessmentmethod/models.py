@@ -23,9 +23,9 @@ class ComplianceKey(RavenBaseModel):
 class ComplianceValues(RavenBaseModel):
     """The columns an operator maintains, all optional.
 
-    Every one is legitimately blank: these are what
-    core/data/plans_programs_export.py still supplies as TODO placeholders, so a row
-    starts empty and is filled in as the figures become known. `deletion` (CAM_18) and
+    Every one is legitimately blank: core/data/plans_programs_export.py computes only
+    IsExceedance, DataCoverage and PollutionLevel, and only for a sampling point with
+    data, so a row can start empty and is filled in as the figures become known. `deletion` (CAM_18) and
     `attainment_index` (CAM_15's ordering index) are never computed at all -- the first
     is AQR3's retraction flag, the second is how an operator says a regime holds more
     than one compliance situation. `srs_id` is not computable either.

@@ -112,6 +112,14 @@ ALL_THRESHOLDS = UPPER_LOWER + SINGLE + LONG_TERM
 _SAMPLED = {PB, CD, NI, AS, BAP, C6H6}
 MIN_COVERAGE, MIN_COVERAGE_SAMPLED = 75, 14
 
+
+def min_coverage(pollutant_id):
+    """The data coverage (%) a year needs to count for this pollutant."""
+    try:
+        return MIN_COVERAGE_SAMPLED if int(pollutant_id) in _SAMPLED else MIN_COVERAGE
+    except (TypeError, ValueError):
+        return MIN_COVERAGE
+
 YEARS = 5
 NEEDED = 3
 

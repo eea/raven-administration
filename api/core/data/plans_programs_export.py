@@ -28,8 +28,10 @@ from core.data.exceedances import (
     get_pollutant_eea_code,
     map_assessment_type,
     resolve_aggregation_process,
+    _threshold_pollutant,
 )
 from core.data.statistics import Statistics
+from core.eea.assessment_threshold import min_coverage, unit_factor
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +105,89 @@ class PlansAndProgramsExport:
         self.exceedances = Exceedances(cursor)
         self.statistics = Statistics(cursor)
         self.id_generator = EEAIDGenerator()
-    
+        # {(aggregation process, pollutant, year): {sampling point id: row}}. Statistics
+        # computes every sampling point of a pollutant at once, so one query serves all
+        # the rows of a recalculation that share a statistic.
+        self._statistics_cache = {}
+
+    # Threshold units a sampling point's own concentration unit has to be scaled to.
+    # Counts (days, hours, events) are counted by Statistics in its own fixed level.
+    _CONCENTRATION_UNITS = frozenset({'µg/m³', 'mg/m³', 'ng/m³'})
+
+    @staticmethod
+    def _threshold(pollutant, objective_type, aggregation_process, directive):
+        """(name, unit, {'value', 'operator'}) for the regime's objective, or None."""
+        key = _threshold_pollutant(pollutant)
+        if not (key and objective_type and aggregation_process):
+            return None
+        for name, data in DIRECTIVE_THRESHOLDS.get(key, {}).get(objective_type, {}).items():
+            if data.get('statistic') == aggregation_process and directive in data:
+                return name, data.get('unit'), data[directive]
+        return None
+
+    def _point_statistic(self, aggregation_process, pollutant, year, sampling_point_id):
+        cache_key = (aggregation_process, pollutant, year)
+        if cache_key not in self._statistics_cache:
+            try:
+                rows = self.statistics.generate(aggregation_process, pollutant, year) or []
+            except Exception:
+                # One statistic failing must not cost the rest of the recalculation;
+                # those rows are left uncomputed, which is what they were before.
+                logger.exception('Statistic %s for %s %s failed', aggregation_process,
+                                 pollutant, year)
+                rows = []
+            self._statistics_cache[cache_key] = {r['spo']: r for r in rows if r.get('spo')}
+        return self._statistics_cache[cache_key].get(sampling_point_id)
+
+    def _evaluate(self, row, pollutant, pollutant_id, objective_type,
+                  aggregation_process, directive, year):
+        """IsExceedance, PollutionLevel and DataCoverage for one sampling point.
+
+        PollutionLevel is the statistic CAM_04 names, in the threshold's unit (a count
+        of days or hours for the count statistics). IsExceedance is 'yes' when it is
+        over the threshold, whatever the coverage -- an exceedance measured is an
+        exceedance -- but 'no' only when the year has the coverage the directive asks
+        for (75 %, 14 % for the sampled pollutants); with less it is 'unknown', stored
+        as NULL, because too little data cannot show compliance.
+        """
+        out = {'isexceedance': 'unknown', 'level': None, 'coverage': None,
+               'objective': None, 'threshold': None, 'unit': None, 'operator': None,
+               'exceeded_by': None, 'exceeded_by_percent': None}
+        threshold = self._threshold(pollutant, objective_type, aggregation_process, directive)
+        if threshold:
+            out['objective'], out['unit'], limit = threshold
+            out['threshold'], out['operator'] = limit['value'], limit['operator']
+
+        # A model's id is never a key here: Statistics reads sampling points only.
+        stat = (self._point_statistic(aggregation_process, pollutant, year,
+                                      row.get('sampling_point_id'))
+                if aggregation_process and pollutant and year else None)
+        if stat is None or stat.get('value') is None:
+            return out
+        # The count statistics report 0 days at 0 % coverage for a point with no data
+        # at all; that is no measurement, not a pollution level of zero.
+        if stat.get('coverage') is not None and float(stat['coverage']) == 0:
+            return out
+
+        value = float(stat['value'])
+        if out['unit'] in self._CONCENTRATION_UNITS:
+            value *= unit_factor(row.get('unit_id'), out['unit'])
+        out['level'] = round(value, 3)
+        if stat.get('coverage') is not None:
+            out['coverage'] = round(float(stat['coverage']), 2)
+
+        if threshold:
+            exceeded = self.exceedances.check_threshold(value, out['threshold'], out['operator'])
+            if exceeded:
+                out['isexceedance'] = 'yes'
+                out['exceeded_by'] = round(value - out['threshold'], 3)
+                if out['threshold']:
+                    out['exceeded_by_percent'] = round(
+                        (value - out['threshold']) / out['threshold'] * 100, 1)
+            elif out['coverage'] is not None and out['coverage'] >= min_coverage(pollutant_id):
+                out['isexceedance'] = 'no'
+        return out
+
     def export_exceedances(
         self,
         countrycode: Optional[str],
@@ -206,11 +290,12 @@ class PlansAndProgramsExport:
     def _overlay_stored_compliance(self, exceedances: List[Dict], reportingyear: int) -> None:
         """Fill each row from its stored CAM row, matched on the CAM key.
 
-        The derivation does not evaluate exceedances yet, so on its own every row is
-        IsExceedance "unknown" with no pollution level, and AttainmentId always ends
-        in _1. compliance_assessment_method holds what an operator entered on the
-        Compliance Assessment Method page (or a later evaluation computes) and the
-        Compliance Situation No. -- that is what a consumer of this export needs.
+        The derivation computes IsExceedance, PollutionLevel and DataCoverage only
+        where it can (a sampling point with data and a threshold), and its
+        AttainmentId always ends in _1. compliance_assessment_method holds the stored
+        result of the last recalculation, what an operator entered on the Compliance
+        Assessment Method page, and the Compliance Situation No. -- that is what a
+        consumer of this export needs.
 
         A row with no stored CAM row (compliance not recalculated for the year yet)
         is left as derived. Both the v5.02 keys and the pre-v5.02 ones the payload
@@ -377,7 +462,11 @@ class PlansAndProgramsExport:
 
             -- AQR3 MOE_08 GenericMQI, for the model branch below. NULL here: a sampling
             -- point has no modelling quality indicator, and CAM_12 is its analogue.
-            NULL::numeric as model_generic_mqi
+            NULL::numeric as model_generic_mqi,
+
+            -- The point's concentration unit, so its statistic can be compared with a
+            -- threshold stated in another one (ng/m³ against µg/m³).
+            sp.unit_id::varchar as unit_id
 
         FROM sampling_points sp
         JOIN stations st ON sp.station_id = st.id
@@ -472,7 +561,10 @@ class PlansAndProgramsExport:
             -- MOE_08. A property of the method, so only a DEFAULT for CAM_13, which is
             -- the MQI of this assessment -- this regime, this pollutant, this year.
             -- persist_compliance puts it below anything typed, never above.
-            m.generic_mqi as model_generic_mqi
+            m.generic_mqi as model_generic_mqi,
+
+            -- A model has no observations, so nothing is computed for it.
+            NULL::varchar as unit_id
 
         FROM models m
         JOIN assessmentdata ad ON ad.model_id = m.id
@@ -617,10 +709,14 @@ class PlansAndProgramsExport:
                 pollutant, row.get('objective_type'), row.get('reporting_metric'),
                 directive)
             
-            # For now, create a placeholder structure
-            # TODO: Integrate with actual exceedance evaluation
-            # This will be enhanced to pull real aggregated values
-            
+            # CAM_08 IsExceedance, CAM_09 DataCoverage and CAM_10 PollutionLevel, from
+            # this sampling point's own statistic. Empty for a model and wherever
+            # there is no threshold or no data; persist_compliance then keeps what an
+            # operator typed.
+            evaluated = self._evaluate(
+                row, row.get('pollutant') or pollutant, pollutant_id,
+                row.get('objective_type'), aggregation_process, directive, reportingyear)
+
             return {
                 # EEA Compliance Structure
                 "countrycode": countrycode,
@@ -637,10 +733,11 @@ class PlansAndProgramsExport:
                 "pollutantid": pollutant_id,
                 "assessmenttype": assessment_type,
                 "hotspot": False,
-                # Derivation does not evaluate yet; over HTTP the stored CAM verdict
-                # replaces this (_overlay_stored_compliance).
-                "isexceedance": "unknown",
-                "airpollutionlevel": None,  # TODO: Get from aggregation
+                # 'unknown' where nothing could be computed; over HTTP the stored CAM
+                # row replaces all three (_overlay_stored_compliance).
+                "isexceedance": evaluated['isexceedance'],
+                "airpollutionlevel": evaluated['level'],
+                "datacoverage": evaluated['coverage'],
                 "airpollutionleveladjusted": None,
                 # Always None: `processes` lost its uncertainty_estimate column in v4 and
                 # the query has not selected it since. Kept as a key because the HTTP
@@ -686,18 +783,18 @@ class PlansAndProgramsExport:
                     "eea_code": air_pollutant_code
                 },
                 "threshold": {
-                    "objective": None,  # TODO: Get from threshold data
-                    "objectivetype": None,
-                    "value": None,
-                    "unit": "µg/m³",
-                    "operator": ">",
+                    "objective": evaluated['objective'],
+                    "objectivetype": row.get('objective_type'),
+                    "value": evaluated['threshold'],
+                    "unit": evaluated['unit'] or "µg/m³",
+                    "operator": evaluated['operator'] or ">",
                     "directive": directive
                 },
                 "measurement": {
-                    "value": None,  # TODO: Get from aggregation
-                    "coverage": None,
-                    "exceeded_by": None,
-                    "exceeded_by_percent": None
+                    "value": evaluated['level'],
+                    "coverage": evaluated['coverage'],
+                    "exceeded_by": evaluated['exceeded_by'],
+                    "exceeded_by_percent": evaluated['exceeded_by_percent']
                 },
                 "network": {
                     "name": row['network_name'],
