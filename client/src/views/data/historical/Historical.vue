@@ -426,7 +426,7 @@ const pivotData = computed(() => {
       <!-- The picker sets its own height; it may also draw its own title row (pickerHasTitle). -->
       <div v-for="ext in extensionPickers" :key="ext.id" class="mt-6" :class="{ 'h-64': !ext.pickerHasTitle }">
         <div v-if="!ext.pickerHasTitle" class="font-bold">{{ ext.title || ext.id }}</div>
-        <component :is="ext.picker" v-model="extensionSelections[ext.id]" :from="fromtime" :to="totime" />
+        <component :is="ext.picker" v-model="extensionSelections[ext.id]" :from="fromtime" :to="totime" :sampling-point-ids="selectedIds" />
       </div>
 
       <div class="mt-6">
