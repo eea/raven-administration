@@ -38,6 +38,22 @@ export const verLabel = (v) => (v != null ? VERIFICATION_LABELS[v] ?? `#${v}` : 
 export const valLabel = (v) => (v != null ? VALIDITY_LABELS[String(v)] ?? `#${v}` : "—");
 export const srcColor = (src) => SOURCE_COLORS[src] ?? "bg-nord4/20 text-nord3";
 
+/**
+ * "2026-01-05 01:00 → 05:00" when both ends fall on the same day, otherwise both in full.
+ * Inputs are 'YYYY-MM-DD HH:MM' strings from the log endpoint.
+ */
+export const periodLabel = (from, to) => {
+  if (!from && !to) return "—";
+  if (!from || !to) return from || to;
+  const sameDay = from.slice(0, 10) === to.slice(0, 10);
+  return `${from} → ${sameDay ? to.slice(11) : to}`;
+};
+
+// Entries migrated from AirQUIS (aqtvl_migration) recorded only the new state; the
+// old one is null. Shown as the new value alone rather than a red "—" that reads
+// as if the observation had no state before.
+export const OLD_NOT_RECORDED = "Previous state not recorded (migrated from AirQUIS, which logged only the new state)";
+
 /** Option lists for the filter rule editor, derived so they cannot drift from the labels above. */
 const toOptions = (map) =>
   Object.entries(map).map(([value, label]) => ({ value: Number(value), label }));
@@ -56,8 +72,7 @@ export const CORE_COLUMNS = [
   { key: "changed_at", label: "Changed at", filterField: "changed_at" },
   { key: "changed_by", label: "By", filterField: "changed_by" },
   { key: "change_source", label: "Source", filterField: "change_source" },
-  { key: "period_from", label: "Period from", filterField: null },
-  { key: "period_to", label: "Period to", filterField: null },
+  { key: "period", label: "Period", filterField: null },
   { key: "verification", label: "Verif. old→new", filterField: "new_verification" },
   { key: "validity", label: "Validity old→new", filterField: "new_validity" },
   { key: "value", label: "Value old→new", filterField: "new_value" },

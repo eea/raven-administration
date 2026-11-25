@@ -17,7 +17,7 @@ import Service from "./service";
 import ObservationLogFilterMenu from "./ObservationLogFilterMenu.vue";
 import useObservationLogExtension from "../../composables/useObservationLogExtension";
 import useObservationLogFilters from "../../composables/useObservationLogFilters";
-import { CORE_COLUMNS, verLabel, valLabel, srcColor } from "./labels";
+import { CORE_COLUMNS, verLabel, valLabel, srcColor, periodLabel, OLD_NOT_RECORDED } from "./labels";
 
 const props = defineProps({
   show: Boolean,
@@ -204,10 +204,12 @@ const isEmptyByFilter = computed(() => isEmpty.value && activeRuleCount.value > 
                 {{ r.change_source }}
               </span>
             </td>
-            <td v-if="isVisible('period_from')" class="whitespace-nowrap font-mono text-xs">{{ r.period_from }}</td>
-            <td v-if="isVisible('period_to')" class="whitespace-nowrap font-mono text-xs">{{ r.period_to }}</td>
+            <td v-if="isVisible('period')" class="whitespace-nowrap font-mono text-xs">{{ periodLabel(r.period_from, r.period_to) }}</td>
             <td v-if="isVisible('verification')" class="whitespace-nowrap">
-              <span v-if="r.old_verification != null || r.new_verification != null">
+              <span v-if="r.old_verification == null && r.new_verification != null" class="text-nord14" :title="OLD_NOT_RECORDED">
+                {{ verLabel(r.new_verification) }}
+              </span>
+              <span v-else-if="r.old_verification != null || r.new_verification != null">
                 <span class="text-nord11">{{ verLabel(r.old_verification) }}</span>
                 <span class="text-nord3 mx-1">→</span>
                 <span class="text-nord14">{{ verLabel(r.new_verification) }}</span>
@@ -215,7 +217,10 @@ const isEmptyByFilter = computed(() => isEmpty.value && activeRuleCount.value > 
               <span v-else class="text-nord3">—</span>
             </td>
             <td v-if="isVisible('validity')" class="whitespace-nowrap">
-              <span v-if="r.old_validity != null || r.new_validity != null">
+              <span v-if="r.old_validity == null && r.new_validity != null" class="text-nord14" :title="OLD_NOT_RECORDED">
+                {{ valLabel(r.new_validity) }}
+              </span>
+              <span v-else-if="r.old_validity != null || r.new_validity != null">
                 <span class="text-nord11">{{ valLabel(r.old_validity) }}</span>
                 <span class="text-nord3 mx-1">→</span>
                 <span class="text-nord14">{{ valLabel(r.new_validity) }}</span>
@@ -223,7 +228,8 @@ const isEmptyByFilter = computed(() => isEmpty.value && activeRuleCount.value > 
               <span v-else class="text-nord3">—</span>
             </td>
             <td v-if="isVisible('value')" class="whitespace-nowrap font-mono text-xs">
-              <span v-if="r.old_value != null || r.new_value != null">
+              <span v-if="r.old_value == null && r.new_value != null" :title="OLD_NOT_RECORDED">{{ r.new_value }}</span>
+              <span v-else-if="r.old_value != null || r.new_value != null">
                 {{ r.old_value ?? "—" }} → {{ r.new_value ?? "—" }}
               </span>
               <span v-else class="text-nord3">—</span>
